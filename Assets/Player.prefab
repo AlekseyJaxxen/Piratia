@@ -492,12 +492,11 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   skillHotkey: 282
-  skillRange: 20
+  skillRange: 6
   skillCooldown: 3
   castTime: 0.1
   skillDamage: 300
-  skillEffectPrefab: {fileID: 1885649091934712, guid: 2048bd4dd68bfe14bbbeb2a573517d15,
-    type: 3}
+  skillEffectPrefab: {fileID: 0}
   skillProjectilePrefab: {fileID: 159062, guid: e4fc72c1b3da74d4697708bcd2a9db60,
     type: 3}
   skillRangeIndicator: {fileID: 5408012591896461439, guid: ebebfbbc3005f3341a4118191085b253,
@@ -517,10 +516,10 @@ MonoBehaviour:
   skill2TargetIndicatorPrefab: {fileID: 6019624651139454826, guid: dacc0954c394ce54397955b30c4228fb,
     type: 3}
   skill3Hotkey: 284
-  skill3Range: 4
+  skill3Range: 5
   skill3Cooldown: 4
   skill3CastTime: 0.1
-  skill3Damage: 500
+  skill3HealAmount: 500
   skill3EffectPrefab: {fileID: 152564, guid: 0e4a7fa9fd28f154b91c98ee6fe8ebea, type: 3}
   skill3RangeIndicator: {fileID: 5408012591896461439, guid: ebebfbbc3005f3341a4118191085b253,
     type: 3}

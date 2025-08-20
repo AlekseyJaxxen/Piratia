@@ -74,6 +74,7 @@ public class PlayerCore : NetworkBehaviour
     {
         if (isLocalPlayer && !isDead && !isStunned)
         {
+            // 🚨 ИЗМЕНЕНО: Удален вызов Movement.HandleMovement()
             Combat.HandleCombat();
             Skills.HandleSkills();
             // Animation.UpdateAnimations();

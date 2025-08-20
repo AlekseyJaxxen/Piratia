@@ -97,7 +97,7 @@ public class Health : NetworkBehaviour
     }
 
     [Server]
-    private void HealServer(int amount)
+    public void HealServer(int amount)
     {
         if (_currentHealth <= 0) return;
 
@@ -127,6 +127,7 @@ public class Health : NetworkBehaviour
         Destroy(effect, 2f);
     }
 
+    [ClientRpc]
     private void RpcRespawn()
     {
         transform.position = Vector3.zero;

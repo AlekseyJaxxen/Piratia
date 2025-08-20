@@ -34,7 +34,7 @@ public class PlayerSkills : NetworkBehaviour
     public float skill3Range = 4f;
     public float skill3Cooldown = 4f;
     public float skill3CastTime = 0.8f;
-    public int skill3Damage = 20;
+    public int skill3HealAmount = 20;
     public GameObject skill3EffectPrefab;
     public GameObject skill3RangeIndicator;
     public GameObject skill3TargetIndicatorPrefab;
@@ -282,7 +282,7 @@ public class PlayerSkills : NetworkBehaviour
         }
         else if (_currentSkillIndex == 3)
         {
-            ApplySkill3Damage(targetPosition);
+            ApplySkill3Heal(targetPosition);
         }
         else if (_currentSkillIndex == 4)
         {
@@ -387,18 +387,34 @@ public class PlayerSkills : NetworkBehaviour
         core.SetStunState(false);
     }
 
-    private void ApplySkill3Damage(Vector3 position)
+    // 🚨 ИЗМЕНЕНИЕ: Новый метод для лечения
+    private void ApplySkill3Heal(Vector3 position)
     {
-        Collider[] hits = Physics.OverlapSphere(position, 2f);
+        Collider[] hits = Physics.OverlapSphere(position, GetCurrentSkillRange());
         foreach (var hit in hits)
         {
-            if (hit.CompareTag("Enemy") || hit.CompareTag("Player"))
+            if (hit.CompareTag("Player"))
             {
-                Health targetHealth = hit.GetComponent<Health>();
-                if (targetHealth != null)
+                NetworkIdentity targetIdentity = hit.GetComponent<NetworkIdentity>();
+                if (targetIdentity != null)
                 {
-                    CmdApplyDamage(targetHealth.netId, skill3Damage);
+                    CmdHealTarget(targetIdentity.netId, skill3HealAmount);
                 }
+            }
+        }
+    }
+
+    // 🚨 НОВЫЙ МЕТОД: Команда для лечения цели
+    [Command]
+    private void CmdHealTarget(uint targetNetId, int amount)
+    {
+        if (NetworkServer.spawned.ContainsKey(targetNetId))
+        {
+            NetworkIdentity targetIdentity = NetworkServer.spawned[targetNetId];
+            Health targetHealth = targetIdentity.GetComponent<Health>();
+            if (targetHealth != null)
+            {
+                targetHealth.HealServer(amount);
             }
         }
     }
