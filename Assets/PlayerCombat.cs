@@ -1,4 +1,4 @@
-using Mirror;
+﻿using Mirror;
 using UnityEngine;
 
 public class PlayerCombat : NetworkBehaviour
@@ -10,7 +10,6 @@ public class PlayerCombat : NetworkBehaviour
     public float attackDelay = 0.3f;
     public GameObject targetIndicatorPrefab;
 
-    [SyncVar]
     private GameObject _currentTarget;
     private float _lastAttackTime;
     private PlayerCore _core;
@@ -35,7 +34,7 @@ public class PlayerCombat : NetworkBehaviour
 
         if (Input.GetMouseButtonDown(0) && !_core.Skills.AnySkillRangeActive())
         {
-            TrySelectTarget();
+            HandleLeftClick();
         }
 
         UpdateTargetIndicator();
@@ -46,7 +45,7 @@ public class PlayerCombat : NetworkBehaviour
         }
     }
 
-    private void TrySelectTarget()
+    private void HandleLeftClick()
     {
         Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
         if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
@@ -54,13 +53,13 @@ public class PlayerCombat : NetworkBehaviour
             if (hit.collider.CompareTag("Enemy") || hit.collider.CompareTag("Player"))
             {
                 _core.ActionSystem.CompleteAction();
-                SetCurrentTarget(hit.collider.gameObject);
-                float distance = Vector3.Distance(transform.position, hit.collider.transform.position);
-                if (distance <= attackRange)
-                {
-                    _core.Movement.StopMovement();
-                    StartAttack();
-                }
+                _currentTarget = hit.collider.gameObject;
+                ProcessAttack();
+            }
+            else if (hit.collider.CompareTag("Ground"))
+            {
+                ClearTarget();
+                _core.ActionSystem.TryStartAction(PlayerAction.Move, hit.point);
             }
         }
     }
@@ -80,35 +79,25 @@ public class PlayerCombat : NetworkBehaviour
         }
     }
 
-    [Command]
-    private void SetCurrentTarget(GameObject target)
-    {
-        NetworkIdentity networkIdentity = target != null ? target.GetComponent<NetworkIdentity>() : null;
-        if (!isLocalPlayer || networkIdentity != null)
-        {
-            _currentTarget = target;
-        }
-        else
-        {
-            _currentTarget = null;
-            Debug.LogWarning("Attempted to set a non-networked GameObject as target");
-        }
-    }
-
     private void ProcessAttack()
     {
+        if (_currentTarget == null)
+        {
+            ClearTarget();
+            _core.ActionSystem.CompleteAction();
+            return;
+        }
+
         float distance = Vector3.Distance(transform.position, _currentTarget.transform.position);
         Debug.Log($"[Client] Distance to target: {distance}, AttackRange: {attackRange}");
 
         if (distance <= attackRange)
         {
-            _core.Movement.StopMovement();
-            StartAttack();
+            _core.ActionSystem.TryStartAction(PlayerAction.Attack);
         }
         else
         {
-            _core.Movement.MoveTo(_currentTarget.transform.position);
-            Debug.Log($"[Client] Moving to target, distance too far: {distance}");
+            _core.ActionSystem.TryStartAction(PlayerAction.Move, _currentTarget.transform.position);
         }
     }
 
@@ -119,13 +108,6 @@ public class PlayerCombat : NetworkBehaviour
             Debug.Log($"[Client] Cannot attack: Cooldown active or already attacking");
             return;
         }
-
-        if (!_core.ActionSystem.TryStartAction(PlayerAction.Attack))
-        {
-            Debug.Log($"[Client] ActionSystem blocked attack");
-            return;
-        }
-
         if (_currentTarget == null)
         {
             Debug.Log($"[Client] Cannot attack: Target is null");
@@ -147,7 +129,7 @@ public class PlayerCombat : NetworkBehaviour
         Health targetHealth = _currentTarget.GetComponent<Health>();
         if (targetHealth != null)
         {
-            CmdApplyDamage(targetHealth.netId, attackDamage);
+            CmdApplyDamage(_currentTarget.GetComponent<NetworkIdentity>().netId, attackDamage);
         }
     }
 

@@ -31,7 +31,6 @@ public class Health : NetworkBehaviour
 
     public override void OnStartServer()
     {
-        // Initialize health on server; SyncVar will propagate to clients
         _currentHealth = Mathf.Clamp(_currentHealth <= 0 ? maxHealth : _currentHealth, 0, maxHealth);
     }
     #endregion
@@ -87,7 +86,6 @@ public class Health : NetworkBehaviour
     {
         if (amount <= 0) return;
 
-        // Always call the Command; Mirror will handle server/client
         CmdHeal(amount);
     }
 
@@ -101,7 +99,7 @@ public class Health : NetworkBehaviour
     [Server]
     private void HealServer(int amount)
     {
-        if (_currentHealth <= 0) return; // Optionally allow resurrection
+        if (_currentHealth <= 0) return;
 
         int old = _currentHealth;
         _currentHealth = Mathf.Min(_currentHealth + amount, maxHealth);
@@ -112,15 +110,11 @@ public class Health : NetworkBehaviour
 
     private IEnumerator RespawnRoutine()
     {
-        // Ждем 5 секунд перед возрождением
         yield return new WaitForSeconds(5f);
 
-        // Восстанавливаем здоровье до максимума
         _currentHealth = maxHealth;
-        // Сбрасываем флаг смерти в PlayerCore
         _playerCore?.SetDeathState(false);
 
-        // 🚨 НОВОЕ: Отправляем команду всем клиентам, чтобы они обновили позицию
         RpcRespawn();
     }
 
@@ -135,10 +129,7 @@ public class Health : NetworkBehaviour
 
     private void RpcRespawn()
     {
-        // 🚨 НОВОЕ: Обновляем позицию и, возможно, другие состояния на клиентах
-        // Это будет работать, только если у вас есть список точек возрождения.
-        // Если их нет, можно просто сбросить позицию на начальную или в центр.
-        transform.position = Vector3.zero; // Пример
+        transform.position = Vector3.zero;
         Debug.Log("Игрок возрожден!");
     }
     #endregion

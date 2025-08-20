@@ -19,8 +19,6 @@ public class PlayerSkills : NetworkBehaviour
     public GameObject stunEffectPrefab;
     private GameObject _stunEffectInstance;
 
-    // 🚨 УДАЛЕНО: SyncVar isStunned больше не нужен в этом скрипте
-
     [Header("Skill 2 Settings")]
     public KeyCode skill2Hotkey = KeyCode.F2;
     public float skill2Range = 7f;
@@ -72,7 +70,6 @@ public class PlayerSkills : NetworkBehaviour
     {
         _core = core;
 
-        // Эффект стана создается на всех клиентах
         if (stunEffectPrefab != null)
         {
             _stunEffectInstance = Instantiate(stunEffectPrefab, transform);
@@ -101,8 +98,6 @@ public class PlayerSkills : NetworkBehaviour
         }
     }
 
-    // 🚨 НОВЫЙ МЕТОД: Публичный метод для управления эффектом стана
-    // Этот метод будет вызываться из PlayerCore
     public void HandleStunEffect(bool isStunned)
     {
         if (_stunEffectInstance != null)
@@ -113,7 +108,6 @@ public class PlayerSkills : NetworkBehaviour
 
     public void HandleSkills()
     {
-        // 🚨 ИЗМЕНЕНО: Обращаемся к isStunned напрямую через _core
         if (!isLocalPlayer || _isCasting || _core.isDead || _core.isStunned || !_core.ActionSystem.CanStartNewAction) return;
 
         HandleSkill(skillHotkey, ref _lastSkillTime, skillCooldown, skillRangeIndicator, 1);
@@ -377,16 +371,13 @@ public class PlayerSkills : NetworkBehaviour
         PlayerCore targetCore = target.GetComponent<PlayerCore>();
         if (targetCore != null)
         {
-            // 🚨 ИЗМЕНЕНО: Запускаем корутину на цели, которая обновит isStunned в PlayerCore
             targetCore.StartCoroutine(StunRoutine(targetCore, duration));
         }
     }
 
-    // 🚨 ИЗМЕНЕНО: Корутина стана, которая выполняется ТОЛЬКО на сервере
     [Server]
     private IEnumerator StunRoutine(PlayerCore core, float duration)
     {
-        // 🚨 ИЗМЕНЕНО: Обновляем состояние стана через метод в PlayerCore
         core.SetStunState(true);
 
         core.Movement.StopMovement();
@@ -424,7 +415,7 @@ public class PlayerSkills : NetworkBehaviour
 
     private void CompleteAttack()
     {
-        // ... (текущий код) ...
+        // ... (current code) ...
     }
 
     public void CancelSkillSelection()

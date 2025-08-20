@@ -1,4 +1,4 @@
-using UnityEngine;
+п»їusing UnityEngine;
 using UnityEngine.AI;
 
 public class PlayerMovement : MonoBehaviour
@@ -11,6 +11,11 @@ public class PlayerMovement : MonoBehaviour
     private NavMeshAgent _agent;
     private PlayerCore _core;
 
+    public NavMeshAgent Agent => _agent;
+
+    // рџљЁ РќРћР’РћР•: РЎРІРѕР№СЃС‚РІРѕ РґР»СЏ РїСЂРѕРІРµСЂРєРё РЅР°Р»РёС‡РёСЏ РїСѓС‚Рё
+    public bool HasPath => _agent.hasPath && _agent.remainingDistance > _agent.stoppingDistance;
+
     public bool IsMoving => _agent.velocity.magnitude > 0.1f;
 
     public void Init(PlayerCore core)
@@ -20,20 +25,6 @@ public class PlayerMovement : MonoBehaviour
         _agent.speed = moveSpeed;
         _agent.stoppingDistance = stoppingDistance;
         _agent.updateRotation = false;
-    }
-
-    public void HandleMovement()
-    {
-        if (_core.isDead || _core.isStunned || !_core.ActionSystem.CanStartNewAction) return;
-
-        // Блокируем движение, если выбран скилл
-        if (_core.Skills != null && _core.Skills.AnySkillRangeActive())
-            return;
-
-        if (Input.GetMouseButtonDown(0))
-        {
-            TryMoveToDestination();
-        }
     }
 
     public void TryMoveToDestination()

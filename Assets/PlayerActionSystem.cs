@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using System.Collections;
 
 public class PlayerActionSystem : MonoBehaviour
@@ -45,7 +45,22 @@ public class PlayerActionSystem : MonoBehaviour
     {
         _isPerformingAction = true;
         _core.Movement.MoveTo(destination);
-        yield return new WaitUntil(() => !_core.Movement.IsMoving || _core.isDead || _core.isStunned || !_core.ActionSystem.CanStartNewAction);
+
+        // 🚨 ИЗМЕНЕНО: Новая, более надежная логика ожидания
+        // Ждем, пока агент не начнет двигаться и не приблизится к цели
+        while (_core.Movement.HasPath && Vector3.Distance(transform.position, destination) > _core.Movement.Agent.stoppingDistance)
+        {
+            // Условие выхода в случае смерти или стана
+            if (_core.isDead || _core.isStunned)
+            {
+                _core.Movement.StopMovement();
+                _isPerformingAction = false;
+                yield break;
+            }
+            yield return null;
+        }
+
+        Debug.Log("[Client] Movement action completed.");
         _isPerformingAction = false;
         _currentAction = null;
     }
