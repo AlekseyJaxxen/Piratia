@@ -242,8 +242,6 @@ GameObject:
   - component: {fileID: 3319856425251260249}
   - component: {fileID: 5621080274294467071}
   - component: {fileID: 5639771108257393879}
-  - component: {fileID: 3015489976324988988}
-  - component: {fileID: -2046336735152149423}
   - component: {fileID: 6067296820680782066}
   - component: {fileID: 1882444689610541849}
   - component: {fileID: 6599361461629923592}
@@ -255,6 +253,10 @@ GameObject:
   - component: {fileID: 7616953105411128818}
   - component: {fileID: 3672906116675819584}
   - component: {fileID: 3648674699242537614}
+  - component: {fileID: 2398841918052777852}
+  - component: {fileID: 1062641043730496793}
+  - component: {fileID: 6193393840997489717}
+  - component: {fileID: 7355873465176282773}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -344,38 +346,6 @@ BoxCollider:
   serializedVersion: 2
   m_Size: {x: 1, y: 2, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &3015489976324988988
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8270360301193926596}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d11800ba76f3cea4cacd811682f39cb7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  syncDirection: 0
-  syncMode: 0
-  syncInterval: 0
-  playerColor: {r: 0, g: 0, b: 0, a: 0}
---- !u!114 &-2046336735152149423
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8270360301193926596}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 11110d704d74c84498c876595fbbaaa1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  syncDirection: 0
-  syncMode: 0
-  syncInterval: 0
-  flashDuration: 0.3
 --- !u!114 &6067296820680782066
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -391,10 +361,7 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  maxHealth: 1000
-  damageEffectPrefab: {fileID: 119212, guid: 67a02ea392505844bab240611d904cc0, type: 3}
-  deathEffectPrefab: {fileID: 167524, guid: fdac75e990da47649b31f10049c400b0, type: 3}
-  healEffectPrefab: {fileID: 0}
+  MaxHealth: 1000
 --- !u!111 &1882444689610541849
 Animation:
   m_ObjectHideFlags: 0
@@ -429,17 +396,20 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  modelPivot: {fileID: 8988732741915685909}
+  Movement: {fileID: 2228385071925969768}
+  Combat: {fileID: 7327050918202999389}
+  Skills: {fileID: 2785307464818136286}
+  ActionSystem: {fileID: 9141868853825329552}
+  Camera: {fileID: 1961392965024624479}
+  Health: {fileID: 6067296820680782066}
   interactableLayers:
     serializedVersion: 2
     m_Bits: 51
-  circleAlly: {fileID: 5040339707316735415}
-  circleEnemy: {fileID: 2684456239410978326}
   playerModels:
   - {fileID: 2848703504906341886}
   - {fileID: 3961151501452008855}
-  isStunned: 0
   isDead: 0
+  isStunned: 0
 --- !u!114 &2228385071925969768
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -452,6 +422,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b900fcc9e9690d949a5e3edf3e69490e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
   moveSpeed: 7
   rotationSpeed: 9999
   stoppingDistance: 1
@@ -471,7 +444,7 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   attackRange: 2
-  attackCooldown: 1
+  attackCooldown: 0.5
   attackDamage: 100
   attackDelay: 0.1
   targetIndicatorPrefab: {fileID: 6019624651139454826, guid: dacc0954c394ce54397955b30c4228fb,
@@ -491,52 +464,15 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  skillHotkey: 282
-  skillRange: 6
-  skillCooldown: 3
-  castTime: 0.1
-  skillDamage: 300
-  skillEffectPrefab: {fileID: 0}
-  skillProjectilePrefab: {fileID: 159062, guid: e4fc72c1b3da74d4697708bcd2a9db60,
-    type: 3}
-  skillRangeIndicator: {fileID: 5408012591896461439, guid: ebebfbbc3005f3341a4118191085b253,
-    type: 3}
-  skillTargetIndicatorPrefab: {fileID: 6019624651139454826, guid: dacc0954c394ce54397955b30c4228fb,
-    type: 3}
+  skills:
+  - {fileID: 1062641043730496793}
+  - {fileID: 2398841918052777852}
+  - {fileID: 7355873465176282773}
+  - {fileID: 6193393840997489717}
   stunEffectPrefab: {fileID: 4637046911172921311, guid: ed6adf846f49efa40917a41cb58e76d9,
     type: 3}
-  skill2Hotkey: 283
-  skill2Range: 7
-  skill2Cooldown: 5
-  skill2CastTime: 0.1
-  skill2StunDuration: 10
-  skill2EffectPrefab: {fileID: 107336, guid: 3547e5e490f502041ae6e8a59042e4bd, type: 3}
-  skill2RangeIndicator: {fileID: 5408012591896461439, guid: ebebfbbc3005f3341a4118191085b253,
-    type: 3}
-  skill2TargetIndicatorPrefab: {fileID: 6019624651139454826, guid: dacc0954c394ce54397955b30c4228fb,
-    type: 3}
-  skill3Hotkey: 284
-  skill3Range: 5
-  skill3Cooldown: 4
-  skill3CastTime: 0.1
-  skill3HealAmount: 500
-  skill3EffectPrefab: {fileID: 152564, guid: 0e4a7fa9fd28f154b91c98ee6fe8ebea, type: 3}
-  skill3RangeIndicator: {fileID: 5408012591896461439, guid: ebebfbbc3005f3341a4118191085b253,
-    type: 3}
-  skill3TargetIndicatorPrefab: {fileID: 6019624651139454826, guid: dacc0954c394ce54397955b30c4228fb,
-    type: 3}
-  skill4Hotkey: 285
-  skill4Range: 8
-  skill4Cooldown: 8
-  skill4CastTime: 0.1
-  skill4StunDuration: 3
-  skill4EffectPrefab: {fileID: 109542, guid: 2ed06ab528b7c474eb9246421cd7c791, type: 3}
-  skill4RangeIndicator: {fileID: 5408012591896461439, guid: ebebfbbc3005f3341a4118191085b253,
-    type: 3}
-  skill4TargetIndicatorPrefab: {fileID: 6019624651139454826, guid: dacc0954c394ce54397955b30c4228fb,
-    type: 3}
-  defaultCursor: {fileID: 0}
-  castCursor: {fileID: 0}
+  defaultCursor: {fileID: 2800000, guid: 3f6e277dd8d9bef498d69c4b314a3492, type: 3}
+  castCursor: {fileID: 2800000, guid: e251d9801b2cd6e48a7cd24be9731aca, type: 3}
 --- !u!114 &1961392965024624479
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -569,6 +505,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9a9af24a0f34b2a499f45b43d3bd01bc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
 --- !u!195 &7616953105411128818
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -583,7 +522,7 @@ NavMeshAgent:
   m_Acceleration: 10000
   avoidancePriority: 50
   m_AngularSpeed: 10000
-  m_StoppingDistance: 0
+  m_StoppingDistance: 0.5
   m_AutoTraverseOffMeshLink: 1
   m_AutoBraking: 0
   m_AutoRepath: 0
@@ -625,6 +564,111 @@ MonoBehaviour:
     type: 3}
   healthBarPosition: {fileID: 3751297922665118209}
   playerHealth: {fileID: 6067296820680782066}
+--- !u!114 &2398841918052777852
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8270360301193926596}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f371d8bf95d7ea4ab18be386db285d9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  _hotkey: 283
+  _range: 1.9
+  _cooldown: 15
+  _castTime: 0.1
+  _rangeIndicator: {fileID: 6019624651139454826, guid: dacc0954c394ce54397955b30c4228fb,
+    type: 3}
+  _targetIndicatorPrefab: {fileID: 6019624651139454826, guid: dacc0954c394ce54397955b30c4228fb,
+    type: 3}
+  _castCursor: {fileID: 2800000, guid: e251d9801b2cd6e48a7cd24be9731aca, type: 3}
+  stunDuration: 8
+  effectPrefab: {fileID: 181232, guid: b9cf594d1d8302e4a884738a176ead3a, type: 3}
+--- !u!114 &1062641043730496793
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8270360301193926596}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da6862f7b7b560544b2ac82929229ae9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  _hotkey: 282
+  _range: 10
+  _cooldown: 5
+  _castTime: 0.1
+  _rangeIndicator: {fileID: 6019624651139454826, guid: dacc0954c394ce54397955b30c4228fb,
+    type: 3}
+  _targetIndicatorPrefab: {fileID: 6019624651139454826, guid: dacc0954c394ce54397955b30c4228fb,
+    type: 3}
+  _castCursor: {fileID: 2800000, guid: e251d9801b2cd6e48a7cd24be9731aca, type: 3}
+  damageAmount: 900
+  projectilePrefab: {fileID: 185442, guid: 8118656e898f2fb4daa469e2393514dd, type: 3}
+  impactEffectPrefab: {fileID: 0}
+--- !u!114 &6193393840997489717
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8270360301193926596}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6725be40aa7610240985629a311d2bc7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  _hotkey: 285
+  _range: 5
+  _cooldown: 5
+  _castTime: 0.1
+  _rangeIndicator: {fileID: 6019624651139454826, guid: dacc0954c394ce54397955b30c4228fb,
+    type: 3}
+  _targetIndicatorPrefab: {fileID: 6019624651139454826, guid: dacc0954c394ce54397955b30c4228fb,
+    type: 3}
+  _castCursor: {fileID: 0}
+  healAmount: 500
+--- !u!114 &7355873465176282773
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8270360301193926596}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f566b4e89617e6469eda4f012325d89, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  _hotkey: 284
+  _range: 11
+  _cooldown: 10
+  _castTime: 0.1
+  _rangeIndicator: {fileID: 6019624651139454826, guid: dacc0954c394ce54397955b30c4228fb,
+    type: 3}
+  _targetIndicatorPrefab: {fileID: 6019624651139454826, guid: dacc0954c394ce54397955b30c4228fb,
+    type: 3}
+  _castCursor: {fileID: 2800000, guid: e251d9801b2cd6e48a7cd24be9731aca, type: 3}
+  stunDuration: 2
+  effectRadius: 5
+  effectPrefab: {fileID: 173590, guid: 7469283484e0dcc4887fa575d1fd7ecc, type: 3}
 --- !u!1001 &3119245696655913135
 PrefabInstance:
   m_ObjectHideFlags: 0
