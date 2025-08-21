@@ -34,20 +34,36 @@ public class PlayerMovement : NetworkBehaviour
             Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
             {
-                // Если выбран навык, левый клик используется для каста.
+                // Если выбран навык, левый клик используется для каста или игнорируется.
                 if (_core.Skills.IsSkillSelected)
                 {
-                    _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, hit.point, hit.collider.gameObject, _core.Skills.ActiveSkill); // ИСПРАВЛЕНО
-                    _core.Skills.CancelSkillSelection();
+                    // Проверяем, какой тип навыка выбран
+                    if (_core.Skills.ActiveSkill is ProjectileDamageSkill || _core.Skills.ActiveSkill is TargetedStunSkill)
+                    {
+                        // Для навыков, требующих цель, клик на землю игнорируется
+                        if (hit.collider.CompareTag("Enemy") || hit.collider.CompareTag("Player"))
+                        {
+                            _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, hit.point, hit.collider.gameObject, _core.Skills.ActiveSkill);
+                            _core.Skills.CancelSkillSelection();
+                        }
+                    }
+                    else
+                    {
+                        // Для навыков, кастующихся на землю, клик на землю запускает каст
+                        if (hit.collider.CompareTag("Ground"))
+                        {
+                            _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, hit.point, null, _core.Skills.ActiveSkill);
+                            _core.Skills.CancelSkillSelection();
+                        }
+                    }
                 }
-                // Иначе, левый клик используется для движения.
+                // Иначе, левый клик используется для обычного движения.
                 else
                 {
                     if (hit.collider.CompareTag("Enemy") || hit.collider.CompareTag("Player"))
                     {
                         return;
                     }
-
                     if (hit.collider.CompareTag("Ground"))
                     {
                         _core.Combat.ClearTarget();
