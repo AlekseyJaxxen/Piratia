@@ -22,7 +22,7 @@ public class PlayerSkills : NetworkBehaviour
     private ISkill _activeSkill;
 
     public bool IsSkillSelected => _activeSkill != null;
-    public ISkill ActiveSkill => _activeSkill; // ИСПРАВЛЕНО: Добавлено публичное свойство для доступа к _activeSkill
+    public ISkill ActiveSkill => _activeSkill;
 
     public void Init(PlayerCore core)
     {
@@ -157,8 +157,6 @@ public class PlayerSkills : NetworkBehaviour
         }
     }
 
-    // Переместил логику TryCastActiveSkill в PlayerMovement, чтобы все клики обрабатывались в одном месте.
-
     public IEnumerator CastSkill(Vector3? targetPosition, GameObject targetObject, ISkill skillToCast)
     {
         if (skillToCast == null || _core.isDead || _core.isStunned)
@@ -179,7 +177,12 @@ public class PlayerSkills : NetworkBehaviour
             if (distance > currentRange)
             {
                 _core.Movement.MoveTo(targetPosition.Value);
-                yield return new WaitUntil(() => Vector3.Distance(transform.position, targetPosition.Value) <= currentRange || _core.isDead || _core.ActionSystem.CurrentAction != PlayerAction.SkillCast);
+                // ИСПРАВЛЕНО: Добавлен цикл, чтобы персонаж поворачивался во время движения
+                while (Vector3.Distance(transform.position, targetPosition.Value) > currentRange && !_core.isDead && _core.ActionSystem.CurrentAction == PlayerAction.SkillCast)
+                {
+                    _core.Movement.RotateTo(targetPosition.Value - transform.position);
+                    yield return null;
+                }
             }
         }
 
