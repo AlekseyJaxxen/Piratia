@@ -27,19 +27,13 @@ public class PlayerMovement : NetworkBehaviour
 
     public void HandleMovement()
     {
-        if (_core.isDead || _core.isStunned || !_core.ActionSystem.CanStartNewAction) return;
+        if (_core.isDead || _core.isStunned || _core.Skills.IsSkillSelected) return;
 
-        if (_core.Skills.IsSkillSelected) return;
-
-        // 🚨 ИСПРАВЛЕНО: Добавлена проверка, чтобы движение не перехватывало клики,
-        // которые должны быть обработаны другими системами.
         if (Input.GetMouseButtonDown(0))
         {
             Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
             {
-                // Проверяем, не является ли цель врагом или игроком,
-                // так как эти цели обрабатываются в PlayerCombat.
                 if (hit.collider.CompareTag("Enemy") || hit.collider.CompareTag("Player"))
                 {
                     return;
@@ -47,6 +41,7 @@ public class PlayerMovement : NetworkBehaviour
 
                 if (hit.collider.CompareTag("Ground"))
                 {
+                    _core.Combat.ClearTarget();
                     _core.ActionSystem.TryStartAction(PlayerAction.Move, hit.point);
                 }
             }
@@ -57,6 +52,14 @@ public class PlayerMovement : NetworkBehaviour
     {
         _agent.isStopped = false;
         _agent.SetDestination(destination);
+    }
+
+    public void UpdateRotation()
+    {
+        if (Agent.velocity.sqrMagnitude > 0.1f)
+        {
+            RotateTo(Agent.velocity);
+        }
     }
 
     public void StopMovement()
@@ -73,7 +76,7 @@ public class PlayerMovement : NetworkBehaviour
         if (direction != Vector3.zero)
         {
             Quaternion lookRotation = Quaternion.LookRotation(direction);
-            transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * rotationSpeed);
+            transform.rotation = lookRotation;
         }
     }
 }

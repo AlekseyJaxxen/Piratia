@@ -30,6 +30,11 @@ public class PlayerCombat : NetworkBehaviour
         }
     }
 
+    public void SetCurrentTarget(GameObject target)
+    {
+        _currentTarget = target;
+    }
+
     public void HandleCombat()
     {
         if (!isLocalPlayer || _core.isDead || _core.isStunned) return;
@@ -38,29 +43,16 @@ public class PlayerCombat : NetworkBehaviour
 
         if (Input.GetMouseButtonDown(0))
         {
-            Debug.Log("[Combat] Left mouse button clicked.");
             Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
             {
-                // 🚨 ИСПРАВЛЕНО: Проверяем оба тега.
                 if (hit.collider.CompareTag("Enemy") || hit.collider.CompareTag("Player"))
                 {
-                    Debug.Log($"[Combat] Raycast hit a valid target: {hit.collider.gameObject.name}");
-                    _currentTarget = hit.collider.gameObject;
-
-                    // 🚨 ИСПРАВЛЕНО: Передаем управление в PlayerActionSystem. 
-                    // Он сам решит, атаковать или двигаться.
-                    _core.ActionSystem.TryStartAction(PlayerAction.Attack);
+                    if (!_core.ActionSystem.IsPerformingAction)
+                    {
+                        _core.ActionSystem.TryStartAction(PlayerAction.Attack, targetObject: hit.collider.gameObject);
+                    }
                 }
-                else
-                {
-                    Debug.Log("[Combat] Raycast did not hit a valid target.");
-                    ClearTarget();
-                }
-            }
-            else
-            {
-                Debug.Log("[Combat] Raycast hit nothing.");
             }
         }
 
@@ -82,51 +74,23 @@ public class PlayerCombat : NetworkBehaviour
         }
     }
 
-    public void StartAttack()
+    public void PerformAttack()
     {
-        Debug.Log("[Combat] StartAttack called.");
-        if (_isAttacking || Time.time - _lastAttackTime < attackCooldown)
+        if (Time.time - _lastAttackTime < attackCooldown)
         {
-            Debug.Log("[Combat] Attack failed: already attacking or on cooldown.");
-            _core.ActionSystem.CompleteAction(); // Завершаем действие, чтобы не блокировать
-            return;
-        }
-        if (_currentTarget == null)
-        {
-            Debug.Log("[Combat] Attack failed: no target.");
-            _core.ActionSystem.CompleteAction(); // Завершаем действие
             return;
         }
 
-        float distance = Vector3.Distance(transform.position, _currentTarget.transform.position);
-
-        if (distance > attackRange)
-        {
-            Debug.Log("[Combat] Target is out of range. Moving to target instead.");
-            // 🚨 ИСПРАВЛЕНО: Вместо вызова TryStartAction,
-            // просто вызываем CmdMoveTo, чтобы избежать рекурсии.
-            _core.ActionSystem.CompleteAction();
-            _core.ActionSystem.TryStartAction(PlayerAction.Move, _currentTarget.transform.position);
-            return;
-        }
-
-        Debug.Log("[Combat] Attack is starting.");
-        _isAttacking = true;
-        _core.Movement.StopMovement();
-
-        _core.Movement.RotateTo(_currentTarget.transform.position - transform.position);
+        _lastAttackTime = Time.time;
 
         CancelInvoke(nameof(ApplyAttackDamage));
-        CancelInvoke(nameof(CompleteAttack));
-
         Invoke(nameof(ApplyAttackDamage), attackDelay);
-        Invoke(nameof(CompleteAttack), attackDelay + 0.2f);
     }
 
     private void ApplyAttackDamage()
     {
         if (_currentTarget == null) return;
-        Debug.Log("[Combat] Applying attack damage.");
+
         Health targetHealth = _currentTarget.GetComponent<Health>();
         if (targetHealth != null)
         {
@@ -142,14 +106,6 @@ public class PlayerCombat : NetworkBehaviour
             NetworkIdentity targetIdentity = NetworkServer.spawned[targetNetId];
             targetIdentity.GetComponent<Health>()?.TakeDamage(damage);
         }
-    }
-
-    private void CompleteAttack()
-    {
-        Debug.Log("[Combat] Completing attack.");
-        _lastAttackTime = Time.time;
-        _isAttacking = false;
-        _core.ActionSystem.CompleteAction();
     }
 
     public void StopAttacking()

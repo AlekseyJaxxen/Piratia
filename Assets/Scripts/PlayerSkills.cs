@@ -53,7 +53,7 @@ public class PlayerSkills : NetworkBehaviour
 
     public void HandleSkills()
     {
-        if (!isLocalPlayer || _isCasting || _core.isDead || _core.isStunned || !_core.ActionSystem.CanStartNewAction) return;
+        if (!isLocalPlayer || _isCasting || _core.isDead || _core.isStunned || _core.ActionSystem.IsPerformingAction) return;
 
         foreach (var skill in skills)
         {
@@ -101,6 +101,8 @@ public class PlayerSkills : NetworkBehaviour
 
                     _activeSkill.RangeIndicator.SetActive(false);
                     SetCursor(_activeSkill.CastCursor);
+
+                    targetIndicator.transform.localScale = Vector3.one;
                 }
                 else
                 {
@@ -204,6 +206,10 @@ public class PlayerSkills : NetworkBehaviour
     {
         foreach (var skill in skills)
         {
+            if (skill.TargetIndicator != null)
+            {
+                skill.TargetIndicator.transform.localScale = Vector3.one;
+            }
             skill.SetIndicatorVisibility(false);
         }
         _activeSkill = null;

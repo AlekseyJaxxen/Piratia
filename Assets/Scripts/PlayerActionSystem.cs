@@ -9,7 +9,7 @@ public class PlayerActionSystem : NetworkBehaviour
     private Coroutine _currentAction;
     private bool _isPerformingAction;
 
-    public bool CanStartNewAction => !_isPerformingAction;
+    public bool IsPerformingAction => _isPerformingAction;
 
     public void Init(PlayerCore core)
     {
@@ -18,10 +18,9 @@ public class PlayerActionSystem : NetworkBehaviour
 
     public bool TryStartAction(PlayerAction actionType, Vector3? targetPosition = null, GameObject targetObject = null, ISkill skillToCast = null)
     {
-        Debug.Log($"[ActionSystem] Attempting to start action: {actionType}. IsPerformingAction: {_isPerformingAction}");
         if (_isPerformingAction)
         {
-            return false;
+            CompleteAction();
         }
 
         switch (actionType)
@@ -34,18 +33,28 @@ public class PlayerActionSystem : NetworkBehaviour
                 }
                 break;
             case PlayerAction.Attack:
-                _currentAction = StartCoroutine(AttackAction());
-                return true;
+                if (targetObject != null)
+                {
+                    _currentAction = StartCoroutine(AttackAction(targetObject));
+                    return true;
+                }
+                break;
             case PlayerAction.SkillCast:
-                _currentAction = StartCoroutine(SkillCastAction(targetPosition, targetObject, skillToCast));
-                return true;
+                if (skillToCast != null)
+                {
+                    _currentAction = StartCoroutine(SkillCastAction(targetPosition, targetObject, skillToCast));
+                    return true;
+                }
+                break;
         }
+
         return false;
     }
 
     private IEnumerator MoveAction(Vector3 destination)
     {
         _isPerformingAction = true;
+        _core.Combat.ClearTarget();
         _core.Movement.MoveTo(destination);
 
         yield return new WaitUntil(() => !_core.Movement.Agent.pathPending);
@@ -54,29 +63,47 @@ public class PlayerActionSystem : NetworkBehaviour
         {
             if (_core.isDead || _core.isStunned)
             {
-                _core.Movement.StopMovement();
                 CompleteAction();
                 yield break;
             }
+            _core.Movement.UpdateRotation();
             yield return null;
         }
 
-        _core.Movement.StopMovement();
         CompleteAction();
     }
 
-    private IEnumerator AttackAction()
+    private IEnumerator AttackAction(GameObject target)
     {
-        Debug.Log("[ActionSystem] Starting AttackAction coroutine.");
         _isPerformingAction = true;
-        _core.Combat.StartAttack();
-        // 🚨 ИСПРАВЛЕНО: Убрано лишнее ожидание. Combat сам вызовет CompleteAction.
-        yield break;
+        _core.Combat.SetCurrentTarget(target);
+
+        while (target != null && target.GetComponent<Health>()?.CurrentHealth > 0 && !_core.isDead && !_core.isStunned)
+        {
+            float distance = Vector3.Distance(transform.position, target.transform.position);
+
+            if (distance > _core.Combat.attackRange)
+            {
+                _core.Movement.MoveTo(target.transform.position);
+                _core.Movement.UpdateRotation();
+            }
+            else
+            {
+                _core.Movement.StopMovement();
+                _core.Movement.RotateTo(target.transform.position - transform.position);
+                _core.Combat.PerformAttack();
+            }
+
+            yield return new WaitForSeconds(_core.Combat.attackCooldown);
+        }
+
+        CompleteAction();
     }
 
     private IEnumerator SkillCastAction(Vector3? targetPosition, GameObject targetObject, ISkill skillToCast)
     {
         _isPerformingAction = true;
+
         if (_core != null && _core.Skills != null)
         {
             yield return StartCoroutine(_core.Skills.CastSkill(targetPosition, targetObject, skillToCast));
@@ -90,12 +117,13 @@ public class PlayerActionSystem : NetworkBehaviour
 
     public void CompleteAction()
     {
-        Debug.Log("[ActionSystem] Completing action.");
         _isPerformingAction = false;
         if (_currentAction != null)
         {
             StopCoroutine(_currentAction);
             _currentAction = null;
         }
+        _core.Combat.ClearTarget();
+        _core.Movement.StopMovement();
     }
 }

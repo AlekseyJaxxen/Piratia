@@ -66,7 +66,6 @@ public class PlayerCore : NetworkBehaviour
             Debug.LogError("Player models array is not assigned or is empty!");
         }
 
-        // 🚨 ИСПРАВЛЕНО: Инициализация здоровья происходит только на сервере
         if (Health != null) Health.Init();
     }
 
@@ -75,7 +74,8 @@ public class PlayerCore : NetworkBehaviour
         InitComponents();
     }
 
-    private void InitComponents()
+    // 🚨 ИСПРАВЛЕНО: Убраны аргументы из вызовов Init
+    private void InitComponents()
     {
         if (Movement != null) Movement.Init(this);
         if (Combat != null) Combat.Init(this);
@@ -92,8 +92,8 @@ public class PlayerCore : NetworkBehaviour
         Movement.HandleMovement();
     }
 
-    #region State Management
-    [Server]
+    #region State Management
+    [Server]
     public void SetDeathState(bool state)
     {
         isDead = state;
@@ -185,5 +185,5 @@ public class PlayerCore : NetworkBehaviour
     {
         if (Skills != null) Skills.HandleStunEffect(newValue);
     }
-    #endregion
+    #endregion
 }
