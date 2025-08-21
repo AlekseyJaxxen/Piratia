@@ -90,6 +90,8 @@ public class PlayerSkills : NetworkBehaviour
         if (targetIndicator == null) return;
 
         Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
+
+        // Этот блок отвечает за целевые навыки, такие как ProjectileDamageSkill и TargetedStunSkill.
         if (_activeSkill is ProjectileDamageSkill || _activeSkill is TargetedStunSkill)
         {
             if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
@@ -98,26 +100,40 @@ public class PlayerSkills : NetworkBehaviour
                 {
                     targetIndicator.SetActive(true);
                     targetIndicator.transform.position = hit.collider.gameObject.transform.position + Vector3.up * 1f;
-
-                    _activeSkill.RangeIndicator.SetActive(false);
                     SetCursor(_activeSkill.CastCursor);
-
                     targetIndicator.transform.localScale = Vector3.one;
+
+                    // Добавлена проверка на существование индикатора радиуса
+                    if (_activeSkill.RangeIndicator != null)
+                    {
+                        _activeSkill.RangeIndicator.SetActive(false);
+                    }
                 }
                 else
                 {
                     targetIndicator.SetActive(false);
-                    _activeSkill.RangeIndicator.SetActive(true);
                     SetCursor(defaultCursor);
+
+                    // Добавлена проверка на существование индикатора радиуса
+                    if (_activeSkill.RangeIndicator != null)
+                    {
+                        _activeSkill.RangeIndicator.SetActive(true);
+                    }
                 }
             }
             else
             {
                 targetIndicator.SetActive(false);
-                _activeSkill.RangeIndicator.SetActive(true);
                 SetCursor(defaultCursor);
+
+                // Добавлена проверка на существование индикатора радиуса
+                if (_activeSkill.RangeIndicator != null)
+                {
+                    _activeSkill.RangeIndicator.SetActive(true);
+                }
             }
         }
+        // Этот блок отвечает за навыки с областью действия, такие как AreaOfEffectHealSkill.
         else
         {
             if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
@@ -126,14 +142,23 @@ public class PlayerSkills : NetworkBehaviour
                 targetIndicator.transform.position = hit.point + Vector3.up * 0.1f;
                 targetIndicator.transform.localScale = new Vector3(_activeSkill.Range * 2, 0.1f, _activeSkill.Range * 2);
 
-                _activeSkill.RangeIndicator.SetActive(false);
-                Cursor.visible = false;
+                if (_activeSkill.RangeIndicator != null)
+                {
+                    _activeSkill.RangeIndicator.SetActive(false);
+                }
+                // ИСПРАВЛЕНО: Заменено прямое управление видимостью на вызов SetCursor().
+                SetCursor(_activeSkill.CastCursor);
             }
             else
             {
                 targetIndicator.SetActive(false);
-                _activeSkill.RangeIndicator.SetActive(true);
-                Cursor.visible = true;
+
+                if (_activeSkill.RangeIndicator != null)
+                {
+                    _activeSkill.RangeIndicator.SetActive(true);
+                }
+                // ИСПРАВЛЕНО: Заменено прямое управление видимостью на вызов SetCursor().
+                SetCursor(defaultCursor);
             }
         }
     }

@@ -571,8 +571,8 @@ MonoBehaviour:
   - {fileID: 6193393840997489717}
   stunEffectPrefab: {fileID: 4637046911172921311, guid: ed6adf846f49efa40917a41cb58e76d9,
     type: 3}
-  defaultCursor: {fileID: 2800000, guid: 3f6e277dd8d9bef498d69c4b314a3492, type: 3}
-  castCursor: {fileID: 2800000, guid: e251d9801b2cd6e48a7cd24be9731aca, type: 3}
+  defaultCursor: {fileID: 2800000, guid: f75349a286817b6479976a10636d3b2c, type: 3}
+  castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
 --- !u!114 &1961392965024624479
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -653,7 +653,7 @@ MonoBehaviour:
     type: 3}
   _targetIndicatorPrefab: {fileID: 7367436715575335037, guid: e7964bca176e04f43aa79653e9fb44cd,
     type: 3}
-  _castCursor: {fileID: 2800000, guid: e251d9801b2cd6e48a7cd24be9731aca, type: 3}
+  _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
   stunDuration: 8
   effectPrefab: {fileID: 181232, guid: b9cf594d1d8302e4a884738a176ead3a, type: 3}
 --- !u!114 &1062641043730496793
@@ -679,7 +679,7 @@ MonoBehaviour:
     type: 3}
   _targetIndicatorPrefab: {fileID: 7367436715575335037, guid: e7964bca176e04f43aa79653e9fb44cd,
     type: 3}
-  _castCursor: {fileID: 2800000, guid: e251d9801b2cd6e48a7cd24be9731aca, type: 3}
+  _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
   damageAmount: 900
   projectilePrefab: {fileID: 185442, guid: 8118656e898f2fb4daa469e2393514dd, type: 3}
   impactEffectPrefab: {fileID: 0}
@@ -706,7 +706,7 @@ MonoBehaviour:
     type: 3}
   _targetIndicatorPrefab: {fileID: 7367436715575335037, guid: e7964bca176e04f43aa79653e9fb44cd,
     type: 3}
-  _castCursor: {fileID: 0}
+  _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
   healAmount: 500
 --- !u!114 &7355873465176282773
 MonoBehaviour:
@@ -731,7 +731,7 @@ MonoBehaviour:
     type: 3}
   _targetIndicatorPrefab: {fileID: 7367436715575335037, guid: e7964bca176e04f43aa79653e9fb44cd,
     type: 3}
-  _castCursor: {fileID: 2800000, guid: e251d9801b2cd6e48a7cd24be9731aca, type: 3}
+  _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
   stunDuration: 2
   effectRadius: 5
   effectPrefab: {fileID: 173590, guid: 7469283484e0dcc4887fa575d1fd7ecc, type: 3}
