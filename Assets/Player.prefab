@@ -547,7 +547,7 @@ MonoBehaviour:
   attackCooldown: 0.5
   attackDamage: 100
   attackDelay: 0.1
-  targetIndicatorPrefab: {fileID: 7367436715575335037, guid: e7964bca176e04f43aa79653e9fb44cd,
+  targetIndicatorPrefab: {fileID: 120886135740973652, guid: ad885251c2ca9fc42abc5617eca22b29,
     type: 3}
 --- !u!114 &2785307464818136286
 MonoBehaviour:
