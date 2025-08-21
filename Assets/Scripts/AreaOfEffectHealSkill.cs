@@ -10,13 +10,22 @@ public class AreaOfEffectHealSkill : SkillBase
 
     public override void Execute(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
     {
-        Collider[] hitColliders = Physics.OverlapSphere(targetPosition.Value, Range);
+        if (!isLocalPlayer) return;
+
+        CmdHealArea(targetPosition.Value, healAmount);
+    }
+
+    [Command]
+    private void CmdHealArea(Vector3 position, int amount)
+    {
+        Collider[] hitColliders = Physics.OverlapSphere(position, Range);
         foreach (var hitCollider in hitColliders)
         {
             Health targetHealth = hitCollider.GetComponent<Health>();
             if (targetHealth != null)
             {
-                targetHealth.Heal(healAmount);
+                // Вызываем метод Heal на сервере, как и положено
+                targetHealth.Heal(amount);
             }
         }
     }
