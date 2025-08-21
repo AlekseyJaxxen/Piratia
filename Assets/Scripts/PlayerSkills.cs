@@ -22,6 +22,7 @@ public class PlayerSkills : NetworkBehaviour
     private ISkill _activeSkill;
 
     public bool IsSkillSelected => _activeSkill != null;
+    public ISkill ActiveSkill => _activeSkill; // ИСПРАВЛЕНО: Добавлено публичное свойство для доступа к _activeSkill
 
     public void Init(PlayerCore core)
     {
@@ -53,8 +54,10 @@ public class PlayerSkills : NetworkBehaviour
 
     public void HandleSkills()
     {
-        if (!isLocalPlayer || _isCasting || _core.isDead || _core.isStunned || _core.ActionSystem.IsPerformingAction) return;
+        if (!isLocalPlayer || _isCasting || _core.isDead || _core.isStunned) return;
 
+        // Обработка нажатий клавиш для выбора навыка.
+        // Это действие не прерывает движение.
         foreach (var skill in skills)
         {
             if (Input.GetKeyDown(skill.Hotkey) && !skill.IsOnCooldown())
@@ -69,10 +72,7 @@ public class PlayerSkills : NetworkBehaviour
         {
             UpdateTargetIndicator();
 
-            if (Input.GetMouseButtonDown(0))
-            {
-                TryCastActiveSkill();
-            }
+            // Правый клик для отмены
             if (Input.GetMouseButtonDown(1))
             {
                 CancelSkillSelection();
@@ -157,30 +157,7 @@ public class PlayerSkills : NetworkBehaviour
         }
     }
 
-    private void TryCastActiveSkill()
-    {
-        if (_activeSkill == null || _core.isStunned)
-        {
-            CancelSkillSelection();
-            return;
-        }
-
-        Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
-        if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
-        {
-            if (_activeSkill is ProjectileDamageSkill || _activeSkill is TargetedStunSkill)
-            {
-                if (hit.collider.CompareTag("Enemy") || hit.collider.CompareTag("Player"))
-                {
-                    _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, hit.collider.gameObject.transform.position, hit.collider.gameObject, _activeSkill);
-                }
-            }
-            else
-            {
-                _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, hit.point, null, _activeSkill);
-            }
-        }
-    }
+    // Переместил логику TryCastActiveSkill в PlayerMovement, чтобы все клики обрабатывались в одном месте.
 
     public IEnumerator CastSkill(Vector3? targetPosition, GameObject targetObject, ISkill skillToCast)
     {
@@ -192,23 +169,33 @@ public class PlayerSkills : NetworkBehaviour
         }
 
         _isCasting = true;
-        _core.Movement.StopMovement();
 
         if (targetPosition.HasValue)
         {
             float distance = Vector3.Distance(transform.position, targetPosition.Value);
             float currentRange = skillToCast.Range;
+
+            // Если цель вне радиуса действия, персонаж движется к ней.
             if (distance > currentRange)
             {
                 _core.Movement.MoveTo(targetPosition.Value);
-                yield return new WaitUntil(() => Vector3.Distance(transform.position, targetPosition.Value) <= currentRange || _core.isDead);
+                yield return new WaitUntil(() => Vector3.Distance(transform.position, targetPosition.Value) <= currentRange || _core.isDead || _core.ActionSystem.CurrentAction != PlayerAction.SkillCast);
             }
         }
 
-        yield return new WaitForSeconds(skillToCast.CastTime);
-
-        skillToCast.Execute(_core, targetPosition, targetObject);
-        skillToCast.StartCooldown();
+        // Если персонаж не умер и все еще выполняет каст, он останавливается и кастует
+        if (!_core.isDead && _core.ActionSystem.CurrentAction == PlayerAction.SkillCast)
+        {
+            _core.Movement.StopMovement();
+            // Поворачиваемся к цели перед кастом
+            if (targetPosition.HasValue)
+            {
+                _core.Movement.RotateTo(targetPosition.Value - transform.position);
+            }
+            yield return new WaitForSeconds(skillToCast.CastTime);
+            skillToCast.Execute(_core, targetPosition, targetObject);
+            skillToCast.StartCooldown();
+        }
 
         _isCasting = false;
         _core.ActionSystem.CompleteAction();

@@ -27,22 +27,32 @@ public class PlayerMovement : NetworkBehaviour
 
     public void HandleMovement()
     {
-        if (_core.isDead || _core.isStunned || _core.Skills.IsSkillSelected) return;
+        if (_core.isDead || _core.isStunned) return;
 
         if (Input.GetMouseButtonDown(0))
         {
             Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
             {
-                if (hit.collider.CompareTag("Enemy") || hit.collider.CompareTag("Player"))
+                // Если выбран навык, левый клик используется для каста.
+                if (_core.Skills.IsSkillSelected)
                 {
-                    return;
+                    _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, hit.point, hit.collider.gameObject, _core.Skills.ActiveSkill); // ИСПРАВЛЕНО
+                    _core.Skills.CancelSkillSelection();
                 }
-
-                if (hit.collider.CompareTag("Ground"))
+                // Иначе, левый клик используется для движения.
+                else
                 {
-                    _core.Combat.ClearTarget();
-                    _core.ActionSystem.TryStartAction(PlayerAction.Move, hit.point);
+                    if (hit.collider.CompareTag("Enemy") || hit.collider.CompareTag("Player"))
+                    {
+                        return;
+                    }
+
+                    if (hit.collider.CompareTag("Ground"))
+                    {
+                        _core.Combat.ClearTarget();
+                        _core.ActionSystem.TryStartAction(PlayerAction.Move, hit.point);
+                    }
                 }
             }
         }

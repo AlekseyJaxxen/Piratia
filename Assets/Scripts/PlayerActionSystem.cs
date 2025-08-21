@@ -8,8 +8,10 @@ public class PlayerActionSystem : NetworkBehaviour
     private PlayerCore _core;
     private Coroutine _currentAction;
     private bool _isPerformingAction;
+    private PlayerAction _currentActionType;
 
     public bool IsPerformingAction => _isPerformingAction;
+    public PlayerAction CurrentAction => _currentActionType;
 
     public void Init(PlayerCore core)
     {
@@ -18,6 +20,7 @@ public class PlayerActionSystem : NetworkBehaviour
 
     public bool TryStartAction(PlayerAction actionType, Vector3? targetPosition = null, GameObject targetObject = null, ISkill skillToCast = null)
     {
+        // Отменяем предыдущее действие, если начинаем новое
         if (_isPerformingAction)
         {
             CompleteAction();
@@ -26,6 +29,8 @@ public class PlayerActionSystem : NetworkBehaviour
         switch (actionType)
         {
             case PlayerAction.Move:
+                _isPerformingAction = true;
+                _currentActionType = PlayerAction.Move;
                 if (targetPosition.HasValue)
                 {
                     _currentAction = StartCoroutine(MoveAction(targetPosition.Value));
@@ -33,6 +38,8 @@ public class PlayerActionSystem : NetworkBehaviour
                 }
                 break;
             case PlayerAction.Attack:
+                _isPerformingAction = true;
+                _currentActionType = PlayerAction.Attack;
                 if (targetObject != null)
                 {
                     _currentAction = StartCoroutine(AttackAction(targetObject));
@@ -40,9 +47,11 @@ public class PlayerActionSystem : NetworkBehaviour
                 }
                 break;
             case PlayerAction.SkillCast:
+                _isPerformingAction = true;
+                _currentActionType = PlayerAction.SkillCast;
                 if (skillToCast != null)
                 {
-                    _currentAction = StartCoroutine(SkillCastAction(targetPosition, targetObject, skillToCast));
+                    _currentAction = StartCoroutine(_core.Skills.CastSkill(targetPosition, targetObject, skillToCast));
                     return true;
                 }
                 break;
@@ -53,7 +62,6 @@ public class PlayerActionSystem : NetworkBehaviour
 
     private IEnumerator MoveAction(Vector3 destination)
     {
-        _isPerformingAction = true;
         _core.Combat.ClearTarget();
         _core.Movement.MoveTo(destination);
 
@@ -75,7 +83,6 @@ public class PlayerActionSystem : NetworkBehaviour
 
     private IEnumerator AttackAction(GameObject target)
     {
-        _isPerformingAction = true;
         _core.Combat.SetCurrentTarget(target);
 
         while (target != null && target.GetComponent<Health>()?.CurrentHealth > 0 && !_core.isDead && !_core.isStunned)
@@ -100,24 +107,10 @@ public class PlayerActionSystem : NetworkBehaviour
         CompleteAction();
     }
 
-    private IEnumerator SkillCastAction(Vector3? targetPosition, GameObject targetObject, ISkill skillToCast)
-    {
-        _isPerformingAction = true;
-
-        if (_core != null && _core.Skills != null)
-        {
-            yield return StartCoroutine(_core.Skills.CastSkill(targetPosition, targetObject, skillToCast));
-        }
-        else
-        {
-            Debug.LogWarning("PlayerCore or Skills component is null in SkillCastAction");
-        }
-        CompleteAction();
-    }
-
     public void CompleteAction()
     {
         _isPerformingAction = false;
+        _currentActionType = PlayerAction.None;
         if (_currentAction != null)
         {
             StopCoroutine(_currentAction);
