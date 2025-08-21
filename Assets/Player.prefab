@@ -724,16 +724,16 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   _hotkey: 284
-  _range: 11
+  _range: 6
   _cooldown: 10
   _castTime: 0.1
-  _rangeIndicator: {fileID: 120886135740973652, guid: ad885251c2ca9fc42abc5617eca22b29,
+  _rangeIndicator: {fileID: 7367436715575335037, guid: e7964bca176e04f43aa79653e9fb44cd,
     type: 3}
   _targetIndicatorPrefab: {fileID: 7367436715575335037, guid: e7964bca176e04f43aa79653e9fb44cd,
     type: 3}
   _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
   stunDuration: 2
-  effectRadius: 5
+  effectRadius: 3
   effectPrefab: {fileID: 173590, guid: 7469283484e0dcc4887fa575d1fd7ecc, type: 3}
 --- !u!1001 &2204221415589107067
 PrefabInstance:
