@@ -1,5 +1,6 @@
 using UnityEngine;
-using TMPro; // Эта строка очень важна!
+using TMPro;
+using System.Collections;
 
 public class FloatingDamageText : MonoBehaviour
 {
@@ -8,12 +9,11 @@ public class FloatingDamageText : MonoBehaviour
     public Color damageColor = Color.red;
 
     private TextMeshPro _textMesh;
-    private float _initialY;
     private float _timer;
+    private Vector3 _moveDirection;
 
     private void Awake()
     {
-        // Проверяем, что компонент TextMeshPro существует на этом же GameObject
         _textMesh = GetComponent<TextMeshPro>();
         if (_textMesh == null)
         {
@@ -22,23 +22,24 @@ public class FloatingDamageText : MonoBehaviour
         }
 
         _textMesh.color = damageColor;
-        _initialY = transform.position.y;
     }
 
     public void SetDamageText(int damage)
     {
-        if (_textMesh != null)
-        {
-            _textMesh.text = damage.ToString();
-        }
+        _textMesh.text = damage.ToString();
+    }
+
+    public void SetMoveDirection(Vector3 direction)
+    {
+        _moveDirection = direction;
     }
 
     private void Update()
     {
         _timer += Time.deltaTime;
 
-        // Перемещаем текст вверх
-        transform.position += new Vector3(0, moveSpeed * Time.deltaTime, 0);
+        // Перемещаем текст по заданному направлению
+        transform.position += _moveDirection * moveSpeed * Time.deltaTime;
 
         // Плавно уменьшаем прозрачность
         if (_textMesh != null)

@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 using Mirror;
-using TMPro; // Добавьте эту строку для работы с TextMeshPro
+using TMPro;
 
 public class Health : NetworkBehaviour
 {
@@ -16,6 +16,8 @@ public class Health : NetworkBehaviour
     // Ссылка на префаб цифр урона
     [Header("Damage Text")]
     public GameObject floatingTextPrefab;
+    public float damageTextSpawnHeight = 2.5f; // Новая переменная для высоты спауна
+    public float damageTextRandomness = 0.5f; // Новая переменная для случайности
 
     public int CurrentHealth
     {
@@ -67,22 +69,19 @@ public class Health : NetworkBehaviour
         if (floatingTextPrefab != null)
         {
             // Создаем цифру урона немного выше персонажа
-            GameObject floatingTextInstance = Instantiate(floatingTextPrefab, transform.position + Vector3.up * 2f, Quaternion.identity);
+            Vector3 spawnPosition = transform.position + Vector3.up * damageTextSpawnHeight;
+            GameObject floatingTextInstance = Instantiate(floatingTextPrefab, spawnPosition, Quaternion.identity);
 
-            // Debug-лог, чтобы проверить, что объект создан и где
-            Debug.Log($"Damage text created at position: {floatingTextInstance.transform.position}");
+            // Генерируем случайный вектор для движения (в стиле Ragnarok)
+            Vector3 moveDirection = new Vector3(Random.Range(-damageTextRandomness, damageTextRandomness), 1, Random.Range(-damageTextRandomness, damageTextRandomness));
 
-            // Получаем основную камеру и поворачиваем текст к ней
-            Transform mainCamera = Camera.main.transform;
-            if (mainCamera != null)
+            // Передаем значение урона и направление движения
+            FloatingDamageText damageTextScript = floatingTextInstance.GetComponent<FloatingDamageText>();
+            if (damageTextScript != null)
             {
-                floatingTextInstance.transform.LookAt(mainCamera);
-                // Чтобы текст не был перевернут
-                floatingTextInstance.transform.Rotate(0, 180, 0);
+                damageTextScript.SetDamageText(damage);
+                damageTextScript.SetMoveDirection(moveDirection.normalized); // Нормализуем для равномерной скорости
             }
-
-            // Передаем значение урона
-            floatingTextInstance.GetComponent<FloatingDamageText>()?.SetDamageText(damage);
         }
     }
 

@@ -62,7 +62,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveSpeed: 2
   fadeOutTime: 1
-  damageColor: {r: 1, g: 0.3667643, b: 0, a: 1}
+  damageColor: {r: 1, g: 0.029678378, b: 0, a: 1}
 --- !u!23 &6612171701822489547
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -134,8 +134,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
-  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
+    rgba: 4278850547
+  m_fontColor: {r: 0.9528302, g: 0.07378471, b: 0.04045032, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
