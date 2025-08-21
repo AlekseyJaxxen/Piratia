@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using Mirror;
+using TMPro; // Добавьте эту строку для работы с TextMeshPro
 
 public class Health : NetworkBehaviour
 {
@@ -11,6 +12,10 @@ public class Health : NetworkBehaviour
 
     [SyncVar(hook = nameof(OnHealthChanged))]
     private int _currentHealth;
+
+    // Ссылка на префаб цифр урона
+    [Header("Damage Text")]
+    public GameObject floatingTextPrefab;
 
     public int CurrentHealth
     {
@@ -46,10 +51,38 @@ public class Health : NetworkBehaviour
         CurrentHealth -= amount;
         Debug.Log($"[Server] {gameObject.name} took {amount} damage. Current health: {CurrentHealth}");
 
+        // Вызываем Rpc-метод для отображения урона на всех клиентах
+        RpcShowDamageNumber(amount);
+
         if (CurrentHealth <= 0)
         {
             Debug.Log($"[Server] {gameObject.name} has died.");
             GetComponent<PlayerCore>()?.SetDeathState(true);
+        }
+    }
+
+    [ClientRpc]
+    private void RpcShowDamageNumber(int damage)
+    {
+        if (floatingTextPrefab != null)
+        {
+            // Создаем цифру урона немного выше персонажа
+            GameObject floatingTextInstance = Instantiate(floatingTextPrefab, transform.position + Vector3.up * 2f, Quaternion.identity);
+
+            // Debug-лог, чтобы проверить, что объект создан и где
+            Debug.Log($"Damage text created at position: {floatingTextInstance.transform.position}");
+
+            // Получаем основную камеру и поворачиваем текст к ней
+            Transform mainCamera = Camera.main.transform;
+            if (mainCamera != null)
+            {
+                floatingTextInstance.transform.LookAt(mainCamera);
+                // Чтобы текст не был перевернут
+                floatingTextInstance.transform.Rotate(0, 180, 0);
+            }
+
+            // Передаем значение урона
+            floatingTextInstance.GetComponent<FloatingDamageText>()?.SetDamageText(damage);
         }
     }
 

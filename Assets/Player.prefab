@@ -462,6 +462,8 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0.11
   MaxHealth: 5000
+  floatingTextPrefab: {fileID: 4564945269438271224, guid: 75c435b9f0af2d140828612da10a5496,
+    type: 3}
 --- !u!111 &1882444689610541849
 Animation:
   m_ObjectHideFlags: 0
