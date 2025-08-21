@@ -34,13 +34,36 @@ public class PlayerMovement : NetworkBehaviour
             Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
             {
-                // Если выбран навык, левый клик используется для каста или игнорируется.
+                // Проверяем, какой тип действия сейчас выполняется
+                bool isSkillCastInProgress = _core.ActionSystem.CurrentAction == PlayerAction.SkillCast;
+
+                // Если сейчас идет каст скилла (и персонаж движется к цели), то новый клик отменяет его и начинает движение/атаку
+                if (isSkillCastInProgress)
+                {
+                    if (hit.collider.CompareTag("Enemy") || hit.collider.CompareTag("Player"))
+                    {
+                        // Клик на врага во время каста - переключаемся на атаку
+                        _core.ActionSystem.TryStartAction(PlayerAction.Attack, null, hit.collider.gameObject);
+                        _core.Skills.CancelSkillSelection();
+                        return;
+                    }
+                    else if (hit.collider.CompareTag("Ground"))
+                    {
+                        // Клик на землю во время каста - переключаемся на движение
+                        _core.Combat.ClearTarget();
+                        _core.ActionSystem.TryStartAction(PlayerAction.Move, hit.point);
+                        _core.Skills.CancelSkillSelection();
+                        return;
+                    }
+                }
+
+                // Если навык выбран, но еще не начат каст
                 if (_core.Skills.IsSkillSelected)
                 {
                     // Проверяем, какой тип навыка выбран
                     if (_core.Skills.ActiveSkill is ProjectileDamageSkill || _core.Skills.ActiveSkill is TargetedStunSkill)
                     {
-                        // Для навыков, требующих цель, клик на землю игнорируется
+                        // Для навыков, требующих цель
                         if (hit.collider.CompareTag("Enemy") || hit.collider.CompareTag("Player"))
                         {
                             _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, hit.point, hit.collider.gameObject, _core.Skills.ActiveSkill);
@@ -49,7 +72,7 @@ public class PlayerMovement : NetworkBehaviour
                     }
                     else
                     {
-                        // Для навыков, кастующихся на землю, клик на землю запускает каст
+                        // Для навыков, кастующихся на землю
                         if (hit.collider.CompareTag("Ground"))
                         {
                             _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, hit.point, null, _core.Skills.ActiveSkill);
@@ -57,11 +80,12 @@ public class PlayerMovement : NetworkBehaviour
                         }
                     }
                 }
-                // Иначе, левый клик используется для обычного движения.
+                // Иначе, левый клик используется для обычного движения или атаки
                 else
                 {
                     if (hit.collider.CompareTag("Enemy") || hit.collider.CompareTag("Player"))
                     {
+                        _core.ActionSystem.TryStartAction(PlayerAction.Attack, null, hit.collider.gameObject);
                         return;
                     }
                     if (hit.collider.CompareTag("Ground"))

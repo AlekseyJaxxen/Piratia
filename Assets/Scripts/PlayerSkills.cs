@@ -172,17 +172,19 @@ public class PlayerSkills : NetworkBehaviour
         {
             float distance = Vector3.Distance(transform.position, targetPosition.Value);
             float currentRange = skillToCast.Range;
+            Debug.Log($"PlayerSkills: Distance to target is {distance:F2}. Required range is {currentRange:F2}."); // LOG
 
             // Если цель вне радиуса действия, персонаж движется к ней.
             if (distance > currentRange)
             {
                 _core.Movement.MoveTo(targetPosition.Value);
-                // ИСПРАВЛЕНО: Добавлен цикл, чтобы персонаж поворачивался во время движения
-                while (Vector3.Distance(transform.position, targetPosition.Value) > currentRange && !_core.isDead && _core.ActionSystem.CurrentAction == PlayerAction.SkillCast)
-                {
-                    _core.Movement.RotateTo(targetPosition.Value - transform.position);
-                    yield return null;
-                }
+                Debug.Log("PlayerSkills: Target is out of range. Moving to target position."); // LOG
+
+                yield return new WaitUntil(() => Vector3.Distance(transform.position, targetPosition.Value) <= currentRange || _core.isDead || _core.ActionSystem.CurrentAction != PlayerAction.SkillCast);
+            }
+            else
+            {
+                Debug.Log("PlayerSkills: Target is in range. Casting immediately."); // LOG
             }
         }
 

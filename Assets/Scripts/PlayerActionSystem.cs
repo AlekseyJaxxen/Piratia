@@ -20,9 +20,11 @@ public class PlayerActionSystem : NetworkBehaviour
 
     public bool TryStartAction(PlayerAction actionType, Vector3? targetPosition = null, GameObject targetObject = null, ISkill skillToCast = null)
     {
+        Debug.Log($"PlayerActionSystem: Trying to start new action: {actionType}"); // LOG
         // Отменяем предыдущее действие, если начинаем новое
         if (_isPerformingAction)
         {
+            Debug.Log($"PlayerActionSystem: An action is already being performed ({_currentActionType}). Completing it now."); // LOG
             CompleteAction();
         }
 
@@ -84,6 +86,7 @@ public class PlayerActionSystem : NetworkBehaviour
     private IEnumerator AttackAction(GameObject target)
     {
         _core.Combat.SetCurrentTarget(target);
+        Debug.Log($"PlayerActionSystem: Starting attack action on target {target.name}"); // LOG
 
         while (target != null && target.GetComponent<Health>()?.CurrentHealth > 0 && !_core.isDead && !_core.isStunned)
         {
@@ -104,11 +107,13 @@ public class PlayerActionSystem : NetworkBehaviour
             yield return new WaitForSeconds(_core.Combat.attackCooldown);
         }
 
+        Debug.Log($"PlayerActionSystem: Attack action finished. Target is gone or state changed."); // LOG
         CompleteAction();
     }
 
     public void CompleteAction()
     {
+        Debug.Log($"PlayerActionSystem: Completing action {_currentActionType}"); // LOG
         _isPerformingAction = false;
         _currentActionType = PlayerAction.None;
         if (_currentAction != null)

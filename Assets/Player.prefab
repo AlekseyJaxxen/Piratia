@@ -544,9 +544,9 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   attackRange: 2
-  attackCooldown: 0.5
+  attackCooldown: 0.1
   attackDamage: 100
-  attackDelay: 0.1
+  attackDelay: 0.01
   targetIndicatorPrefab: {fileID: 120886135740973652, guid: ad885251c2ca9fc42abc5617eca22b29,
     type: 3}
 --- !u!114 &2785307464818136286
