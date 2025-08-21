@@ -7,6 +7,7 @@ public class AreaOfEffectHealSkill : SkillBase
 {
     [Header("Heal Settings")]
     public int healAmount = 20;
+    public GameObject effectPrefab;
 
     public override void Execute(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
     {
@@ -27,6 +28,18 @@ public class AreaOfEffectHealSkill : SkillBase
                 // Вызываем метод Heal на сервере, как и положено
                 targetHealth.Heal(amount);
             }
+        }
+
+        RpcPlayEffect(position);
+    }
+
+    [ClientRpc]
+    private void RpcPlayEffect(Vector3 position)
+    {
+        if (effectPrefab != null)
+        {
+            GameObject effect = Instantiate(effectPrefab, position + Vector3.up * 1f, Quaternion.identity);
+            Destroy(effect, 2f);
         }
     }
 }

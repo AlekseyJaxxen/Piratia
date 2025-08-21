@@ -1,5 +1,6 @@
 using UnityEngine;
 using Mirror;
+using System.Collections;
 
 public class AreaOfEffectStunSkill : SkillBase
 {
@@ -42,9 +43,38 @@ public class AreaOfEffectStunSkill : SkillBase
     {
         if (effectPrefab != null)
         {
+            // Создаем эффект и сразу увеличиваем его масштаб
             GameObject effect = Instantiate(effectPrefab, position + Vector3.up * 1f, Quaternion.identity);
-            Destroy(effect, 2f);
+            effect.transform.localScale = Vector3.one * 3f; // Увеличиваем в 1.5 раза
+
+            // Запускаем корутину для анимации уменьшения
+            StartCoroutine(DecreaseScaleOverTime(effect.transform, 1f, 2f));
         }
+    }
+
+    private IEnumerator DecreaseScaleOverTime(Transform targetTransform, float duration, float destroyTime)
+    {
+        float elapsed = 0f;
+        Vector3 originalScale = targetTransform.localScale;
+        Vector3 targetScale = Vector3.zero;
+
+        // Анимация уменьшения масштаба
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / duration;
+            targetTransform.localScale = Vector3.Lerp(originalScale, targetScale, t);
+            yield return null;
+        }
+
+        // Убедимся, что масштаб равен нулю в конце анимации
+        targetTransform.localScale = Vector3.zero;
+
+        // Ждем оставшееся время перед уничтожением, чтобы эффект исчез
+        yield return new WaitForSeconds(destroyTime - duration);
+
+        // Уничтожаем объект
+        Destroy(targetTransform.gameObject);
     }
 
     [Server]

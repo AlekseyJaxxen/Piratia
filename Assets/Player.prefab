@@ -460,8 +460,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   syncDirection: 0
   syncMode: 0
-  syncInterval: 0
-  MaxHealth: 1000
+  syncInterval: 0.11
+  MaxHealth: 5000
 --- !u!111 &1882444689610541849
 Animation:
   m_ObjectHideFlags: 0
@@ -495,7 +495,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   syncDirection: 0
   syncMode: 0
-  syncInterval: 0
+  syncInterval: 0.1
   Movement: {fileID: 2228385071925969768}
   Combat: {fileID: 7327050918202999389}
   Skills: {fileID: 2785307464818136286}
@@ -708,6 +708,7 @@ MonoBehaviour:
     type: 3}
   _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
   healAmount: 500
+  effectPrefab: {fileID: 152564, guid: 0e4a7fa9fd28f154b91c98ee6fe8ebea, type: 3}
 --- !u!114 &7355873465176282773
 MonoBehaviour:
   m_ObjectHideFlags: 0
