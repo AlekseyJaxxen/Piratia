@@ -20,11 +20,10 @@ public class PlayerActionSystem : NetworkBehaviour
 
     public bool TryStartAction(PlayerAction actionType, Vector3? targetPosition = null, GameObject targetObject = null, ISkill skillToCast = null)
     {
-        Debug.Log($"PlayerActionSystem: Trying to start new action: {actionType}"); // LOG
-        // Отменяем предыдущее действие, если начинаем новое
+        Debug.Log($"PlayerActionSystem: Trying to start new action: {actionType}");
         if (_isPerformingAction)
         {
-            Debug.Log($"PlayerActionSystem: An action is already being performed ({_currentActionType}). Completing it now."); // LOG
+            Debug.Log($"PlayerActionSystem: An action is already being performed ({_currentActionType}). Completing it now.");
             CompleteAction();
         }
 
@@ -71,6 +70,7 @@ public class PlayerActionSystem : NetworkBehaviour
 
         while (_core.Movement.Agent.remainingDistance > _core.Movement.Agent.stoppingDistance)
         {
+            // Добавлена проверка состояния
             if (_core.isDead || _core.isStunned)
             {
                 CompleteAction();
@@ -86,10 +86,17 @@ public class PlayerActionSystem : NetworkBehaviour
     private IEnumerator AttackAction(GameObject target)
     {
         _core.Combat.SetCurrentTarget(target);
-        Debug.Log($"PlayerActionSystem: Starting attack action on target {target.name}"); // LOG
+        Debug.Log($"PlayerActionSystem: Starting attack action on target {target.name}");
 
         while (target != null && target.GetComponent<Health>()?.CurrentHealth > 0 && !_core.isDead && !_core.isStunned)
         {
+            // Добавлена проверка состояния
+            if (_core.isDead || _core.isStunned)
+            {
+                CompleteAction();
+                yield break;
+            }
+
             float distance = Vector3.Distance(transform.position, target.transform.position);
 
             if (distance > _core.Combat.attackRange)
@@ -107,13 +114,13 @@ public class PlayerActionSystem : NetworkBehaviour
             yield return new WaitForSeconds(_core.Combat.attackCooldown);
         }
 
-        Debug.Log($"PlayerActionSystem: Attack action finished. Target is gone or state changed."); // LOG
+        Debug.Log($"PlayerActionSystem: Attack action finished. Target is gone or state changed.");
         CompleteAction();
     }
 
     public void CompleteAction()
     {
-        Debug.Log($"PlayerActionSystem: Completing action {_currentActionType}"); // LOG
+        Debug.Log($"PlayerActionSystem: Completing action {_currentActionType}");
         _isPerformingAction = false;
         _currentActionType = PlayerAction.None;
         if (_currentAction != null)

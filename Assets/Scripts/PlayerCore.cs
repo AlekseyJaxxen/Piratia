@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using Mirror;
+using TMPro;
 
 public enum PlayerAction
 {
@@ -28,11 +29,21 @@ public class PlayerCore : NetworkBehaviour
     [SyncVar(hook = nameof(OnModelChanged))]
     private int _modelIndex = -1;
 
+    [SyncVar(hook = nameof(OnTeamChanged))]
+    public PlayerTeam team = PlayerTeam.None;
+
+    [SyncVar(hook = nameof(OnNameChanged))]
+    public string playerName = "Player";
+
     [SyncVar(hook = nameof(OnDeathStateChanged))]
     public bool isDead = false;
 
     [SyncVar(hook = nameof(OnStunStateChanged))]
     public bool isStunned = false;
+
+    private GameObject _teamIndicator;
+    private TextMeshProUGUI _nameText;
+    private PlayerUI_Team _playerUI_Team;
 
     private void Awake()
     {
@@ -49,6 +60,13 @@ public class PlayerCore : NetworkBehaviour
         if (Camera != null)
         {
             Camera.Init(this);
+        }
+
+        _playerUI_Team = FindObjectOfType<PlayerUI_Team>();
+
+        if (_playerUI_Team != null)
+        {
+            _playerUI_Team.ShowTeamSelectionUI();
         }
     }
 
@@ -67,15 +85,21 @@ public class PlayerCore : NetworkBehaviour
         }
 
         if (Health != null) Health.Init();
+
+        playerName = $"Player_{connectionToClient.connectionId}";
     }
 
     private void Start()
     {
         InitComponents();
+        _teamIndicator = transform.Find("TeamIndicator")?.gameObject;
+        _nameText = GetComponentInChildren<TextMeshProUGUI>();
+
+        OnTeamChanged(PlayerTeam.None, team);
+        OnNameChanged("Player", playerName);
     }
 
-    // 🚨 ИСПРАВЛЕНО: Убраны аргументы из вызовов Init
-    private void InitComponents()
+    private void InitComponents()
     {
         if (Movement != null) Movement.Init(this);
         if (Combat != null) Combat.Init(this);
@@ -92,8 +116,8 @@ public class PlayerCore : NetworkBehaviour
         Movement.HandleMovement();
     }
 
-    #region State Management
-    [Server]
+    #region State Management
+    [Server]
     public void SetDeathState(bool state)
     {
         isDead = state;
@@ -147,43 +171,67 @@ public class PlayerCore : NetworkBehaviour
         if (ActionSystem != null) ActionSystem.enabled = !state;
     }
 
+    [Command]
+    public void CmdSetPlayerInfo(string newName, PlayerTeam newTeam)
+    {
+        playerName = newName;
+        team = newTeam;
+    }
+
+    private void OnTeamChanged(PlayerTeam oldTeam, PlayerTeam newTeam)
+    {
+        UpdateTeamIndicatorColor();
+    }
+
+    private void OnNameChanged(string oldName, string newName)
+    {
+        if (_nameText != null)
+        {
+            _nameText.text = newName;
+        }
+    }
+
+    private void UpdateTeamIndicatorColor()
+    {
+        if (_teamIndicator == null) return;
+
+        Renderer rend = _teamIndicator.GetComponent<Renderer>();
+        if (rend == null) return;
+
+        if (isLocalPlayer)
+        {
+            rend.material.color = (team == PlayerTeam.Red) ? Color.red : Color.blue;
+        }
+        else
+        {
+            PlayerCore localPlayerCore = FindObjectOfType<PlayerCore>();
+            if (localPlayerCore != null && localPlayerCore.team == team)
+            {
+                rend.material.color = Color.green;
+            }
+            else
+            {
+                rend.material.color = Color.red;
+            }
+        }
+    }
+
     private void OnModelChanged(int oldIndex, int newIndex)
     {
-        if (playerModels == null || newIndex < 0 || newIndex >= playerModels.Length)
-        {
-            return;
-        }
-
-        if (oldIndex >= 0 && oldIndex < playerModels.Length && playerModels[oldIndex] != null)
-        {
-            playerModels[oldIndex].SetActive(false);
-        }
-
-        if (playerModels[newIndex] != null)
-        {
-            playerModels[newIndex].SetActive(true);
-        }
+        if (playerModels == null || newIndex < 0 || newIndex >= playerModels.Length) return;
+        if (oldIndex >= 0 && oldIndex < playerModels.Length && playerModels[oldIndex] != null) playerModels[oldIndex].SetActive(false);
+        if (playerModels[newIndex] != null) playerModels[newIndex].SetActive(true);
     }
 
     private void OnDeathStateChanged(bool oldValue, bool newValue)
     {
-        if (newValue)
-        {
-            Combat.enabled = false;
-            Skills.enabled = false;
-            Movement.enabled = false;
-        }
-        else
-        {
-            Combat.enabled = true;
-            Skills.enabled = true;
-            Movement.enabled = true;
-        }
+        if (newValue) { Combat.enabled = false; Skills.enabled = false; Movement.enabled = false; }
+        else { Combat.enabled = true; Skills.enabled = true; Movement.enabled = true; }
     }
 
     private void OnStunStateChanged(bool oldValue, bool newValue)
     {
         if (Skills != null) Skills.HandleStunEffect(newValue);
     }
-    #endregion
+    #endregion
 }
