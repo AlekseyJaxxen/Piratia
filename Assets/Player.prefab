@@ -208,7 +208,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4883939581995877076}
-  m_Layer: 0
+  m_Layer: 2
   m_Name: Hpbarposition
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -244,7 +244,7 @@ GameObject:
   - component: {fileID: 3197694652996282763}
   - component: {fileID: 1374951941229157906}
   - component: {fileID: 5096387791756232503}
-  m_Layer: 5
+  m_Layer: 2
   m_Name: PlayerNameCanvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -357,7 +357,7 @@ GameObject:
   - component: {fileID: 7547362172609213785}
   - component: {fileID: 3506380375906802134}
   - component: {fileID: 6162556830423483997}
-  m_Layer: 0
+  m_Layer: 2
   m_Name: 'TeamIndicator '
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -395,7 +395,7 @@ MeshRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7641027182816980578}
   m_Enabled: 1
-  m_CastShadows: 1
+  m_CastShadows: 0
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
   m_StaticShadowCaster: 0
@@ -441,7 +441,7 @@ GameObject:
   - component: {fileID: 1789524765625919891}
   - component: {fileID: 974519009885916487}
   - component: {fileID: 1049282550990703278}
-  m_Layer: 5
+  m_Layer: 2
   m_Name: Naming
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -456,7 +456,7 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8268743358402820728}
   m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0.55}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -465,7 +465,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: -2.32}
   m_SizeDelta: {x: 4, y: 2}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1789524765625919891
@@ -505,8 +505,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
-  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
+    rgba: 4294572543
+  m_fontColor: {r: 1, g: 0.9764151, b: 0.9764151, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -523,8 +523,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 1
-  m_fontSizeBase: 1
+  m_fontSize: 0.64
+  m_fontSizeBase: 0.64
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -799,9 +799,6 @@ MonoBehaviour:
   attackRange: 2
   attackCooldown: 0.1
   attackDamage: 100
-  attackDelay: 0.01
-  targetIndicatorPrefab: {fileID: 120886135740973652, guid: ad885251c2ca9fc42abc5617eca22b29,
-    type: 3}
 --- !u!114 &2785307464818136286
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1000,6 +997,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: HPbar
+      objectReference: {fileID: 0}
+    - target: {fileID: 820567356866551522, guid: 23b1eec08a7c6044bad3ccf6eb696cfa,
+        type: 3}
+      propertyPath: m_Layer
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 1462970694243875933, guid: 23b1eec08a7c6044bad3ccf6eb696cfa,
         type: 3}

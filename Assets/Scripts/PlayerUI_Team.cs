@@ -1,9 +1,9 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using Mirror; // Это можно оставить, если используете другие сетевые типы
+using Mirror;
 
-public class PlayerUI_Team : MonoBehaviour // <-- ИЗМЕНИТЕ ЗДЕСЬ
+public class PlayerUI_Team : MonoBehaviour
 {
     public GameObject teamSelectionPanel;
     public Button redTeamButton;
@@ -15,7 +15,6 @@ public class PlayerUI_Team : MonoBehaviour // <-- ИЗМЕНИТЕ ЗДЕСЬ
 
     void Start()
     {
-        //teamSelectionPanel = GameObject.Find("TeamSelectionCanvas");
 
         if (redTeamButton != null)
         {

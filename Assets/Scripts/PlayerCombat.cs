@@ -1,121 +1,69 @@
 ﻿using UnityEngine;
 using Mirror;
 using System.Collections;
-using System;
 
 public class PlayerCombat : NetworkBehaviour
 {
-    [Header("Combat Settings")]
-    public float attackRange = 2f;
-    public float attackCooldown = 1f;
-    public int attackDamage = 10;
-    public float attackDelay = 0.3f;
-    public GameObject targetIndicatorPrefab;
-
-    private GameObject _currentTarget;
-    private float _lastAttackTime;
     private PlayerCore _core;
-    private bool _isAttacking;
-    private GameObject _targetIndicator;
+    private GameObject _target;
+    private float _lastAttackTime = -Mathf.Infinity;
 
-    public bool IsAttacking => _isAttacking;
+    [Header("Combat Settings")]
+    public float attackRange = 2.5f;
+    public float attackCooldown = 1.0f;
+    public int attackDamage = 10;
 
     public void Init(PlayerCore core)
     {
         _core = core;
-        if (isLocalPlayer)
+    }
+
+    public void HandleCombat()
+    {
+        if (_core.ActionSystem.CurrentAction != PlayerAction.Attack) return;
+        if (_target == null) return;
+    }
+
+    [Server]
+    public void PerformAttack()
+    {
+        if (_target == null) return;
+
+        PlayerCore attackerCore = GetComponent<PlayerCore>();
+        PlayerCore targetCore = _target.GetComponent<PlayerCore>();
+
+        if (targetCore != null && attackerCore != null)
         {
-            _targetIndicator = Instantiate(targetIndicatorPrefab);
-            _targetIndicator.SetActive(false);
+            // Проверка на принадлежность к команде
+            if (attackerCore.team == targetCore.team)
+            {
+                Debug.Log("Cannot attack a teammate!");
+                return;
+            }
+        }
+
+        if (Vector3.Distance(transform.position, _target.transform.position) <= attackRange)
+        {
+            Health targetHealth = _target.GetComponent<Health>();
+            if (targetHealth != null)
+            {
+                targetHealth.TakeDamage(attackDamage);
+            }
         }
     }
 
     public void SetCurrentTarget(GameObject target)
     {
-        _currentTarget = target;
-    }
-
-    public void HandleCombat()
-    {
-        if (!isLocalPlayer || _core.isDead || _core.isStunned) return;
-
-        if (_core.Skills.IsSkillSelected) return;
-
-        if (Input.GetMouseButtonDown(0))
-        {
-            Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
-            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
-            {
-                if (hit.collider.CompareTag("Enemy") || hit.collider.CompareTag("Player"))
-                {
-                    if (!_core.ActionSystem.IsPerformingAction)
-                    {
-                        _core.ActionSystem.TryStartAction(PlayerAction.Attack, targetObject: hit.collider.gameObject);
-                    }
-                }
-            }
-        }
-
-        UpdateTargetIndicator();
-    }
-
-    private void UpdateTargetIndicator()
-    {
-        if (_targetIndicator == null) return;
-
-        if (_currentTarget != null)
-        {
-            _targetIndicator.SetActive(true);
-            _targetIndicator.transform.position = _currentTarget.transform.position + Vector3.up * 0.1f;
-        }
-        else
-        {
-            _targetIndicator.SetActive(false);
-        }
-    }
-
-    public void PerformAttack()
-    {
-        if (Time.time - _lastAttackTime < attackCooldown)
-        {
-            return;
-        }
-
-        _lastAttackTime = Time.time;
-
-        CancelInvoke(nameof(ApplyAttackDamage));
-        Invoke(nameof(ApplyAttackDamage), attackDelay);
-    }
-
-    private void ApplyAttackDamage()
-    {
-        if (_currentTarget == null) return;
-
-        Health targetHealth = _currentTarget.GetComponent<Health>();
-        if (targetHealth != null)
-        {
-            CmdApplyDamage(targetHealth.GetComponent<NetworkIdentity>().netId, attackDamage);
-        }
-    }
-
-    [Command]
-    private void CmdApplyDamage(uint targetNetId, int damage)
-    {
-        if (NetworkServer.spawned.ContainsKey(targetNetId))
-        {
-            NetworkIdentity targetIdentity = NetworkServer.spawned[targetNetId];
-            targetIdentity.GetComponent<Health>()?.TakeDamage(damage);
-        }
-    }
-
-    public void StopAttacking()
-    {
-        _isAttacking = false;
-        CancelInvoke();
+        _target = target;
     }
 
     public void ClearTarget()
     {
-        _currentTarget = null;
+        _target = null;
+    }
+
+    public void StopAttacking()
+    {
+        _target = null;
     }
 }

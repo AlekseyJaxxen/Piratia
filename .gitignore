@@ -97,3 +97,9 @@ InitTestScene*.unity*
 
 # Auto-generated scenes by play mode tests
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
+Client/ROclon_Data/globalgamemanagers
+Client/ROclon_Data/globalgamemanagers.assets
+Client/ROclon_Data/level0
+Client/ROclon_Data/resources.assets
+Client/ROclon_Data/sharedassets0.assets
+Client/ROclon_Data/sharedassets0.assets.resS
