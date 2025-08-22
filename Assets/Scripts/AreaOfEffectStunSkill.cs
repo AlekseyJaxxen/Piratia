@@ -20,18 +20,22 @@ public class AreaOfEffectStunSkill : SkillBase
     private void CmdStunArea(Vector3 position)
     {
         Collider[] hits = Physics.OverlapSphere(position, effectRadius);
+        PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
+
         foreach (var hit in hits)
         {
-            if (hit.CompareTag("Enemy") || hit.CompareTag("Player"))
+            PlayerCore targetCore = hit.GetComponent<PlayerCore>();
+
+            if (targetCore != null && casterCore != null)
             {
-                NetworkIdentity targetIdentity = hit.GetComponent<NetworkIdentity>();
-                if (targetIdentity != null && targetIdentity.netId != netId)
+                // ѕровер€ем, что цель находитс€ в другой команде
+                if (casterCore.team != targetCore.team)
                 {
-                    PlayerCore targetCore = hit.GetComponent<PlayerCore>();
-                    if (targetCore != null)
-                    {
-                        targetCore.StartCoroutine(StunRoutine(targetCore, stunDuration));
-                    }
+                    targetCore.StartCoroutine(StunRoutine(targetCore, stunDuration));
+                }
+                else
+                {
+                    Debug.Log("Cannot stun a teammate!");
                 }
             }
         }

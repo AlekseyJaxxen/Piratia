@@ -18,6 +18,7 @@ public class BasicAttackSkill : SkillBase
 
     // [Command]-метод, который выполн€етс€ на сервере.
     // requiresAuthority = false, так как атака может быть на чужого персонажа.
+
     [Command(requiresAuthority = false)]
     private void CmdPerformAttack(uint targetNetId)
     {
@@ -26,11 +27,21 @@ public class BasicAttackSkill : SkillBase
         {
             NetworkIdentity targetIdentity = NetworkServer.spawned[targetNetId];
             Health targetHealth = targetIdentity.GetComponent<Health>();
+            PlayerCore targetCore = targetIdentity.GetComponent<PlayerCore>();
+            PlayerCore attackerCore = connectionToClient.identity.GetComponent<PlayerCore>();
 
-            if (targetHealth != null)
+            // ѕроверка на то, что цели не принадлежат одной команде
+            if (targetHealth != null && targetCore != null && attackerCore != null)
             {
-                // Ќаносим урон цели.
-                targetHealth.TakeDamage(damageAmount);
+                if (attackerCore.team != targetCore.team)
+                {
+                    // Ќаносим урон цели.
+                    targetHealth.TakeDamage(damageAmount);
+                }
+                else
+                {
+                    Debug.Log("Cannot attack a teammate!");
+                }
             }
         }
     }

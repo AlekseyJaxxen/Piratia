@@ -1,3 +1,4 @@
+
 using UnityEngine;
 using Mirror;
 using System.Collections;
@@ -24,7 +25,18 @@ public class ProjectileDamageSkill : SkillBase
         if (NetworkServer.spawned.ContainsKey(targetNetId))
         {
             NetworkIdentity targetIdentity = NetworkServer.spawned[targetNetId];
-            targetIdentity.GetComponent<Health>()?.TakeDamage(damageAmount);
+            Health targetHealth = targetIdentity.GetComponent<Health>();
+            PlayerCore targetCore = targetIdentity.GetComponent<PlayerCore>();
+            PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
+
+            // ѕровер€ем, что цель не принадлежит нашей команде.
+            if (targetHealth != null && targetCore != null && casterCore != null)
+            {
+                if (casterCore.team != targetCore.team)
+                {
+                    targetHealth.TakeDamage(damageAmount);
+                }
+            }
         }
     }
 

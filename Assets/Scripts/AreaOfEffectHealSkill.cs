@@ -20,13 +20,20 @@ public class AreaOfEffectHealSkill : SkillBase
     private void CmdHealArea(Vector3 position, int amount)
     {
         Collider[] hitColliders = Physics.OverlapSphere(position, Range);
+        PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
+
         foreach (var hitCollider in hitColliders)
         {
             Health targetHealth = hitCollider.GetComponent<Health>();
-            if (targetHealth != null)
+            PlayerCore targetCore = hitCollider.GetComponent<PlayerCore>();
+
+            if (targetHealth != null && targetCore != null && casterCore != null)
             {
-                // Вызываем метод Heal на сервере, как и положено
-                targetHealth.Heal(amount);
+                // Проверяем, что цель находится в той же команде, что и кастующий
+                if (casterCore.team == targetCore.team)
+                {
+                    targetHealth.Heal(amount);
+                }
             }
         }
 

@@ -22,12 +22,22 @@ public class TargetedStunSkill : SkillBase
         {
             NetworkIdentity targetIdentity = NetworkServer.spawned[targetNetId];
             PlayerCore targetCore = targetIdentity.GetComponent<PlayerCore>();
-            if (targetCore != null)
+            PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
+
+            // Проверяем, что цель не принадлежит нашей команде.
+            if (targetCore != null && casterCore != null)
             {
-                targetCore.StartCoroutine(StunRoutine(targetCore, stunDuration));
+                if (casterCore.team != targetCore.team)
+                {
+                    targetCore.StartCoroutine(StunRoutine(targetCore, stunDuration));
+                    RpcPlayEffect(targetNetId); // Эффект показываем только в случае успешного оглушения
+                }
+                else
+                {
+                    Debug.Log("Cannot stun a teammate!");
+                }
             }
         }
-        RpcPlayEffect(targetNetId);
     }
 
     [ClientRpc]
