@@ -9,10 +9,10 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8600011925640489585}
-  - component: {fileID: 7190494042296440499}
   - component: {fileID: 7622195705955395801}
   - component: {fileID: 6612171701822489547}
   - component: {fileID: 3823274433598414969}
+  - component: {fileID: 3971645891753331210}
   m_Layer: 5
   m_Name: FloatingDamage
   m_TagString: Untagged
@@ -40,14 +40,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!222 &7190494042296440499
-CanvasRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4564945269438271224}
-  m_CullTransparentMesh: 1
 --- !u!114 &7622195705955395801
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -197,3 +189,16 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_renderer: {fileID: 6612171701822489547}
   m_maskType: 0
+--- !u!114 &3971645891753331210
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4564945269438271224}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 70e64c43e14f556429a63edf4d39eebf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetCamera: {fileID: 0}

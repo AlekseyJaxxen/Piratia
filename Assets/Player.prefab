@@ -464,6 +464,8 @@ MonoBehaviour:
   MaxHealth: 5000
   floatingTextPrefab: {fileID: 4564945269438271224, guid: 75c435b9f0af2d140828612da10a5496,
     type: 3}
+  damageTextSpawnHeight: 2.5
+  damageTextRandomness: 0.5
 --- !u!111 &1882444689610541849
 Animation:
   m_ObjectHideFlags: 0
@@ -1003,7 +1005,7 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: d6bcb595bf54a4f4f95427062e3a8664,
         type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d6bcb595bf54a4f4f95427062e3a8664, type: 3}
@@ -1089,7 +1091,7 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: d8ba1748b7c714c40b6691faaa6f8d0d,
         type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d8ba1748b7c714c40b6691faaa6f8d0d, type: 3}
