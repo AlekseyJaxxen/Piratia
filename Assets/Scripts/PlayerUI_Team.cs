@@ -53,10 +53,10 @@ public class PlayerUI_Team : MonoBehaviour
             _localPlayerCore.CmdSetPlayerInfo(_localPlayerCore.playerName, selectedTeam);
         }
 
-        if (teamSelectionPanel != null)
-        {
-            teamSelectionPanel.SetActive(false);
-        }
+       // if (teamSelectionPanel != null)
+     //   {
+         //   teamSelectionPanel.SetActive(false);
+      //  }
     }
 
     private void OnNameConfirmed()
