@@ -47,6 +47,14 @@ public class Health : NetworkBehaviour
         CurrentHealth = MaxHealth;
     }
 
+    // Новый публичный метод для установки здоровья
+    [Server]
+    public void SetHealth(int amount)
+    {
+        CurrentHealth = amount;
+        Debug.Log($"[Server] {gameObject.name} health set to: {CurrentHealth}");
+    }
+
     [Server]
     public void TakeDamage(int amount)
     {

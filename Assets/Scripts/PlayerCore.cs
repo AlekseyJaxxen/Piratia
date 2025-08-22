@@ -29,6 +29,8 @@ public class PlayerCore : NetworkBehaviour
     [SyncVar(hook = nameof(OnModelChanged))]
     private int _modelIndex = -1;
 
+    public GameObject deathVFXPrefab; // Префаб для эффекта смерти
+
     [SyncVar(hook = nameof(OnTeamChanged))]
     public PlayerTeam team = PlayerTeam.None;
 
@@ -40,6 +42,10 @@ public class PlayerCore : NetworkBehaviour
 
     [SyncVar(hook = nameof(OnStunStateChanged))]
     public bool isStunned = false;
+
+    [Header("Respawn")]
+    public float respawnTime = 5.0f;
+    private float timeOfDeath;
 
     private GameObject _teamIndicator;
     private TextMeshProUGUI _nameText;
@@ -109,7 +115,16 @@ public class PlayerCore : NetworkBehaviour
 
     private void Update()
     {
-        if (!isLocalPlayer || isDead || isStunned) return;
+        if (!isLocalPlayer || isStunned) return;
+
+        if (isDead)
+        {
+            if (Time.time - timeOfDeath >= respawnTime)
+            {
+                CmdRespawnPlayer();
+            }
+            return;
+        }
 
         Skills.HandleSkills();
         Combat.HandleCombat();
@@ -123,6 +138,7 @@ public class PlayerCore : NetworkBehaviour
         isDead = state;
         if (state)
         {
+            timeOfDeath = Time.time;
             Movement.StopMovement();
             Combat.StopAttacking();
             ActionSystem.CompleteAction();
@@ -145,6 +161,19 @@ public class PlayerCore : NetworkBehaviour
         if (Combat != null) Combat.enabled = !state;
         if (Skills != null) Skills.enabled = !state;
         if (ActionSystem != null) ActionSystem.enabled = !state;
+
+        // Скрываем/показываем модель
+        if (playerModels != null && _modelIndex >= 0 && _modelIndex < playerModels.Length)
+        {
+            if (playerModels[_modelIndex] != null) playerModels[_modelIndex].SetActive(!state);
+        }
+
+        // Инстанцируем VFX смерти
+        if (state && deathVFXPrefab != null)
+        {
+            GameObject vfx = Instantiate(deathVFXPrefab, transform.position, Quaternion.identity);
+            Destroy(vfx, 3f); // Уничтожаем VFX через 3 секунды
+        }
     }
 
     [Server]
@@ -169,6 +198,20 @@ public class PlayerCore : NetworkBehaviour
         if (Combat != null) Combat.enabled = !state;
         if (Skills != null) Skills.enabled = !state;
         if (ActionSystem != null) ActionSystem.enabled = !state;
+    }
+
+    [Command]
+    public void CmdRespawnPlayer()
+    {
+        SetDeathState(false);
+        if (Health != null)
+        {
+            Health.SetHealth(Health.MaxHealth);
+        }
+
+        // Тут нужно найти точку возрождения и телепортировать игрока
+        // Например, GameObject spawnPoint = GameObject.Find("SpawnPoint");
+        // if (spawnPoint != null) transform.position = spawnPoint.transform.position;
     }
 
     [Command]
