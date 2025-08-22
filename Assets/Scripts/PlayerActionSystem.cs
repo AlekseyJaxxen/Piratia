@@ -99,7 +99,7 @@ public class PlayerActionSystem : NetworkBehaviour
             }
             SkillBase basicAttackSkill = _core.Skills.skills[0];
 
-            // Используем свойство Range, заданное в самом навыке
+            // Используем дальность, заданную в самом навыке
             float distance = Vector3.Distance(transform.position, target.transform.position);
 
             if (distance > basicAttackSkill.Range)
@@ -111,7 +111,8 @@ public class PlayerActionSystem : NetworkBehaviour
                 _core.Movement.StopMovement();
                 _core.Movement.RotateTo(target.transform.position - transform.position);
 
-                if (Time.time >= _core.Combat._lastAttackTime + _core.Combat.attackCooldown)
+                // Теперь используем кулдаун, заданный в самом навыке
+                if (Time.time >= _core.Combat._lastAttackTime + basicAttackSkill.Cooldown)
                 {
                     basicAttackSkill.Execute(_core, null, target);
                     _core.Combat._lastAttackTime = Time.time;

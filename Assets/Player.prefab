@@ -1006,7 +1006,7 @@ MonoBehaviour:
   syncInterval: 0
   _hotkey: 286
   _range: 5
-  _cooldown: 1
+  _cooldown: 0.2
   _castTime: 0.1
   _rangeIndicator: {fileID: 0}
   _targetIndicatorPrefab: {fileID: 0}
