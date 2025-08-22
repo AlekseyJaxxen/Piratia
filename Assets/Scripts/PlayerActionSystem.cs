@@ -99,9 +99,10 @@ public class PlayerActionSystem : NetworkBehaviour
             }
             SkillBase basicAttackSkill = _core.Skills.skills[0];
 
+            // Используем свойство Range, заданное в самом навыке
             float distance = Vector3.Distance(transform.position, target.transform.position);
 
-            if (distance > _core.Combat.attackRange)
+            if (distance > basicAttackSkill.Range)
             {
                 _core.Movement.MoveTo(target.transform.position);
             }

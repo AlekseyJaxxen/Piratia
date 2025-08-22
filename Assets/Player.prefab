@@ -798,7 +798,7 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   _lastAttackTime: -Infinity
-  attackRange: 2
+  attackRange: 10
   attackCooldown: 0.1
   attackDamage: 100
 --- !u!114 &2785307464818136286
@@ -1005,13 +1005,13 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   _hotkey: 286
-  _range: 2
-  _cooldown: 0.5
+  _range: 5
+  _cooldown: 1
   _castTime: 0.1
   _rangeIndicator: {fileID: 0}
   _targetIndicatorPrefab: {fileID: 0}
   _castCursor: {fileID: 0}
-  damageAmount: 1000
+  damageAmount: 200
 --- !u!1001 &2204221415589107067
 PrefabInstance:
   m_ObjectHideFlags: 0
