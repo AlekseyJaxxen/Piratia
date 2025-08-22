@@ -603,6 +603,7 @@ GameObject:
   - component: {fileID: 1062641043730496793}
   - component: {fileID: 6193393840997489717}
   - component: {fileID: 7355873465176282773}
+  - component: {fileID: 9202704491151275562}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -759,7 +760,7 @@ MonoBehaviour:
   playerModels:
   - {fileID: 2848703504906341886}
   - {fileID: 3961151501452008855}
-  team: 1
+  team: 0
   playerName: EBLAN
   isDead: 0
   isStunned: 0
@@ -796,6 +797,7 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
+  _lastAttackTime: -Infinity
   attackRange: 2
   attackCooldown: 0.1
   attackDamage: 100
@@ -815,6 +817,7 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   skills:
+  - {fileID: 9202704491151275562}
   - {fileID: 1062641043730496793}
   - {fileID: 2398841918052777852}
   - {fileID: 7355873465176282773}
@@ -986,6 +989,29 @@ MonoBehaviour:
   stunDuration: 2
   effectRadius: 3
   effectPrefab: {fileID: 173590, guid: 7469283484e0dcc4887fa575d1fd7ecc, type: 3}
+--- !u!114 &9202704491151275562
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8270360301193926596}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33afd28f7414d1441b3c320c86a39a5f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  _hotkey: 286
+  _range: 2
+  _cooldown: 0.5
+  _castTime: 0.1
+  _rangeIndicator: {fileID: 0}
+  _targetIndicatorPrefab: {fileID: 0}
+  _castCursor: {fileID: 0}
+  damageAmount: 1000
 --- !u!1001 &2204221415589107067
 PrefabInstance:
   m_ObjectHideFlags: 0

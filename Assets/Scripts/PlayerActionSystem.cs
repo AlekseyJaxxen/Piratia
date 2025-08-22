@@ -85,37 +85,40 @@ public class PlayerActionSystem : NetworkBehaviour
 
     private IEnumerator AttackAction(GameObject target)
     {
-        _core.Combat.SetCurrentTarget(target);
-        Debug.Log($"PlayerActionSystem: Starting attack action on target {target.name}");
-
-        while (target != null && target.GetComponent<Health>()?.CurrentHealth > 0 && !_core.isDead && !_core.isStunned)
+        while (target != null)
         {
-            // Добавлена проверка состояния
-            if (_core.isDead || _core.isStunned)
+            Health targetHealth = target.GetComponent<Health>();
+            if (targetHealth == null)
             {
-                CompleteAction();
-                yield break;
+                break;
             }
+
+            if (_core.Skills.skills.Count == 0)
+            {
+                break;
+            }
+            SkillBase basicAttackSkill = _core.Skills.skills[0];
 
             float distance = Vector3.Distance(transform.position, target.transform.position);
 
             if (distance > _core.Combat.attackRange)
             {
                 _core.Movement.MoveTo(target.transform.position);
-                _core.Movement.UpdateRotation();
             }
             else
             {
                 _core.Movement.StopMovement();
                 _core.Movement.RotateTo(target.transform.position - transform.position);
-                _core.Combat.PerformAttack();
+
+                if (Time.time >= _core.Combat._lastAttackTime + _core.Combat.attackCooldown)
+                {
+                    basicAttackSkill.Execute(_core, null, target);
+                    _core.Combat._lastAttackTime = Time.time;
+                }
             }
 
-            yield return new WaitForSeconds(_core.Combat.attackCooldown);
+            yield return null;
         }
-
-        Debug.Log($"PlayerActionSystem: Attack action finished. Target is gone or state changed.");
-        CompleteAction();
     }
 
     public void CompleteAction()
