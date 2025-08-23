@@ -65,12 +65,12 @@ public class PlayerActionSystem : NetworkBehaviour
     {
         _core.Combat.ClearTarget();
         _core.Movement.MoveTo(destination);
+        Debug.Log($"PlayerActionSystem: Moving to destination: {destination}"); // Лог о начале движения
 
         yield return new WaitUntil(() => !_core.Movement.Agent.pathPending);
 
         while (_core.Movement.Agent.remainingDistance > _core.Movement.Agent.stoppingDistance)
         {
-            // Добавлена проверка состояния
             if (_core.isDead || _core.isStunned)
             {
                 CompleteAction();
@@ -79,6 +79,7 @@ public class PlayerActionSystem : NetworkBehaviour
             _core.Movement.UpdateRotation();
             yield return null;
         }
+        Debug.Log($"PlayerActionSystem: Movement action completed."); // Лог о завершении движения
 
         CompleteAction();
     }
@@ -87,49 +88,51 @@ public class PlayerActionSystem : NetworkBehaviour
     {
         while (target != null)
         {
-            // --- ДОБАВЛЕННЫЕ СТРОКИ ---
             if (_core.isDead || _core.isStunned)
             {
                 CompleteAction();
                 yield break;
             }
-            // -------------------------
 
             Health targetHealth = target.GetComponent<Health>();
             if (targetHealth == null)
             {
+                Debug.Log($"PlayerActionSystem: Target lost or does not have Health component. Stopping attack.");
                 break;
             }
 
             if (_core.Skills.skills.Count == 0)
             {
+                Debug.Log($"PlayerActionSystem: No basic attack skill available. Stopping attack.");
                 break;
             }
             SkillBase basicAttackSkill = _core.Skills.skills[0];
 
-            // Используем дальность, заданную в самом навыке
             float distance = Vector3.Distance(transform.position, target.transform.position);
 
             if (distance > basicAttackSkill.Range)
             {
                 _core.Movement.MoveTo(target.transform.position);
+                Debug.Log($"PlayerActionSystem: Target out of range. Moving towards target at {target.transform.position}. Distance: {distance}"); // Лог о движении к цели
             }
             else
             {
                 _core.Movement.StopMovement();
                 _core.Movement.RotateTo(target.transform.position - transform.position);
+                Debug.Log($"PlayerActionSystem: Target in range. Stopping to attack. Distance: {distance}"); // Лог о начале атаки
 
-                // Теперь используем кулдаун, заданный в самом навыке
                 if (Time.time >= _core.Combat._lastAttackTime + basicAttackSkill.Cooldown)
                 {
                     basicAttackSkill.Execute(_core, null, target);
                     _core.Combat._lastAttackTime = Time.time;
+                    Debug.Log($"PlayerActionSystem: Executed attack on target {target.name}."); // Лог об успешной атаке
                 }
             }
 
             yield return null;
         }
-        CompleteAction(); // Добавляем вызов CompleteAction() после выхода из цикла
+        CompleteAction();
+        Debug.Log($"PlayerActionSystem: Attack action completed."); // Лог о завершении атаки
     }
 
     public void CompleteAction()

@@ -27,7 +27,6 @@ public class PlayerMovement : NetworkBehaviour
 
     public void HandleMovement()
     {
-        // Новые проверки в начале метода
         if (_core.isDead || _core.isStunned) return;
 
         if (Input.GetMouseButtonDown(0))
@@ -35,53 +34,41 @@ public class PlayerMovement : NetworkBehaviour
             Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
             {
-                bool isSkillCastInProgress = _core.ActionSystem.CurrentAction == PlayerAction.SkillCast;
-
-                if (isSkillCastInProgress)
-                {
-                    if (hit.collider.CompareTag("Enemy") || hit.collider.CompareTag("Player"))
-                    {
-                        _core.ActionSystem.TryStartAction(PlayerAction.Attack, null, hit.collider.gameObject);
-                        _core.Skills.CancelSkillSelection();
-                        return;
-                    }
-                    else if (hit.collider.CompareTag("Ground"))
-                    {
-                        _core.Combat.ClearTarget();
-                        _core.ActionSystem.TryStartAction(PlayerAction.Move, hit.point);
-                        _core.Skills.CancelSkillSelection();
-                        return;
-                    }
-                }
-
+                // If a skill is selected, try to cast it.
                 if (_core.Skills.IsSkillSelected)
                 {
-                    if (_core.Skills.ActiveSkill is ProjectileDamageSkill || _core.Skills.ActiveSkill is TargetedStunSkill)
+                    if ((hit.collider.CompareTag("Enemy") || hit.collider.CompareTag("Player")))
                     {
-                        if (hit.collider.CompareTag("Enemy") || hit.collider.CompareTag("Player"))
+                        // For targeted skills, check if the hit object is a target.
+                        if (_core.Skills.ActiveSkill is TargetedStunSkill || _core.Skills.ActiveSkill is ProjectileDamageSkill)
                         {
+                            Debug.Log($"PlayerMovement: Casting skill '{_core.Skills.ActiveSkill.GetType().Name}' on target.");
                             _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, hit.point, hit.collider.gameObject, _core.Skills.ActiveSkill);
                             _core.Skills.CancelSkillSelection();
+                            return;
                         }
                     }
-                    else
+
+                    // If the skill is not targeted or the click was on the ground, cast on the ground.
+                    if (hit.collider.CompareTag("Ground"))
                     {
-                        if (hit.collider.CompareTag("Ground"))
-                        {
-                            _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, hit.point, null, _core.Skills.ActiveSkill);
-                            _core.Skills.CancelSkillSelection();
-                        }
+                        Debug.Log($"PlayerMovement: Casting skill '{_core.Skills.ActiveSkill.GetType().Name}' on ground.");
+                        _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, hit.point, null, _core.Skills.ActiveSkill);
+                        _core.Skills.CancelSkillSelection();
+                        return;
                     }
                 }
+                // If no skill is selected, handle regular movement or attack.
                 else
                 {
                     if (hit.collider.CompareTag("Enemy") || hit.collider.CompareTag("Player"))
                     {
+                        Debug.Log("PlayerMovement: Initiating attack on target.");
                         _core.ActionSystem.TryStartAction(PlayerAction.Attack, null, hit.collider.gameObject);
-                        return;
                     }
-                    if (hit.collider.CompareTag("Ground"))
+                    else if (hit.collider.tag == "Ground")
                     {
+                        Debug.Log("PlayerMovement: Initiating movement.");
                         _core.Combat.ClearTarget();
                         _core.ActionSystem.TryStartAction(PlayerAction.Move, hit.point);
                     }
