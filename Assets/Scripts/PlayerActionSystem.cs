@@ -87,6 +87,14 @@ public class PlayerActionSystem : NetworkBehaviour
     {
         while (target != null)
         {
+            // --- ДОБАВЛЕННЫЕ СТРОКИ ---
+            if (_core.isDead || _core.isStunned)
+            {
+                CompleteAction();
+                yield break;
+            }
+            // -------------------------
+
             Health targetHealth = target.GetComponent<Health>();
             if (targetHealth == null)
             {
@@ -121,6 +129,7 @@ public class PlayerActionSystem : NetworkBehaviour
 
             yield return null;
         }
+        CompleteAction(); // Добавляем вызов CompleteAction() после выхода из цикла
     }
 
     public void CompleteAction()
