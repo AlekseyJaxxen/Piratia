@@ -11,6 +11,14 @@ public enum PlayerAction
     SkillCast
 }
 
+public enum ControlEffectType
+{
+    None = 0,
+    Stun = 1,
+    Silence = 2,
+    // Добавьте сюда другие типы контроля
+}
+
 public class PlayerCore : NetworkBehaviour
 {
     [Header("Core Components")]
@@ -44,19 +52,20 @@ public class PlayerCore : NetworkBehaviour
     [SyncVar(hook = nameof(OnDeathStateChanged))]
     public bool isDead = false;
 
+    // ОБНОВЛЕНО: Используем SyncVar с хуком для isStunned
     [SyncVar(hook = nameof(OnStunStateChanged))]
     public bool isStunned = false;
 
+    // НОВЫЕ ПЕРЕМЕННЫЕ ДЛЯ СИСТЕМЫ КОНТРОЛЯ
     [SyncVar]
-    private int stunPriority = 0;
+    private ControlEffectType currentControlEffect = ControlEffectType.None;
     [SyncVar]
-    private float stunTimer = 0f;
+    private float controlEffectEndTime = 0f;
 
     [Header("Respawn")]
     public float respawnTime = 5.0f;
     private float timeOfDeath;
-    private Vector3 _initialSpawnPosition; // Добавлено: переменная для хранения начальной позиции
-
+    private Vector3 _initialSpawnPosition;
     private GameObject _teamIndicator;
     private TextMeshProUGUI _nameText;
     private PlayerUI_Team _playerUI_Team;
@@ -79,7 +88,6 @@ public class PlayerCore : NetworkBehaviour
         if (Camera != null)
         {
             Camera.Init(this);
-
         }
         _playerUI_Team = FindObjectOfType<PlayerUI_Team>();
         if (_playerUI_Team != null)
@@ -92,8 +100,7 @@ public class PlayerCore : NetworkBehaviour
     {
         isDead = false;
         isStunned = false;
-
-        _initialSpawnPosition = transform.position; // Добавлено: сохраняем начальную позицию
+        _initialSpawnPosition = transform.position;
 
         if (playerModels != null && playerModels.Length > 0)
         {
@@ -135,7 +142,7 @@ public class PlayerCore : NetworkBehaviour
         {
             if (Time.time - timeOfDeath >= respawnTime)
             {
-                CmdRespawnPlayer(_initialSpawnPosition);    
+                CmdRespawnPlayer(_initialSpawnPosition);
             }
             return;
         }
@@ -145,38 +152,50 @@ public class PlayerCore : NetworkBehaviour
         Movement.HandleMovement();
     }
 
-    // Этот метод теперь будет вызываться только на сервере благодаря атрибуту
     [ServerCallback]
     private void ServerUpdate()
     {
-        if (stunTimer > 0)
+        if (currentControlEffect != ControlEffectType.None && Time.time >= controlEffectEndTime)
         {
-            stunTimer -= Time.deltaTime;
-            if (stunTimer <= 0)
-            {
-                SetStunState(false);
-                stunPriority = 0;
-                stunTimer = 0f;
-            }
+            ClearControlEffect();
         }
     }
 
     #region State Management
 
     [Server]
-    public void TryApplyStun(int newPriority, float duration)
+    public void ApplyControlEffect(ControlEffectType newEffectType, float duration)
     {
-        if (newPriority > stunPriority)
+        if (newEffectType > currentControlEffect)
         {
-            stunPriority = newPriority;
-            stunTimer = duration;
-            SetStunState(true);
-            Debug.Log($"Applied stun with priority {newPriority} and duration {duration}.");
+            currentControlEffect = newEffectType;
+            controlEffectEndTime = Time.time + duration;
+
+            if (currentControlEffect == ControlEffectType.Stun)
+            {
+                SetStunState(true);
+            }
+            // Добавьте логику для других типов контроля, например:
+            // if (currentControlEffect == ControlEffectType.Silence) { SetSilenceState(true); }
+
+            Debug.Log($"Applied new control effect: {currentControlEffect} for {duration} seconds.");
         }
         else
         {
-            Debug.Log($"Ignored stun with priority {newPriority}. Current priority is {stunPriority}.");
+            Debug.Log($"Ignored control effect: {newEffectType}. Current effect is {currentControlEffect}.");
         }
+    }
+
+    [Server]
+    public void ClearControlEffect()
+    {
+        if (currentControlEffect == ControlEffectType.Stun)
+        {
+            SetStunState(false);
+        }
+        // Добавьте логику для снятия других эффектов
+
+        currentControlEffect = ControlEffectType.None;
     }
 
     [Server]
@@ -189,6 +208,7 @@ public class PlayerCore : NetworkBehaviour
             Movement.StopMovement();
             Combat.StopAttacking();
             ActionSystem.CompleteAction();
+            ClearControlEffect();
             RpcSetDeathState(true);
         }
         else
@@ -253,7 +273,6 @@ public class PlayerCore : NetworkBehaviour
         {
             Health.SetHealth(Health.MaxHealth);
         }
-
         transform.position = newPosition;
     }
 
@@ -289,7 +308,6 @@ public class PlayerCore : NetworkBehaviour
         }
         else
         {
-            // Используем статическую ссылку вместо FindObjectOfType
             if (localPlayerCoreInstance != null && localPlayerCoreInstance.team == team)
             {
                 rend.material = allyMaterial;

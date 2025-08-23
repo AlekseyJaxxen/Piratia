@@ -17,17 +17,26 @@ public class TargetedStunSkill : SkillBase
     [Command]
     private void CmdApplyStun(uint targetNetId)
     {
+        PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
+
+        // ÄÎÁÀÂËÅÍÎ: Ïğîâåğêà, íàõîäèòñÿ ëè êàñòåğ ïîä ñòàíîì
+        if (casterCore.isStunned)
+        {
+            Debug.Log("Caster is stunned and cannot use this skill.");
+            return;
+        }
+
         if (NetworkServer.spawned.ContainsKey(targetNetId))
         {
             NetworkIdentity targetIdentity = NetworkServer.spawned[targetNetId];
             PlayerCore targetCore = targetIdentity.GetComponent<PlayerCore>();
-            PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
 
             if (targetCore != null && casterCore != null)
             {
                 if (casterCore.team != targetCore.team)
                 {
-                    targetCore.TryApplyStun(2, stunDuration);
+                    // ÈÑÏÎËÜÇÓÅÌ ÍÎÂÛÉ ÌÅÒÎÄ ÄËß ÏĞÈÌÅÍÅÍÈß İÔÔÅÊÒÀ ÊÎÍÒĞÎËß
+                    targetCore.ApplyControlEffect(ControlEffectType.Stun, stunDuration);
                     RpcPlayEffect(targetNetId);
                 }
                 else

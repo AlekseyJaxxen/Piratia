@@ -18,8 +18,16 @@ public class AreaOfEffectStunSkill : SkillBase
     [Command]
     private void CmdStunArea(Vector3 position)
     {
-        Collider[] hits = Physics.OverlapSphere(position, effectRadius);
         PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
+
+        // ДОБАВЛЕНО: Проверка, находится ли кастер под станом
+        if (casterCore.isStunned)
+        {
+            Debug.Log("Caster is stunned and cannot use this skill.");
+            return;
+        }
+
+        Collider[] hits = Physics.OverlapSphere(position, effectRadius);
 
         foreach (var hit in hits)
         {
@@ -28,7 +36,8 @@ public class AreaOfEffectStunSkill : SkillBase
             {
                 if (casterCore.team != targetCore.team)
                 {
-                    targetCore.TryApplyStun(1, stunDuration);
+                    // ИСПОЛЬЗУЕМ НОВЫЙ МЕТОД ДЛЯ ПРИМЕНЕНИЯ ЭФФЕКТА КОНТРОЛЯ
+                    targetCore.ApplyControlEffect(ControlEffectType.Stun, stunDuration);
                 }
                 else
                 {
