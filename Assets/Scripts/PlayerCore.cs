@@ -66,7 +66,11 @@ public class PlayerCore : NetworkBehaviour
     [Header("Respawn")]
     public float respawnTime = 5.0f;
     private float timeOfDeath;
+
+    // ИСПРАВЛЕНО: _initialSpawnPosition теперь SyncVar
+    [SyncVar]
     private Vector3 _initialSpawnPosition;
+
     private GameObject _teamIndicator;
     private TextMeshProUGUI _nameText;
     private PlayerUI_Team _playerUI_Team;
@@ -101,6 +105,8 @@ public class PlayerCore : NetworkBehaviour
     {
         isDead = false;
         isStunned = false;
+
+        // ИСПРАВЛЕНО: Установка начальной позиции на сервере
         _initialSpawnPosition = transform.position;
 
         if (playerModels != null && playerModels.Length > 0)
@@ -114,6 +120,16 @@ public class PlayerCore : NetworkBehaviour
 
         if (Health != null) Health.Init();
         playerName = $"Player_{connectionToClient.connectionId}";
+    }
+
+    // ИСПРАВЛЕНО: Добавлен метод OnHealthZero, который будет вызываться из компонента Health
+    public void OnHealthZero()
+    {
+        // Только локальный игрок может отправлять команды
+        if (isLocalPlayer)
+        {
+            CmdDie();
+        }
     }
 
     private void Start()
@@ -139,12 +155,9 @@ public class PlayerCore : NetworkBehaviour
 
         if (!isLocalPlayer || isStunned) return;
 
+        // Убрана логика возрождения с клиента
         if (isDead)
         {
-            if (Time.time - timeOfDeath >= respawnTime)
-            {
-                CmdRespawnPlayer(_initialSpawnPosition);
-            }
             return;
         }
 
@@ -159,6 +172,15 @@ public class PlayerCore : NetworkBehaviour
         if (currentControlEffect != ControlEffectType.None && Time.time >= controlEffectEndTime)
         {
             ClearControlEffect();
+        }
+
+        // ИСПРАВЛЕНО: Таймер возрождения и вызов команды теперь на сервере
+        if (isDead)
+        {
+            if (Time.time - timeOfDeath >= respawnTime)
+            {
+                RpcRespawnPlayer(_initialSpawnPosition);
+            }
         }
     }
 
@@ -266,9 +288,19 @@ public class PlayerCore : NetworkBehaviour
         if (ActionSystem != null) ActionSystem.enabled = !state;
     }
 
+    // ИСПРАВЛЕНО: Это команда, которая запускает процесс смерти на сервере.
     [Command]
-    public void CmdRespawnPlayer(Vector3 newPosition)
+    private void CmdDie()
     {
+        SetDeathState(true);
+    }
+
+    // ИСПРАВЛЕНО: RPC-метод для синхронизации возрождения.
+    [ClientRpc]
+    private void RpcRespawnPlayer(Vector3 newPosition)
+    {
+        // Эта логика должна выполняться на всех клиентах, чтобы телепортировать игрока
+        // и сбросить его состояние.
         SetDeathState(false);
         if (Health != null)
         {
