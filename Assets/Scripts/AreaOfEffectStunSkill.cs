@@ -31,7 +31,8 @@ public class AreaOfEffectStunSkill : SkillBase
                 // Проверяем, что цель находится в другой команде
                 if (casterCore.team != targetCore.team)
                 {
-                    targetCore.StartCoroutine(StunRoutine(targetCore, stunDuration));
+                    // Вызываем новый серверный метод для безопасного оглушения
+                    TryStunTarget(targetCore, stunDuration);
                 }
                 else
                 {
@@ -42,16 +43,39 @@ public class AreaOfEffectStunSkill : SkillBase
         RpcPlayEffect(position);
     }
 
+    // Новый приватный серверный метод для обработки оглушения
+    [Server]
+    private void TryStunTarget(PlayerCore target, float duration)
+    {
+        // Выполняем проверку и немедленно устанавливаем состояние
+        // Это предотвращает состояние гонки, так как всё происходит в одном серверном "кадре"
+        if (!target.isStunned)
+        {
+            Debug.Log($"Stunning target {target.playerName}.");
+            target.SetStunState(true);
+            target.Movement.StopMovement();
+            StartCoroutine(UnstunAfterDelay(target, duration));
+        }
+        else
+        {
+            Debug.Log($"Target {target.playerName} is already stunned.");
+        }
+    }
+
+    [Server]
+    private IEnumerator UnstunAfterDelay(PlayerCore core, float duration)
+    {
+        yield return new WaitForSeconds(duration);
+        core.SetStunState(false);
+    }
+
     [ClientRpc]
     private void RpcPlayEffect(Vector3 position)
     {
         if (effectPrefab != null)
         {
-            // Создаем эффект и сразу увеличиваем его масштаб
             GameObject effect = Instantiate(effectPrefab, position + Vector3.up * 1f, Quaternion.identity);
-            effect.transform.localScale = Vector3.one * 3f; // Увеличиваем в 1.5 раза
-
-            // Запускаем корутину для анимации уменьшения
+            effect.transform.localScale = Vector3.one * 3f;
             StartCoroutine(DecreaseScaleOverTime(effect.transform, 1f, 2f));
         }
     }
@@ -62,7 +86,6 @@ public class AreaOfEffectStunSkill : SkillBase
         Vector3 originalScale = targetTransform.localScale;
         Vector3 targetScale = Vector3.zero;
 
-        // Анимация уменьшения масштаба
         while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
@@ -71,22 +94,8 @@ public class AreaOfEffectStunSkill : SkillBase
             yield return null;
         }
 
-        // Убедимся, что масштаб равен нулю в конце анимации
         targetTransform.localScale = Vector3.zero;
-
-        // Ждем оставшееся время перед уничтожением, чтобы эффект исчез
         yield return new WaitForSeconds(destroyTime - duration);
-
-        // Уничтожаем объект
         Destroy(targetTransform.gameObject);
-    }
-
-    [Server]
-    private System.Collections.IEnumerator StunRoutine(PlayerCore core, float duration)
-    {
-        core.SetStunState(true);
-        core.Movement.StopMovement();
-        yield return new WaitForSeconds(duration);
-        core.SetStunState(false);
     }
 }
