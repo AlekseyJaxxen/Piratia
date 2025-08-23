@@ -34,41 +34,38 @@ public class PlayerMovement : NetworkBehaviour
             Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
             {
-                // If a skill is selected, try to cast it.
+                // Если выбран навык, пытаемся его применить.
                 if (_core.Skills.IsSkillSelected)
                 {
-                    if ((hit.collider.CompareTag("Enemy") || hit.collider.CompareTag("Player")))
+                    bool isTargetedSkill = _core.Skills.ActiveSkill is ProjectileDamageSkill || _core.Skills.ActiveSkill is TargetedStunSkill;
+
+                    if (isTargetedSkill)
                     {
-                        // For targeted skills, check if the hit object is a target.
-                        if (_core.Skills.ActiveSkill is TargetedStunSkill || _core.Skills.ActiveSkill is ProjectileDamageSkill)
+                        if (hit.collider.CompareTag("Enemy") || hit.collider.CompareTag("Player"))
                         {
-                            Debug.Log($"PlayerMovement: Casting skill '{_core.Skills.ActiveSkill.GetType().Name}' on target.");
                             _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, hit.point, hit.collider.gameObject, _core.Skills.ActiveSkill);
                             _core.Skills.CancelSkillSelection();
-                            return;
                         }
                     }
-
-                    // If the skill is not targeted or the click was on the ground, cast on the ground.
-                    if (hit.collider.CompareTag("Ground"))
+                    else // Это нецелевой навык, например, AoE
                     {
-                        Debug.Log($"PlayerMovement: Casting skill '{_core.Skills.ActiveSkill.GetType().Name}' on ground.");
-                        _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, hit.point, null, _core.Skills.ActiveSkill);
-                        _core.Skills.CancelSkillSelection();
-                        return;
+                        if (hit.collider.CompareTag("Ground"))
+                        {
+                            _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, hit.point, null, _core.Skills.ActiveSkill);
+                            _core.Skills.CancelSkillSelection();
+                        }
                     }
                 }
-                // If no skill is selected, handle regular movement or attack.
+                // Если навык не выбран, обрабатываем обычное движение или атаку.
                 else
                 {
                     if (hit.collider.CompareTag("Enemy") || hit.collider.CompareTag("Player"))
                     {
-                        Debug.Log("PlayerMovement: Initiating attack on target.");
                         _core.ActionSystem.TryStartAction(PlayerAction.Attack, null, hit.collider.gameObject);
+                        return;
                     }
-                    else if (hit.collider.tag == "Ground")
+                    if (hit.collider.CompareTag("Ground"))
                     {
-                        Debug.Log("PlayerMovement: Initiating movement.");
                         _core.Combat.ClearTarget();
                         _core.ActionSystem.TryStartAction(PlayerAction.Move, hit.point);
                     }

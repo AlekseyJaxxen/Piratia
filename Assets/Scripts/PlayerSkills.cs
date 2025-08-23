@@ -168,36 +168,72 @@ public class PlayerSkills : NetworkBehaviour
 
         _isCasting = true;
 
+        // Логика для целевых (targeted) скиллов (например, Проектные, Стан)
         if (targetObject != null)
         {
-            float distance = Vector3.Distance(transform.position, targetObject.transform.position);
-            float currentRange = skillToCast.Range;
-            Debug.Log($"PlayerSkills: Distance to target is {distance:F2}. Required range is {currentRange:F2}.");
+            float distance;
 
-            // Если цель вне радиуса действия, персонаж движется к ней.
-            if (distance > skillToCast.Range)
+            while (true)
             {
-                Debug.Log("PlayerSkills: Target is out of range. Moving to target position.");
-                _core.Movement.MoveTo(targetObject.transform.position);
+                if (_core.isDead || _core.isStunned || targetObject == null)
+                {
+                    Debug.Log("PlayerSkills: Target lost or player state invalid. Cancelling skill cast.");
+                    _core.ActionSystem.CompleteAction();
+                    yield break;
+                }
 
-                // Ожидаем, пока игрок не окажется в пределах досягаемости навыка.
-                yield return new WaitUntil(() => Vector3.Distance(transform.position, targetObject.transform.position) <= skillToCast.Range);
-            }
-            else
-            {
-                Debug.Log("PlayerSkills: Target is in range. Casting immediately.");
+                distance = Vector3.Distance(transform.position, targetObject.transform.position);
+
+                if (distance <= skillToCast.Range)
+                {
+                    Debug.Log($"PlayerSkills: Target is in range. Casting immediately. Distance: {distance:F2}, Range: {skillToCast.Range:F2}");
+                    _core.Movement.StopMovement();
+                    _core.Movement.RotateTo(targetObject.transform.position - transform.position);
+                    break;
+                }
+                else
+                {
+                    Debug.Log($"PlayerSkills: Target is out of range. Moving towards target. Distance: {distance:F2}, Range: {skillToCast.Range:F2}");
+                    _core.Movement.MoveTo(targetObject.transform.position);
+                }
+
+                yield return null;
             }
         }
+        // Логика для нецелевых (AoE) скиллов (например, каст на землю)
+        else if (targetPosition.HasValue)
+        {
+            float distance = Vector3.Distance(transform.position, targetPosition.Value);
+            if (distance > skillToCast.Range)
+            {
+                Debug.Log($"PlayerSkills: Target position is out of range. Moving to cast position. Distance: {distance:F2}, Range: {skillToCast.Range:F2}");
+                _core.Movement.MoveTo(targetPosition.Value);
+                yield return new WaitUntil(() => !_core.Movement.Agent.pathPending && _core.Movement.Agent.remainingDistance <= _core.Movement.Agent.stoppingDistance);
 
-        // Если персонаж не умер и все еще выполняет каст, он останавливается и кастует
+                // Повторная проверка расстояния
+                distance = Vector3.Distance(transform.position, targetPosition.Value);
+                if (distance > skillToCast.Range)
+                {
+                    Debug.Log("PlayerSkills: Arrived at destination, but position is still out of range. Cancelling skill cast.");
+                    _isCasting = false;
+                    _core.ActionSystem.CompleteAction();
+                    yield break;
+                }
+            }
+
+            Debug.Log($"PlayerSkills: Target position is in range. Casting immediately. Distance: {distance:F2}, Range: {skillToCast.Range:F2}");
+            _core.Movement.StopMovement();
+        }
+        else
+        {
+            _isCasting = false;
+            _core.ActionSystem.CompleteAction();
+            yield break;
+        }
+
+        // Если персонаж не умер и все еще выполняет каст
         if (!_core.isDead && _core.ActionSystem.CurrentAction == PlayerAction.SkillCast)
         {
-            _core.Movement.StopMovement();
-            // Поворачиваемся к цели перед кастом
-            if (targetObject != null)
-            {
-                _core.Movement.RotateTo(targetObject.transform.position - transform.position);
-            }
             yield return new WaitForSeconds(skillToCast.CastTime);
             skillToCast.Execute(_core, targetPosition, targetObject);
             skillToCast.StartCooldown();
