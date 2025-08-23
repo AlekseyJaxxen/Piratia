@@ -80,15 +80,11 @@ public class Health : NetworkBehaviour
             Vector3 spawnPosition = transform.position + Vector3.up * damageTextSpawnHeight;
             GameObject floatingTextInstance = Instantiate(floatingTextPrefab, spawnPosition, Quaternion.identity);
 
-            // Генерируем случайный вектор для движения (в стиле Ragnarok)
-            Vector3 moveDirection = new Vector3(Random.Range(-damageTextRandomness, damageTextRandomness), 1, Random.Range(-damageTextRandomness, damageTextRandomness));
-
-            // Передаем значение урона и направление движения
+            // Передаем значение урона
             FloatingDamageText damageTextScript = floatingTextInstance.GetComponent<FloatingDamageText>();
             if (damageTextScript != null)
             {
                 damageTextScript.SetDamageText(damage);
-                damageTextScript.SetMoveDirection(moveDirection.normalized); // Нормализуем для равномерной скорости
             }
         }
     }

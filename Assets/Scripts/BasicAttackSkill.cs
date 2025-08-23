@@ -14,13 +14,13 @@ public class BasicAttackSkill : SkillBase
     {
         if (targetObject == null || !isOwned) return;
 
-        // Отправляем команду на сервер для выполнения атаки
-        CmdPerformAttack(caster.transform.position, targetObject.GetComponent<NetworkIdentity>().netId);
+        // Отправляем команду на сервер для выполнения атаки. Передаем поворот игрока.
+        CmdPerformAttack(caster.transform.position, caster.transform.rotation, targetObject.GetComponent<NetworkIdentity>().netId);
     }
 
     // [Command]-метод, который выполняется на сервере
     [Command(requiresAuthority = false)]
-    private void CmdPerformAttack(Vector3 casterPosition, uint targetNetId)
+    private void CmdPerformAttack(Vector3 casterPosition, Quaternion casterRotation, uint targetNetId)
     {
         if (NetworkServer.spawned.ContainsKey(targetNetId))
         {
@@ -34,8 +34,8 @@ public class BasicAttackSkill : SkillBase
                 if (attackerCore.team != targetCore.team)
                 {
                     targetHealth.TakeDamage(damageAmount);
-                    // Добавлено: Вызываем Rpc метод для воспроизведения VFX на всех клиентах
-                    RpcPlayVFX(casterPosition, targetIdentity.transform.position);
+                    // Вызываем Rpc метод для воспроизведения VFX на всех клиентах, передавая поворот.
+                    RpcPlayVFX(casterPosition, casterRotation, targetIdentity.transform.position);
                 }
                 else
                 {
@@ -45,18 +45,20 @@ public class BasicAttackSkill : SkillBase
         }
     }
 
-    // Добавлено: [ClientRpc]-метод, который выполняется на всех клиентах
+    // [ClientRpc]-метод, который выполняется на всех клиентах
     [ClientRpc]
-    private void RpcPlayVFX(Vector3 startPosition, Vector3 endPosition)
+    private void RpcPlayVFX(Vector3 startPosition, Quaternion startRotation, Vector3 endPosition)
     {
         if (vfxPrefab != null)
         {
-            // Здесь вы можете создать эффект. 
-            // Для примера, создаем его на начальной позиции и уничтожаем через 2 секунды.
-            GameObject vfxInstance = Instantiate(vfxPrefab, startPosition, Quaternion.identity);
+            // Создаем дополнительный поворот на 90 градусов по оси X
+            Quaternion xRotation = Quaternion.Euler(90, 0, 0);
 
-            // Если VFX должен перемещаться к цели, здесь нужно добавить логику движения.
-            // Например, можно добавить компонент, который будет перемещать эффект от startPosition к endPosition.
+            // Объединяем поворот игрока с новым поворотом
+            Quaternion finalRotation = startRotation * xRotation;
+
+            // Создаем эффект с итоговым поворотом
+            GameObject vfxInstance = Instantiate(vfxPrefab, startPosition, finalRotation);
 
             Destroy(vfxInstance, 0.2f);
         }

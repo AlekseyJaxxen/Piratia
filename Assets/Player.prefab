@@ -708,7 +708,7 @@ BoxCollider:
   m_Enabled: 1
   serializedVersion: 2
   m_Size: {x: 1.75, y: 2.6, z: 1.66}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: 0, y: 0.6, z: 0}
 --- !u!114 &6067296820680782066
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1031,7 +1031,7 @@ MonoBehaviour:
   _targetIndicatorPrefab: {fileID: 0}
   _castCursor: {fileID: 0}
   damageAmount: 200
-  vfxPrefab: {fileID: 107336, guid: 3547e5e490f502041ae6e8a59042e4bd, type: 3}
+  vfxPrefab: {fileID: 171468, guid: 9bb3c2595cddc25468a1fccc3b563ae4, type: 3}
 --- !u!1001 &2204221415589107067
 PrefabInstance:
   m_ObjectHideFlags: 0
