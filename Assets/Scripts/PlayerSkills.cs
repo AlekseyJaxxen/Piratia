@@ -137,7 +137,7 @@ public class PlayerSkills : NetworkBehaviour
             {
                 targetIndicator.SetActive(true);
                 targetIndicator.transform.position = hit.point + Vector3.up * 0.1f;
-                targetIndicator.transform.localScale = new Vector3(_activeSkill.Range * 2, _activeSkill.Range * 2, 0.1f);
+                targetIndicator.transform.localScale = new Vector3(_activeSkill.Range, 0.1f, _activeSkill.Range);
 
                 if (_activeSkill.RangeIndicator != null)
                 {

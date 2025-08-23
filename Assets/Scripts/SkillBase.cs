@@ -56,7 +56,7 @@ public abstract class SkillBase : NetworkBehaviour, ISkill
             {
                 _rangeIndicator.transform.position = transform.position;
                 // ИСПРАВЛЕНО: Увеличена y-шкала для видимости.
-                _rangeIndicator.transform.localScale = new Vector3(_range * 2, 1f, _range * 2);
+                _rangeIndicator.transform.localScale = new Vector3(_range, 1f, _range);
             }
         }
         if (_targetIndicatorInstance != null)

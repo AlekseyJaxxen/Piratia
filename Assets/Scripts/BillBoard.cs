@@ -22,7 +22,7 @@ public class BillBoard : MonoBehaviour
         }
     }
 
-    void Update()
+    void LateUpdate()
     {
         // Проверяем, существует ли цель (камера).
         if (targetCamera != null)
