@@ -168,23 +168,24 @@ public class PlayerSkills : NetworkBehaviour
 
         _isCasting = true;
 
-        if (targetPosition.HasValue)
+        if (targetObject != null)
         {
-            float distance = Vector3.Distance(transform.position, targetPosition.Value);
+            float distance = Vector3.Distance(transform.position, targetObject.transform.position);
             float currentRange = skillToCast.Range;
-            Debug.Log($"PlayerSkills: Distance to target is {distance:F2}. Required range is {currentRange:F2}."); // LOG
+            Debug.Log($"PlayerSkills: Distance to target is {distance:F2}. Required range is {currentRange:F2}.");
 
             // Если цель вне радиуса действия, персонаж движется к ней.
-            if (distance > currentRange)
+            if (distance > skillToCast.Range)
             {
-                _core.Movement.MoveTo(targetPosition.Value);
-                Debug.Log("PlayerSkills: Target is out of range. Moving to target position."); // LOG
+                Debug.Log("PlayerSkills: Target is out of range. Moving to target position.");
+                _core.Movement.MoveTo(targetObject.transform.position);
 
-                yield return new WaitUntil(() => Vector3.Distance(transform.position, targetPosition.Value) <= currentRange || _core.isDead || _core.ActionSystem.CurrentAction != PlayerAction.SkillCast);
+                // Ожидаем, пока игрок не окажется в пределах досягаемости навыка.
+                yield return new WaitUntil(() => Vector3.Distance(transform.position, targetObject.transform.position) <= skillToCast.Range);
             }
             else
             {
-                Debug.Log("PlayerSkills: Target is in range. Casting immediately."); // LOG
+                Debug.Log("PlayerSkills: Target is in range. Casting immediately.");
             }
         }
 
@@ -193,9 +194,9 @@ public class PlayerSkills : NetworkBehaviour
         {
             _core.Movement.StopMovement();
             // Поворачиваемся к цели перед кастом
-            if (targetPosition.HasValue)
+            if (targetObject != null)
             {
-                _core.Movement.RotateTo(targetPosition.Value - transform.position);
+                _core.Movement.RotateTo(targetObject.transform.position - transform.position);
             }
             yield return new WaitForSeconds(skillToCast.CastTime);
             skillToCast.Execute(_core, targetPosition, targetObject);
