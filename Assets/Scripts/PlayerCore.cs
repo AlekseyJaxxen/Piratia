@@ -17,7 +17,14 @@ public enum ControlEffectType
     Stun = 1,
     Silence = 2,
     FbStun = 3,
-    // Добавьте сюда другие типы контроля
+}
+
+// Добавьте этот enum, если его нет
+public enum PlayerTeam
+{
+    None,
+    Red,
+    Blue
 }
 
 public class PlayerCore : NetworkBehaviour
@@ -95,20 +102,15 @@ public class PlayerCore : NetworkBehaviour
         {
             Camera.Init(this);
         }
-        _playerUI_Team = FindObjectOfType<PlayerUI_Team>();
-        if (_playerUI_Team != null)
-        {
-            _playerUI_Team.ShowTeamSelectionUI();
-        }
+
+        // Отправляем данные игрока на сервер сразу после создания
+        PlayerUI_Team.SendPlayerInfoCommand(this);
     }
 
     public override void OnStartServer()
     {
         isDead = false;
         isStunned = false;
-
-        // ИСПРАВЛЕНО: Установка начальной позиции на сервере
-        _initialSpawnPosition = transform.position;
 
         if (playerModels != null && playerModels.Length > 0)
         {
@@ -120,7 +122,6 @@ public class PlayerCore : NetworkBehaviour
         }
 
         if (Health != null) Health.Init();
-        playerName = $"Player_{connectionToClient.connectionId}";
     }
 
     // ИСПРАВЛЕНО: Добавлен метод OnHealthZero, который будет вызываться из компонента Health
@@ -315,6 +316,7 @@ public class PlayerCore : NetworkBehaviour
     {
         playerName = newName;
         team = newTeam;
+        Debug.Log($"Server: Player {newName} has joined team {newTeam}.");
     }
 
     private void OnTeamChanged(PlayerTeam oldTeam, PlayerTeam newTeam)
