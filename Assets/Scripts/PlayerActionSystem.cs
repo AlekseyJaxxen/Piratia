@@ -131,6 +131,14 @@ public class PlayerActionSystem : NetworkBehaviour
     {
         while (target != null)
         {
+
+            if (target == null)
+            {
+                Debug.Log("PlayerActionSystem: Target object is null. Stopping attack action.");
+                CompleteAction();
+                yield break;
+            }
+
             if (_core.isDead || _core.isStunned)
             {
                 CompleteAction();
