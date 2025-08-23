@@ -771,7 +771,10 @@ MonoBehaviour:
   Health: {fileID: 6067296820680782066}
   interactableLayers:
     serializedVersion: 2
-    m_Bits: 51
+    m_Bits: 83
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 64
   playerModels:
   - {fileID: 2848703504906341886}
   - {fileID: 3961151501452008855}
@@ -880,6 +883,9 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
+  Ground:
+    serializedVersion: 2
+    m_Bits: 0
 --- !u!195 &7616953105411128818
 NavMeshAgent:
   m_ObjectHideFlags: 0

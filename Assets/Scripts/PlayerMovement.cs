@@ -32,14 +32,16 @@ public class PlayerMovement : NetworkBehaviour
         if (Input.GetMouseButtonDown(0))
         {
             Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
-            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
-            {
-                // Если выбран навык, пытаемся его применить.
-                if (_core.Skills.IsSkillSelected)
-                {
-                    bool isTargetedSkill = _core.Skills.ActiveSkill is ProjectileDamageSkill || _core.Skills.ActiveSkill is TargetedStunSkill;
 
-                    if (isTargetedSkill)
+            // ИЗМЕНЕНО: Полностью переработана логика обработки клика
+            if (_core.Skills.IsSkillSelected)
+            {
+                bool isTargetedSkill = _core.Skills.ActiveSkill is ProjectileDamageSkill || _core.Skills.ActiveSkill is TargetedStunSkill;
+
+                // Если умение ТАРГЕТНОЕ, используем interactableLayers
+                if (isTargetedSkill)
+                {
+                    if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
                     {
                         if (hit.collider.CompareTag("Enemy") || hit.collider.CompareTag("Player"))
                         {
@@ -47,17 +49,21 @@ public class PlayerMovement : NetworkBehaviour
                             _core.Skills.CancelSkillSelection();
                         }
                     }
-                    else // Это нецелевой навык, например, AoE
+                }
+                // Если умение НЕ ТАРГЕТНОЕ (AoE), используем ТОЛЬКО groundLayer
+                else
+                {
+                    if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.groundLayer))
                     {
-                        if (hit.collider.CompareTag("Ground"))
-                        {
-                            _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, hit.point, null, _core.Skills.ActiveSkill);
-                            _core.Skills.CancelSkillSelection();
-                        }
+                        _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, hit.point, null, _core.Skills.ActiveSkill);
+                        _core.Skills.CancelSkillSelection();
                     }
                 }
-                // Если навык не выбран, обрабатываем обычное движение или атаку.
-                else
+            }
+            // Если умение НЕ выбрано, используем стандартную логику движения/атаки
+            else
+            {
+                if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
                 {
                     if (hit.collider.CompareTag("Enemy") || hit.collider.CompareTag("Player"))
                     {
@@ -73,6 +79,7 @@ public class PlayerMovement : NetworkBehaviour
             }
         }
     }
+
 
     public void MoveTo(Vector3 destination)
     {

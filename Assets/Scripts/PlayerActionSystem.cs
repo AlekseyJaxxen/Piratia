@@ -12,6 +12,7 @@ public class PlayerActionSystem : NetworkBehaviour
 
     public bool IsPerformingAction => _isPerformingAction;
     public PlayerAction CurrentAction => _currentActionType;
+    [SerializeField] private LayerMask Ground;
 
     public void Init(PlayerCore core)
     {

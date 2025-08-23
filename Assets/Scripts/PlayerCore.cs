@@ -32,6 +32,7 @@ public class PlayerCore : NetworkBehaviour
 
     [Header("Dependencies")]
     public LayerMask interactableLayers;
+    public LayerMask groundLayer;
 
     [Header("Visuals")]
     [SerializeField]

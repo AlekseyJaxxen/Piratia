@@ -91,6 +91,7 @@ public class PlayerSkills : NetworkBehaviour
 
         Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
 
+        // Логика для таргетных умений
         if (_activeSkill is ProjectileDamageSkill || _activeSkill is TargetedStunSkill)
         {
             if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
@@ -129,13 +130,13 @@ public class PlayerSkills : NetworkBehaviour
                 }
             }
         }
-        else
+        else // ИЗМЕНЕНО: Логика для AoE-умений
         {
-            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
+            // Используем groundLayer, чтобы рейкаст игнорировал игроков/врагов
+            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.groundLayer))
             {
                 targetIndicator.SetActive(true);
                 targetIndicator.transform.position = hit.point + Vector3.up * 0.1f;
-                // ИСПРАВЛЕНО: Y-координата установлена на _activeSkill.Range * 2, Z-координата на 0.1f.
                 targetIndicator.transform.localScale = new Vector3(_activeSkill.Range * 2, _activeSkill.Range * 2, 0.1f);
 
                 if (_activeSkill.RangeIndicator != null)
