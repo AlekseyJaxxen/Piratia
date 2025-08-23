@@ -13,6 +13,7 @@ public class FloatingDamageText : MonoBehaviour
     [Header("Appearance Settings")]
     public float fadeOutTime = 0.5f;
     public Color damageColor = Color.red;
+    public Color healColor = Color.green; // <-- Новая переменная для цвета лечения
     public float scaleUpTime = 0.2f; // Время для увеличения масштаба
     public float maxScale = 1.5f; // Максимальный масштаб
 
@@ -37,8 +38,6 @@ public class FloatingDamageText : MonoBehaviour
             return;
         }
 
-        _textMesh.color = damageColor;
-        _startPosition = transform.position;
         _initialScale = transform.localScale;
 
         // Определяем случайное направление движения
@@ -54,7 +53,14 @@ public class FloatingDamageText : MonoBehaviour
 
     public void SetDamageText(int damage)
     {
-        _textMesh.text = damage.ToString();
+        _textMesh.text = "-" + damage.ToString();
+        _textMesh.color = damageColor;
+    }
+
+    public void SetHealText(int amount)
+    {
+        _textMesh.text = "+" + amount.ToString();
+        _textMesh.color = healColor;
     }
 
     private void Update()

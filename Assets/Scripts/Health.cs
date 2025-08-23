@@ -39,6 +39,9 @@ public class Health : NetworkBehaviour
     {
         CurrentHealth += amount;
         Debug.Log($"[Server] {gameObject.name} healed for {amount}. Current health: {CurrentHealth}");
+
+        // Вызываем Rpc-метод для отображения лечения на всех клиентах
+        RpcShowHealNumber(amount);
     }
 
     [Server]
@@ -85,6 +88,24 @@ public class Health : NetworkBehaviour
             if (damageTextScript != null)
             {
                 damageTextScript.SetDamageText(damage);
+            }
+        }
+    }
+
+    [ClientRpc]
+    private void RpcShowHealNumber(int healAmount)
+    {
+        if (floatingTextPrefab != null)
+        {
+            // Позиция для спауна цифры лечения
+            Vector3 spawnPosition = transform.position + Vector3.up * damageTextSpawnHeight;
+            GameObject floatingTextInstance = Instantiate(floatingTextPrefab, spawnPosition, Quaternion.identity);
+
+            FloatingDamageText healTextScript = floatingTextInstance.GetComponent<FloatingDamageText>();
+            if (healTextScript != null)
+            {
+                // Устанавливаем текст и цвет для цифры лечения
+                healTextScript.SetHealText(healAmount);
             }
         }
     }
