@@ -55,6 +55,7 @@ public class PlayerCore : NetworkBehaviour
     [Header("Respawn")]
     public float respawnTime = 5.0f;
     private float timeOfDeath;
+    private Vector3 _initialSpawnPosition; // Добавлено: переменная для хранения начальной позиции
 
     private GameObject _teamIndicator;
     private TextMeshProUGUI _nameText;
@@ -91,6 +92,8 @@ public class PlayerCore : NetworkBehaviour
     {
         isDead = false;
         isStunned = false;
+
+        _initialSpawnPosition = transform.position; // Добавлено: сохраняем начальную позицию
 
         if (playerModels != null && playerModels.Length > 0)
         {
@@ -132,7 +135,7 @@ public class PlayerCore : NetworkBehaviour
         {
             if (Time.time - timeOfDeath >= respawnTime)
             {
-                CmdRespawnPlayer();
+                CmdRespawnPlayer(_initialSpawnPosition);    
             }
             return;
         }
@@ -243,13 +246,15 @@ public class PlayerCore : NetworkBehaviour
     }
 
     [Command]
-    public void CmdRespawnPlayer()
+    public void CmdRespawnPlayer(Vector3 newPosition)
     {
         SetDeathState(false);
         if (Health != null)
         {
             Health.SetHealth(Health.MaxHealth);
         }
+
+        transform.position = newPosition;
     }
 
     [Command]
