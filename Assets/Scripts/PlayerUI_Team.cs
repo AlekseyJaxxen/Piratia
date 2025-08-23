@@ -11,11 +11,10 @@ public class PlayerUI_Team : MonoBehaviour
     public TMP_InputField nameInputField;
     public Button hostButton;
     public Button clientButton;
+    public Button changeNameButton;
 
-    // Этот экземпляр будет хранить выбранные данные до подключения
     private static PlayerInfo tempPlayerInfo = new PlayerInfo();
 
-    // Класс для временного хранения данных игрока
     private class PlayerInfo
     {
         public string name = "Player";
@@ -24,7 +23,6 @@ public class PlayerUI_Team : MonoBehaviour
 
     void Start()
     {
-        // Привязываем кнопки
         if (redTeamButton != null)
         {
             redTeamButton.onClick.AddListener(() => OnTeamSelected(PlayerTeam.Red));
@@ -33,11 +31,6 @@ public class PlayerUI_Team : MonoBehaviour
         if (blueTeamButton != null)
         {
             blueTeamButton.onClick.AddListener(() => OnTeamSelected(PlayerTeam.Blue));
-        }
-
-        if (nameInputField != null)
-        {
-            nameInputField.onValueChanged.AddListener(OnNameChanged);
         }
 
         if (hostButton != null)
@@ -50,48 +43,74 @@ public class PlayerUI_Team : MonoBehaviour
             clientButton.onClick.AddListener(OnClientClicked);
         }
 
-        // Показываем панель при запуске
+        if (changeNameButton != null)
+        {
+            changeNameButton.onClick.AddListener(OnChangeNameClicked);
+        }
+
         if (teamSelectionPanel != null)
         {
             teamSelectionPanel.SetActive(true);
         }
 
-        // Устанавливаем начальные значения
-        OnNameChanged(nameInputField.text);
-        OnTeamSelected(tempPlayerInfo.team);
+        if (nameInputField != null)
+        {
+            nameInputField.text = tempPlayerInfo.name;
+        }
+
+        // Устанавливаем начальное состояние кнопок
+        UpdateButtonColors(tempPlayerInfo.team);
     }
 
     public void OnHostClicked()
     {
-        // Запустить хост, используя наш кастомный Network Manager
-        NetworkManager.singleton.GetComponent<MyNetworkManager>().StartHostButton();
-        teamSelectionPanel.SetActive(false); // Скрыть меню после старта игры
+        MyNetworkManager myNetworkManager = NetworkManager.singleton.GetComponent<MyNetworkManager>();
+        if (myNetworkManager != null)
+        {
+            myNetworkManager.StartHostButton();
+        }
     }
 
     public void OnClientClicked()
     {
-        // Запустить клиент
-        NetworkManager.singleton.GetComponent<MyNetworkManager>().StartClientButton();
-        teamSelectionPanel.SetActive(false); // Скрыть меню после старта игры
+        MyNetworkManager myNetworkManager = NetworkManager.singleton.GetComponent<MyNetworkManager>();
+        if (myNetworkManager != null)
+        {
+            myNetworkManager.StartClientButton();
+        }
     }
 
     private void OnTeamSelected(PlayerTeam selectedTeam)
     {
-        tempPlayerInfo.team = selectedTeam;
-        Debug.Log($"Selected Team: {selectedTeam}");
+        // Проверяем, существует ли локальный игрок (т.е. мы в игре)
+        PlayerCore localPlayerCore = PlayerCore.localPlayerCoreInstance;
+        if (localPlayerCore != null && localPlayerCore.isLocalPlayer)
+        {
+            // Если да, отправляем команду на сервер
+            localPlayerCore.CmdSetPlayerInfo(localPlayerCore.playerName, selectedTeam);
+            Debug.Log($"Sent command to change team to: {selectedTeam}");
+        }
+        else
+        {
+            // Если нет, обновляем только локальную переменную
+            tempPlayerInfo.team = selectedTeam;
+            Debug.Log($"Selected team locally: {selectedTeam}");
+        }
+
+        UpdateButtonColors(selectedTeam);
     }
 
-    private void OnNameChanged(string newName)
+    private void OnChangeNameClicked()
     {
-        tempPlayerInfo.name = newName;
+        // Просто обновляем локальную переменную
+        tempPlayerInfo.name = nameInputField.text;
+        Debug.Log($"Name changed locally to: {tempPlayerInfo.name}");
     }
 
-    // Этот статический метод будет вызываться из PlayerCore после создания игрока
     public static void SendPlayerInfoCommand(PlayerCore playerCoreInstance)
     {
         if (playerCoreInstance != null)
         {
-            // Отправляем команду на сервер с сохраненными данными
             playerCoreInstance.CmdSetPlayerInfo(tempPlayerInfo.name, tempPlayerInfo.team);
             Debug.Log($"Sent command to set name and team: {tempPlayerInfo.name}, {tempPlayerInfo.team}");
         }
@@ -100,5 +119,18 @@ public class PlayerUI_Team : MonoBehaviour
     public static PlayerTeam GetTempPlayerTeam()
     {
         return tempPlayerInfo.team;
+    }
+
+    private void UpdateButtonColors(PlayerTeam currentTeam)
+    {
+        // Можно добавить визуальный эффект, чтобы показывать, какая команда выбрана
+        Color selectedColor = Color.yellow;
+        Color defaultColor = Color.white;
+
+        if (redTeamButton != null)
+            redTeamButton.GetComponent<Image>().color = (currentTeam == PlayerTeam.Red) ? selectedColor : defaultColor;
+
+        if (blueTeamButton != null)
+            blueTeamButton.GetComponent<Image>().color = (currentTeam == PlayerTeam.Blue) ? selectedColor : defaultColor;
     }
 }

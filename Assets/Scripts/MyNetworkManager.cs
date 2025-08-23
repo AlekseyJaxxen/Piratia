@@ -1,7 +1,7 @@
 using Mirror;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using System.Linq; // Добавьте это для использования Linq
+using System.Linq;
 
 public class MyNetworkManager : NetworkManager
 {
@@ -29,12 +29,6 @@ public class MyNetworkManager : NetworkManager
     public override void OnServerAddPlayer(NetworkConnectionToClient conn)
     {
         // 1. Находим игрока, который только что подключился, чтобы получить его команду.
-        // Это требует, чтобы PlayerCore уже существовал на клиенте и передал данные.
-        // Поскольку вы передаете имя и команду после создания, мы не можем получить
-        // ее здесь. Мы должны получить ее от какого-либо другого источника, например, из
-        // `NetworkConnectionToClient.authenticationData` или другой логики.
-
-        // Для простоты, давайте получим команду из PlayerUI_Team, где она временно хранится.
         PlayerTeam desiredTeam = PlayerUI_Team.GetTempPlayerTeam();
 
         // 2. Найти все точки возрождения, которые соответствуют нужной команде.
@@ -60,7 +54,28 @@ public class MyNetworkManager : NetworkManager
             ? Instantiate(playerPrefab, start.position, start.rotation)
             : Instantiate(playerPrefab);
 
+        // ИСПРАВЛЕНИЕ: Устанавливаем команду игрока сразу после создания объекта,
+        // чтобы она была синхронизирована с самого начала.
+        PlayerCore playerCore = player.GetComponent<PlayerCore>();
+        if (playerCore != null)
+        {
+            playerCore.team = desiredTeam;
+        }
+
         // 4. Добавляем игрока в сеть
         NetworkServer.AddPlayerForConnection(conn, player);
+    }
+
+    public Transform GetTeamSpawnPoint(PlayerTeam desiredTeam)
+    {
+        var teamSpawnPoints = FindObjectsOfType<TeamSpawnPoint>()
+            .Where(sp => sp.team == desiredTeam)
+            .ToList();
+
+        if (teamSpawnPoints.Count > 0)
+        {
+            return teamSpawnPoints[Random.Range(0, teamSpawnPoints.Count)].transform;
+        }
+        return null;
     }
 }

@@ -139,8 +139,9 @@ public class PlayerCore : NetworkBehaviour
         InitComponents();
         _teamIndicator = transform.Find("TeamIndicator")?.gameObject;
         _nameText = GetComponentInChildren<TextMeshProUGUI>();
-        OnTeamChanged(PlayerTeam.None, team);
-        OnNameChanged("Player", playerName);
+
+        // УБРАНО: Вызовы OnTeamChanged и OnNameChanged из Start(),
+        // потому что они будут вызваны автоматически хуками SyncVar.
     }
 
     private void InitComponents()
@@ -181,7 +182,19 @@ public class PlayerCore : NetworkBehaviour
         {
             if (Time.time - timeOfDeath >= respawnTime)
             {
-                RpcRespawnPlayer(_initialSpawnPosition);
+                // НОВОЕ: Находим новую точку возрождения по команде
+                Transform newSpawnPoint = FindObjectOfType<MyNetworkManager>()?.GetTeamSpawnPoint(team);
+
+                if (newSpawnPoint != null)
+                {
+                    RpcRespawnPlayer(newSpawnPoint.position);
+                }
+                else
+                {
+                    Debug.LogError($"No spawn points found for team {team}! Respawning at default location.");
+                    // ИЛИ можно использовать начальную позицию, как запасной вариант.
+                    RpcRespawnPlayer(_initialSpawnPosition);
+                }
             }
         }
     }

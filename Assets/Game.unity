@@ -151,7 +151,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &218207559
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -412,6 +412,18 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_LightCookieSize: {x: 1, y: 1}
   m_LightCookieOffset: {x: 0, y: 0}
+--- !u!114 &476427105 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1128253979724807157, guid: faba03d41d0c7764684d6d56384d4be3,
+    type: 3}
+  m_PrefabInstance: {fileID: 1128253979337381163}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &611116320
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -632,7 +644,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 709671328}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 9.04, y: -0, z: -0.73}
+  m_LocalPosition: {x: 27.2, y: -0, z: -0.73}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -812,16 +824,17 @@ MonoBehaviour:
   headlessStartMode: 0
   editorAutoStart: 0
   sendRate: 60
-  offlineScene: 
-  onlineScene: 
+  offlineScene: Assets/MainMenu.unity
+  onlineScene: Assets/Game.unity
   offlineSceneLoadDelay: 0
-  transport: {fileID: 0}
+  transport: {fileID: 1249742583}
   networkAddress: localhost
   maxConnections: 100
   disconnectInactiveConnections: 0
   disconnectInactiveTimeout: 60
   authenticator: {fileID: 0}
-  playerPrefab: {fileID: 0}
+  playerPrefab: {fileID: 8270360301193926596, guid: 2e4b2e3f8c964c643968bdc577a3fd1b,
+    type: 3}
   autoCreatePlayer: 1
   playerSpawnMethod: 0
   spawnPrefabs: []
@@ -889,6 +902,7 @@ MonoBehaviour:
   nameInputField: {fileID: 134294405}
   hostButton: {fileID: 0}
   clientButton: {fileID: 0}
+  changeNameButton: {fileID: 476427105}
 --- !u!4 &1451678651
 Transform:
   m_ObjectHideFlags: 0
@@ -12124,7 +12138,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1968125933}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.68973494, y: 1, z: -0.73}
+  m_LocalPosition: {x: -22.72, y: 1, z: -0.73}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -12138,6 +12152,11 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1128253978500445149, guid: faba03d41d0c7764684d6d56384d4be3,
+        type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1128253978837727539, guid: faba03d41d0c7764684d6d56384d4be3,
         type: 3}
       propertyPath: m_Name
