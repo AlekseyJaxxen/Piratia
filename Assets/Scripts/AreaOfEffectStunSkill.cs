@@ -11,7 +11,7 @@ public class AreaOfEffectStunSkill : SkillBase
 
     public override void Execute(PlayerCore player, Vector3? targetPosition, GameObject targetObject)
     {
-        if (!isLocalPlayer || !targetPosition.HasValue) return;
+        if (!targetPosition.HasValue) return;
         CmdStunArea(targetPosition.Value);
     }
 

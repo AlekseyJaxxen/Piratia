@@ -52,7 +52,19 @@ public class PlayerActionSystem : NetworkBehaviour
                 _currentActionType = PlayerAction.SkillCast;
                 if (skillToCast != null)
                 {
-                    _currentAction = StartCoroutine(_core.Skills.CastSkill(targetPosition, targetObject, skillToCast));
+                    // Определяем, является ли навык AoE
+                    bool isAoESkill = skillToCast is AreaOfEffectHealSkill || skillToCast is AreaOfEffectStunSkill;
+
+                    if (isAoESkill && targetPosition.HasValue)
+                    {
+                        // Для AoE-навыков запускаем новую корутину, которая проверяет расстояние
+                        _currentAction = StartCoroutine(CastSkillAction(targetPosition.Value, skillToCast));
+                    }
+                    else // Для всех остальных навыков (целевых)
+                    {
+                        // Запускаем старый, рабочий вариант
+                        _currentAction = StartCoroutine(_core.Skills.CastSkill(targetPosition, targetObject, skillToCast));
+                    }
                     return true;
                 }
                 break;
@@ -65,7 +77,7 @@ public class PlayerActionSystem : NetworkBehaviour
     {
         _core.Combat.ClearTarget();
         _core.Movement.MoveTo(destination);
-        Debug.Log($"PlayerActionSystem: Moving to destination: {destination}"); // Лог о начале движения
+        Debug.Log($"PlayerActionSystem: Moving to destination: {destination}");
 
         yield return new WaitUntil(() => !_core.Movement.Agent.pathPending);
 
@@ -79,9 +91,40 @@ public class PlayerActionSystem : NetworkBehaviour
             _core.Movement.UpdateRotation();
             yield return null;
         }
-        Debug.Log($"PlayerActionSystem: Movement action completed."); // Лог о завершении движения
+        Debug.Log($"PlayerActionSystem: Movement action completed.");
 
         CompleteAction();
+    }
+
+    // Новая корутина для AoE-навыков
+    private IEnumerator CastSkillAction(Vector3 targetPosition, ISkill skillToCast)
+    {
+        while (true)
+        {
+            if (_core.isDead || _core.isStunned)
+            {
+                CompleteAction();
+                yield break;
+            }
+
+            float distance = Vector3.Distance(transform.position, targetPosition);
+            if (distance <= skillToCast.Range)
+            {
+                _core.Movement.StopMovement();
+                _core.Movement.RotateTo(targetPosition - transform.position);
+
+                // Вызываем метод для каста навыка, когда персонаж в радиусе
+                yield return StartCoroutine(_core.Skills.CastSkill(targetPosition, null, skillToCast));
+
+                CompleteAction();
+                yield break;
+            }
+            else
+            {
+                _core.Movement.MoveTo(targetPosition);
+            }
+            yield return null;
+        }
     }
 
     private IEnumerator AttackAction(GameObject target)
@@ -113,26 +156,26 @@ public class PlayerActionSystem : NetworkBehaviour
             if (distance > basicAttackSkill.Range)
             {
                 _core.Movement.MoveTo(target.transform.position);
-                Debug.Log($"PlayerActionSystem: Target out of range. Moving towards target at {target.transform.position}. Distance: {distance}"); // Лог о движении к цели
+                Debug.Log($"PlayerActionSystem: Target out of range. Moving towards target at {target.transform.position}. Distance: {distance}");
             }
             else
             {
                 _core.Movement.StopMovement();
                 _core.Movement.RotateTo(target.transform.position - transform.position);
-                Debug.Log($"PlayerActionSystem: Target in range. Stopping to attack. Distance: {distance}"); // Лог о начале атаки
+                Debug.Log($"PlayerActionSystem: Target in range. Stopping to attack. Distance: {distance}");
 
                 if (Time.time >= _core.Combat._lastAttackTime + basicAttackSkill.Cooldown)
                 {
                     basicAttackSkill.Execute(_core, null, target);
                     _core.Combat._lastAttackTime = Time.time;
-                    Debug.Log($"PlayerActionSystem: Executed attack on target {target.name}."); // Лог об успешной атаке
+                    Debug.Log($"PlayerActionSystem: Executed attack on target {target.name}.");
                 }
             }
 
             yield return null;
         }
         CompleteAction();
-        Debug.Log($"PlayerActionSystem: Attack action completed."); // Лог о завершении атаки
+        Debug.Log($"PlayerActionSystem: Attack action completed.");
     }
 
     public void CompleteAction()

@@ -11,8 +11,7 @@ public class AreaOfEffectHealSkill : SkillBase
 
     public override void Execute(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
     {
-        if (!isLocalPlayer) return;
-
+        if (!targetPosition.HasValue) return;
         CmdHealArea(targetPosition.Value, healAmount);
     }
 
@@ -29,7 +28,6 @@ public class AreaOfEffectHealSkill : SkillBase
 
             if (targetHealth != null && targetCore != null && casterCore != null)
             {
-                // Проверяем, что цель находится в той же команде, что и кастующий
                 if (casterCore.team == targetCore.team)
                 {
                     targetHealth.Heal(amount);
