@@ -1,6 +1,7 @@
 using Mirror;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.Linq; // Добавьте это для использования Linq
 
 public class MyNetworkManager : NetworkManager
 {
@@ -27,13 +28,39 @@ public class MyNetworkManager : NetworkManager
     // Этот метод вызывается на сервере, когда клиент запрашивает создание игрока
     public override void OnServerAddPlayer(NetworkConnectionToClient conn)
     {
-        // Создаём экземпляр префаба игрока в случайной точке возрождения
-        Transform start = GetStartPosition();
+        // 1. Находим игрока, который только что подключился, чтобы получить его команду.
+        // Это требует, чтобы PlayerCore уже существовал на клиенте и передал данные.
+        // Поскольку вы передаете имя и команду после создания, мы не можем получить
+        // ее здесь. Мы должны получить ее от какого-либо другого источника, например, из
+        // `NetworkConnectionToClient.authenticationData` или другой логики.
+
+        // Для простоты, давайте получим команду из PlayerUI_Team, где она временно хранится.
+        PlayerTeam desiredTeam = PlayerUI_Team.GetTempPlayerTeam();
+
+        // 2. Найти все точки возрождения, которые соответствуют нужной команде.
+        var teamSpawnPoints = FindObjectsOfType<TeamSpawnPoint>()
+            .Where(sp => sp.team == desiredTeam)
+            .ToList();
+
+        Transform start = null;
+
+        if (teamSpawnPoints.Count > 0)
+        {
+            // Выбрать случайную точку возрождения из списка
+            start = teamSpawnPoints[Random.Range(0, teamSpawnPoints.Count)].transform;
+        }
+        else
+        {
+            Debug.LogError($"No spawn points found for team {desiredTeam}! Spawning at default location.");
+            start = GetStartPosition();
+        }
+
+        // 3. Создать экземпляр префаба игрока в нужной точке
         GameObject player = start != null
             ? Instantiate(playerPrefab, start.position, start.rotation)
             : Instantiate(playerPrefab);
 
-        // Добавляем игрока в сеть
+        // 4. Добавляем игрока в сеть
         NetworkServer.AddPlayerForConnection(conn, player);
     }
 }

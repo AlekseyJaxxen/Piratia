@@ -96,4 +96,9 @@ public class PlayerUI_Team : MonoBehaviour
             Debug.Log($"Sent command to set name and team: {tempPlayerInfo.name}, {tempPlayerInfo.team}");
         }
     }
+
+    public static PlayerTeam GetTempPlayerTeam()
+    {
+        return tempPlayerInfo.team;
+    }
 }
