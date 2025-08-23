@@ -9,16 +9,14 @@ public class PlayerCameraController : MonoBehaviour
     [SerializeField] private float height = 15f;
     [SerializeField] private float distance = 15f;
     [SerializeField] private float angle = 45f;
-    [SerializeField] private float smoothSpeed = 5f;
 
     [Header("Camera Controls")]
     [SerializeField] private float rotationSpeed = 3f;
     [SerializeField] private float zoomSpeed = 2f;
-    [SerializeField] private float minZoom = 5f;
-    [SerializeField] private float maxZoom = 20f;
+    [SerializeField] private float minFOV = 15f;
+    [SerializeField] private float maxFOV = 60f;
 
     private Transform _target;
-    private Vector3 _offset;
     private PlayerCore _core;
 
     public void Init(PlayerCore core)
@@ -38,16 +36,11 @@ public class PlayerCameraController : MonoBehaviour
             return;
         }
 
-        CameraInstance.orthographic = true;
-        CameraInstance.orthographicSize = 10f;
-        CameraInstance.nearClipPlane = 0.3f;
-        CameraInstance.farClipPlane = 100f;
-
         _target = core.transform;
 
-        UpdateOffset();
-
-        CameraInstance.transform.position = _target.position + _offset;
+        // Устанавливаем перспективную камеру для зума через Field of View
+        CameraInstance.orthographic = false;
+        CameraInstance.fieldOfView = maxFOV; // Начальное поле зрения
         CameraInstance.transform.rotation = Quaternion.Euler(angle, 0, 0);
 
         Debug.Log($"[Client] Main camera configured for {gameObject.name}");
@@ -55,21 +48,17 @@ public class PlayerCameraController : MonoBehaviour
 
     void LateUpdate()
     {
-        // 🚨 ИСПРАВЛЕНО: Теперь проверка идет на то, что core не null и является локальным
         if (_core == null || !_core.isLocalPlayer || CameraInstance == null)
         {
             return;
         }
 
-        HandleZoom();
         HandleRotation();
+        HandleZoom();
 
-        Vector3 desiredPosition = _target.position + _offset;
-        CameraInstance.transform.position = Vector3.Lerp(
-            CameraInstance.transform.position,
-            desiredPosition,
-            Time.deltaTime * smoothSpeed
-        );
+        // Вычисляем смещение и устанавливаем позицию камеры
+        Vector3 offset = Quaternion.Euler(0, CameraInstance.transform.eulerAngles.y, 0) * new Vector3(0, height, -distance);
+        CameraInstance.transform.position = _target.position + offset;
     }
 
     private void HandleZoom()
@@ -78,8 +67,8 @@ public class PlayerCameraController : MonoBehaviour
 
         if (scrollInput != 0)
         {
-            distance = Mathf.Clamp(distance - scrollInput * zoomSpeed, minZoom, maxZoom);
-            UpdateOffset();
+            // Изменяем поле зрения (FOV) для эффекта зума
+            CameraInstance.fieldOfView = Mathf.Clamp(CameraInstance.fieldOfView - scrollInput * zoomSpeed, minFOV, maxFOV);
         }
     }
 
@@ -90,15 +79,9 @@ public class PlayerCameraController : MonoBehaviour
             float mouseX = Input.GetAxis("Mouse X");
             if (mouseX != 0)
             {
-                _offset = Quaternion.Euler(0, mouseX * rotationSpeed, 0) * _offset;
-                CameraInstance.transform.rotation = Quaternion.Euler(angle, CameraInstance.transform.eulerAngles.y + mouseX * rotationSpeed, 0);
+                // Поворачиваем камеру вокруг оси Y
+                CameraInstance.transform.RotateAround(_target.position, Vector3.up, mouseX * rotationSpeed);
             }
         }
-    }
-
-    private void UpdateOffset()
-    {
-        _offset = Quaternion.Euler(angle, 0, 0) * Vector3.back * distance;
-        _offset.y = height;
     }
 }

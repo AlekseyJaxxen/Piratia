@@ -821,6 +821,7 @@ GameObject:
   - component: {fileID: 802712603}
   - component: {fileID: 802712602}
   - component: {fileID: 802712601}
+  - component: {fileID: 802712605}
   m_Layer: 5
   m_Name: TeamSelectionCanvas
   m_TagString: Untagged
@@ -910,6 +911,18 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!225 &802712605
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 802712600}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0

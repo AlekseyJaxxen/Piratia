@@ -28,6 +28,10 @@ public class PlayerCore : NetworkBehaviour
     private GameObject[] playerModels;
     [SyncVar(hook = nameof(OnModelChanged))]
     private int _modelIndex = -1;
+    public Material localPlayerMaterial;
+    public Material allyMaterial;
+    public Material enemyMaterial;
+
 
     public GameObject deathVFXPrefab; // Префаб для эффекта смерти
 
@@ -243,18 +247,18 @@ public class PlayerCore : NetworkBehaviour
 
         if (isLocalPlayer)
         {
-            rend.material.color = (team == PlayerTeam.Red) ? Color.red : Color.blue;
+            rend.material = localPlayerMaterial;
         }
         else
         {
             PlayerCore localPlayerCore = FindObjectOfType<PlayerCore>();
             if (localPlayerCore != null && localPlayerCore.team == team)
             {
-                rend.material.color = Color.green;
+                rend.material = allyMaterial;
             }
             else
             {
-                rend.material.color = Color.red;
+                rend.material = enemyMaterial;
             }
         }
     }
