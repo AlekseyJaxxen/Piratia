@@ -11,7 +11,6 @@ public class TargetedStunSkill : SkillBase
     public override void Execute(PlayerCore player, Vector3? targetPosition, GameObject targetObject)
     {
         if (targetObject == null) return;
-
         CmdApplyStun(targetObject.GetComponent<NetworkIdentity>().netId);
     }
 
@@ -24,13 +23,12 @@ public class TargetedStunSkill : SkillBase
             PlayerCore targetCore = targetIdentity.GetComponent<PlayerCore>();
             PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
 
-            // Проверяем, что цель не принадлежит нашей команде.
             if (targetCore != null && casterCore != null)
             {
                 if (casterCore.team != targetCore.team)
                 {
-                    targetCore.StartCoroutine(StunRoutine(targetCore, stunDuration));
-                    RpcPlayEffect(targetNetId); // Эффект показываем только в случае успешного оглушения
+                    targetCore.TryApplyStun(2, stunDuration);
+                    RpcPlayEffect(targetNetId);
                 }
                 else
                 {
@@ -52,14 +50,5 @@ public class TargetedStunSkill : SkillBase
                 Destroy(effect, 2f);
             }
         }
-    }
-
-    [Server]
-    private IEnumerator StunRoutine(PlayerCore core, float duration)
-    {
-        core.SetStunState(true);
-        core.Movement.StopMovement();
-        yield return new WaitForSeconds(duration);
-        core.SetStunState(false);
     }
 }

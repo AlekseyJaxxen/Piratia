@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using Mirror;
 using TMPro;
+using System.Collections;
 
 public enum PlayerAction
 {
@@ -32,8 +33,7 @@ public class PlayerCore : NetworkBehaviour
     public Material allyMaterial;
     public Material enemyMaterial;
 
-
-    public GameObject deathVFXPrefab; // Префаб для эффекта смерти
+    public GameObject deathVFXPrefab;
 
     [SyncVar(hook = nameof(OnTeamChanged))]
     public PlayerTeam team = PlayerTeam.None;
@@ -46,6 +46,11 @@ public class PlayerCore : NetworkBehaviour
 
     [SyncVar(hook = nameof(OnStunStateChanged))]
     public bool isStunned = false;
+
+    [SyncVar]
+    private int stunPriority = 0;
+    [SyncVar]
+    private float stunTimer = 0f;
 
     [Header("Respawn")]
     public float respawnTime = 5.0f;
@@ -71,9 +76,7 @@ public class PlayerCore : NetworkBehaviour
         {
             Camera.Init(this);
         }
-
         _playerUI_Team = FindObjectOfType<PlayerUI_Team>();
-
         if (_playerUI_Team != null)
         {
             _playerUI_Team.ShowTeamSelectionUI();
@@ -95,7 +98,6 @@ public class PlayerCore : NetworkBehaviour
         }
 
         if (Health != null) Health.Init();
-
         playerName = $"Player_{connectionToClient.connectionId}";
     }
 
@@ -104,7 +106,6 @@ public class PlayerCore : NetworkBehaviour
         InitComponents();
         _teamIndicator = transform.Find("TeamIndicator")?.gameObject;
         _nameText = GetComponentInChildren<TextMeshProUGUI>();
-
         OnTeamChanged(PlayerTeam.None, team);
         OnNameChanged("Player", playerName);
     }
@@ -119,6 +120,8 @@ public class PlayerCore : NetworkBehaviour
 
     private void Update()
     {
+        ServerUpdate();
+
         if (!isLocalPlayer || isStunned) return;
 
         if (isDead)
@@ -135,7 +138,40 @@ public class PlayerCore : NetworkBehaviour
         Movement.HandleMovement();
     }
 
+    // Этот метод теперь будет вызываться только на сервере благодаря атрибуту
+    [ServerCallback]
+    private void ServerUpdate()
+    {
+        if (stunTimer > 0)
+        {
+            stunTimer -= Time.deltaTime;
+            if (stunTimer <= 0)
+            {
+                SetStunState(false);
+                stunPriority = 0;
+                stunTimer = 0f;
+            }
+        }
+    }
+
     #region State Management
+
+    [Server]
+    public void TryApplyStun(int newPriority, float duration)
+    {
+        if (newPriority > stunPriority)
+        {
+            stunPriority = newPriority;
+            stunTimer = duration;
+            SetStunState(true);
+            Debug.Log($"Applied stun with priority {newPriority} and duration {duration}.");
+        }
+        else
+        {
+            Debug.Log($"Ignored stun with priority {newPriority}. Current priority is {stunPriority}.");
+        }
+    }
+
     [Server]
     public void SetDeathState(bool state)
     {
@@ -166,17 +202,15 @@ public class PlayerCore : NetworkBehaviour
         if (Skills != null) Skills.enabled = !state;
         if (ActionSystem != null) ActionSystem.enabled = !state;
 
-        // Скрываем/показываем модель
         if (playerModels != null && _modelIndex >= 0 && _modelIndex < playerModels.Length)
         {
             if (playerModels[_modelIndex] != null) playerModels[_modelIndex].SetActive(!state);
         }
 
-        // Инстанцируем VFX смерти
         if (state && deathVFXPrefab != null)
         {
             GameObject vfx = Instantiate(deathVFXPrefab, transform.position, Quaternion.identity);
-            Destroy(vfx, 3f); // Уничтожаем VFX через 3 секунды
+            Destroy(vfx, 3f);
         }
     }
 
@@ -212,10 +246,6 @@ public class PlayerCore : NetworkBehaviour
         {
             Health.SetHealth(Health.MaxHealth);
         }
-
-        // Тут нужно найти точку возрождения и телепортировать игрока
-        // Например, GameObject spawnPoint = GameObject.Find("SpawnPoint");
-        // if (spawnPoint != null) transform.position = spawnPoint.transform.position;
     }
 
     [Command]
@@ -241,10 +271,8 @@ public class PlayerCore : NetworkBehaviour
     private void UpdateTeamIndicatorColor()
     {
         if (_teamIndicator == null) return;
-
         Renderer rend = _teamIndicator.GetComponent<Renderer>();
         if (rend == null) return;
-
         if (isLocalPlayer)
         {
             rend.material = localPlayerMaterial;

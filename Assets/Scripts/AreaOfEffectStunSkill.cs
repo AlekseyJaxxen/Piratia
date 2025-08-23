@@ -12,7 +12,6 @@ public class AreaOfEffectStunSkill : SkillBase
     public override void Execute(PlayerCore player, Vector3? targetPosition, GameObject targetObject)
     {
         if (!isLocalPlayer || !targetPosition.HasValue) return;
-
         CmdStunArea(targetPosition.Value);
     }
 
@@ -25,14 +24,11 @@ public class AreaOfEffectStunSkill : SkillBase
         foreach (var hit in hits)
         {
             PlayerCore targetCore = hit.GetComponent<PlayerCore>();
-
             if (targetCore != null && casterCore != null)
             {
-                // ѕровер€ем, что цель находитс€ в другой команде
                 if (casterCore.team != targetCore.team)
                 {
-                    // ¬ызываем новый серверный метод дл€ безопасного оглушени€
-                    TryStunTarget(targetCore, stunDuration);
+                    targetCore.TryApplyStun(1, stunDuration);
                 }
                 else
                 {
@@ -41,32 +37,6 @@ public class AreaOfEffectStunSkill : SkillBase
             }
         }
         RpcPlayEffect(position);
-    }
-
-    // Ќовый приватный серверный метод дл€ обработки оглушени€
-    [Server]
-    private void TryStunTarget(PlayerCore target, float duration)
-    {
-        // ¬ыполн€ем проверку и немедленно устанавливаем состо€ние
-        // Ёто предотвращает состо€ние гонки, так как всЄ происходит в одном серверном "кадре"
-        if (!target.isStunned)
-        {
-            Debug.Log($"Stunning target {target.playerName}.");
-            target.SetStunState(true);
-            target.Movement.StopMovement();
-            StartCoroutine(UnstunAfterDelay(target, duration));
-        }
-        else
-        {
-            Debug.Log($"Target {target.playerName} is already stunned.");
-        }
-    }
-
-    [Server]
-    private IEnumerator UnstunAfterDelay(PlayerCore core, float duration)
-    {
-        yield return new WaitForSeconds(duration);
-        core.SetStunState(false);
     }
 
     [ClientRpc]
