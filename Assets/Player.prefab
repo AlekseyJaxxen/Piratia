@@ -1030,6 +1030,7 @@ MonoBehaviour:
   _targetIndicatorPrefab: {fileID: 0}
   _castCursor: {fileID: 0}
   damageAmount: 200
+  vfxPrefab: {fileID: 107336, guid: 3547e5e490f502041ae6e8a59042e4bd, type: 3}
 --- !u!1001 &2204221415589107067
 PrefabInstance:
   m_ObjectHideFlags: 0
