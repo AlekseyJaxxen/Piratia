@@ -47,26 +47,25 @@ public class PlayerUI_Team : MonoBehaviour
 
     private void OnTeamSelected(PlayerTeam selectedTeam)
     {
-        _localPlayerCore = FindObjectOfType<PlayerCore>();
-        if (_localPlayerCore != null)
+        // Используем статическую ссылку вместо FindObjectOfType
+        if (PlayerCore.localPlayerCoreInstance != null)
         {
-            _localPlayerCore.CmdSetPlayerInfo(_localPlayerCore.playerName, selectedTeam);
+            PlayerCore.localPlayerCoreInstance.CmdSetPlayerInfo(PlayerCore.localPlayerCoreInstance.playerName, selectedTeam);
         }
 
-       // if (teamSelectionPanel != null)
-     //   {
-         //   teamSelectionPanel.SetActive(false);
-      //  }
+        // if (teamSelectionPanel != null)
+        //   {
+        //   teamSelectionPanel.SetActive(false);
+        //  }
     }
 
     private void OnNameConfirmed()
     {
         if (nameInputField != null && !string.IsNullOrEmpty(nameInputField.text))
         {
-            _localPlayerCore = FindObjectOfType<PlayerCore>();
-            if (_localPlayerCore != null)
+            if (PlayerCore.localPlayerCoreInstance != null)
             {
-                _localPlayerCore.CmdSetPlayerInfo(nameInputField.text, _localPlayerCore.team);
+                PlayerCore.localPlayerCoreInstance.CmdSetPlayerInfo(nameInputField.text, PlayerCore.localPlayerCoreInstance.team);
             }
         }
     }

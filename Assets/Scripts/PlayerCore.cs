@@ -59,6 +59,7 @@ public class PlayerCore : NetworkBehaviour
     private GameObject _teamIndicator;
     private TextMeshProUGUI _nameText;
     private PlayerUI_Team _playerUI_Team;
+    public static PlayerCore localPlayerCoreInstance;
 
     private void Awake()
     {
@@ -72,9 +73,12 @@ public class PlayerCore : NetworkBehaviour
 
     public override void OnStartLocalPlayer()
     {
+        localPlayerCoreInstance = this;
+
         if (Camera != null)
         {
             Camera.Init(this);
+
         }
         _playerUI_Team = FindObjectOfType<PlayerUI_Team>();
         if (_playerUI_Team != null)
@@ -273,14 +277,15 @@ public class PlayerCore : NetworkBehaviour
         if (_teamIndicator == null) return;
         Renderer rend = _teamIndicator.GetComponent<Renderer>();
         if (rend == null) return;
+
         if (isLocalPlayer)
         {
             rend.material = localPlayerMaterial;
         }
         else
         {
-            PlayerCore localPlayerCore = FindObjectOfType<PlayerCore>();
-            if (localPlayerCore != null && localPlayerCore.team == team)
+            // Используем статическую ссылку вместо FindObjectOfType
+            if (localPlayerCoreInstance != null && localPlayerCoreInstance.team == team)
             {
                 rend.material = allyMaterial;
             }
