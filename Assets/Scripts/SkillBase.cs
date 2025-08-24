@@ -11,6 +11,9 @@ public abstract class SkillBase : NetworkBehaviour, ISkill
     public GameObject TargetIndicator => _targetIndicatorInstance;
     public Texture2D CastCursor => _castCursor;
 
+    public float RemainingCooldown => Mathf.Max(0, _cooldown - (Time.time - _lastUseTime));
+    public float CooldownProgressNormalized => 1f - (RemainingCooldown / _cooldown);
+
     [Header("Base Skill Settings")]
     [SerializeField] protected KeyCode _hotkey;
     [SerializeField] protected float _range;

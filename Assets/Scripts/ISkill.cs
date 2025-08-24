@@ -14,4 +14,7 @@ public interface ISkill
     void StartCooldown();
     void Execute(PlayerCore player, Vector3? targetPosition, GameObject targetObject);
     void SetIndicatorVisibility(bool isVisible);
+
+    float RemainingCooldown { get; }
+    float CooldownProgressNormalized { get; }
 }
