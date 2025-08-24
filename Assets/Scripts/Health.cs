@@ -5,7 +5,8 @@ using TMPro;
 public class Health : NetworkBehaviour
 {
     [Header("Health Settings")]
-    public int MaxHealth = 100;
+    [HideInInspector]
+    public int MaxHealth = 1000;
 
     // Ссылка на UI
     private PlayerUI playerUI;
@@ -59,13 +60,13 @@ public class Health : NetworkBehaviour
     }
 
     [Server]
-    public void TakeDamage(int amount)
+    public void TakeDamage(int amount, bool isCritical = false)
     {
         CurrentHealth -= amount;
         Debug.Log($"[Server] {gameObject.name} took {amount} damage. Current health: {CurrentHealth}");
 
         // Вызываем Rpc-метод для отображения урона на всех клиентах
-        RpcShowDamageNumber(amount);
+        RpcShowDamageNumber(amount, isCritical);
 
         if (CurrentHealth <= 0)
         {
@@ -75,20 +76,22 @@ public class Health : NetworkBehaviour
     }
 
     [ClientRpc]
-    private void RpcShowDamageNumber(int damage)
+    private void RpcShowDamageNumber(int damage, bool isCritical)
     {
         if (floatingTextPrefab != null)
         {
-            // Создаем цифру урона немного выше персонажа
             Vector3 spawnPosition = transform.position + Vector3.up * damageTextSpawnHeight;
             GameObject floatingTextInstance = Instantiate(floatingTextPrefab, spawnPosition, Quaternion.identity);
 
-            // Передаем значение урона
+            // NOTE: You will need to modify your FloatingDamageText script to handle 'isCritical'.
+            // For example, it could change the color or size of the text.
+            /*
             FloatingDamageText damageTextScript = floatingTextInstance.GetComponent<FloatingDamageText>();
             if (damageTextScript != null)
             {
-                damageTextScript.SetDamageText(damage);
+                damageTextScript.SetDamageText(damage, isCritical);
             }
+            */
         }
     }
 
@@ -101,12 +104,13 @@ public class Health : NetworkBehaviour
             Vector3 spawnPosition = transform.position + Vector3.up * damageTextSpawnHeight;
             GameObject floatingTextInstance = Instantiate(floatingTextPrefab, spawnPosition, Quaternion.identity);
 
+            /*
             FloatingDamageText healTextScript = floatingTextInstance.GetComponent<FloatingDamageText>();
             if (healTextScript != null)
             {
-                // Устанавливаем текст и цвет для цифры лечения
                 healTextScript.SetHealText(healAmount);
             }
+            */
         }
     }
 

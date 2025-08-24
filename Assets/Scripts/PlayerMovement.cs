@@ -5,7 +5,8 @@ using Mirror;
 public class PlayerMovement : NetworkBehaviour
 {
     [Header("Movement Settings")]
-    public float moveSpeed = 5f;
+    [HideInInspector]
+    public float moveSpeed = 8f;
     public float rotationSpeed = 10f;
     public float stoppingDistance = 0.5f;
 
@@ -33,23 +34,18 @@ public class PlayerMovement : NetworkBehaviour
         {
             Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
 
-            // Если умение выбрано
             if (_core.Skills.IsSkillSelected)
             {
                 bool isTargetedSkill = _core.Skills.ActiveSkill is ProjectileDamageSkill || _core.Skills.ActiveSkill is TargetedStunSkill || _core.Skills.ActiveSkill is SlowSkill;
 
-                // Если умение ТАРГЕТНОЕ, используем interactableLayers
                 if (isTargetedSkill)
                 {
                     if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
                     {
-                        // Проверяем, является ли цель игроком
                         if (hit.collider.CompareTag("Player"))
                         {
                             PlayerCore targetCore = hit.collider.GetComponent<PlayerCore>();
 
-                            // Если цель - враг, начинаем каст.
-                            // Если цель - союзник, ничего не делаем.
                             if (targetCore != null && targetCore.team != _core.team)
                             {
                                 _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, hit.point, hit.collider.gameObject, _core.Skills.ActiveSkill);
@@ -57,12 +53,9 @@ public class PlayerMovement : NetworkBehaviour
                             }
                             else
                             {
-                                // Если цель - союзник, мы просто выходим,
-                                // и выбор умения сохраняется.
                                 return;
                             }
                         }
-                        // Если цель - враг (с тегом "Enemy"), начинаем каст
                         else if (hit.collider.CompareTag("Enemy"))
                         {
                             _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, hit.point, hit.collider.gameObject, _core.Skills.ActiveSkill);
@@ -70,7 +63,6 @@ public class PlayerMovement : NetworkBehaviour
                         }
                     }
                 }
-                // Если умение НЕ ТАРГЕТНОЕ (AoE), используем ТОЛЬКО groundLayer
                 else
                 {
                     if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.groundLayer))
@@ -80,7 +72,6 @@ public class PlayerMovement : NetworkBehaviour
                     }
                 }
             }
-            // Если умение НЕ выбрано, используем стандартную логику движения/атаки
             else
             {
                 if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
@@ -150,6 +141,6 @@ public class PlayerMovement : NetworkBehaviour
 
     public float GetOriginalSpeed()
     {
-        return moveSpeed;
+        return _core.Stats != null ? _core.Stats.movementSpeed : moveSpeed;
     }
 }

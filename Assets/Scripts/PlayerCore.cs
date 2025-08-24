@@ -29,6 +29,7 @@ public class PlayerCore : NetworkBehaviour
     public PlayerActionSystem ActionSystem;
     public PlayerCameraController Camera;
     public Health Health;
+    public CharacterStats Stats; // Added
 
     [Header("Dependencies")]
     public LayerMask interactableLayers;
@@ -82,6 +83,7 @@ public class PlayerCore : NetworkBehaviour
         ActionSystem = GetComponent<PlayerActionSystem>();
         Camera = GetComponent<PlayerCameraController>();
         Health = GetComponent<Health>();
+        Stats = GetComponent<CharacterStats>(); // Added
     }
 
     public override void OnStartLocalPlayer()
@@ -153,10 +155,10 @@ public class PlayerCore : NetworkBehaviour
         if (Skills != null) Skills.Init(this);
         if (ActionSystem != null) ActionSystem.Init(this);
 
-        if (Movement != null)
+        if (Movement != null && Stats != null)
         {
             Movement.Init(this);
-            _originalSpeed = Movement.GetOriginalSpeed();
+            _originalSpeed = Stats.movementSpeed;
         }
     }
 
@@ -234,9 +236,6 @@ public class PlayerCore : NetworkBehaviour
             SetStunState(false);
         }
 
-        // Исправлено: Сброс скорости вне условия else if.
-        // Это гарантирует, что скорость будет восстановлена, даже если другой эффект,
-        // такой как стан, закончится.
         if (currentControlEffect == ControlEffectType.Slow)
         {
             Movement.SetMovementSpeed(_originalSpeed);
@@ -325,8 +324,6 @@ public class PlayerCore : NetworkBehaviour
     [Server]
     public void ApplySlow(float slowPercentage, float duration)
     {
-        // Исправлено: Убрана проверка, чтобы замедление всегда применялось
-        // и сбрасывалось время действия.
         _slowPercentage = slowPercentage;
         controlEffectEndTime = Time.time + duration;
         currentControlEffect = ControlEffectType.Slow;

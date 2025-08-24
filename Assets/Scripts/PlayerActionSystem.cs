@@ -53,17 +53,13 @@ public class PlayerActionSystem : NetworkBehaviour
                 _currentActionType = PlayerAction.SkillCast;
                 if (skillToCast != null)
                 {
-                    // Определяем, является ли навык AoE
-                    bool isAoESkill = skillToCast is AreaOfEffectHealSkill || skillToCast is AreaOfEffectStunSkill;
-
+                    bool isAoESkill = !(skillToCast is ProjectileDamageSkill || skillToCast is TargetedStunSkill || skillToCast is SlowSkill);
                     if (isAoESkill && targetPosition.HasValue)
                     {
-                        // Для AoE-навыков запускаем новую корутину, которая проверяет расстояние
                         _currentAction = StartCoroutine(CastSkillAction(targetPosition.Value, skillToCast));
                     }
-                    else // Для всех остальных навыков (целевых)
+                    else
                     {
-                        // Запускаем старый, рабочий вариант
                         _currentAction = StartCoroutine(_core.Skills.CastSkill(targetPosition, targetObject, skillToCast));
                     }
                     return true;
@@ -97,7 +93,6 @@ public class PlayerActionSystem : NetworkBehaviour
         CompleteAction();
     }
 
-    // Новая корутина для AoE-навыков
     private IEnumerator CastSkillAction(Vector3 targetPosition, ISkill skillToCast)
     {
         while (true)
@@ -114,7 +109,6 @@ public class PlayerActionSystem : NetworkBehaviour
                 _core.Movement.StopMovement();
                 _core.Movement.RotateTo(targetPosition - transform.position);
 
-                // Вызываем метод для каста навыка, когда персонаж в радиусе
                 yield return StartCoroutine(_core.Skills.CastSkill(targetPosition, null, skillToCast));
 
                 CompleteAction();
@@ -151,16 +145,18 @@ public class PlayerActionSystem : NetworkBehaviour
             if (targetHealth == null || targetHealth.CurrentHealth <= 0)
             {
                 Debug.Log($"PlayerActionSystem: Target is dead or lost. Stopping attack.");
-
-                break; // Или CompleteAction(); yield break;
+                break;
             }
 
-            if (_core.Skills.skills.Count == 0)
+            if (_core.Skills.skills.Count == 0 || _core.Stats == null)
             {
-                Debug.Log($"PlayerActionSystem: No basic attack skill available. Stopping attack.");
+                Debug.LogWarning($"PlayerActionSystem: No basic attack skill or stats available. Stopping attack.");
                 break;
             }
             SkillBase basicAttackSkill = _core.Skills.skills[0];
+
+            // Calculate cooldown based on attack speed from stats
+            float attackCooldown = 1f / _core.Stats.attackSpeed;
 
             float distance = Vector3.Distance(transform.position, target.transform.position);
 
@@ -175,7 +171,8 @@ public class PlayerActionSystem : NetworkBehaviour
                 _core.Movement.RotateTo(target.transform.position - transform.position);
                 Debug.Log($"PlayerActionSystem: Target in range. Stopping to attack. Distance: {distance}");
 
-                if (Time.time >= _core.Combat._lastAttackTime + basicAttackSkill.Cooldown)
+                // Use the calculated attackCooldown
+                if (Time.time >= _core.Combat._lastAttackTime + attackCooldown)
                 {
                     basicAttackSkill.Execute(_core, null, target);
                     _core.Combat._lastAttackTime = Time.time;

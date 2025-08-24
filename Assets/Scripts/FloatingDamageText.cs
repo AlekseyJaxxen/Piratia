@@ -63,6 +63,17 @@ public class FloatingDamageText : MonoBehaviour
         _textMesh.color = healColor;
     }
 
+    public void SetDamageText(int damage, bool isCritical)
+    {
+        // tmproText is your TextMeshPro component
+        _textMesh.text = damage.ToString();
+        if (isCritical)
+        {
+            _textMesh.color = Color.red; // Make crits red
+            _textMesh.fontSize *= 1.5f;   // Make crits bigger
+        }
+    }
+
     private void Update()
     {
         _timer += Time.deltaTime;
