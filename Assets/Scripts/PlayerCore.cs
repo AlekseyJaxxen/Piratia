@@ -105,6 +105,24 @@ public class PlayerCore : NetworkBehaviour
 
         // Отправляем данные игрока на сервер сразу после создания
         PlayerUI_Team.SendPlayerInfoCommand(this);
+
+        base.OnStartLocalPlayer();
+
+        // Получаем слой по имени
+        int localPlayerLayer = LayerMask.NameToLayer("LocalPlayer");
+
+        // Проверяем, что слой существует
+        if (localPlayerLayer != -1)
+        {
+            // Присваиваем слой главному игровому объекту
+            gameObject.layer = localPlayerLayer;
+
+            // Опционально: можно применить слой ко всем дочерним объектам
+            foreach (Transform child in transform)
+            {
+                child.gameObject.layer = localPlayerLayer;
+            }
+        }
     }
 
     public override void OnStartServer()
