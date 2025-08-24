@@ -90,17 +90,29 @@ public class PlayerSkills : NetworkBehaviour
         if (targetIndicator == null) return;
 
         Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
+        RaycastHit hit;
+
+        // ОБЩАЯ ЛОГИКА СМЕНЫ КУРСОРА:
+        // Курсор меняется, если активен любой скилл, у которого задан CastCursor.
+        if (_activeSkill.CastCursor != null)
+        {
+            SetCursor(_activeSkill.CastCursor);
+        }
+        else
+        {
+            SetCursor(defaultCursor);
+        }
 
         // Логика для таргетных умений
         if (_activeSkill is ProjectileDamageSkill || _activeSkill is TargetedStunSkill)
         {
-            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
+            // В этой части мы только управляем индикатором, а не курсором.
+            if (Physics.Raycast(ray, out hit, Mathf.Infinity, _core.interactableLayers))
             {
                 if (hit.collider.CompareTag("Enemy") || hit.collider.CompareTag("Player"))
                 {
                     targetIndicator.SetActive(true);
                     targetIndicator.transform.position = hit.collider.gameObject.transform.position + Vector3.up * 1f;
-                    SetCursor(_activeSkill.CastCursor);
                     targetIndicator.transform.localScale = Vector3.one;
 
                     if (_activeSkill.RangeIndicator != null)
@@ -111,8 +123,6 @@ public class PlayerSkills : NetworkBehaviour
                 else
                 {
                     targetIndicator.SetActive(false);
-                    SetCursor(defaultCursor);
-
                     if (_activeSkill.RangeIndicator != null)
                     {
                         _activeSkill.RangeIndicator.SetActive(true);
@@ -122,18 +132,16 @@ public class PlayerSkills : NetworkBehaviour
             else
             {
                 targetIndicator.SetActive(false);
-                SetCursor(defaultCursor);
-
                 if (_activeSkill.RangeIndicator != null)
                 {
                     _activeSkill.RangeIndicator.SetActive(true);
                 }
             }
         }
-        else // ИЗМЕНЕНО: Логика для AoE-умений
+        else // Логика для AoE-умений
         {
-            // Используем groundLayer, чтобы рейкаст игнорировал игроков/врагов
-            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.groundLayer))
+            // Логика индикатора для AoE
+            if (Physics.Raycast(ray, out hit, Mathf.Infinity, _core.groundLayer))
             {
                 targetIndicator.SetActive(true);
                 targetIndicator.transform.position = hit.point + Vector3.up * 0.1f;
@@ -143,17 +151,14 @@ public class PlayerSkills : NetworkBehaviour
                 {
                     _activeSkill.RangeIndicator.SetActive(false);
                 }
-                SetCursor(_activeSkill.CastCursor);
             }
             else
             {
                 targetIndicator.SetActive(false);
-
                 if (_activeSkill.RangeIndicator != null)
                 {
                     _activeSkill.RangeIndicator.SetActive(true);
                 }
-                SetCursor(defaultCursor);
             }
         }
     }
