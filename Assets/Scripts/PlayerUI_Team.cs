@@ -8,6 +8,8 @@ public class PlayerUI_Team : MonoBehaviour
     public GameObject teamSelectionPanel;
     public Button redTeamButton;
     public Button blueTeamButton;
+    public Button playerPrefab1Button;
+    public Button playerPrefab2Button;
     public TMP_InputField nameInputField;
     public Button hostButton;
     public Button clientButton;
@@ -15,10 +17,11 @@ public class PlayerUI_Team : MonoBehaviour
 
     private static PlayerInfo tempPlayerInfo = new PlayerInfo();
 
-    private class PlayerInfo
+    public class PlayerInfo
     {
         public string name = "Player";
         public PlayerTeam team = PlayerTeam.Red;
+        public int prefabIndex = 0;
     }
 
     void Start()
@@ -31,6 +34,16 @@ public class PlayerUI_Team : MonoBehaviour
         if (blueTeamButton != null)
         {
             blueTeamButton.onClick.AddListener(() => OnTeamSelected(PlayerTeam.Blue));
+        }
+
+        if (playerPrefab1Button != null)
+        {
+            playerPrefab1Button.onClick.AddListener(() => OnPrefabSelected(0));
+        }
+
+        if (playerPrefab2Button != null)
+        {
+            playerPrefab2Button.onClick.AddListener(() => OnPrefabSelected(1));
         }
 
         if (hostButton != null)
@@ -58,62 +71,46 @@ public class PlayerUI_Team : MonoBehaviour
             nameInputField.text = tempPlayerInfo.name;
         }
 
-        // Устанавливаем начальное состояние кнопок
         UpdateButtonColors(tempPlayerInfo.team);
     }
 
     public void OnHostClicked()
     {
+        Debug.Log("Кнопка Host нажата.");
         MyNetworkManager myNetworkManager = NetworkManager.singleton.GetComponent<MyNetworkManager>();
         if (myNetworkManager != null)
         {
-            myNetworkManager.StartHostButton();
+            myNetworkManager.StartHost();
         }
     }
 
     public void OnClientClicked()
     {
+        Debug.Log("Кнопка Client нажата.");
         MyNetworkManager myNetworkManager = NetworkManager.singleton.GetComponent<MyNetworkManager>();
         if (myNetworkManager != null)
         {
-            myNetworkManager.StartClientButton();
+            myNetworkManager.StartClient();
         }
     }
 
     private void OnTeamSelected(PlayerTeam selectedTeam)
     {
-        // Проверяем, существует ли локальный игрок (т.е. мы в игре)
-        PlayerCore localPlayerCore = PlayerCore.localPlayerCoreInstance;
-        if (localPlayerCore != null && localPlayerCore.isLocalPlayer)
-        {
-            // Если да, отправляем команду на сервер
-            localPlayerCore.CmdSetPlayerInfo(localPlayerCore.playerName, selectedTeam);
-            Debug.Log($"Sent command to change team to: {selectedTeam}");
-        }
-        else
-        {
-            // Если нет, обновляем только локальную переменную
-            tempPlayerInfo.team = selectedTeam;
-            Debug.Log($"Selected team locally: {selectedTeam}");
-        }
-
+        tempPlayerInfo.team = selectedTeam;
+        Debug.Log($"Выбрана команда локально: {selectedTeam}");
         UpdateButtonColors(selectedTeam);
+    }
+
+    private void OnPrefabSelected(int index)
+    {
+        tempPlayerInfo.prefabIndex = index;
+        Debug.Log($"Выбран префаб игрока локально: {index}");
     }
 
     private void OnChangeNameClicked()
     {
-        // Просто обновляем локальную переменную
         tempPlayerInfo.name = nameInputField.text;
-        Debug.Log($"Name changed locally to: {tempPlayerInfo.name}");
-    }
-
-    public static void SendPlayerInfoCommand(PlayerCore playerCoreInstance)
-    {
-        if (playerCoreInstance != null)
-        {
-            playerCoreInstance.CmdSetPlayerInfo(tempPlayerInfo.name, tempPlayerInfo.team);
-            Debug.Log($"Sent command to set name and team: {tempPlayerInfo.name}, {tempPlayerInfo.team}");
-        }
+        Debug.Log($"Имя изменено локально на: {tempPlayerInfo.name}");
     }
 
     public static PlayerTeam GetTempPlayerTeam()
@@ -121,9 +118,13 @@ public class PlayerUI_Team : MonoBehaviour
         return tempPlayerInfo.team;
     }
 
+    public static PlayerInfo GetTempPlayerInfo()
+    {
+        return tempPlayerInfo;
+    }
+
     private void UpdateButtonColors(PlayerTeam currentTeam)
     {
-        // Можно добавить визуальный эффект, чтобы показывать, какая команда выбрана
         Color selectedColor = Color.yellow;
         Color defaultColor = Color.white;
 

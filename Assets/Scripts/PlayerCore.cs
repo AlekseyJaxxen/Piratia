@@ -19,13 +19,12 @@ public enum ControlEffectType
     FbStun = 3,
 }
 
-// Добавьте этот enum, если его нет
-public enum PlayerTeam
-{
-    None,
-    Red,
-    Blue
-}
+//public enum PlayerTeam
+//{
+   // None,
+  //  Red,
+ //   Blue
+//}
 
 public class PlayerCore : NetworkBehaviour
 {
@@ -42,10 +41,6 @@ public class PlayerCore : NetworkBehaviour
     public LayerMask groundLayer;
 
     [Header("Visuals")]
-    [SerializeField]
-    private GameObject[] playerModels;
-    [SyncVar(hook = nameof(OnModelChanged))]
-    private int _modelIndex = -1;
     public Material localPlayerMaterial;
     public Material allyMaterial;
     public Material enemyMaterial;
@@ -61,11 +56,9 @@ public class PlayerCore : NetworkBehaviour
     [SyncVar(hook = nameof(OnDeathStateChanged))]
     public bool isDead = false;
 
-    // ОБНОВЛЕНО: Используем SyncVar с хуком для isStunned
     [SyncVar(hook = nameof(OnStunStateChanged))]
     public bool isStunned = false;
 
-    // НОВЫЕ ПЕРЕМЕННЫЕ ДЛЯ СИСТЕМЫ КОНТРОЛЯ
     [SyncVar]
     private ControlEffectType currentControlEffect = ControlEffectType.None;
     [SyncVar]
@@ -75,7 +68,6 @@ public class PlayerCore : NetworkBehaviour
     public float respawnTime = 5.0f;
     private float timeOfDeath;
 
-    // ИСПРАВЛЕНО: _initialSpawnPosition теперь SyncVar
     [SyncVar]
     private Vector3 _initialSpawnPosition;
 
@@ -96,6 +88,7 @@ public class PlayerCore : NetworkBehaviour
 
     public override void OnStartLocalPlayer()
     {
+        Debug.Log("OnStartLocalPlayer вызван для локального игрока. Логика инициализации компонента запускается.");
         localPlayerCoreInstance = this;
 
         if (Camera != null)
@@ -103,21 +96,14 @@ public class PlayerCore : NetworkBehaviour
             Camera.Init(this);
         }
 
-        // Отправляем данные игрока на сервер сразу после создания
-        PlayerUI_Team.SendPlayerInfoCommand(this);
-
         base.OnStartLocalPlayer();
 
-        // Получаем слой по имени
         int localPlayerLayer = LayerMask.NameToLayer("LocalPlayer");
 
-        // Проверяем, что слой существует
         if (localPlayerLayer != -1)
         {
-            // Присваиваем слой главному игровому объекту
             gameObject.layer = localPlayerLayer;
 
-            // Опционально: можно применить слой ко всем дочерним объектам
             foreach (Transform child in transform)
             {
                 child.gameObject.layer = localPlayerLayer;
@@ -125,23 +111,19 @@ public class PlayerCore : NetworkBehaviour
         }
     }
 
-    // НОВОЕ: Метод, который вызывается на всех клиентах, когда объект спавнится
     public override void OnStartClient()
     {
         base.OnStartClient();
 
-        // Инициализируем компоненты UI
         _nameText = GetComponentInChildren<TextMeshProUGUI>();
         _teamIndicator = transform.Find("TeamIndicator")?.gameObject;
         _playerUI_Team = GetComponentInChildren<PlayerUI_Team>();
 
-        // Устанавливаем имя сразу при спавне, используя актуальное значение SyncVar
         if (_nameText != null)
         {
             _nameText.text = playerName;
         }
 
-        // Вызываем OnTeamChanged, чтобы обновить цвет индикатора, если необходимо
         OnTeamChanged(team, team);
     }
 
@@ -150,22 +132,11 @@ public class PlayerCore : NetworkBehaviour
         isDead = false;
         isStunned = false;
 
-        if (playerModels != null && playerModels.Length > 0)
-        {
-            _modelIndex = Random.Range(0, playerModels.Length);
-        }
-        else
-        {
-            Debug.LogError("Player models array is not assigned or is empty!");
-        }
-
         if (Health != null) Health.Init();
     }
 
-    // ИСПРАВЛЕНО: Добавлен метод OnHealthZero, который будет вызываться из компонента Health
     public void OnHealthZero()
     {
-        // Только локальный игрок может отправлять команды
         if (isLocalPlayer)
         {
             CmdDie();
@@ -175,10 +146,6 @@ public class PlayerCore : NetworkBehaviour
     private void Start()
     {
         InitComponents();
-
-        // УБРАНО: Инициализация _nameText и _teamIndicator перенесена в OnStartClient()
-        // УБРАНО: Вызовы OnTeamChanged и OnNameChanged из Start(),
-        // потому что они будут вызваны автоматически хуками SyncVar.
     }
 
     private void InitComponents()
@@ -195,7 +162,6 @@ public class PlayerCore : NetworkBehaviour
 
         if (!isLocalPlayer || isStunned) return;
 
-        // Убрана логика возрождения с клиента
         if (isDead)
         {
             return;
@@ -214,12 +180,10 @@ public class PlayerCore : NetworkBehaviour
             ClearControlEffect();
         }
 
-        // ИСПРАВЛЕНО: Таймер возрождения и вызов команды теперь на сервере
         if (isDead)
         {
             if (Time.time - timeOfDeath >= respawnTime)
             {
-                // НОВОЕ: Находим новую точку возрождения по команде
                 Transform newSpawnPoint = FindObjectOfType<MyNetworkManager>()?.GetTeamSpawnPoint(team);
 
                 if (newSpawnPoint != null)
@@ -229,7 +193,6 @@ public class PlayerCore : NetworkBehaviour
                 else
                 {
                     Debug.LogError($"No spawn points found for team {team}! Respawning at default location.");
-                    // ИЛИ можно использовать начальную позицию, как запасной вариант.
                     RpcRespawnPlayer(_initialSpawnPosition);
                 }
             }
@@ -250,8 +213,6 @@ public class PlayerCore : NetworkBehaviour
             {
                 SetStunState(true);
             }
-            // Добавьте логику для других типов контроля, например:
-            // if (currentControlEffect == ControlEffectType.Silence) { SetSilenceState(true); }
 
             Debug.Log($"Applied new control effect: {currentControlEffect} for {duration} seconds.");
         }
@@ -268,7 +229,6 @@ public class PlayerCore : NetworkBehaviour
         {
             SetStunState(false);
         }
-        // Добавьте логику для снятия других эффектов
 
         currentControlEffect = ControlEffectType.None;
     }
@@ -304,11 +264,6 @@ public class PlayerCore : NetworkBehaviour
         if (Skills != null) Skills.enabled = !state;
         if (ActionSystem != null) ActionSystem.enabled = !state;
 
-        if (playerModels != null && _modelIndex >= 0 && _modelIndex < playerModels.Length)
-        {
-            if (playerModels[_modelIndex] != null) playerModels[_modelIndex].SetActive(!state);
-        }
-
         if (state && deathVFXPrefab != null)
         {
             GameObject vfx = Instantiate(deathVFXPrefab, transform.position, Quaternion.identity);
@@ -340,19 +295,15 @@ public class PlayerCore : NetworkBehaviour
         if (ActionSystem != null) ActionSystem.enabled = !state;
     }
 
-    // ИСПРАВЛЕНО: Это команда, которая запускает процесс смерти на сервере.
     [Command]
     private void CmdDie()
     {
         SetDeathState(true);
     }
 
-    // ИСПРАВЛЕНО: RPC-метод для синхронизации возрождения.
     [ClientRpc]
     private void RpcRespawnPlayer(Vector3 newPosition)
     {
-        // Эта логика должна выполняться на всех клиентах, чтобы телепортировать игрока
-        // и сбросить его состояние.
         SetDeathState(false);
         if (Health != null)
         {
@@ -374,7 +325,6 @@ public class PlayerCore : NetworkBehaviour
         UpdateTeamIndicatorColor();
     }
 
-    // ОБНОВЛЕНО: Хук OnNameChanged теперь использует _nameText напрямую
     private void OnNameChanged(string oldName, string newName)
     {
         if (_nameText != null)
@@ -404,13 +354,6 @@ public class PlayerCore : NetworkBehaviour
                 rend.material = enemyMaterial;
             }
         }
-    }
-
-    private void OnModelChanged(int oldIndex, int newIndex)
-    {
-        if (playerModels == null || newIndex < 0 || newIndex >= playerModels.Length) return;
-        if (oldIndex >= 0 && oldIndex < playerModels.Length && playerModels[oldIndex] != null) playerModels[oldIndex].SetActive(false);
-        if (playerModels[newIndex] != null) playerModels[newIndex].SetActive(true);
     }
 
     private void OnDeathStateChanged(bool oldValue, bool newValue)

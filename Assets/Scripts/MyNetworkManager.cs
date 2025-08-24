@@ -1,69 +1,77 @@
 using Mirror;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using System.Linq;
 
 public class MyNetworkManager : NetworkManager
 {
-    // Этот метод вызывается, когда игрок нажимает "Хост"
-    public void StartHostButton()
+    public GameObject[] playerPrefabs;
+
+    public override void OnStartServer()
     {
-        StartHost();
+        base.OnStartServer();
+        // Регистрируем наш кастомный обработчик для сообщения
+        NetworkServer.RegisterHandler<NetworkPlayerInfo>(OnReceivePlayerInfo);
     }
 
-    // Этот метод вызывается, когда игрок нажимает "Клиент"
-    public void StartClientButton()
+    public override void OnStopServer()
     {
-        StartClient();
+        base.OnStopServer();
+        // Разрегистрируем обработчик, чтобы избежать утечек памяти
+        NetworkServer.UnregisterHandler<NetworkPlayerInfo>();
     }
 
-    // Этот метод вызывается на клиенте, когда он успешно подключается к серверу
+    // Этот метод вызывается на клиенте, когда он подключается к серверу
     public override void OnClientConnect()
     {
         base.OnClientConnect();
-        // Запросить создание игрового объекта игрока на сервере
-        NetworkClient.AddPlayer();
+        Debug.Log("Клиент подключился к серверу. Отправляем информацию об игроке...");
+
+        // Получаем информацию из UI
+        PlayerUI_Team.PlayerInfo uiInfo = PlayerUI_Team.GetTempPlayerInfo();
+
+        // Создаем и отправляем сообщение на сервер
+        NetworkClient.Send(new NetworkPlayerInfo
+        {
+            playerName = uiInfo.name,
+            playerTeam = uiInfo.team,
+            playerPrefabIndex = uiInfo.prefabIndex
+        });
     }
 
-    // Этот метод вызывается на сервере, когда клиент запрашивает создание игрока
-    public override void OnServerAddPlayer(NetworkConnectionToClient conn)
+    // Этот метод вызывается на сервере, когда он получает сообщение от клиента
+    [Server]
+    private void OnReceivePlayerInfo(NetworkConnectionToClient conn, NetworkPlayerInfo info)
     {
-        // 1. Находим игрока, который только что подключился, чтобы получить его команду.
-        PlayerTeam desiredTeam = PlayerUI_Team.GetTempPlayerTeam();
+        Debug.Log($"Сервер получил информацию от клиента: Имя: {info.playerName}, Команда: {info.playerTeam}, Префаб: {info.playerPrefabIndex}");
 
-        // 2. Найти все точки возрождения, которые соответствуют нужной команде.
-        var teamSpawnPoints = FindObjectsOfType<TeamSpawnPoint>()
-            .Where(sp => sp.team == desiredTeam)
-            .ToList();
-
-        Transform start = null;
-
-        if (teamSpawnPoints.Count > 0)
+        // Проверяем, что индекс префаба корректен
+        if (info.playerPrefabIndex < 0 || info.playerPrefabIndex >= playerPrefabs.Length)
         {
-            // Выбрать случайную точку возрождения из списка
-            start = teamSpawnPoints[Random.Range(0, teamSpawnPoints.Count)].transform;
-        }
-        else
-        {
-            Debug.LogError($"No spawn points found for team {desiredTeam}! Spawning at default location.");
-            start = GetStartPosition();
+            Debug.LogError($"Получен некорректный индекс префаба: {info.playerPrefabIndex}.");
+            return;
         }
 
-        // 3. Создать экземпляр префаба игрока в нужной точке
-        GameObject player = start != null
-            ? Instantiate(playerPrefab, start.position, start.rotation)
-            : Instantiate(playerPrefab);
+        // 1. Создаем экземпляр префаба
+        GameObject playerInstance = Instantiate(playerPrefabs[info.playerPrefabIndex]);
 
-        // ИСПРАВЛЕНИЕ: Устанавливаем команду игрока сразу после создания объекта,
-        // чтобы она была синхронизирована с самого начала.
-        PlayerCore playerCore = player.GetComponent<PlayerCore>();
+        // 2. Настраиваем экземпляр, как и раньше
+        PlayerCore playerCore = playerInstance.GetComponent<PlayerCore>();
         if (playerCore != null)
         {
-            playerCore.team = desiredTeam;
+            playerCore.team = info.playerTeam;
+            playerCore.playerName = info.playerName;
         }
 
-        // 4. Добавляем игрока в сеть
-        NetworkServer.AddPlayerForConnection(conn, player);
+        // 3. Добавляем созданный экземпляр в сеть
+        NetworkServer.AddPlayerForConnection(conn, playerInstance);
+
+        Debug.Log($"Игрок {info.playerName} успешно заспавнен с префабом {playerInstance.name}.");
+    }
+
+    // Этот метод теперь не используется, так как вся логика спавна находится в OnReceivePlayerInfo
+    public override void OnServerAddPlayer(NetworkConnectionToClient conn)
+    {
+        // Не используйте этот метод для спавна, так как у вас нет информации от клиента здесь.
     }
 
     public Transform GetTeamSpawnPoint(PlayerTeam desiredTeam)

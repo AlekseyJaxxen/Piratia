@@ -754,8 +754,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1249742582}
   - component: {fileID: 1249742583}
-  - component: {fileID: 1249742586}
-  - component: {fileID: 1249742587}
   m_Layer: 0
   m_Name: 'NetworkManager '
   m_TagString: Untagged
@@ -807,66 +805,6 @@ MonoBehaviour:
   debugLog: 0
   statisticsGUI: 0
   statisticsLog: 0
---- !u!114 &1249742586
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1249742579}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5c20d230eef26b64c924fbe7b4d22523, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  dontDestroyOnLoad: 1
-  runInBackground: 1
-  headlessStartMode: 0
-  editorAutoStart: 0
-  sendRate: 60
-  offlineScene: Assets/MainMenu.unity
-  onlineScene: Assets/Game.unity
-  offlineSceneLoadDelay: 0
-  transport: {fileID: 1249742583}
-  networkAddress: localhost
-  maxConnections: 100
-  disconnectInactiveConnections: 0
-  disconnectInactiveTimeout: 60
-  authenticator: {fileID: 0}
-  playerPrefab: {fileID: 8270360301193926596, guid: 2e4b2e3f8c964c643968bdc577a3fd1b,
-    type: 3}
-  autoCreatePlayer: 1
-  playerSpawnMethod: 0
-  spawnPrefabs: []
-  exceptionsDisconnect: 1
-  snapshotSettings:
-    bufferTimeMultiplier: 2
-    bufferLimit: 32
-    catchupNegativeThreshold: -1
-    catchupPositiveThreshold: 1
-    catchupSpeed: 0.019999999552965164
-    slowdownSpeed: 0.03999999910593033
-    driftEmaDuration: 1
-    dynamicAdjustment: 1
-    dynamicAdjustmentTolerance: 1
-    deliveryTimeEmaDuration: 2
-  evaluationMethod: 0
-  evaluationInterval: 3
-  timeInterpolationGui: 0
---- !u!114 &1249742587
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1249742579}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6442dc8070ceb41f094e44de0bf87274, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  offsetX: 0
-  offsetY: 0
 --- !u!1 &1451678649
 GameObject:
   m_ObjectHideFlags: 0
@@ -899,6 +837,8 @@ MonoBehaviour:
   teamSelectionPanel: {fileID: 802712600}
   redTeamButton: {fileID: 1711090926}
   blueTeamButton: {fileID: 1003637541}
+  playerPrefab1Button: {fileID: 0}
+  playerPrefab2Button: {fileID: 0}
   nameInputField: {fileID: 134294405}
   hostButton: {fileID: 0}
   clientButton: {fileID: 0}
