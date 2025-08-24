@@ -803,7 +803,7 @@ MonoBehaviour:
   spawnPrefabs:
   - {fileID: 7294030168831868617, guid: fc771edfdc5be914f80e891bd4e895ff, type: 3}
   - {fileID: 8270360301193926596, guid: 298e741ab94a19947941efdcac997ca1, type: 3}
-  - {fileID: 8270360301193926596, guid: 8b6d069586a7b1943b6c1f978e0e69b3, type: 3}
+  - {fileID: 8270360301193926596, guid: 7539a2c19d7930e42af29e8315df308d, type: 3}
   exceptionsDisconnect: 1
   snapshotSettings:
     bufferTimeMultiplier: 2
@@ -821,7 +821,7 @@ MonoBehaviour:
   timeInterpolationGui: 0
   playerPrefabs:
   - {fileID: 8270360301193926596, guid: 298e741ab94a19947941efdcac997ca1, type: 3}
-  - {fileID: 8270360301193926596, guid: 8b6d069586a7b1943b6c1f978e0e69b3, type: 3}
+  - {fileID: 8270360301193926596, guid: 7539a2c19d7930e42af29e8315df308d, type: 3}
   - {fileID: 8270360301193926596, guid: 2e4b2e3f8c964c643968bdc577a3fd1b, type: 3}
 --- !u!114 &387040019
 MonoBehaviour:
