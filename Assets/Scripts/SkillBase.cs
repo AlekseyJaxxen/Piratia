@@ -10,6 +10,8 @@ public abstract class SkillBase : NetworkBehaviour, ISkill
     public GameObject RangeIndicator => _rangeIndicator;
     public GameObject TargetIndicator => _targetIndicatorInstance;
     public Texture2D CastCursor => _castCursor;
+    public int ManaCost => _manaCost;
+    public DamageType SkillDamageType => _damageType;
 
     public float RemainingCooldown => Mathf.Max(0, _cooldown - (Time.time - _lastUseTime));
     public float CooldownProgressNormalized => 1f - (RemainingCooldown / _cooldown);
@@ -22,6 +24,10 @@ public abstract class SkillBase : NetworkBehaviour, ISkill
     [SerializeField] protected GameObject _rangeIndicator;
     [SerializeField] protected GameObject _targetIndicatorPrefab;
     [SerializeField] protected Texture2D _castCursor;
+
+    [Header("Mana Cost")]
+    [SerializeField] protected int _manaCost = 0;
+    [SerializeField] protected DamageType _damageType = DamageType.Physical;
 
     protected float _lastUseTime;
     protected GameObject _targetIndicatorInstance;
@@ -58,7 +64,6 @@ public abstract class SkillBase : NetworkBehaviour, ISkill
             if (isVisible)
             {
                 _rangeIndicator.transform.position = transform.position;
-                // ИСПРАВЛЕНО: Увеличена y-шкала для видимости.
                 _rangeIndicator.transform.localScale = new Vector3(_range, 1f, _range);
             }
         }
@@ -68,5 +73,11 @@ public abstract class SkillBase : NetworkBehaviour, ISkill
         }
     }
 
-    public abstract void Execute(PlayerCore player, Vector3? targetPosition, GameObject targetObject);
+    public void Execute(PlayerCore player, Vector3? targetPosition, GameObject targetObject)
+    {
+        // Убираем проверку маны здесь - переносим на сервер
+        ExecuteSkillImplementation(player, targetPosition, targetObject);
+    }
+
+    protected abstract void ExecuteSkillImplementation(PlayerCore player, Vector3? targetPosition, GameObject targetObject);
 }

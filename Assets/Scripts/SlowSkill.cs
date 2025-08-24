@@ -5,31 +5,59 @@ using System.Collections;
 public class SlowSkill : SkillBase
 {
     [Header("Slow Skill Specifics")]
-    public float slowPercentage = 0.5f; // Процент замедления (0.5 = 50%)
-    public float slowDuration = 3.0f; // Длительность замедления в секундах
-
+    public float slowPercentage = 0.5f;
+    public float slowDuration = 3.0f;
     public int baseDamage = 10;
     private const float DAMAGE_MULTIPLIER = 1.5f;
-
     public GameObject projectilePrefab;
     public GameObject impactEffectPrefab;
-    public GameObject slowEffectPrefab; // Добавлено: Префаб визуального эффекта замедления
+    public GameObject slowEffectPrefab;
 
-    public override void Execute(PlayerCore player, Vector3? targetPosition, GameObject targetObject)
+    protected override void ExecuteSkillImplementation(PlayerCore player, Vector3? targetPosition, GameObject targetObject)
     {
-        if (targetObject == null) return;
+        if (targetObject == null || !isOwned)
+        {
+            Debug.Log("Target is null or not owned");
+            return;
+        }
 
-        CmdApplySlowAndDamage(player.transform.position, targetObject.transform.position, targetObject.GetComponent<NetworkIdentity>().netId, baseDamage, slowPercentage, slowDuration);
+        NetworkIdentity targetIdentity = targetObject.GetComponent<NetworkIdentity>();
+        if (targetIdentity == null)
+        {
+            Debug.Log("Target has no NetworkIdentity");
+            return;
+        }
+
+        // Клиентская проверка маны
+        CharacterStats stats = player.GetComponent<CharacterStats>();
+        if (stats != null && !stats.HasEnoughMana(ManaCost))
+        {
+            Debug.Log("Not enough mana to cast skill!");
+            return;
+        }
+
+        Debug.Log($"Attempting to slow target: {targetObject.name}, netId: {targetIdentity.netId}");
+
+        CmdApplySlowAndDamage(player.transform.position, targetObject.transform.position, targetIdentity.netId, baseDamage, slowPercentage, slowDuration);
     }
 
     [Command]
     private void CmdApplySlowAndDamage(Vector3 startPos, Vector3 targetPos, uint targetNetId, int damage, float slowPercent, float slowDuration)
     {
+        Debug.Log($"Server received slow command for target netId: {targetNetId}");
+
+        // Серверная проверка маны
+        CharacterStats stats = connectionToClient.identity.GetComponent<CharacterStats>();
+        if (stats != null && !stats.ConsumeMana(ManaCost))
+        {
+            Debug.Log("Not enough mana on server!");
+            return;
+        }
+
         RpcSpawnProjectile(startPos, targetPos);
 
-        if (NetworkServer.spawned.ContainsKey(targetNetId))
+        if (NetworkServer.spawned.TryGetValue(targetNetId, out NetworkIdentity targetIdentity))
         {
-            NetworkIdentity targetIdentity = NetworkServer.spawned[targetNetId];
             PlayerCore targetCore = targetIdentity.GetComponent<PlayerCore>();
             PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
 
@@ -39,13 +67,11 @@ public class SlowSkill : SkillBase
                 if (targetHealth != null)
                 {
                     int finalDamage = Mathf.RoundToInt(damage * DAMAGE_MULTIPLIER);
-                    targetHealth.TakeDamage(finalDamage);
+                    targetHealth.TakeDamage(finalDamage, SkillDamageType);
                     Debug.Log($"Нанесено {finalDamage} урона. Базовый урон: {damage}");
                 }
 
                 targetCore.ApplySlow(slowPercent, slowDuration);
-
-                // Добавлено: Вызываем RPC для отображения VFX на клиентах
                 RpcApplySlowEffect(targetNetId, slowDuration);
             }
         }
@@ -61,23 +87,20 @@ public class SlowSkill : SkillBase
         }
     }
 
-    // Добавлено: RPC метод для отображения VFX
     [ClientRpc]
     private void RpcApplySlowEffect(uint targetNetId, float duration)
     {
         if (NetworkClient.spawned.ContainsKey(targetNetId) && slowEffectPrefab != null)
         {
             NetworkIdentity targetIdentity = NetworkClient.spawned[targetNetId];
-            // Запускаем корутину для управления эффектом
             StartCoroutine(ManageSlowEffect(targetIdentity.gameObject, duration));
         }
     }
 
-    // Добавлено: Корутина для управления жизненным циклом VFX
     private IEnumerator ManageSlowEffect(GameObject target, float duration)
     {
         GameObject effectInstance = Instantiate(slowEffectPrefab, target.transform);
-        effectInstance.transform.localPosition = Vector3.zero; // Размещаем эффект относительно цели
+        effectInstance.transform.localPosition = Vector3.zero;
 
         yield return new WaitForSeconds(duration);
 

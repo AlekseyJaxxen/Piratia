@@ -17,7 +17,7 @@ public class PlayerSkills : NetworkBehaviour
     public Texture2D defaultCursor;
     public Texture2D castCursor;
     public Texture2D attackCursor;
-    public float cursorUpdateInterval = 0.1f; // Интервал в секундах
+    public float cursorUpdateInterval = 0.1f;
     private float _lastCursorUpdate = 0f;
 
     private PlayerCore _core;
@@ -57,14 +57,20 @@ public class PlayerSkills : NetworkBehaviour
 
     public void HandleSkills()
     {
-        if (!isLocalPlayer || _isCasting || _core.isDead || _core.isStunned) return;
+        if (!isLocalPlayer || _isCasting || _core.isDead || _core.isStunned)
+        {
+            if (!isLocalPlayer) Debug.Log("Not local player");
+            if (_isCasting) Debug.Log("Is casting");
+            if (_core.isDead) Debug.Log("Is dead");
+            if (_core.isStunned) Debug.Log("Is stunned");
+            return;
+        }
 
-        // Обработка нажатий клавиш для выбора навыка.
-        // Это действие не прерывает движение.
         foreach (var skill in skills)
         {
             if (Input.GetKeyDown(skill.Hotkey) && !skill.IsOnCooldown())
             {
+                Debug.Log($"Skill {skill.GetType().Name} selected with hotkey {skill.Hotkey}");
                 CancelAllSkillSelections();
                 _activeSkill = skill;
                 _activeSkill.SetIndicatorVisibility(true);
@@ -75,7 +81,6 @@ public class PlayerSkills : NetworkBehaviour
         {
             UpdateTargetIndicator();
 
-            // Правый клик для отмены
             if (Input.GetMouseButtonDown(1))
             {
                 CancelSkillSelection();
@@ -113,7 +118,6 @@ public class PlayerSkills : NetworkBehaviour
         }
     }
 
-
     private void UpdateTargetIndicator()
     {
         GameObject targetIndicator = _activeSkill.TargetIndicator;
@@ -122,8 +126,6 @@ public class PlayerSkills : NetworkBehaviour
         Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
 
-        // ОБЩАЯ ЛОГИКА СМЕНЫ КУРСОРА:
-        // Курсор меняется, если активен любой скилл, у которого задан CastCursor.
         if (_activeSkill.CastCursor != null)
         {
             SetCursor(_activeSkill.CastCursor);
@@ -133,10 +135,8 @@ public class PlayerSkills : NetworkBehaviour
             SetCursor(defaultCursor);
         }
 
-        // Логика для таргетных умений
         if (_activeSkill is ProjectileDamageSkill || _activeSkill is TargetedStunSkill || _activeSkill is SlowSkill)
         {
-            // В этой части мы только управляем индикатором, а не курсором.
             if (Physics.Raycast(ray, out hit, Mathf.Infinity, _core.interactableLayers))
             {
                 if (hit.collider.CompareTag("Enemy") || hit.collider.CompareTag("Player"))
@@ -168,9 +168,8 @@ public class PlayerSkills : NetworkBehaviour
                 }
             }
         }
-        else // Логика для AoE-умений
+        else
         {
-            // Логика индикатора для AoE
             if (Physics.Raycast(ray, out hit, Mathf.Infinity, _core.groundLayer))
             {
                 targetIndicator.SetActive(true);
@@ -195,8 +194,19 @@ public class PlayerSkills : NetworkBehaviour
 
     public IEnumerator CastSkill(Vector3? targetPosition, GameObject targetObject, ISkill skillToCast)
     {
+        Debug.Log($"Starting cast for skill: {skillToCast.GetType().Name}");
+
         if (skillToCast == null || _core.isDead || _core.isStunned)
         {
+            Debug.Log("Cast failed: skill null or invalid state");
+            _isCasting = false;
+            _core.ActionSystem.CompleteAction();
+            yield break;
+        }
+
+        if (!((SkillBase)skillToCast).isOwned)
+        {
+            Debug.LogWarning("Cannot cast skill: not owned by this client");
             _isCasting = false;
             _core.ActionSystem.CompleteAction();
             yield break;
@@ -204,7 +214,6 @@ public class PlayerSkills : NetworkBehaviour
 
         _isCasting = true;
 
-        // Логика для целевых (targeted) скиллов (например, Проектные, Стан)
         if (targetObject != null)
         {
             float distance;
@@ -236,7 +245,6 @@ public class PlayerSkills : NetworkBehaviour
                 yield return null;
             }
         }
-        // Логика для нецелевых (AoE) скиллов (например, каст на землю)
         else if (targetPosition.HasValue)
         {
             float distance = Vector3.Distance(transform.position, targetPosition.Value);
@@ -246,7 +254,6 @@ public class PlayerSkills : NetworkBehaviour
                 _core.Movement.MoveTo(targetPosition.Value);
                 yield return new WaitUntil(() => !_core.Movement.Agent.pathPending && _core.Movement.Agent.remainingDistance <= _core.Movement.Agent.stoppingDistance);
 
-                // Повторная проверка расстояния
                 distance = Vector3.Distance(transform.position, targetPosition.Value);
                 if (distance > skillToCast.Range)
                 {
@@ -267,7 +274,6 @@ public class PlayerSkills : NetworkBehaviour
             yield break;
         }
 
-        // Если персонаж не умер и все еще выполняет каст
         if (!_core.isDead && _core.ActionSystem.CurrentAction == PlayerAction.SkillCast)
         {
             yield return new WaitForSeconds(skillToCast.CastTime);

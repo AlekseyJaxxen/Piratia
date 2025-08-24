@@ -67,6 +67,11 @@ public class PlayerCore : NetworkBehaviour
     public float respawnTime = 5.0f;
     private float timeOfDeath;
 
+    [Header("Mana Regeneration")]
+    public float manaRegenInterval = 1f;
+    public int manaRegenAmount = 5;
+    private float _lastManaRegenTime;
+
     [SyncVar]
     private Vector3 _initialSpawnPosition;
 
@@ -131,6 +136,7 @@ public class PlayerCore : NetworkBehaviour
     {
         isDead = false;
         isStunned = false;
+        _lastManaRegenTime = Time.time;
 
         if (Health != null) Health.Init();
     }
@@ -202,6 +208,17 @@ public class PlayerCore : NetworkBehaviour
                     RpcRespawnPlayer(_initialSpawnPosition);
                 }
             }
+        }
+
+        // Регенерация маны
+        if (Time.time - _lastManaRegenTime >= manaRegenInterval && !isDead)
+        {
+            CharacterStats stats = GetComponent<CharacterStats>();
+            if (stats != null)
+            {
+                stats.RestoreMana(manaRegenAmount);
+            }
+            _lastManaRegenTime = Time.time;
         }
     }
 

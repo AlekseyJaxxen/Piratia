@@ -1,50 +1,48 @@
 using UnityEngine;
 using Mirror;
 using System.Collections;
+using System.Collections.Generic;
 
 public class AreaOfEffectStunSkill : SkillBase
 {
-    [Header("Area Stun Skill Specifics")]
+    [Header("AOE Stun Skill Specifics")]
     public float stunDuration = 2f;
-    public float effectRadius = 2f;
     public GameObject effectPrefab;
 
-    public override void Execute(PlayerCore player, Vector3? targetPosition, GameObject targetObject)
+    protected override void ExecuteSkillImplementation(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
     {
-        if (!targetPosition.HasValue) return;
-        CmdStunArea(targetPosition.Value);
-    }
-
-    [Command]
-    private void CmdStunArea(Vector3 position)
-    {
-        PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
-
-        // ƒŒ¡¿¬À≈ÕŒ: œÓ‚ÂÍ‡, Ì‡ıÓ‰ËÚÒˇ ÎË Í‡ÒÚÂ ÔÓ‰ ÒÚ‡ÌÓÏ
-        if (casterCore.isStunned)
+        if (!targetPosition.HasValue || !isOwned)
         {
-            Debug.Log("Caster is stunned and cannot use this skill.");
+            Debug.Log("Target position is null or not owned");
             return;
         }
 
-        Collider[] hits = Physics.OverlapSphere(position, effectRadius);
+        Debug.Log($"Attempting to AOE stun at position: {targetPosition.Value}");
 
-        foreach (var hit in hits)
+        CmdStunArea(targetPosition.Value, stunDuration);
+    }
+
+    [Command]
+    private void CmdStunArea(Vector3 position, float duration)
+    {
+        Debug.Log($"Server received AOE stun command at position: {position}");
+
+        Collider[] hitColliders = Physics.OverlapSphere(position, Range);
+        PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
+
+        foreach (var hitCollider in hitColliders)
         {
-            PlayerCore targetCore = hit.GetComponent<PlayerCore>();
+            PlayerCore targetCore = hitCollider.GetComponent<PlayerCore>();
+
             if (targetCore != null && casterCore != null)
             {
                 if (casterCore.team != targetCore.team)
                 {
-                    // »—œŒÀ‹«”≈Ã ÕŒ¬€… Ã≈“Œƒ ƒÀﬂ œ–»Ã≈Õ≈Õ»ﬂ ›‘‘≈ “¿  ŒÕ“–ŒÀﬂ
-                    targetCore.ApplyControlEffect(ControlEffectType.Stun, stunDuration);
-                }
-                else
-                {
-                    Debug.Log("Cannot stun a teammate!");
+                    targetCore.ApplyControlEffect(ControlEffectType.Stun, duration);
                 }
             }
         }
+
         RpcPlayEffect(position);
     }
 
@@ -54,27 +52,7 @@ public class AreaOfEffectStunSkill : SkillBase
         if (effectPrefab != null)
         {
             GameObject effect = Instantiate(effectPrefab, position + Vector3.up * 1f, Quaternion.identity);
-            effect.transform.localScale = Vector3.one * 3f;
-            StartCoroutine(DecreaseScaleOverTime(effect.transform, 1f, 2f));
+            Destroy(effect, 2f);
         }
-    }
-
-    private IEnumerator DecreaseScaleOverTime(Transform targetTransform, float duration, float destroyTime)
-    {
-        float elapsed = 0f;
-        Vector3 originalScale = targetTransform.localScale;
-        Vector3 targetScale = Vector3.zero;
-
-        while (elapsed < duration)
-        {
-            elapsed += Time.deltaTime;
-            float t = elapsed / duration;
-            targetTransform.localScale = Vector3.Lerp(originalScale, targetScale, t);
-            yield return null;
-        }
-
-        targetTransform.localScale = Vector3.zero;
-        yield return new WaitForSeconds(destroyTime - duration);
-        Destroy(targetTransform.gameObject);
     }
 }

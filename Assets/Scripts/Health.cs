@@ -60,13 +60,15 @@ public class Health : NetworkBehaviour
     }
 
     [Server]
-    public void TakeDamage(int amount, bool isCritical = false)
+    public void TakeDamage(int baseDamage, DamageType damageType, bool isCritical = false)
     {
-        CurrentHealth -= amount;
-        Debug.Log($"[Server] {gameObject.name} took {amount} damage. Current health: {CurrentHealth}");
+        int finalDamage = CalculateFinalDamage(baseDamage, damageType);
+
+        CurrentHealth -= finalDamage;
+        Debug.Log($"[Server] {gameObject.name} took {finalDamage} damage (base: {baseDamage}, type: {damageType}). Current health: {CurrentHealth}");
 
         // Вызываем Rpc-метод для отображения урона на всех клиентах
-        RpcShowDamageNumber(amount, isCritical);
+        RpcShowDamageNumber(finalDamage, isCritical, damageType);
 
         if (CurrentHealth <= 0)
         {
@@ -75,21 +77,47 @@ public class Health : NetworkBehaviour
         }
     }
 
+    [Server]
+    private int CalculateFinalDamage(int baseDamage, DamageType damageType)
+    {
+        CharacterStats stats = GetComponent<CharacterStats>();
+        if (stats == null) return baseDamage;
+
+        switch (damageType)
+        {
+            case DamageType.Physical:
+                // 1. Применяем физическое сопротивление (%)
+                float damageAfterResistance = baseDamage * (1f - stats.physicalResistance / 100f);
+
+                // 2. Вычитаем броню (плоское значение)
+                int damageAfterArmor = Mathf.RoundToInt(damageAfterResistance) - stats.armor;
+
+                // 3. Обеспечиваем минимальный урон
+                return Mathf.Max((int)CombatConstants.MIN_PHYSICAL_DAMAGE, damageAfterArmor);
+
+            case DamageType.Magic:
+                // Магический урон пока не уменьшается (можно добавить магическое сопротивление позже)
+                return baseDamage;
+
+            default:
+                return baseDamage;
+        }
+    }
+
     [ClientRpc]
-    private void RpcShowDamageNumber(int damage, bool isCritical)
+    private void RpcShowDamageNumber(int damage, bool isCritical, DamageType damageType)
     {
         if (floatingTextPrefab != null)
         {
             Vector3 spawnPosition = transform.position + Vector3.up * damageTextSpawnHeight;
             GameObject floatingTextInstance = Instantiate(floatingTextPrefab, spawnPosition, Quaternion.identity);
 
-            // NOTE: You will need to modify your FloatingDamageText script to handle 'isCritical'.
-            // For example, it could change the color or size of the text.
+            // Модифицируйте FloatingDamageText чтобы он принимал тип урона
             /*
             FloatingDamageText damageTextScript = floatingTextInstance.GetComponent<FloatingDamageText>();
             if (damageTextScript != null)
             {
-                damageTextScript.SetDamageText(damage, isCritical);
+                damageTextScript.SetDamageText(damage, isCritical, damageType);
             }
             */
         }

@@ -9,15 +9,24 @@ public class AreaOfEffectHealSkill : SkillBase
     public int healAmount = 20;
     public GameObject effectPrefab;
 
-    public override void Execute(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
+    protected override void ExecuteSkillImplementation(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
     {
-        if (!targetPosition.HasValue) return;
+        if (!targetPosition.HasValue || !isOwned)
+        {
+            Debug.Log("Target position is null or not owned");
+            return;
+        }
+
+        Debug.Log($"Attempting to AOE heal at position: {targetPosition.Value}");
+
         CmdHealArea(targetPosition.Value, healAmount);
     }
 
     [Command]
     private void CmdHealArea(Vector3 position, int amount)
     {
+        Debug.Log($"Server received AOE heal command at position: {position}");
+
         Collider[] hitColliders = Physics.OverlapSphere(position, Range);
         PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
 

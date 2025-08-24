@@ -1,4 +1,3 @@
-
 using UnityEngine;
 using Mirror;
 using System.Collections;
@@ -10,31 +9,44 @@ public class ProjectileDamageSkill : SkillBase
     public GameObject projectilePrefab;
     public GameObject impactEffectPrefab;
 
-    public override void Execute(PlayerCore player, Vector3? targetPosition, GameObject targetObject)
+    protected override void ExecuteSkillImplementation(PlayerCore player, Vector3? targetPosition, GameObject targetObject)
     {
-        if (targetObject == null) return;
+        if (targetObject == null || !isOwned)
+        {
+            Debug.Log("Target is null or not owned");
+            return;
+        }
 
-        CmdSpawnProjectileAndDamage(player.transform.position, targetObject.transform.position, targetObject.GetComponent<NetworkIdentity>().netId);
+        NetworkIdentity targetIdentity = targetObject.GetComponent<NetworkIdentity>();
+        if (targetIdentity == null)
+        {
+            Debug.Log("Target has no NetworkIdentity");
+            return;
+        }
+
+        Debug.Log($"Attempting to projectile attack target: {targetObject.name}, netId: {targetIdentity.netId}");
+
+        CmdSpawnProjectileAndDamage(player.transform.position, targetObject.transform.position, targetIdentity.netId);
     }
 
     [Command]
     private void CmdSpawnProjectileAndDamage(Vector3 startPos, Vector3 targetPos, uint targetNetId)
     {
+        Debug.Log($"Server received projectile attack command for target netId: {targetNetId}");
+
         RpcSpawnProjectile(startPos, targetPos);
 
-        if (NetworkServer.spawned.ContainsKey(targetNetId))
+        if (NetworkServer.spawned.TryGetValue(targetNetId, out NetworkIdentity targetIdentity))
         {
-            NetworkIdentity targetIdentity = NetworkServer.spawned[targetNetId];
             Health targetHealth = targetIdentity.GetComponent<Health>();
             PlayerCore targetCore = targetIdentity.GetComponent<PlayerCore>();
             PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
 
-            // ѕровер€ем, что цель не принадлежит нашей команде.
             if (targetHealth != null && targetCore != null && casterCore != null)
             {
                 if (casterCore.team != targetCore.team)
                 {
-                    targetHealth.TakeDamage(damageAmount);
+                    targetHealth.TakeDamage(damageAmount, SkillDamageType);
                 }
             }
         }

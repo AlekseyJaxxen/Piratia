@@ -6,31 +6,53 @@ public class BasicAttackSkill : SkillBase
 {
     [Header("Basic Attack Settings")]
     public int damageAmount = 10;
-
-    // Добавлено: Префаб визуального эффекта
     public GameObject vfxPrefab;
-
-    // Добавлено: Префаб снаряда и его скорость
-    [Header("Projectile Settings")]
     public GameObject projectilePrefab;
     public float projectileSpeed = 20f;
 
-    // Этот метод вызывается на клиенте
-    public override void Execute(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
+    protected override void ExecuteSkillImplementation(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
     {
-        if (targetObject == null || !isOwned) return;
+        if (targetObject == null || !isOwned)
+        {
+            Debug.Log("Target is null or not owned");
+            return;
+        }
 
-        // Отправляем команду на сервер для выполнения атаки. Передаем поворот игрока.
-        CmdPerformAttack(caster.transform.position, caster.transform.rotation, targetObject.GetComponent<NetworkIdentity>().netId);
+        NetworkIdentity targetIdentity = targetObject.GetComponent<NetworkIdentity>();
+        if (targetIdentity == null)
+        {
+            Debug.Log("Target has no NetworkIdentity");
+            return;
+        }
+
+        // Клиентская проверка маны для UI
+        CharacterStats stats = caster.GetComponent<CharacterStats>();
+        if (stats != null && !stats.HasEnoughMana(ManaCost))
+        {
+            Debug.Log("Not enough mana to cast skill!");
+            return;
+        }
+
+        Debug.Log($"Attempting to attack target: {targetObject.name}, netId: {targetIdentity.netId}");
+
+        CmdPerformAttack(caster.transform.position, caster.transform.rotation, targetIdentity.netId);
     }
 
-    // [Command]-метод, который выполняется на сервере
-    [Command(requiresAuthority = false)]
+    [Command]
     private void CmdPerformAttack(Vector3 casterPosition, Quaternion casterRotation, uint targetNetId)
     {
-        if (NetworkServer.spawned.ContainsKey(targetNetId))
+        Debug.Log($"Server received attack command for target netId: {targetNetId}");
+
+        // Серверная проверка маны
+        CharacterStats stats = connectionToClient.identity.GetComponent<CharacterStats>();
+        if (stats != null && !stats.ConsumeMana(ManaCost))
         {
-            NetworkIdentity targetIdentity = NetworkServer.spawned[targetNetId];
+            Debug.Log("Not enough mana on server!");
+            return;
+        }
+
+        if (NetworkServer.spawned.TryGetValue(targetNetId, out NetworkIdentity targetIdentity))
+        {
             Health targetHealth = targetIdentity.GetComponent<Health>();
             PlayerCore targetCore = targetIdentity.GetComponent<PlayerCore>();
             PlayerCore attackerCore = connectionToClient.identity.GetComponent<PlayerCore>();
@@ -39,8 +61,8 @@ public class BasicAttackSkill : SkillBase
             {
                 if (attackerCore.team != targetCore.team)
                 {
-                    targetHealth.TakeDamage(damageAmount);
-                    // Вызываем Rpc метод для воспроизведения VFX на всех клиентах, передавая поворот.
+                    Debug.Log($"Server: Applying damage to {targetCore.playerName}");
+                    targetHealth.TakeDamage(damageAmount, SkillDamageType);
                     RpcPlayVFX(casterPosition, casterRotation, targetIdentity.transform.position);
                 }
                 else
@@ -48,30 +70,30 @@ public class BasicAttackSkill : SkillBase
                     Debug.Log("Cannot attack a teammate!");
                 }
             }
+            else
+            {
+                Debug.Log("Missing components on target");
+            }
+        }
+        else
+        {
+            Debug.Log($"Target with netId {targetNetId} not found on server");
         }
     }
 
-    // [ClientRpc]-метод, который выполняется на всех клиентах
     [ClientRpc]
     private void RpcPlayVFX(Vector3 startPosition, Quaternion startRotation, Vector3 endPosition)
     {
         if (vfxPrefab != null)
         {
-            // Создаем дополнительный поворот на 90 градусов по оси X
             Quaternion xRotation = Quaternion.Euler(90, 0, 0);
-
-            // Объединяем поворот игрока с новым поворотом
             Quaternion finalRotation = startRotation * xRotation;
-
-            // Создаем эффект с итоговым поворотом
             GameObject vfxInstance = Instantiate(vfxPrefab, startPosition, finalRotation);
-
             Destroy(vfxInstance, 0.2f);
         }
 
         if (projectilePrefab != null)
         {
-            // Создаем снаряд и запускаем его движение
             GameObject projectileInstance = Instantiate(projectilePrefab, startPosition, Quaternion.LookRotation(endPosition - startPosition));
             StartCoroutine(MoveProjectile(projectileInstance, startPosition, endPosition));
         }

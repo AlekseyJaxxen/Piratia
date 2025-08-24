@@ -6,25 +6,37 @@ public class HealingSkill : SkillBase
     [Header("Healing Skill Settings")]
     public int healAmount = 20;
 
-    public override void Execute(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
+    protected override void ExecuteSkillImplementation(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
     {
-        if (targetObject == null || !isOwned) return;
+        if (targetObject == null || !isOwned)
+        {
+            Debug.Log("Target is null or not owned");
+            return;
+        }
 
-        // ќтправл€ем команду на сервер дл€ выполнени€ лечени€.
-        CmdPerformHeal(targetObject.GetComponent<NetworkIdentity>().netId);
+        NetworkIdentity targetIdentity = targetObject.GetComponent<NetworkIdentity>();
+        if (targetIdentity == null)
+        {
+            Debug.Log("Target has no NetworkIdentity");
+            return;
+        }
+
+        Debug.Log($"Attempting to heal target: {targetObject.name}, netId: {targetIdentity.netId}");
+
+        CmdPerformHeal(targetIdentity.netId);
     }
 
-    [Command(requiresAuthority = false)]
+    [Command]
     private void CmdPerformHeal(uint targetNetId)
     {
-        if (NetworkServer.spawned.ContainsKey(targetNetId))
+        Debug.Log($"Server received heal command for target netId: {targetNetId}");
+
+        if (NetworkServer.spawned.TryGetValue(targetNetId, out NetworkIdentity targetIdentity))
         {
-            NetworkIdentity targetIdentity = NetworkServer.spawned[targetNetId];
             Health targetHealth = targetIdentity.GetComponent<Health>();
             PlayerCore targetCore = targetIdentity.GetComponent<PlayerCore>();
             PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
 
-            // ѕровер€ем, что цель находитс€ в той же команде, что и кастующий
             if (targetHealth != null && targetCore != null && casterCore != null)
             {
                 if (casterCore.team == targetCore.team)

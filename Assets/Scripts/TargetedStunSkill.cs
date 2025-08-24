@@ -8,34 +8,63 @@ public class TargetedStunSkill : SkillBase
     public float stunDuration = 3f;
     public GameObject effectPrefab;
 
-    public override void Execute(PlayerCore player, Vector3? targetPosition, GameObject targetObject)
+    protected override void ExecuteSkillImplementation(PlayerCore player, Vector3? targetPosition, GameObject targetObject)
     {
-        if (targetObject == null) return;
-        CmdApplyStun(targetObject.GetComponent<NetworkIdentity>().netId);
+        if (targetObject == null || !isOwned)
+        {
+            Debug.Log("Target is null or not owned");
+            return;
+        }
+
+        NetworkIdentity targetIdentity = targetObject.GetComponent<NetworkIdentity>();
+        if (targetIdentity == null)
+        {
+            Debug.Log("Target has no NetworkIdentity");
+            return;
+        }
+
+        // Клиентская проверка маны
+        CharacterStats stats = player.GetComponent<CharacterStats>();
+        if (stats != null && !stats.HasEnoughMana(ManaCost))
+        {
+            Debug.Log("Not enough mana to cast skill!");
+            return;
+        }
+
+        Debug.Log($"Attempting to stun target: {targetObject.name}, netId: {targetIdentity.netId}");
+
+        CmdApplyStun(targetIdentity.netId);
     }
 
     [Command]
     private void CmdApplyStun(uint targetNetId)
     {
+        Debug.Log($"Server received stun command for target netId: {targetNetId}");
+
+        // Серверная проверка маны
+        CharacterStats stats = connectionToClient.identity.GetComponent<CharacterStats>();
+        if (stats != null && !stats.ConsumeMana(ManaCost))
+        {
+            Debug.Log("Not enough mana on server!");
+            return;
+        }
+
         PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
 
-        // ДОБАВЛЕНО: Проверка, находится ли кастер под станом
         if (casterCore.isStunned)
         {
             Debug.Log("Caster is stunned and cannot use this skill.");
             return;
         }
 
-        if (NetworkServer.spawned.ContainsKey(targetNetId))
+        if (NetworkServer.spawned.TryGetValue(targetNetId, out NetworkIdentity targetIdentity))
         {
-            NetworkIdentity targetIdentity = NetworkServer.spawned[targetNetId];
             PlayerCore targetCore = targetIdentity.GetComponent<PlayerCore>();
 
             if (targetCore != null && casterCore != null)
             {
                 if (casterCore.team != targetCore.team)
                 {
-                    // ИСПОЛЬЗУЕМ НОВЫЙ МЕТОД ДЛЯ ПРИМЕНЕНИЯ ЭФФЕКТА КОНТРОЛЯ
                     targetCore.ApplyControlEffect(ControlEffectType.Stun, stunDuration);
                     RpcPlayEffect(targetNetId);
                 }
