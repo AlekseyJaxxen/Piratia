@@ -84,7 +84,7 @@ public class PlayerActionSystem : NetworkBehaviour
 
         while (_core.Movement.Agent.remainingDistance > _core.Movement.Agent.stoppingDistance)
         {
-            if (_core.isDead || _core.isStunned)
+            if (_core.isDead || _core.EffectManager.IsStunned) // FIX: Changed _core.isStunned
             {
                 CompleteAction();
                 yield break;
@@ -102,7 +102,7 @@ public class PlayerActionSystem : NetworkBehaviour
     {
         while (true)
         {
-            if (_core.isDead || _core.isStunned)
+            if (_core.isDead || _core.EffectManager.IsStunned) // FIX: Changed _core.isStunned
             {
                 CompleteAction();
                 yield break;
@@ -140,7 +140,7 @@ public class PlayerActionSystem : NetworkBehaviour
                 yield break;
             }
 
-            if (_core.isDead || _core.isStunned)
+            if (_core.isDead || _core.EffectManager.IsStunned) // FIX: Changed _core.isStunned
             {
                 CompleteAction();
                 yield break;

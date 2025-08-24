@@ -57,7 +57,7 @@ public class PlayerSkills : NetworkBehaviour
 
     public void HandleSkills()
     {
-        if (!isLocalPlayer || _isCasting || _core.isDead || _core.isStunned) return;
+        if (!isLocalPlayer || _isCasting || _core.isDead || _core.EffectManager.IsStunned) return; // FIX: Changed _core.isStunned
 
         // Обработка нажатий клавиш для выбора навыка.
         // Это действие не прерывает движение.
@@ -195,7 +195,7 @@ public class PlayerSkills : NetworkBehaviour
 
     public IEnumerator CastSkill(Vector3? targetPosition, GameObject targetObject, ISkill skillToCast)
     {
-        if (skillToCast == null || _core.isDead || _core.isStunned)
+        if (skillToCast == null || _core.isDead || _core.EffectManager.IsStunned) // FIX: Changed _core.isStunned
         {
             _isCasting = false;
             _core.ActionSystem.CompleteAction();
@@ -211,7 +211,7 @@ public class PlayerSkills : NetworkBehaviour
 
             while (true)
             {
-                if (_core.isDead || _core.isStunned || targetObject == null)
+                if (_core.isDead || _core.EffectManager.IsStunned || targetObject == null) // FIX: Changed _core.isStunned
                 {
                     Debug.Log("PlayerSkills: Target lost or player state invalid. Cancelling skill cast.");
                     _core.ActionSystem.CompleteAction();

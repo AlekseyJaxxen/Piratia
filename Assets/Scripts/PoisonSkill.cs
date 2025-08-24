@@ -2,20 +2,20 @@ using UnityEngine;
 using Mirror;
 using System.Collections;
 
-public class TargetedStunSkill : SkillBase
+public class PoisonSkill : SkillBase
 {
-    [Header("Targeted Stun Skill Specifics")]
-    public float stunDuration = 3f;
+    [Header("Poison Skill Specifics")]
+    public float poisonDuration = 4f;
     public GameObject effectPrefab;
 
     public override void Execute(PlayerCore player, Vector3? targetPosition, GameObject targetObject)
     {
         if (targetObject == null) return;
-        CmdApplyStun(targetObject.GetComponent<NetworkIdentity>().netId);
+        CmdApplyPoison(targetObject.GetComponent<NetworkIdentity>().netId);
     }
 
     [Command]
-    private void CmdApplyStun(uint targetNetId)
+    private void CmdApplyPoison(uint targetNetId)
     {
         PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
         if (casterCore.GetComponent<ControlEffectManager>().IsStunned)
@@ -29,17 +29,14 @@ public class TargetedStunSkill : SkillBase
             NetworkIdentity targetIdentity = NetworkServer.spawned[targetNetId];
             PlayerCore targetCore = targetIdentity.GetComponent<PlayerCore>();
 
-            if (targetCore != null && casterCore != null)
+            if (targetCore != null && casterCore != null && casterCore.team != targetCore.team)
             {
-                if (casterCore.team != targetCore.team)
-                {
-                    targetCore.GetComponent<ControlEffectManager>().ApplyControlEffect(ControlEffectType.Stun, stunDuration);
-                    RpcPlayEffect(targetNetId);
-                }
-                else
-                {
-                    Debug.Log("Cannot stun a teammate!");
-                }
+                targetCore.GetComponent<ControlEffectManager>().ApplyControlEffect(ControlEffectType.Poison, poisonDuration);
+                RpcPlayEffect(targetNetId);
+            }
+            else
+            {
+                Debug.Log("Cannot poison a teammate!");
             }
         }
     }
@@ -47,14 +44,11 @@ public class TargetedStunSkill : SkillBase
     [ClientRpc]
     private void RpcPlayEffect(uint targetNetId)
     {
-        if (NetworkClient.spawned.ContainsKey(targetNetId))
+        if (NetworkClient.spawned.ContainsKey(targetNetId) && effectPrefab != null)
         {
             NetworkIdentity targetIdentity = NetworkClient.spawned[targetNetId];
-            if (effectPrefab != null)
-            {
-                GameObject effect = Instantiate(effectPrefab, targetIdentity.transform.position + Vector3.up * 1f, Quaternion.identity);
-                Destroy(effect, 2f);
-            }
+            GameObject effect = Instantiate(effectPrefab, targetIdentity.transform.position + Vector3.up * 1f, Quaternion.identity);
+            Destroy(effect, poisonDuration);
         }
     }
 }

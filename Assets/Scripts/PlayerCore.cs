@@ -2,7 +2,6 @@
 using Mirror;
 using TMPro;
 using System.Collections.Generic;
-using System.Linq;
 
 public enum PlayerAction
 {
@@ -10,15 +9,6 @@ public enum PlayerAction
     Move,
     Attack,
     SkillCast
-}
-
-public enum ControlEffectType
-{
-    None = 0,
-    Stun = 1,
-    Silence = 2,
-    FbStun = 3,
-    Slow = 4,
 }
 
 public class PlayerCore : NetworkBehaviour
@@ -30,6 +20,7 @@ public class PlayerCore : NetworkBehaviour
     public PlayerActionSystem ActionSystem;
     public PlayerCameraController Camera;
     public Health Health;
+    public ControlEffectManager EffectManager; // Changed from private to public
 
     [Header("Dependencies")]
     public LayerMask interactableLayers;
@@ -51,11 +42,6 @@ public class PlayerCore : NetworkBehaviour
     [SyncVar(hook = nameof(OnDeathStateChanged))]
     public bool isDead = false;
 
-    [SyncVar(hook = nameof(OnStunStateChanged))]
-    public bool isStunned = false;
-
-    private readonly SyncList<ControlEffect> activeControlEffects = new SyncList<ControlEffect>(); // Удален [SyncVar], добавлен readonly
-
     [Header("Respawn")]
     public float respawnTime = 5.0f;
     private float timeOfDeath;
@@ -66,7 +52,6 @@ public class PlayerCore : NetworkBehaviour
     private GameObject _teamIndicator;
     private TextMeshProUGUI _nameText;
     private PlayerUI_Team _playerUI_Team;
-    private float _originalSpeed = 0f;
     public static PlayerCore localPlayerCoreInstance;
 
     private void Awake()
@@ -77,6 +62,7 @@ public class PlayerCore : NetworkBehaviour
         ActionSystem = GetComponent<PlayerActionSystem>();
         Camera = GetComponent<PlayerCameraController>();
         Health = GetComponent<Health>();
+        EffectManager = GetComponent<ControlEffectManager>(); // Assign to the public field
     }
 
     public override void OnStartLocalPlayer()
@@ -123,8 +109,6 @@ public class PlayerCore : NetworkBehaviour
     public override void OnStartServer()
     {
         isDead = false;
-        isStunned = false;
-
         if (Health != null) Health.Init();
     }
 
@@ -147,18 +131,13 @@ public class PlayerCore : NetworkBehaviour
         if (Combat != null) Combat.Init(this);
         if (Skills != null) Skills.Init(this);
         if (ActionSystem != null) ActionSystem.Init(this);
-
-        if (Movement != null)
-        {
-            _originalSpeed = Movement.GetOriginalSpeed();
-        }
     }
 
     private void Update()
     {
         ServerUpdate();
 
-        if (!isLocalPlayer || isStunned) return;
+        if (!isLocalPlayer || EffectManager.IsStunned || EffectManager.IsSilenced || EffectManager.IsPoisoned) return;
 
         if (isDead)
         {
@@ -173,14 +152,6 @@ public class PlayerCore : NetworkBehaviour
     [ServerCallback]
     private void ServerUpdate()
     {
-        for (int i = activeControlEffects.Count - 1; i >= 0; i--)
-        {
-            if (Time.time >= activeControlEffects[i].endTime)
-            {
-                RemoveControlEffect(activeControlEffects[i].type);
-            }
-        }
-
         if (isDead)
         {
             if (Time.time - timeOfDeath >= respawnTime)
@@ -191,88 +162,8 @@ public class PlayerCore : NetworkBehaviour
         }
     }
 
-    #region State Management
-
     [Server]
-    public void ApplyControlEffect(ControlEffectType newEffectType, float duration, float slowPercentage = 0f)
-    {
-        var existingEffect = activeControlEffects.Find(e => e.type == newEffectType);
-        if (existingEffect.type != ControlEffectType.None)
-        {
-            activeControlEffects.Remove(existingEffect);
-            activeControlEffects.Add(new ControlEffect(newEffectType, Time.time + duration, slowPercentage));
-        }
-        else
-        {
-            activeControlEffects.Add(new ControlEffect(newEffectType, Time.time + duration, slowPercentage));
-        }
-
-        if (newEffectType == ControlEffectType.Stun)
-        {
-            SetStunState(true);
-        }
-        else if (newEffectType == ControlEffectType.Slow)
-        {
-            ApplySlow(slowPercentage);
-        }
-        else if (newEffectType == ControlEffectType.Silence)
-        {
-            RpcSetSilenceState(true);
-        }
-
-        Debug.Log($"Применен эффект: {newEffectType} на {duration} секунд.");
-    }
-
-    [Server]
-    private void RemoveControlEffect(ControlEffectType effectType)
-    {
-        var effect = activeControlEffects.Find(e => e.type == effectType);
-        if (effect.type != ControlEffectType.None)
-        {
-            activeControlEffects.Remove(effect);
-
-            if (effectType == ControlEffectType.Stun)
-            {
-                if (!activeControlEffects.Any(e => e.type == ControlEffectType.Stun))
-                {
-                    SetStunState(false);
-                }
-            }
-            else if (effectType == ControlEffectType.Slow)
-            {
-                var remainingSlow = activeControlEffects.Find(e => e.type == ControlEffectType.Slow);
-                if (remainingSlow.type != ControlEffectType.None)
-                {
-                    ApplySlow(remainingSlow.slowPercentage);
-                }
-                else
-                {
-                    Movement.SetMovementSpeed(_originalSpeed);
-                    Debug.Log("Эффект замедления снят. Скорость восстановлена.");
-                }
-            }
-            else if (effectType == ControlEffectType.Silence)
-            {
-                if (!activeControlEffects.Any(e => e.type == ControlEffectType.Silence))
-                {
-                    RpcSetSilenceState(false);
-                }
-            }
-        }
-    }
-
-    [Server]
-    public void ClearControlEffect()
-    {
-        activeControlEffects.Clear();
-        SetStunState(false);
-        RpcSetSilenceState(false);
-        Movement.SetMovementSpeed(_originalSpeed);
-        Debug.Log("Все эффекты сняты.");
-    }
-
-    [Server]
-    public void SetDeathState(bool state)
+    public void SetDeathState(bool state) // Changed from private to public
     {
         isDead = state;
         if (state)
@@ -281,7 +172,7 @@ public class PlayerCore : NetworkBehaviour
             Movement.StopMovement();
             Combat.StopAttacking();
             ActionSystem.CompleteAction();
-            ClearControlEffect();
+            EffectManager.ClearControlEffect();
             if (TryGetComponent<BoxCollider>(out var boxCollider))
             {
                 boxCollider.enabled = false;
@@ -328,62 +219,6 @@ public class PlayerCore : NetworkBehaviour
         {
             GameObject vfx = Instantiate(deathVFXPrefab, transform.position, Quaternion.identity);
             Destroy(vfx, 3f);
-        }
-    }
-
-    [Server]
-    public void SetStunState(bool state)
-    {
-        isStunned = state;
-        if (state)
-        {
-            ActionSystem.CompleteAction();
-            Movement.StopMovement();
-            RpcSetStunState(true);
-        }
-        else
-        {
-            RpcSetStunState(false);
-        }
-    }
-
-    [Server]
-    public void ApplySlow(float slowPercentage)
-    {
-        float maxSlow = activeControlEffects
-            .Where(e => e.type == ControlEffectType.Slow)
-            .Select(e => e.slowPercentage)
-            .DefaultIfEmpty(0f)
-            .Max();
-
-        float newSpeed = _originalSpeed * (1f - maxSlow);
-        Movement.SetMovementSpeed(newSpeed);
-        Debug.Log($"Применено замедление: {maxSlow:P0}. Новая скорость: {newSpeed}");
-    }
-
-    [ClientRpc]
-    private void RpcSetStunState(bool state)
-    {
-        if (Movement != null)
-        {
-            Movement.enabled = !state;
-            if (state) Movement.StopMovement();
-        }
-        if (Combat != null) Combat.enabled = !state;
-        if (Skills != null)
-        {
-            Skills.enabled = !state;
-            Skills.HandleStunEffect(state);
-        }
-        if (ActionSystem != null) ActionSystem.enabled = !state;
-    }
-
-    [ClientRpc]
-    private void RpcSetSilenceState(bool state)
-    {
-        if (Skills != null)
-        {
-            Skills.HandleSilenceEffect(state);
         }
     }
 
@@ -477,10 +312,4 @@ public class PlayerCore : NetworkBehaviour
         if (newValue) { Combat.enabled = false; Skills.enabled = false; Movement.enabled = false; }
         else { Combat.enabled = true; Skills.enabled = true; Movement.enabled = true; }
     }
-
-    private void OnStunStateChanged(bool oldValue, bool newValue)
-    {
-        if (Skills != null) Skills.HandleStunEffect(newValue);
-    }
 }
-#endregion

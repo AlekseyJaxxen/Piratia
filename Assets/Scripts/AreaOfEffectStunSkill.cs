@@ -19,9 +19,7 @@ public class AreaOfEffectStunSkill : SkillBase
     private void CmdStunArea(Vector3 position)
     {
         PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
-
-        // ДОБАВЛЕНО: Проверка, находится ли кастер под станом
-        if (casterCore.isStunned)
+        if (casterCore.GetComponent<ControlEffectManager>().IsStunned)
         {
             Debug.Log("Caster is stunned and cannot use this skill.");
             return;
@@ -36,8 +34,7 @@ public class AreaOfEffectStunSkill : SkillBase
             {
                 if (casterCore.team != targetCore.team)
                 {
-                    // ИСПОЛЬЗУЕМ НОВЫЙ МЕТОД ДЛЯ ПРИМЕНЕНИЯ ЭФФЕКТА КОНТРОЛЯ
-                    targetCore.ApplyControlEffect(ControlEffectType.Stun, stunDuration);
+                    targetCore.GetComponent<ControlEffectManager>().ApplyControlEffect(ControlEffectType.Stun, stunDuration);
                 }
                 else
                 {

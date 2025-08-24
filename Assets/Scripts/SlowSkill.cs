@@ -5,15 +5,14 @@ using System.Collections;
 public class SlowSkill : SkillBase
 {
     [Header("Slow Skill Specifics")]
-    public float slowPercentage = 0.5f; // Процент замедления (0.5 = 50%)
-    public float slowDuration = 3.0f; // Длительность замедления в секундах
-
+    public float slowPercentage = 0.5f;
+    public float slowDuration = 3.0f;
     public int baseDamage = 10;
     private const float DAMAGE_MULTIPLIER = 1.5f;
 
     public GameObject projectilePrefab;
     public GameObject impactEffectPrefab;
-    public GameObject slowEffectPrefab; // Добавлено: Префаб визуального эффекта замедления
+    public GameObject slowEffectPrefab;
 
     public override void Execute(PlayerCore player, Vector3? targetPosition, GameObject targetObject)
     {
@@ -43,10 +42,7 @@ public class SlowSkill : SkillBase
                     Debug.Log($"Нанесено {finalDamage} урона. Базовый урон: {damage}");
                 }
 
-                // Исправлено: заменяем ApplySlow на ApplyControlEffect
-                targetCore.ApplyControlEffect(ControlEffectType.Slow, slowDuration, slowPercent);
-
-                // Вызываем RPC для отображения VFX на клиентах
+                targetCore.GetComponent<ControlEffectManager>().ApplyControlEffect(ControlEffectType.Slow, slowDuration, slowPercent);
                 RpcApplySlowEffect(targetNetId, slowDuration);
             }
         }
@@ -62,23 +58,20 @@ public class SlowSkill : SkillBase
         }
     }
 
-    // Добавлено: RPC метод для отображения VFX
     [ClientRpc]
     private void RpcApplySlowEffect(uint targetNetId, float duration)
     {
         if (NetworkClient.spawned.ContainsKey(targetNetId) && slowEffectPrefab != null)
         {
             NetworkIdentity targetIdentity = NetworkClient.spawned[targetNetId];
-            // Запускаем корутину для управления эффектом
             StartCoroutine(ManageSlowEffect(targetIdentity.gameObject, duration));
         }
     }
 
-    // Добавлено: Корутина для управления жизненным циклом VFX
     private IEnumerator ManageSlowEffect(GameObject target, float duration)
     {
         GameObject effectInstance = Instantiate(slowEffectPrefab, target.transform);
-        effectInstance.transform.localPosition = Vector3.zero; // Размещаем эффект относительно цели
+        effectInstance.transform.localPosition = Vector3.zero;
 
         yield return new WaitForSeconds(duration);
 

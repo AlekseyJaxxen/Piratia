@@ -27,7 +27,7 @@ public class PlayerMovement : NetworkBehaviour
 
     public void HandleMovement()
     {
-        if (_core.isDead || _core.isStunned) return;
+        if (_core.isDead || _core.EffectManager.IsStunned) return; // FIX: Changed _core.isStunned
 
         if (Input.GetMouseButtonDown(0))
         {

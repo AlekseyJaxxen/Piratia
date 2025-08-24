@@ -454,6 +454,7 @@ GameObject:
   - component: {fileID: 7355873465176282773}
   - component: {fileID: 9202704491151275562}
   - component: {fileID: -639070201052361337}
+  - component: {fileID: 6792417712449966772}
   m_Layer: 0
   m_Name: Player_Prefab_A
   m_TagString: Player
@@ -904,6 +905,18 @@ MonoBehaviour:
   - skillIcon: {fileID: 6669016130989496440}
     cooldownOverlay: {fileID: 7293848057843516490}
     cooldownText: {fileID: 853782349730237592}
+--- !u!114 &6792417712449966772
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8270360301193926596}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 510777ba1fdfa39479e556b36367ea16, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &1309490088558050987
 PrefabInstance:
   m_ObjectHideFlags: 0
