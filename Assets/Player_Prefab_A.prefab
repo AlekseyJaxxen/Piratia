@@ -558,7 +558,7 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0.11
-  MaxHealth: 5000
+  MaxHealth: 7000
   floatingTextPrefab: {fileID: 4564945269438271224, guid: 75c435b9f0af2d140828612da10a5496,
     type: 3}
   damageTextSpawnHeight: 2.5
@@ -633,7 +633,7 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  moveSpeed: 7
+  moveSpeed: 10
   rotationSpeed: 9999
   stoppingDistance: 0.1
 --- !u!114 &7327050918202999389
@@ -792,7 +792,7 @@ MonoBehaviour:
   _targetIndicatorPrefab: {fileID: 7367436715575335037, guid: e7964bca176e04f43aa79653e9fb44cd,
     type: 3}
   _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
-  damageAmount: 2500
+  damageAmount: 5000
   projectilePrefab: {fileID: 109592, guid: 125cbece63e40cf40a589e32859eda38, type: 3}
   impactEffectPrefab: {fileID: 0}
 --- !u!114 &6193393840997489717
@@ -838,13 +838,13 @@ MonoBehaviour:
   _hotkey: 284
   _range: 6
   _cooldown: 10
-  _castTime: 0.3
+  _castTime: 0.1
   _rangeIndicator: {fileID: 0}
   _targetIndicatorPrefab: {fileID: 5345158863170431004, guid: 9f6309ebe66d136499539ac2e21e9510,
     type: 3}
   _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
-  stunDuration: 2
-  effectRadius: 3
+  stunDuration: 1
+  effectRadius: 4
   effectPrefab: {fileID: 173590, guid: 7469283484e0dcc4887fa575d1fd7ecc, type: 3}
 --- !u!114 &9202704491151275562
 MonoBehaviour:
@@ -862,7 +862,7 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   _hotkey: 286
-  _range: 1
+  _range: 1.3
   _cooldown: 0.2
   _castTime: 0.1
   _rangeIndicator: {fileID: 0}
@@ -870,6 +870,8 @@ MonoBehaviour:
   _castCursor: {fileID: 0}
   damageAmount: 200
   vfxPrefab: {fileID: 171468, guid: 9bb3c2595cddc25468a1fccc3b563ae4, type: 3}
+  projectilePrefab: {fileID: 0}
+  projectileSpeed: 20
 --- !u!114 &-639070201052361337
 MonoBehaviour:
   m_ObjectHideFlags: 0

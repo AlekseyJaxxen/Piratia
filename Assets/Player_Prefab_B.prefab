@@ -615,10 +615,11 @@ GameObject:
   - component: {fileID: 9141868853825329552}
   - component: {fileID: 7616953105411128818}
   - component: {fileID: 2398841918052777852}
-  - component: {fileID: 1062641043730496793}
   - component: {fileID: 6193393840997489717}
   - component: {fileID: 7355873465176282773}
   - component: {fileID: 9202704491151275562}
+  - component: {fileID: 3277176456106678843}
+  - component: {fileID: 4206459086532962443}
   m_Layer: 0
   m_Name: Player_Prefab_B
   m_TagString: Player
@@ -799,7 +800,7 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  moveSpeed: 10
+  moveSpeed: 13
   rotationSpeed: 9999
   stoppingDistance: 0.1
 --- !u!114 &7327050918202999389
@@ -838,10 +839,11 @@ MonoBehaviour:
   syncInterval: 0
   skills:
   - {fileID: 9202704491151275562}
-  - {fileID: 1062641043730496793}
+  - {fileID: 4206459086532962443}
   - {fileID: 2398841918052777852}
   - {fileID: 7355873465176282773}
   - {fileID: 6193393840997489717}
+  - {fileID: 3277176456106678843}
   stunEffectPrefab: {fileID: 4637046911172921311, guid: ed6adf846f49efa40917a41cb58e76d9,
     type: 3}
   defaultCursor: {fileID: 2800000, guid: f75349a286817b6479976a10636d3b2c, type: 3}
@@ -934,33 +936,6 @@ MonoBehaviour:
   stunDuration: 8
   effectPrefab: {fileID: 1861272202064540, guid: 2d1b4e33180cb7d4c878efa593a8943d,
     type: 3}
---- !u!114 &1062641043730496793
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8270360301193926596}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: da6862f7b7b560544b2ac82929229ae9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  syncDirection: 0
-  syncMode: 0
-  syncInterval: 0
-  _hotkey: 282
-  _range: 10
-  _cooldown: 5
-  _castTime: 0.3
-  _rangeIndicator: {fileID: 6019624651139454826, guid: dacc0954c394ce54397955b30c4228fb,
-    type: 3}
-  _targetIndicatorPrefab: {fileID: 7367436715575335037, guid: e7964bca176e04f43aa79653e9fb44cd,
-    type: 3}
-  _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
-  damageAmount: 900
-  projectilePrefab: {fileID: 109592, guid: 125cbece63e40cf40a589e32859eda38, type: 3}
-  impactEffectPrefab: {fileID: 0}
 --- !u!114 &6193393840997489717
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1004,13 +979,13 @@ MonoBehaviour:
   _hotkey: 284
   _range: 6
   _cooldown: 10
-  _castTime: 0.3
+  _castTime: 0.1
   _rangeIndicator: {fileID: 0}
   _targetIndicatorPrefab: {fileID: 5345158863170431004, guid: 9f6309ebe66d136499539ac2e21e9510,
     type: 3}
   _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
-  stunDuration: 2
-  effectRadius: 3
+  stunDuration: 1
+  effectRadius: 4
   effectPrefab: {fileID: 173590, guid: 7469283484e0dcc4887fa575d1fd7ecc, type: 3}
 --- !u!114 &9202704491151275562
 MonoBehaviour:
@@ -1038,6 +1013,59 @@ MonoBehaviour:
   vfxPrefab: {fileID: 1126696128565986, guid: 59b0fdde5ab1a4f4ca4fee27e0f9e723, type: 3}
   projectilePrefab: {fileID: 113030, guid: 97f50e42849c70e4193b2e21337b2f03, type: 3}
   projectileSpeed: 20
+--- !u!114 &3277176456106678843
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8270360301193926596}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69fec8161d307cd45bd70937d9dd480e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  _hotkey: 282
+  _range: 7
+  _cooldown: 5
+  _castTime: 0.1
+  _rangeIndicator: {fileID: 0}
+  _targetIndicatorPrefab: {fileID: 7367436715575335037, guid: e7964bca176e04f43aa79653e9fb44cd,
+    type: 3}
+  _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
+  slowPercentage: 0.5
+  slowDuration: 7
+  baseDamage: 1500
+  projectilePrefab: {fileID: 0}
+  impactEffectPrefab: {fileID: 153912, guid: 932046b7eaf3b554f8d74c81e2f00558, type: 3}
+--- !u!114 &4206459086532962443
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8270360301193926596}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da6862f7b7b560544b2ac82929229ae9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  _hotkey: 0
+  _range: 0
+  _cooldown: 0
+  _castTime: 0
+  _rangeIndicator: {fileID: 0}
+  _targetIndicatorPrefab: {fileID: 0}
+  _castCursor: {fileID: 0}
+  damageAmount: 15
+  projectilePrefab: {fileID: 0}
+  impactEffectPrefab: {fileID: 0}
 --- !u!1001 &2204221415589107067
 PrefabInstance:
   m_ObjectHideFlags: 0
