@@ -147,10 +147,12 @@ public class PlayerActionSystem : NetworkBehaviour
             }
 
             Health targetHealth = target.GetComponent<Health>();
-            if (targetHealth == null)
+
+            if (targetHealth == null || targetHealth.CurrentHealth <= 0)
             {
-                Debug.Log($"PlayerActionSystem: Target lost or does not have Health component. Stopping attack.");
-                break;
+                Debug.Log($"PlayerActionSystem: Target is dead or lost. Stopping attack.");
+
+                break; // Или CompleteAction(); yield break;
             }
 
             if (_core.Skills.skills.Count == 0)
