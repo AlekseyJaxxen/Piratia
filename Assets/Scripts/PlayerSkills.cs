@@ -299,6 +299,18 @@ public class PlayerSkills : NetworkBehaviour
         _activeSkill = null;
     }
 
+    public void HandleSilenceEffect(bool isSilenced)
+    {
+        if (isSilenced)
+        {
+            CancelSkillSelection();
+            foreach (var skill in skills)
+            {
+                skill.SetIndicatorVisibility(false);
+            }
+        }
+    }
+
     private void SetCursor(Texture2D cursorTexture)
     {
         Cursor.SetCursor(cursorTexture, Vector2.zero, CursorMode.Auto);

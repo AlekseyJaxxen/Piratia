@@ -43,9 +43,10 @@ public class SlowSkill : SkillBase
                     Debug.Log($"Нанесено {finalDamage} урона. Базовый урон: {damage}");
                 }
 
-                targetCore.ApplySlow(slowPercent, slowDuration);
+                // Исправлено: заменяем ApplySlow на ApplyControlEffect
+                targetCore.ApplyControlEffect(ControlEffectType.Slow, slowDuration, slowPercent);
 
-                // Добавлено: Вызываем RPC для отображения VFX на клиентах
+                // Вызываем RPC для отображения VFX на клиентах
                 RpcApplySlowEffect(targetNetId, slowDuration);
             }
         }

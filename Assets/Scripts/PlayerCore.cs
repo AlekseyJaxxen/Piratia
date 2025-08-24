@@ -1,7 +1,8 @@
 ﻿using UnityEngine;
 using Mirror;
 using TMPro;
-using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 
 public enum PlayerAction
 {
@@ -53,14 +54,7 @@ public class PlayerCore : NetworkBehaviour
     [SyncVar(hook = nameof(OnStunStateChanged))]
     public bool isStunned = false;
 
-    [SyncVar]
-    private ControlEffectType currentControlEffect = ControlEffectType.None;
-    [SyncVar]
-    private float controlEffectEndTime = 0f;
-
-    [SyncVar]
-    private float _slowPercentage = 0f;
-    private float _originalSpeed = 0f;
+    private readonly SyncList<ControlEffect> activeControlEffects = new SyncList<ControlEffect>(); // Удален [SyncVar], добавлен readonly
 
     [Header("Respawn")]
     public float respawnTime = 5.0f;
@@ -72,6 +66,7 @@ public class PlayerCore : NetworkBehaviour
     private GameObject _teamIndicator;
     private TextMeshProUGUI _nameText;
     private PlayerUI_Team _playerUI_Team;
+    private float _originalSpeed = 0f;
     public static PlayerCore localPlayerCoreInstance;
 
     private void Awake()
@@ -155,7 +150,6 @@ public class PlayerCore : NetworkBehaviour
 
         if (Movement != null)
         {
-            Movement.Init(this);
             _originalSpeed = Movement.GetOriginalSpeed();
         }
     }
@@ -179,9 +173,12 @@ public class PlayerCore : NetworkBehaviour
     [ServerCallback]
     private void ServerUpdate()
     {
-        if (currentControlEffect != ControlEffectType.None && Time.time >= controlEffectEndTime)
+        for (int i = activeControlEffects.Count - 1; i >= 0; i--)
         {
-            ClearControlEffect();
+            if (Time.time >= activeControlEffects[i].endTime)
+            {
+                RemoveControlEffect(activeControlEffects[i].type);
+            }
         }
 
         if (isDead)
@@ -189,16 +186,7 @@ public class PlayerCore : NetworkBehaviour
             if (Time.time - timeOfDeath >= respawnTime)
             {
                 Transform newSpawnPoint = FindObjectOfType<MyNetworkManager>()?.GetTeamSpawnPoint(team);
-
-                if (newSpawnPoint != null)
-                {
-                    RpcRespawnPlayer(newSpawnPoint.position);
-                }
-                else
-                {
-                    Debug.LogError($"No spawn points found for team {team}! Respawning at default location.");
-                    RpcRespawnPlayer(_initialSpawnPosition);
-                }
+                RpcRespawnPlayer(newSpawnPoint != null ? newSpawnPoint.position : _initialSpawnPosition);
             }
         }
     }
@@ -206,45 +194,81 @@ public class PlayerCore : NetworkBehaviour
     #region State Management
 
     [Server]
-    public void ApplyControlEffect(ControlEffectType newEffectType, float duration)
+    public void ApplyControlEffect(ControlEffectType newEffectType, float duration, float slowPercentage = 0f)
     {
-        if (newEffectType > currentControlEffect)
+        var existingEffect = activeControlEffects.Find(e => e.type == newEffectType);
+        if (existingEffect.type != ControlEffectType.None)
         {
-            currentControlEffect = newEffectType;
-            controlEffectEndTime = Time.time + duration;
-
-            if (currentControlEffect == ControlEffectType.Stun)
-            {
-                SetStunState(true);
-            }
-
-            Debug.Log($"Applied new control effect: {currentControlEffect} for {duration} seconds.");
+            activeControlEffects.Remove(existingEffect);
+            activeControlEffects.Add(new ControlEffect(newEffectType, Time.time + duration, slowPercentage));
         }
         else
         {
-            Debug.Log($"Ignored control effect: {newEffectType}. Current effect is {currentControlEffect}.");
+            activeControlEffects.Add(new ControlEffect(newEffectType, Time.time + duration, slowPercentage));
+        }
+
+        if (newEffectType == ControlEffectType.Stun)
+        {
+            SetStunState(true);
+        }
+        else if (newEffectType == ControlEffectType.Slow)
+        {
+            ApplySlow(slowPercentage);
+        }
+        else if (newEffectType == ControlEffectType.Silence)
+        {
+            RpcSetSilenceState(true);
+        }
+
+        Debug.Log($"Применен эффект: {newEffectType} на {duration} секунд.");
+    }
+
+    [Server]
+    private void RemoveControlEffect(ControlEffectType effectType)
+    {
+        var effect = activeControlEffects.Find(e => e.type == effectType);
+        if (effect.type != ControlEffectType.None)
+        {
+            activeControlEffects.Remove(effect);
+
+            if (effectType == ControlEffectType.Stun)
+            {
+                if (!activeControlEffects.Any(e => e.type == ControlEffectType.Stun))
+                {
+                    SetStunState(false);
+                }
+            }
+            else if (effectType == ControlEffectType.Slow)
+            {
+                var remainingSlow = activeControlEffects.Find(e => e.type == ControlEffectType.Slow);
+                if (remainingSlow.type != ControlEffectType.None)
+                {
+                    ApplySlow(remainingSlow.slowPercentage);
+                }
+                else
+                {
+                    Movement.SetMovementSpeed(_originalSpeed);
+                    Debug.Log("Эффект замедления снят. Скорость восстановлена.");
+                }
+            }
+            else if (effectType == ControlEffectType.Silence)
+            {
+                if (!activeControlEffects.Any(e => e.type == ControlEffectType.Silence))
+                {
+                    RpcSetSilenceState(false);
+                }
+            }
         }
     }
 
     [Server]
     public void ClearControlEffect()
     {
-        if (currentControlEffect == ControlEffectType.Stun)
-        {
-            SetStunState(false);
-        }
-
-        // Исправлено: Сброс скорости вне условия else if.
-        // Это гарантирует, что скорость будет восстановлена, даже если другой эффект,
-        // такой как стан, закончится.
-        if (currentControlEffect == ControlEffectType.Slow)
-        {
-            Movement.SetMovementSpeed(_originalSpeed);
-            _slowPercentage = 0f;
-            Debug.Log("Эффект замедления снят. Скорость восстановлена.");
-        }
-
-        currentControlEffect = ControlEffectType.None;
+        activeControlEffects.Clear();
+        SetStunState(false);
+        RpcSetSilenceState(false);
+        Movement.SetMovementSpeed(_originalSpeed);
+        Debug.Log("Все эффекты сняты.");
     }
 
     [Server]
@@ -314,6 +338,7 @@ public class PlayerCore : NetworkBehaviour
         if (state)
         {
             ActionSystem.CompleteAction();
+            Movement.StopMovement();
             RpcSetStunState(true);
         }
         else
@@ -323,27 +348,43 @@ public class PlayerCore : NetworkBehaviour
     }
 
     [Server]
-    public void ApplySlow(float slowPercentage, float duration)
+    public void ApplySlow(float slowPercentage)
     {
-        // Исправлено: Убрана проверка, чтобы замедление всегда применялось
-        // и сбрасывалось время действия.
-        _slowPercentage = slowPercentage;
-        controlEffectEndTime = Time.time + duration;
-        currentControlEffect = ControlEffectType.Slow;
+        float maxSlow = activeControlEffects
+            .Where(e => e.type == ControlEffectType.Slow)
+            .Select(e => e.slowPercentage)
+            .DefaultIfEmpty(0f)
+            .Max();
 
-        float newSpeed = _originalSpeed * (1f - _slowPercentage);
+        float newSpeed = _originalSpeed * (1f - maxSlow);
         Movement.SetMovementSpeed(newSpeed);
-
-        Debug.Log($"Применено замедление: {_slowPercentage:P0} на {duration} секунд. Новая скорость: {newSpeed}");
+        Debug.Log($"Применено замедление: {maxSlow:P0}. Новая скорость: {newSpeed}");
     }
 
     [ClientRpc]
     private void RpcSetStunState(bool state)
     {
-        if (Movement != null) Movement.enabled = !state;
+        if (Movement != null)
+        {
+            Movement.enabled = !state;
+            if (state) Movement.StopMovement();
+        }
         if (Combat != null) Combat.enabled = !state;
-        if (Skills != null) Skills.enabled = !state;
+        if (Skills != null)
+        {
+            Skills.enabled = !state;
+            Skills.HandleStunEffect(state);
+        }
         if (ActionSystem != null) ActionSystem.enabled = !state;
+    }
+
+    [ClientRpc]
+    private void RpcSetSilenceState(bool state)
+    {
+        if (Skills != null)
+        {
+            Skills.HandleSilenceEffect(state);
+        }
     }
 
     [Command]
@@ -368,7 +409,7 @@ public class PlayerCore : NetworkBehaviour
     {
         playerName = newName;
         team = newTeam;
-        Debug.Log($"Server: Player {newName} has joined team {newTeam}.");
+        Debug.Log($"Сервер: Игрок {newName} присоединился к команде {newTeam}.");
     }
 
     [Command]
@@ -376,11 +417,11 @@ public class PlayerCore : NetworkBehaviour
     {
         if (string.IsNullOrWhiteSpace(newName) || newName.Length > 20)
         {
-            Debug.LogWarning($"Server: Invalid name '{newName}' received from client.");
+            Debug.LogWarning($"Сервер: Неверное имя '{newName}' от клиента.");
             return;
         }
         playerName = newName;
-        Debug.Log($"Server: Player name changed to: {newName}");
+        Debug.Log($"Сервер: Имя игрока изменено на: {newName}");
     }
 
     [Command]
@@ -388,11 +429,11 @@ public class PlayerCore : NetworkBehaviour
     {
         if (isDead)
         {
-            Debug.LogWarning($"Server: Cannot change team while dead.");
+            Debug.LogWarning($"Сервер: Нельзя сменить команду во время смерти.");
             return;
         }
         team = newTeam;
-        Debug.Log($"Server: Player team changed to: {newTeam}");
+        Debug.Log($"Сервер: Команда игрока изменена на: {newTeam}");
     }
 
     private void OnTeamChanged(PlayerTeam oldTeam, PlayerTeam newTeam)
@@ -441,5 +482,5 @@ public class PlayerCore : NetworkBehaviour
     {
         if (Skills != null) Skills.HandleStunEffect(newValue);
     }
-    #endregion
 }
+#endregion
