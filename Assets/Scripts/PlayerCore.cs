@@ -244,10 +244,28 @@ public class PlayerCore : NetworkBehaviour
             Combat.StopAttacking();
             ActionSystem.CompleteAction();
             ClearControlEffect();
+            // Отключение коллайдера и рендерера
+            if (TryGetComponent<BoxCollider>(out var boxCollider))
+            {
+                boxCollider.enabled = false;
+            }
+            if (TryGetComponent<Renderer>(out var renderer))
+            {
+                renderer.enabled = false;
+            }
             RpcSetDeathState(true);
         }
         else
         {
+            // Включение коллайдера и рендерера при возрождении
+            if (TryGetComponent<BoxCollider>(out var boxCollider))
+            {
+                boxCollider.enabled = true;
+            }
+            if (TryGetComponent<Renderer>(out var renderer))
+            {
+                renderer.enabled = true;
+            }
             RpcSetDeathState(false);
         }
     }
