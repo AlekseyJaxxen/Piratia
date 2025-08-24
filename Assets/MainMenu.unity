@@ -690,6 +690,8 @@ MonoBehaviour:
   hostButton: {fileID: 271290858}
   clientButton: {fileID: 1983033504}
   changeNameButton: {fileID: 875904058}
+  disconnectButton: {fileID: 0}
+  returnToMainMenuButton: {fileID: 0}
 --- !u!4 &327793166
 Transform:
   m_ObjectHideFlags: 0
@@ -716,6 +718,7 @@ GameObject:
   - component: {fileID: 387040015}
   - component: {fileID: 387040017}
   - component: {fileID: 387040018}
+  - component: {fileID: 387040019}
   m_Layer: 0
   m_Name: 'NetworkManager '
   m_TagString: Untagged
@@ -820,6 +823,20 @@ MonoBehaviour:
   - {fileID: 8270360301193926596, guid: 298e741ab94a19947941efdcac997ca1, type: 3}
   - {fileID: 8270360301193926596, guid: 8b6d069586a7b1943b6c1f978e0e69b3, type: 3}
   - {fileID: 8270360301193926596, guid: 2e4b2e3f8c964c643968bdc577a3fd1b, type: 3}
+--- !u!114 &387040019
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 387040013}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6442dc8070ceb41f094e44de0bf87274, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  offsetX: 0
+  offsetY: 0
 --- !u!1 &737435355 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1128253978500445151, guid: faba03d41d0c7764684d6d56384d4be3,

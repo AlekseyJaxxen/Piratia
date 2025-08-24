@@ -1,5 +1,6 @@
 using UnityEngine;
 using Mirror;
+using System.Collections;
 
 public class BasicAttackSkill : SkillBase
 {
@@ -8,6 +9,11 @@ public class BasicAttackSkill : SkillBase
 
     // Добавлено: Префаб визуального эффекта
     public GameObject vfxPrefab;
+
+    // Добавлено: Префаб снаряда и его скорость
+    [Header("Projectile Settings")]
+    public GameObject projectilePrefab;
+    public float projectileSpeed = 20f;
 
     // Этот метод вызывается на клиенте
     public override void Execute(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
@@ -61,6 +67,31 @@ public class BasicAttackSkill : SkillBase
             GameObject vfxInstance = Instantiate(vfxPrefab, startPosition, finalRotation);
 
             Destroy(vfxInstance, 0.2f);
+        }
+
+        if (projectilePrefab != null)
+        {
+            // Создаем снаряд и запускаем его движение
+            GameObject projectileInstance = Instantiate(projectilePrefab, startPosition, Quaternion.LookRotation(endPosition - startPosition));
+            StartCoroutine(MoveProjectile(projectileInstance, startPosition, endPosition));
+        }
+    }
+
+    private IEnumerator MoveProjectile(GameObject projectile, Vector3 start, Vector3 end)
+    {
+        while (projectile != null && Vector3.Distance(projectile.transform.position, end) > 0.1f)
+        {
+            projectile.transform.position = Vector3.MoveTowards(
+                projectile.transform.position,
+                end,
+                projectileSpeed * Time.deltaTime
+            );
+            yield return null;
+        }
+
+        if (projectile != null)
+        {
+            Destroy(projectile);
         }
     }
 }

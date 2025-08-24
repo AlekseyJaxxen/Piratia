@@ -846,6 +846,8 @@ MonoBehaviour:
     type: 3}
   defaultCursor: {fileID: 2800000, guid: f75349a286817b6479976a10636d3b2c, type: 3}
   castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
+  attackCursor: {fileID: 0}
+  cursorUpdateInterval: 0.1
 --- !u!114 &1961392965024624479
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1032,8 +1034,10 @@ MonoBehaviour:
   _rangeIndicator: {fileID: 0}
   _targetIndicatorPrefab: {fileID: 0}
   _castCursor: {fileID: 0}
-  damageAmount: 200
-  vfxPrefab: {fileID: 127072, guid: 7f45705f5f30d8a45af0fc2eb8c8998a, type: 3}
+  damageAmount: 700
+  vfxPrefab: {fileID: 1126696128565986, guid: 59b0fdde5ab1a4f4ca4fee27e0f9e723, type: 3}
+  projectilePrefab: {fileID: 113030, guid: 97f50e42849c70e4193b2e21337b2f03, type: 3}
+  projectileSpeed: 20
 --- !u!1001 &2204221415589107067
 PrefabInstance:
   m_ObjectHideFlags: 0
