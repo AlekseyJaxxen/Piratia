@@ -17,14 +17,8 @@ public enum ControlEffectType
     Stun = 1,
     Silence = 2,
     FbStun = 3,
+    Slow = 4,
 }
-
-//public enum PlayerTeam
-//{
-// None,
-// Red,
-// Blue
-//}
 
 public class PlayerCore : NetworkBehaviour
 {
@@ -63,6 +57,10 @@ public class PlayerCore : NetworkBehaviour
     private ControlEffectType currentControlEffect = ControlEffectType.None;
     [SyncVar]
     private float controlEffectEndTime = 0f;
+
+    [SyncVar]
+    private float _slowPercentage = 0f;
+    private float _originalSpeed = 0f;
 
     [Header("Respawn")]
     public float respawnTime = 5.0f;
@@ -154,6 +152,12 @@ public class PlayerCore : NetworkBehaviour
         if (Combat != null) Combat.Init(this);
         if (Skills != null) Skills.Init(this);
         if (ActionSystem != null) ActionSystem.Init(this);
+
+        if (Movement != null)
+        {
+            Movement.Init(this);
+            _originalSpeed = Movement.GetOriginalSpeed();
+        }
     }
 
     private void Update()
@@ -230,6 +234,16 @@ public class PlayerCore : NetworkBehaviour
             SetStunState(false);
         }
 
+        // Исправлено: Сброс скорости вне условия else if.
+        // Это гарантирует, что скорость будет восстановлена, даже если другой эффект,
+        // такой как стан, закончится.
+        if (currentControlEffect == ControlEffectType.Slow)
+        {
+            Movement.SetMovementSpeed(_originalSpeed);
+            _slowPercentage = 0f;
+            Debug.Log("Эффект замедления снят. Скорость восстановлена.");
+        }
+
         currentControlEffect = ControlEffectType.None;
     }
 
@@ -244,7 +258,6 @@ public class PlayerCore : NetworkBehaviour
             Combat.StopAttacking();
             ActionSystem.CompleteAction();
             ClearControlEffect();
-            // Отключение коллайдера и рендерера
             if (TryGetComponent<BoxCollider>(out var boxCollider))
             {
                 boxCollider.enabled = false;
@@ -257,7 +270,6 @@ public class PlayerCore : NetworkBehaviour
         }
         else
         {
-            // Включение коллайдера и рендерера при возрождении
             if (TryGetComponent<BoxCollider>(out var boxCollider))
             {
                 boxCollider.enabled = true;
@@ -282,7 +294,6 @@ public class PlayerCore : NetworkBehaviour
         if (Skills != null) Skills.enabled = !state;
         if (ActionSystem != null) ActionSystem.enabled = !state;
 
-        // Скрываем UI
         PlayerUI ui = GetComponentInChildren<PlayerUI>();
         if (ui != null)
         {
@@ -309,6 +320,21 @@ public class PlayerCore : NetworkBehaviour
         {
             RpcSetStunState(false);
         }
+    }
+
+    [Server]
+    public void ApplySlow(float slowPercentage, float duration)
+    {
+        // Исправлено: Убрана проверка, чтобы замедление всегда применялось
+        // и сбрасывалось время действия.
+        _slowPercentage = slowPercentage;
+        controlEffectEndTime = Time.time + duration;
+        currentControlEffect = ControlEffectType.Slow;
+
+        float newSpeed = _originalSpeed * (1f - _slowPercentage);
+        Movement.SetMovementSpeed(newSpeed);
+
+        Debug.Log($"Применено замедление: {_slowPercentage:P0} на {duration} секунд. Новая скорость: {newSpeed}");
     }
 
     [ClientRpc]
@@ -345,7 +371,6 @@ public class PlayerCore : NetworkBehaviour
         Debug.Log($"Server: Player {newName} has joined team {newTeam}.");
     }
 
-    // Новая команда для смены имени
     [Command]
     public void CmdChangeName(string newName)
     {
@@ -358,7 +383,6 @@ public class PlayerCore : NetworkBehaviour
         Debug.Log($"Server: Player name changed to: {newName}");
     }
 
-    // Новая команда для смены команды
     [Command]
     public void CmdChangeTeam(PlayerTeam newTeam)
     {

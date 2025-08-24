@@ -134,7 +134,7 @@ public class PlayerSkills : NetworkBehaviour
         }
 
         // Логика для таргетных умений
-        if (_activeSkill is ProjectileDamageSkill || _activeSkill is TargetedStunSkill)
+        if (_activeSkill is ProjectileDamageSkill || _activeSkill is TargetedStunSkill || _activeSkill is SlowSkill)
         {
             // В этой части мы только управляем индикатором, а не курсором.
             if (Physics.Raycast(ray, out hit, Mathf.Infinity, _core.interactableLayers))

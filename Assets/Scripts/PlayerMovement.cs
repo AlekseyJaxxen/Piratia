@@ -36,7 +36,7 @@ public class PlayerMovement : NetworkBehaviour
             // Если умение выбрано
             if (_core.Skills.IsSkillSelected)
             {
-                bool isTargetedSkill = _core.Skills.ActiveSkill is ProjectileDamageSkill || _core.Skills.ActiveSkill is TargetedStunSkill;
+                bool isTargetedSkill = _core.Skills.ActiveSkill is ProjectileDamageSkill || _core.Skills.ActiveSkill is TargetedStunSkill || _core.Skills.ActiveSkill is SlowSkill;
 
                 // Если умение ТАРГЕТНОЕ, используем interactableLayers
                 if (isTargetedSkill)
@@ -131,5 +131,25 @@ public class PlayerMovement : NetworkBehaviour
             Quaternion lookRotation = Quaternion.LookRotation(direction);
             transform.rotation = lookRotation;
         }
+    }
+
+    [Server]
+    public void SetMovementSpeed(float newSpeed)
+    {
+        RpcSetMovementSpeed(newSpeed);
+    }
+
+    [ClientRpc]
+    private void RpcSetMovementSpeed(float newSpeed)
+    {
+        if (_agent != null)
+        {
+            _agent.speed = newSpeed;
+        }
+    }
+
+    public float GetOriginalSpeed()
+    {
+        return moveSpeed;
     }
 }
