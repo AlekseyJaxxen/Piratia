@@ -1036,11 +1036,12 @@ MonoBehaviour:
   _targetIndicatorPrefab: {fileID: 7367436715575335037, guid: e7964bca176e04f43aa79653e9fb44cd,
     type: 3}
   _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
-  slowPercentage: 0.5
+  slowPercentage: 0.75
   slowDuration: 7
-  baseDamage: 1500
-  projectilePrefab: {fileID: 0}
+  baseDamage: 700
+  projectilePrefab: {fileID: 128572, guid: 7ed2682c7faf8ff4c865b1c7aab3a3ec, type: 3}
   impactEffectPrefab: {fileID: 153912, guid: 932046b7eaf3b554f8d74c81e2f00558, type: 3}
+  slowEffectPrefab: {fileID: 157556, guid: f217d1d708cdaf14e8cfa730ff75126e, type: 3}
 --- !u!114 &4206459086532962443
 MonoBehaviour:
   m_ObjectHideFlags: 0
