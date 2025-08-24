@@ -866,7 +866,7 @@ MonoBehaviour:
   distance: 10
   angle: 60
   rotationSpeed: 3
-  zoomSpeed: 2
+  zoomSpeed: 8
   minFOV: 15
   maxFOV: 60
 --- !u!114 &9141868853825329552

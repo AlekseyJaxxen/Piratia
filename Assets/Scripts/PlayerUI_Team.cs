@@ -14,6 +14,8 @@ public class PlayerUI_Team : MonoBehaviour
     public Button hostButton;
     public Button clientButton;
     public Button changeNameButton;
+    public Button disconnectButton;
+    public Button returnToMainMenuButton;
 
     private static PlayerInfo tempPlayerInfo = new PlayerInfo();
 
@@ -59,6 +61,16 @@ public class PlayerUI_Team : MonoBehaviour
         if (changeNameButton != null)
         {
             changeNameButton.onClick.AddListener(OnChangeNameClicked);
+        }
+
+        if (disconnectButton != null)
+        {
+            disconnectButton.onClick.AddListener(OnDisconnectClicked);
+        }
+
+        if (returnToMainMenuButton != null)
+        {
+            returnToMainMenuButton.onClick.AddListener(OnReturnToMainMenuClicked);
         }
 
         if (teamSelectionPanel != null)
@@ -111,6 +123,36 @@ public class PlayerUI_Team : MonoBehaviour
     {
         tempPlayerInfo.name = nameInputField.text;
         Debug.Log($"Имя изменено локально на: {tempPlayerInfo.name}");
+    }
+
+    // Метод для дисконнекта
+    public void OnDisconnectClicked()
+    {
+        if (NetworkServer.active && NetworkClient.isConnected)
+        {
+            NetworkManager.singleton.StopHost();
+            Debug.Log("Хост отключился.");
+        }
+        else if (NetworkClient.isConnected)
+        {
+            NetworkManager.singleton.StopClient();
+            Debug.Log("Клиент отключился.");
+        }
+    }
+
+    // Метод для возвращения в главное меню (ИСПРАВЛЕННЫЙ)
+    public void OnReturnToMainMenuClicked()
+    {
+        if (NetworkServer.active && NetworkClient.isConnected)
+        {
+            NetworkManager.singleton.StopHost();
+            Debug.Log("Хост отключился и возвращается в главное меню.");
+        }
+        else if (NetworkClient.isConnected)
+        {
+            NetworkManager.singleton.StopClient();
+            Debug.Log("Клиент отключился и возвращается в главное меню.");
+        }
     }
 
     public static PlayerTeam GetTempPlayerTeam()
