@@ -345,6 +345,32 @@ public class PlayerCore : NetworkBehaviour
         Debug.Log($"Server: Player {newName} has joined team {newTeam}.");
     }
 
+    // Новая команда для смены имени
+    [Command]
+    public void CmdChangeName(string newName)
+    {
+        if (string.IsNullOrWhiteSpace(newName) || newName.Length > 20)
+        {
+            Debug.LogWarning($"Server: Invalid name '{newName}' received from client.");
+            return;
+        }
+        playerName = newName;
+        Debug.Log($"Server: Player name changed to: {newName}");
+    }
+
+    // Новая команда для смены команды
+    [Command]
+    public void CmdChangeTeam(PlayerTeam newTeam)
+    {
+        if (isDead)
+        {
+            Debug.LogWarning($"Server: Cannot change team while dead.");
+            return;
+        }
+        team = newTeam;
+        Debug.Log($"Server: Player team changed to: {newTeam}");
+    }
+
     private void OnTeamChanged(PlayerTeam oldTeam, PlayerTeam newTeam)
     {
         UpdateTeamIndicatorColor();

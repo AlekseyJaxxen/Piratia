@@ -108,9 +108,16 @@ public class PlayerUI_Team : MonoBehaviour
 
     private void OnTeamSelected(PlayerTeam selectedTeam)
     {
-        tempPlayerInfo.team = selectedTeam;
+        if (NetworkClient.isConnected && PlayerCore.localPlayerCoreInstance != null)
+        {
+            PlayerCore.localPlayerCoreInstance.CmdChangeTeam(selectedTeam);
+        }
+        else
+        {
+            tempPlayerInfo.team = selectedTeam;
+            UpdateButtonColors(selectedTeam);
+        }
         Debug.Log($"Выбрана команда локально: {selectedTeam}");
-        UpdateButtonColors(selectedTeam);
     }
 
     private void OnPrefabSelected(int index)
@@ -121,8 +128,16 @@ public class PlayerUI_Team : MonoBehaviour
 
     private void OnChangeNameClicked()
     {
-        tempPlayerInfo.name = nameInputField.text;
-        Debug.Log($"Имя изменено локально на: {tempPlayerInfo.name}");
+        string newName = nameInputField.text;
+        if (NetworkClient.isConnected && PlayerCore.localPlayerCoreInstance != null)
+        {
+            PlayerCore.localPlayerCoreInstance.CmdChangeName(newName);
+        }
+        else
+        {
+            tempPlayerInfo.name = newName;
+        }
+        Debug.Log($"Имя изменено локально на: {newName}");
     }
 
     // Метод для дисконнекта
@@ -140,7 +155,7 @@ public class PlayerUI_Team : MonoBehaviour
         }
     }
 
-    // Метод для возвращения в главное меню (ИСПРАВЛЕННЫЙ)
+    // Метод для возвращения в главное меню
     public void OnReturnToMainMenuClicked()
     {
         if (NetworkServer.active && NetworkClient.isConnected)
