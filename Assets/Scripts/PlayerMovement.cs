@@ -33,7 +33,7 @@ public class PlayerMovement : NetworkBehaviour
         {
             Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
 
-            // ИЗМЕНЕНО: Полностью переработана логика обработки клика
+            // Если умение выбрано
             if (_core.Skills.IsSkillSelected)
             {
                 bool isTargetedSkill = _core.Skills.ActiveSkill is ProjectileDamageSkill || _core.Skills.ActiveSkill is TargetedStunSkill;
@@ -43,7 +43,27 @@ public class PlayerMovement : NetworkBehaviour
                 {
                     if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
                     {
-                        if (hit.collider.CompareTag("Enemy") || hit.collider.CompareTag("Player"))
+                        // Проверяем, является ли цель игроком
+                        if (hit.collider.CompareTag("Player"))
+                        {
+                            PlayerCore targetCore = hit.collider.GetComponent<PlayerCore>();
+
+                            // Если цель - враг, начинаем каст.
+                            // Если цель - союзник, ничего не делаем.
+                            if (targetCore != null && targetCore.team != _core.team)
+                            {
+                                _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, hit.point, hit.collider.gameObject, _core.Skills.ActiveSkill);
+                                _core.Skills.CancelSkillSelection();
+                            }
+                            else
+                            {
+                                // Если цель - союзник, мы просто выходим,
+                                // и выбор умения сохраняется.
+                                return;
+                            }
+                        }
+                        // Если цель - враг (с тегом "Enemy"), начинаем каст
+                        else if (hit.collider.CompareTag("Enemy"))
                         {
                             _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, hit.point, hit.collider.gameObject, _core.Skills.ActiveSkill);
                             _core.Skills.CancelSkillSelection();
@@ -79,7 +99,6 @@ public class PlayerMovement : NetworkBehaviour
             }
         }
     }
-
 
     public void MoveTo(Vector3 destination)
     {

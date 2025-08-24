@@ -21,9 +21,9 @@ public enum ControlEffectType
 
 //public enum PlayerTeam
 //{
-   // None,
-  //  Red,
- //   Blue
+// None,
+// Red,
+// Blue
 //}
 
 public class PlayerCore : NetworkBehaviour
@@ -281,6 +281,13 @@ public class PlayerCore : NetworkBehaviour
         if (Combat != null) Combat.enabled = !state;
         if (Skills != null) Skills.enabled = !state;
         if (ActionSystem != null) ActionSystem.enabled = !state;
+
+        // Скрываем UI
+        PlayerUI ui = GetComponentInChildren<PlayerUI>();
+        if (ui != null)
+        {
+            ui.gameObject.SetActive(!state);
+        }
 
         if (state && deathVFXPrefab != null)
         {
