@@ -125,6 +125,26 @@ public class PlayerCore : NetworkBehaviour
         }
     }
 
+    // НОВОЕ: Метод, который вызывается на всех клиентах, когда объект спавнится
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+
+        // Инициализируем компоненты UI
+        _nameText = GetComponentInChildren<TextMeshProUGUI>();
+        _teamIndicator = transform.Find("TeamIndicator")?.gameObject;
+        _playerUI_Team = GetComponentInChildren<PlayerUI_Team>();
+
+        // Устанавливаем имя сразу при спавне, используя актуальное значение SyncVar
+        if (_nameText != null)
+        {
+            _nameText.text = playerName;
+        }
+
+        // Вызываем OnTeamChanged, чтобы обновить цвет индикатора, если необходимо
+        OnTeamChanged(team, team);
+    }
+
     public override void OnStartServer()
     {
         isDead = false;
@@ -155,9 +175,8 @@ public class PlayerCore : NetworkBehaviour
     private void Start()
     {
         InitComponents();
-        _teamIndicator = transform.Find("TeamIndicator")?.gameObject;
-        _nameText = GetComponentInChildren<TextMeshProUGUI>();
 
+        // УБРАНО: Инициализация _nameText и _teamIndicator перенесена в OnStartClient()
         // УБРАНО: Вызовы OnTeamChanged и OnNameChanged из Start(),
         // потому что они будут вызваны автоматически хуками SyncVar.
     }
@@ -355,6 +374,7 @@ public class PlayerCore : NetworkBehaviour
         UpdateTeamIndicatorColor();
     }
 
+    // ОБНОВЛЕНО: Хук OnNameChanged теперь использует _nameText напрямую
     private void OnNameChanged(string oldName, string newName)
     {
         if (_nameText != null)
