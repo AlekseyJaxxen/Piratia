@@ -16,6 +16,9 @@ public class PlayerSkills : NetworkBehaviour
     [Header("Cursor Settings")]
     public Texture2D defaultCursor;
     public Texture2D castCursor;
+    public Texture2D attackCursor;
+    public float cursorUpdateInterval = 0.1f; // Интервал в секундах
+    private float _lastCursorUpdate = 0f;
 
     private PlayerCore _core;
     private bool _isCasting;
@@ -80,9 +83,36 @@ public class PlayerSkills : NetworkBehaviour
         }
         else
         {
+            UpdateCursor();
+        }
+    }
+
+    private void UpdateCursor()
+    {
+        if (Time.time < _lastCursorUpdate + cursorUpdateInterval) return;
+
+        _lastCursorUpdate = Time.time;
+
+        Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
+        RaycastHit hit;
+
+        if (Physics.Raycast(ray, out hit, Mathf.Infinity, _core.interactableLayers))
+        {
+            if (hit.collider.CompareTag("Enemy") || (hit.collider.CompareTag("Player") && hit.collider.GetComponent<PlayerCore>()?.team != _core.team))
+            {
+                SetCursor(attackCursor);
+            }
+            else
+            {
+                SetCursor(defaultCursor);
+            }
+        }
+        else
+        {
             SetCursor(defaultCursor);
         }
     }
+
 
     private void UpdateTargetIndicator()
     {
