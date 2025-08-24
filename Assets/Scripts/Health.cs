@@ -67,7 +67,6 @@ public class Health : NetworkBehaviour
         CurrentHealth -= finalDamage;
         Debug.Log($"[Server] {gameObject.name} took {finalDamage} damage (base: {baseDamage}, type: {damageType}). Current health: {CurrentHealth}");
 
-        // Вызываем Rpc-метод для отображения урона на всех клиентах
         RpcShowDamageNumber(finalDamage, isCritical, damageType);
 
         if (CurrentHealth <= 0)
@@ -112,14 +111,11 @@ public class Health : NetworkBehaviour
             Vector3 spawnPosition = transform.position + Vector3.up * damageTextSpawnHeight;
             GameObject floatingTextInstance = Instantiate(floatingTextPrefab, spawnPosition, Quaternion.identity);
 
-            // Модифицируйте FloatingDamageText чтобы он принимал тип урона
-            /*
             FloatingDamageText damageTextScript = floatingTextInstance.GetComponent<FloatingDamageText>();
             if (damageTextScript != null)
             {
-                damageTextScript.SetDamageText(damage, isCritical, damageType);
+                damageTextScript.SetDamageText(damage, isCritical);
             }
-            */
         }
     }
 
@@ -128,17 +124,14 @@ public class Health : NetworkBehaviour
     {
         if (floatingTextPrefab != null)
         {
-            // Позиция для спауна цифры лечения
             Vector3 spawnPosition = transform.position + Vector3.up * damageTextSpawnHeight;
             GameObject floatingTextInstance = Instantiate(floatingTextPrefab, spawnPosition, Quaternion.identity);
 
-            /*
             FloatingDamageText healTextScript = floatingTextInstance.GetComponent<FloatingDamageText>();
             if (healTextScript != null)
             {
                 healTextScript.SetHealText(healAmount);
             }
-            */
         }
     }
 
