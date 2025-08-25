@@ -29,7 +29,7 @@ public class PlayerCore : NetworkBehaviour
     public PlayerActionSystem ActionSystem;
     public PlayerCameraController Camera;
     public Health Health;
-    public CharacterStats Stats; // Added
+    public CharacterStats Stats;
 
     [Header("Respawn")]
     public float respawnTime = 5.0f;
@@ -41,7 +41,6 @@ public class PlayerCore : NetworkBehaviour
     [Header("Dependencies")]
     public LayerMask interactableLayers;
     public LayerMask groundLayer;
-
 
     [Header("Visuals")]
     public Material localPlayerMaterial;
@@ -71,9 +70,6 @@ public class PlayerCore : NetworkBehaviour
     private float _slowPercentage = 0f;
     private float _originalSpeed = 0f;
 
-    [Header("Respawn")]
-    private float timeOfDeath;
-
     [Header("Mana Regeneration")]
     public float manaRegenInterval = 1f;
     public int manaRegenAmount = 5;
@@ -95,15 +91,14 @@ public class PlayerCore : NetworkBehaviour
         ActionSystem = GetComponent<PlayerActionSystem>();
         Camera = GetComponent<PlayerCameraController>();
         Health = GetComponent<Health>();
-        Stats = GetComponent<CharacterStats>(); // Added
+        Stats = GetComponent<CharacterStats>();
     }
 
     public override void OnStartLocalPlayer()
     {
-        Debug.Log("OnStartLocalPlayer вызван для локального игрока. Логика инициализации компонента запускается.");
+        Debug.Log("OnStartLocalPlayer invoked for local player. Initializing components.");
         localPlayerCoreInstance = this;
 
-        // Ищем DeathScreenUI в сцене
         deathScreenUI = FindObjectOfType<DeathScreenUI>();
         if (deathScreenUI == null)
         {
@@ -118,11 +113,9 @@ public class PlayerCore : NetworkBehaviour
         base.OnStartLocalPlayer();
 
         int localPlayerLayer = LayerMask.NameToLayer("LocalPlayer");
-
         if (localPlayerLayer != -1)
         {
             gameObject.layer = localPlayerLayer;
-
             foreach (Transform child in transform)
             {
                 child.gameObject.layer = localPlayerLayer;
@@ -151,8 +144,11 @@ public class PlayerCore : NetworkBehaviour
         isDead = false;
         isStunned = false;
         _lastManaRegenTime = Time.time;
-
         if (Health != null) Health.Init();
+        if (Stats != null)
+        {
+            _originalSpeed = Stats.movementSpeed;
+        }
     }
 
     public void OnHealthZero()
@@ -174,21 +170,13 @@ public class PlayerCore : NetworkBehaviour
         if (Combat != null) Combat.Init(this);
         if (Skills != null) Skills.Init(this);
         if (ActionSystem != null) ActionSystem.Init(this);
-
-        if (Movement != null && Stats != null)
-        {
-            Movement.Init(this);
-            _originalSpeed = Stats.movementSpeed;
-        }
     }
 
     private void Update()
     {
         ServerUpdate();
 
-        if (!isLocalPlayer || isStunned) return;
-
-        if (isDead)
+        if (!isLocalPlayer || isStunned || isDead)
         {
             return;
         }
@@ -205,9 +193,17 @@ public class PlayerCore : NetworkBehaviour
         {
             ClearControlEffect();
         }
-    }
 
-    #region State Management
+        if (!isDead && Time.time >= _lastManaRegenTime + manaRegenInterval)
+        {
+            if (Stats != null)
+            {
+                Stats.RestoreMana(manaRegenAmount);
+                Debug.Log($"[Server] Regenerated {manaRegenAmount} mana for {playerName}. Current mana: {Stats.currentMana}");
+            }
+            _lastManaRegenTime = Time.time;
+        }
+    }
 
     [Server]
     public void ApplyControlEffect(ControlEffectType newEffectType, float duration)
@@ -242,7 +238,7 @@ public class PlayerCore : NetworkBehaviour
         {
             Movement.SetMovementSpeed(_originalSpeed);
             _slowPercentage = 0f;
-            Debug.Log("Эффект замедления снят. Скорость восстановлена.");
+            Debug.Log("Slow effect removed. Speed restored.");
         }
 
         currentControlEffect = ControlEffectType.None;
@@ -260,98 +256,6 @@ public class PlayerCore : NetworkBehaviour
             ActionSystem.CompleteAction();
             ClearControlEffect();
 
-            // Отключаем BoxCollider при смерти
-            if (TryGetComponent<BoxCollider>(out var boxCollider))
-            {
-                boxCollider.enabled = false;
-            }
-
-            // Также отключаем другие возможные коллайдеры
-            if (TryGetComponent<CapsuleCollider>(out var capsuleCollider))
-            {
-                capsuleCollider.enabled = false;
-            }
-
-            if (TryGetComponent<SphereCollider>(out var sphereCollider))
-            {
-                sphereCollider.enabled = false;
-            }
-
-            if (TryGetComponent<Renderer>(out var renderer))
-            {
-                renderer.enabled = false;
-            }
-
-            RpcSetDeathState(true);
-
-            // Уведомляем локального игрока о смерти через TargetRpc
-            TargetShowDeathScreen(connectionToClient);
-        }
-        else
-        {
-            // Включаем BoxCollider при возрождении
-            if (TryGetComponent<BoxCollider>(out var boxCollider))
-            {
-                boxCollider.enabled = true;
-            }
-
-            // Включаем другие возможные коллайдеры
-            if (TryGetComponent<CapsuleCollider>(out var capsuleCollider))
-            {
-                capsuleCollider.enabled = true;
-            }
-
-            if (TryGetComponent<SphereCollider>(out var sphereCollider))
-            {
-                sphereCollider.enabled = true;
-            }
-
-            if (TryGetComponent<Renderer>(out var renderer))
-            {
-                renderer.enabled = true;
-            }
-
-            RpcSetDeathState(false);
-
-            // Скрываем экран смерти у локального игрока
-            TargetHideDeathScreen(connectionToClient);
-        }
-    }
-
-    [TargetRpc]
-    private void TargetShowDeathScreen(NetworkConnection conn)
-    {
-        if (deathScreenUI != null)
-        {
-            deathScreenUI.ShowDeathScreen();
-        }
-    }
-
-    [TargetRpc]
-    private void TargetHideDeathScreen(NetworkConnection conn)
-    {
-        if (deathScreenUI != null)
-        {
-            deathScreenUI.HideDeathScreen();
-        }
-    }
-
-    [ClientRpc]
-    private void RpcSetDeathState(bool state)
-    {
-        if (state)
-        {
-            // Визуальные эффекты смерти на клиенте
-            if (Movement != null)
-            {
-                Movement.StopMovement();
-                Movement.enabled = false;
-            }
-            if (Combat != null) Combat.enabled = false;
-            if (Skills != null) Skills.enabled = false;
-            if (ActionSystem != null) ActionSystem.enabled = false;
-
-            // Отключаем коллайдеры на клиенте
             if (TryGetComponent<BoxCollider>(out var boxCollider))
             {
                 boxCollider.enabled = false;
@@ -373,7 +277,7 @@ public class PlayerCore : NetworkBehaviour
                 ui.gameObject.SetActive(false);
             }
 
-            if (state && deathVFXPrefab != null)
+            if (deathVFXPrefab != null)
             {
                 GameObject vfx = Instantiate(deathVFXPrefab, transform.position, Quaternion.identity);
                 Destroy(vfx, 3f);
@@ -381,13 +285,11 @@ public class PlayerCore : NetworkBehaviour
         }
         else
         {
-            // Восстанавливаем визуальное состояние
             if (Movement != null) Movement.enabled = true;
             if (Combat != null) Combat.enabled = true;
             if (Skills != null) Skills.enabled = true;
             if (ActionSystem != null) ActionSystem.enabled = true;
 
-            // Включаем коллайдеры на клиенте
             if (TryGetComponent<BoxCollider>(out var boxCollider))
             {
                 boxCollider.enabled = true;
@@ -436,7 +338,7 @@ public class PlayerCore : NetworkBehaviour
         float newSpeed = _originalSpeed * (1f - _slowPercentage);
         Movement.SetMovementSpeed(newSpeed);
 
-        Debug.Log($"Применено замедление: {_slowPercentage:P0} на {duration} секунд. Новая скорость: {newSpeed}");
+        Debug.Log($"Applied slow effect: {_slowPercentage:P0} for {duration} seconds. New speed: {newSpeed}");
     }
 
     [ClientRpc]
@@ -463,7 +365,6 @@ public class PlayerCore : NetworkBehaviour
             return;
         }
 
-        // Находим точку respawn'а для команды игрока
         Transform spawnPoint = FindObjectOfType<MyNetworkManager>()?.GetTeamSpawnPoint(team);
         Vector3 respawnPosition = spawnPoint != null ? spawnPoint.position : _initialSpawnPosition;
 
@@ -490,26 +391,13 @@ public class PlayerCore : NetworkBehaviour
     {
         transform.position = newPosition;
 
-        // Визуальное обновление на клиенте
         if (isLocalPlayer)
         {
-            // Включаем компоненты
             if (Movement != null) Movement.enabled = true;
             if (Combat != null) Combat.enabled = true;
             if (Skills != null) Skills.enabled = true;
             if (ActionSystem != null) ActionSystem.enabled = true;
         }
-    }
-
-    [ClientRpc]
-    private void RpcRespawnPlayer(Vector3 newPosition)
-    {
-        SetDeathState(false);
-        if (Health != null)
-        {
-            Health.SetHealth(Health.MaxHealth);
-        }
-        transform.position = newPosition;
     }
 
     [Command]
@@ -542,6 +430,15 @@ public class PlayerCore : NetworkBehaviour
         }
         team = newTeam;
         Debug.Log($"Server: Player team changed to: {newTeam}");
+    }
+
+    [Command]
+    public void CmdAddExperience(int amount)
+    {
+        if (Stats != null)
+        {
+            Stats.AddExperience(amount);
+        }
     }
 
     private void OnTeamChanged(PlayerTeam oldTeam, PlayerTeam newTeam)
@@ -582,13 +479,22 @@ public class PlayerCore : NetworkBehaviour
 
     private void OnDeathStateChanged(bool oldValue, bool newValue)
     {
-        if (newValue) { Combat.enabled = false; Skills.enabled = false; Movement.enabled = false; }
-        else { Combat.enabled = true; Skills.enabled = true; Movement.enabled = true; }
+        if (newValue)
+        {
+            Combat.enabled = false;
+            Skills.enabled = false;
+            Movement.enabled = false;
+        }
+        else
+        {
+            Combat.enabled = true;
+            Skills.enabled = true;
+            Movement.enabled = true;
+        }
     }
 
     private void OnStunStateChanged(bool oldValue, bool newValue)
     {
         if (Skills != null) Skills.HandleStunEffect(newValue);
     }
-    #endregion
 }

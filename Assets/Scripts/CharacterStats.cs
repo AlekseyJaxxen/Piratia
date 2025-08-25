@@ -65,6 +65,10 @@ public class CharacterStats : NetworkBehaviour
     [SyncVar(hook = nameof(OnManaChanged))]
     public int currentMana;
 
+    // События для UI
+    public event System.Action<int, int> OnManaChangedEvent;
+    public event System.Action<int, int> OnLevelChangedEvent;
+
     private static readonly int[] ExperiencePerLevel = new int[100];
 
     public override void OnStartServer()
@@ -150,31 +154,6 @@ public class CharacterStats : NetworkBehaviour
         armor = constitution * 2;
         physicalResistance = Mathf.Min(constitution * 0.5f, 80f);
         currentMana = Mathf.Min(currentMana, maxMana);
-
-        switch (characterClass)
-        {
-            case CharacterClass.Warrior:
-                minAttack = 5 + (strength * 2);
-                maxAttack = 5 + (strength * 3);
-                break;
-            case CharacterClass.Mage:
-                minAttack = 5 + (spirit * 2);
-                maxAttack = 5 + (spirit * 3);
-                break;
-            case CharacterClass.Archer:
-                minAttack = 5 + (accuracy * 2);
-                maxAttack = 5 + (accuracy * 3);
-                break;
-        }
-    }
-
-    [Client]
-    private void OnLevelChanged(int oldLevel, int newLevel)
-    {
-        if (isLocalPlayer)
-        {
-            Debug.Log($"Level changed: {oldLevel} -> {newLevel}");
-        }
     }
 
     [Client]
@@ -201,12 +180,23 @@ public class CharacterStats : NetworkBehaviour
     }
 
     [Client]
-    private void OnManaChanged(int oldMana, int newMana)
+    public void OnManaChanged(int oldMana, int newMana)
     {
         if (isLocalPlayer)
         {
             Debug.Log($"Mana changed: {oldMana} -> {newMana}");
         }
+        OnManaChangedEvent?.Invoke(oldMana, newMana);
+    }
+
+    [Client]
+    public void OnLevelChanged(int oldLevel, int newLevel)
+    {
+        if (isLocalPlayer)
+        {
+            Debug.Log($"Level changed: {oldLevel} -> {newLevel}");
+        }
+        OnLevelChangedEvent?.Invoke(oldLevel, newLevel);
     }
 
     [Server]
