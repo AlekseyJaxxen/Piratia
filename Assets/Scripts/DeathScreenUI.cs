@@ -1,8 +1,9 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using Mirror;
 
-public class DeathScreenUI : MonoBehaviour
+public class DeathScreenUI : NetworkBehaviour
 {
     [Header("UI Elements")]
     public GameObject deathScreenPanel;
@@ -13,29 +14,45 @@ public class DeathScreenUI : MonoBehaviour
     private float _respawnCountdown;
     private bool _isDead = false;
 
-    private void Awake()
+    public override void OnStartLocalPlayer()
     {
-        deathScreenPanel = GameObject.Find("DeathScreenPanel");
+        base.OnStartLocalPlayer();
+        InitializeUI();
+    }
+
+    private void InitializeUI()
+    {
         if (deathScreenPanel == null)
         {
-            Debug.LogError("DeathScreenPanel not found!");
+            deathScreenPanel = GameObject.Find("DeathScreenPanel");
+            if (deathScreenPanel == null)
+            {
+                Debug.LogError("DeathScreenPanel not found!");
+                return;
+            }
+        }
+
+        if (respawnTimerText == null)
+            respawnTimerText = deathScreenPanel.transform.Find("RespawnTimerText")?.GetComponent<TextMeshProUGUI>();
+
+        if (respawnButton == null)
+            respawnButton = deathScreenPanel.transform.Find("RespawnButton")?.GetComponent<Button>();
+
+        if (respawnTimerText == null || respawnButton == null)
+        {
+            Debug.LogError("RespawnTimerText or RespawnButton not found!");
             return;
         }
 
-        respawnTimerText = deathScreenPanel.transform.Find("RespawnTimerText").GetComponent<TextMeshProUGUI>();
-        respawnButton = deathScreenPanel.transform.Find("RespawnButton").GetComponent<Button>();
-
         deathScreenPanel.SetActive(false);
-
-        if (respawnButton != null)
-        {
-            respawnButton.onClick.AddListener(OnRespawnButtonClicked);
-            respawnButton.interactable = false;
-        }
+        respawnButton.onClick.AddListener(OnRespawnButtonClicked);
+        respawnButton.interactable = false;
     }
 
     private void Update()
     {
+        if (!isLocalPlayer) return;
+
         if (_isDead)
         {
             _respawnCountdown -= Time.deltaTime;
@@ -48,54 +65,70 @@ public class DeathScreenUI : MonoBehaviour
             if (_respawnCountdown <= 0 && respawnButton != null && !respawnButton.interactable)
             {
                 respawnButton.interactable = true;
-                respawnTimerText.text = "Ready to respawn!";
+                if (respawnTimerText != null)
+                    respawnTimerText.text = "Ready to respawn!";
             }
         }
     }
 
-    public void ShowDeathScreen()
+    [TargetRpc]
+    public void TargetShowDeathScreen(NetworkConnection conn)
     {
+        if (!isLocalPlayer) return;
+
+        if (deathScreenPanel == null || respawnTimerText == null || respawnButton == null)
+        {
+            Debug.LogError("UI elements are not initialized in ShowDeathScreen!");
+            return;
+        }
+
         _isDead = true;
         _respawnCountdown = respawnTime;
 
         deathScreenPanel.SetActive(true);
-
-        if (respawnTimerText != null)
-        {
-            respawnTimerText.text = $"Respawn in: {Mathf.CeilToInt(_respawnCountdown)}s";
-        }
-
-        if (respawnButton != null)
-        {
-            respawnButton.interactable = false;
-        }
+        respawnTimerText.text = $"Respawn in: {Mathf.CeilToInt(_respawnCountdown)}s";
+        respawnButton.interactable = false;
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
 
-    public void HideDeathScreen()
+    [TargetRpc]
+    public void TargetHideDeathScreen(NetworkConnection conn)
     {
-        _isDead = false;
-        deathScreenPanel.SetActive(false);
+        if (!isLocalPlayer) return;
 
+        if (deathScreenPanel != null)
+        {
+            _isDead = false;
+            deathScreenPanel.SetActive(false);
+        }
 
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
     private void OnRespawnButtonClicked()
     {
-        PlayerCore localPlayer = PlayerCore.localPlayerCoreInstance;
+        if (!isLocalPlayer) return;
+
+        PlayerCore localPlayer = GetComponent<PlayerCore>();
         if (localPlayer != null)
         {
             localPlayer.CmdRequestRespawn();
         }
-
-        HideDeathScreen();
+        TargetHideDeathScreen(connectionToClient);
     }
 
-    public void ForceHide()
+    [TargetRpc]
+    public void TargetForceHide(NetworkConnection conn)
     {
-        _isDead = false;
-        deathScreenPanel.SetActive(false);
+        if (!isLocalPlayer) return;
+
+        if (deathScreenPanel != null)
+        {
+            _isDead = false;
+            deathScreenPanel.SetActive(false);
+        }
     }
 }
