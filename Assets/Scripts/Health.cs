@@ -8,17 +8,17 @@ public class Health : NetworkBehaviour
     [HideInInspector]
     public int MaxHealth = 1000;
 
-    // Ссылка на UI
     private PlayerUI playerUI;
 
     [SyncVar(hook = nameof(OnHealthChanged))]
     private int _currentHealth;
 
-    // Ссылка на префаб цифр урона
+    public event System.Action<int, int> OnHealthUpdated; // Переименовано событие
+
     [Header("Damage Text")]
     public GameObject floatingTextPrefab;
-    public float damageTextSpawnHeight = 2.5f; // Новая переменная для высоты спауна
-    public float damageTextRandomness = 0.5f; // Новая переменная для случайности
+    public float damageTextSpawnHeight = 2.5f;
+    public float damageTextRandomness = 0.5f;
 
     public int CurrentHealth
     {
@@ -40,8 +40,6 @@ public class Health : NetworkBehaviour
     {
         CurrentHealth += amount;
         Debug.Log($"[Server] {gameObject.name} healed for {amount}. Current health: {CurrentHealth}");
-
-        // Вызываем Rpc-метод для отображения лечения на всех клиентах
         RpcShowHealNumber(amount);
     }
 
@@ -51,7 +49,6 @@ public class Health : NetworkBehaviour
         CurrentHealth = MaxHealth;
     }
 
-    // Новый публичный метод для установки здоровья
     [Server]
     public void SetHealth(int amount)
     {
@@ -66,7 +63,6 @@ public class Health : NetworkBehaviour
 
         CurrentHealth -= finalDamage;
         Debug.Log($"[Server] {gameObject.name} took {finalDamage} damage. Current health: {CurrentHealth}");
-
         RpcShowDamageNumber(finalDamage, isCritical, damageType);
 
         if (CurrentHealth <= 0)
@@ -85,17 +81,11 @@ public class Health : NetworkBehaviour
         switch (damageType)
         {
             case DamageType.Physical:
-                // 1. Применяем физическое сопротивление (%)
                 float damageAfterResistance = baseDamage * (1f - stats.physicalResistance / 100f);
-
-                // 2. Вычитаем броню (плоское значение)
                 int damageAfterArmor = Mathf.RoundToInt(damageAfterResistance) - stats.armor;
-
-                // 3. Обеспечиваем минимальный урон
                 return Mathf.Max((int)CombatConstants.MIN_PHYSICAL_DAMAGE, damageAfterArmor);
 
             case DamageType.Magic:
-                // Магический урон пока не уменьшается (можно добавить магическое сопротивление позже)
                 return baseDamage;
 
             default:
@@ -110,7 +100,6 @@ public class Health : NetworkBehaviour
         {
             Vector3 spawnPosition = transform.position + Vector3.up * damageTextSpawnHeight;
             GameObject floatingTextInstance = Instantiate(floatingTextPrefab, spawnPosition, Quaternion.identity);
-
             FloatingDamageText damageTextScript = floatingTextInstance.GetComponent<FloatingDamageText>();
             if (damageTextScript != null)
             {
@@ -126,7 +115,6 @@ public class Health : NetworkBehaviour
         {
             Vector3 spawnPosition = transform.position + Vector3.up * damageTextSpawnHeight;
             GameObject floatingTextInstance = Instantiate(floatingTextPrefab, spawnPosition, Quaternion.identity);
-
             FloatingDamageText healTextScript = floatingTextInstance.GetComponent<FloatingDamageText>();
             if (healTextScript != null)
             {
@@ -138,6 +126,7 @@ public class Health : NetworkBehaviour
     private void OnHealthChanged(int oldHealth, int newHealth)
     {
         Debug.Log($"[Client] Health changed from {oldHealth} to {newHealth}");
+        OnHealthUpdated?.Invoke(newHealth, MaxHealth); // Используем новое имя события
         if (playerUI != null)
         {
             playerUI.UpdateHealthBar(newHealth, MaxHealth);

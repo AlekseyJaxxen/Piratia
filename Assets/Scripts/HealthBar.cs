@@ -3,18 +3,15 @@ using UnityEngine.UI;
 
 public class HealthBar : MonoBehaviour
 {
-    // Ссылка на компонент Image для управления полосой здоровья
     [SerializeField] private Image _healthBarImage;
-
-    // Смещение полосы здоровья от центра объекта
+    [SerializeField] private Image _damageFlashImage; // Новый Image для эффекта
     [SerializeField] private Vector3 _offset = new Vector3(0, 2f, 0);
-
-    // Ссылка на компонент Health, чтобы получать данные о здоровье
     private Health _health;
+    private float _flashDuration = 0.5f; // Длительность эффекта
+    private float _flashTimer;
 
     private void Awake()
     {
-        // Находим компонент Image на текущем объекте
         if (_healthBarImage == null)
         {
             _healthBarImage = GetComponent<Image>();
@@ -24,38 +21,74 @@ public class HealthBar : MonoBehaviour
             }
         }
 
-        // Находим компонент Health на родительском объекте
+        if (_damageFlashImage == null)
+        {
+            GameObject flashObj = new GameObject("DamageFlash");
+            flashObj.transform.SetParent(_healthBarImage.transform, false);
+            _damageFlashImage = flashObj.AddComponent<Image>();
+            _damageFlashImage.color = Color.white;
+            _damageFlashImage.fillAmount = 1f;
+            _damageFlashImage.type = Image.Type.Filled;
+            _damageFlashImage.fillMethod = Image.FillMethod.Horizontal;
+            _damageFlashImage.rectTransform.sizeDelta = _healthBarImage.rectTransform.sizeDelta;
+        }
+
         _health = GetComponentInParent<Health>();
         if (_health == null)
         {
-            Debug.LogError("Health component not found on the parent object. Please attach this HealthBar to a player or enemy.", this);
+            Debug.LogError("Health component not found on the parent object.", this);
+        }
+        else
+        {
+            _health.OnHealthUpdated += UpdateHealthBar;
         }
     }
 
-    private void Start()
+    private void OnDestroy()
     {
-        // Обновляем полосу здоровья в начале
-        UpdateHealthBar();
+        if (_health != null)
+        {
+            _health.OnHealthUpdated -= UpdateHealthBar;
+        }
     }
 
     private void Update()
     {
-        // Устанавливаем положение полосы здоровья над персонажем
-        transform.position = _health.transform.position + _offset;
-
-     
-        // Обновляем полосу здоровья
-        UpdateHealthBar();
+        if (_health != null)
+        {
+            transform.position = _health.transform.position + _offset;
+            UpdateFlashEffect();
+        }
     }
 
-    private void UpdateHealthBar()
+    private void UpdateHealthBar(int currentHealth, int maxHealth)
     {
         if (_health != null && _healthBarImage != null)
         {
-            // Вычисляем процент здоровья
-            float healthRatio = (float)_health.CurrentHealth / _health.MaxHealth;
-            // Обновляем fillAmount изображения
-            _healthBarImage.fillAmount = healthRatio;
+            float newHealthRatio = (float)currentHealth / maxHealth;
+            float previousHealthRatio = _healthBarImage.fillAmount;
+            _healthBarImage.fillAmount = newHealthRatio;
+
+            if (newHealthRatio < previousHealthRatio)
+            {
+                _damageFlashImage.fillAmount = previousHealthRatio;
+                _flashTimer = _flashDuration;
+                _damageFlashImage.color = new Color(1f, 1f, 1f, 1f);
+            }
+        }
+    }
+
+    private void UpdateFlashEffect()
+    {
+        if (_flashTimer > 0)
+        {
+            _flashTimer -= Time.deltaTime;
+            float alpha = Mathf.Clamp01(_flashTimer / _flashDuration);
+            _damageFlashImage.color = new Color(1f, 1f, 1f, alpha);
+            if (_flashTimer <= 0)
+            {
+                _damageFlashImage.fillAmount = _healthBarImage.fillAmount;
+            }
         }
     }
 }
