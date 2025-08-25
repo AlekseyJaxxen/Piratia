@@ -41,7 +41,7 @@ public class PlayerCore : NetworkBehaviour
     [Header("Dependencies")]
     public LayerMask interactableLayers;
     public LayerMask groundLayer;
-    
+
 
     [Header("Visuals")]
     public Material localPlayerMaterial;
@@ -71,7 +71,7 @@ public class PlayerCore : NetworkBehaviour
     private float _slowPercentage = 0f;
     private float _originalSpeed = 0f;
 
-    [Header("Respawn")]    
+    [Header("Respawn")]
     private float timeOfDeath;
 
     [Header("Mana Regeneration")]
@@ -103,13 +103,11 @@ public class PlayerCore : NetworkBehaviour
         Debug.Log("OnStartLocalPlayer вызван для локального игрока. Логика инициализации компонента запускается.");
         localPlayerCoreInstance = this;
 
+        // Ищем DeathScreenUI в сцене
+        deathScreenUI = FindObjectOfType<DeathScreenUI>();
         if (deathScreenUI == null)
         {
-            deathScreenUI = FindObjectOfType<DeathScreenUI>();
-            if (deathScreenUI == null)
-            {
-                Debug.LogWarning("DeathScreenUI not found in scene!");
-            }
+            Debug.LogWarning("DeathScreenUI not found in scene!");
         }
 
         if (Camera != null)
@@ -207,8 +205,6 @@ public class PlayerCore : NetworkBehaviour
         {
             ClearControlEffect();
         }
-
-        // Убрали автоматический respawn - теперь игрок сам нажимает кнопку
     }
 
     #region State Management
@@ -275,11 +271,8 @@ public class PlayerCore : NetworkBehaviour
 
             RpcSetDeathState(true);
 
-            // Уведомляем локального игрока о смерти
-            if (isLocalPlayer && deathScreenUI != null)
-            {
-                deathScreenUI.ShowDeathScreen();
-            }
+            // Уведомляем локального игрока о смерти через TargetRpc
+            TargetShowDeathScreen(connectionToClient);
         }
         else
         {
@@ -294,14 +287,28 @@ public class PlayerCore : NetworkBehaviour
 
             RpcSetDeathState(false);
 
-            // Скрываем экран смерти если он показан
-            if (isLocalPlayer && deathScreenUI != null)
-            {
-                deathScreenUI.HideDeathScreen();
-            }
+            // Скрываем экран смерти у локального игрока
+            TargetHideDeathScreen(connectionToClient);
         }
     }
 
+    [TargetRpc]
+    private void TargetShowDeathScreen(NetworkConnection conn)
+    {
+        if (deathScreenUI != null)
+        {
+            deathScreenUI.ShowDeathScreen();
+        }
+    }
+
+    [TargetRpc]
+    private void TargetHideDeathScreen(NetworkConnection conn)
+    {
+        if (deathScreenUI != null)
+        {
+            deathScreenUI.HideDeathScreen();
+        }
+    }
 
     [ClientRpc]
     private void RpcSetDeathState(bool state)
@@ -329,12 +336,6 @@ public class PlayerCore : NetworkBehaviour
                 GameObject vfx = Instantiate(deathVFXPrefab, transform.position, Quaternion.identity);
                 Destroy(vfx, 3f);
             }
-
-            // Показываем экран смерти локальному игроку
-            if (isLocalPlayer && deathScreenUI != null)
-            {
-                deathScreenUI.ShowDeathScreen();
-            }
         }
         else
         {
@@ -348,12 +349,6 @@ public class PlayerCore : NetworkBehaviour
             if (ui != null)
             {
                 ui.gameObject.SetActive(true);
-            }
-
-            // Скрываем экран смерти
-            if (isLocalPlayer && deathScreenUI != null)
-            {
-                deathScreenUI.HideDeathScreen();
             }
         }
     }
@@ -440,23 +435,11 @@ public class PlayerCore : NetworkBehaviour
         // Визуальное обновление на клиенте
         if (isLocalPlayer)
         {
-            // Обновляем UI здоровья
-            if (Health != null)
-            {
-                //Health.SetHealthVisual(Health.MaxHealth);
-            }
-
             // Включаем компоненты
             if (Movement != null) Movement.enabled = true;
             if (Combat != null) Combat.enabled = true;
             if (Skills != null) Skills.enabled = true;
             if (ActionSystem != null) ActionSystem.enabled = true;
-
-            // Скрываем экран смерти
-            if (deathScreenUI != null)
-            {
-                deathScreenUI.HideDeathScreen();
-            }
         }
     }
 

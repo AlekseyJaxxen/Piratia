@@ -13,6 +13,7 @@ public class DeathScreenUI : NetworkBehaviour
 
     private float _respawnCountdown;
     private bool _isDead = false;
+    private bool _canRespawn = false;
 
     public override void OnStartLocalPlayer()
     {
@@ -53,26 +54,33 @@ public class DeathScreenUI : NetworkBehaviour
     {
         if (!isLocalPlayer) return;
 
-        if (_isDead)
+        if (_isDead && !_canRespawn)
         {
             _respawnCountdown -= Time.deltaTime;
 
-            if (respawnTimerText != null)
+            // Останавливаем таймер на 0
+            if (_respawnCountdown <= 0)
             {
-                respawnTimerText.text = $"Respawn in: {Mathf.CeilToInt(_respawnCountdown)}s";
-            }
+                _respawnCountdown = 0;
+                _canRespawn = true;
 
-            if (_respawnCountdown <= 0 && respawnButton != null && !respawnButton.interactable)
-            {
-                respawnButton.interactable = true;
+                if (respawnButton != null && !respawnButton.interactable)
+                {
+                    respawnButton.interactable = true;
+                }
+
                 if (respawnTimerText != null)
                     respawnTimerText.text = "Ready to respawn!";
+            }
+            else if (respawnTimerText != null)
+            {
+                // Показываем только целые секунды
+                respawnTimerText.text = $"Respawn in: {Mathf.CeilToInt(_respawnCountdown)}s";
             }
         }
     }
 
-    [TargetRpc]
-    public void TargetShowDeathScreen(NetworkConnection conn)
+    public void ShowDeathScreen()
     {
         if (!isLocalPlayer) return;
 
@@ -83,6 +91,7 @@ public class DeathScreenUI : NetworkBehaviour
         }
 
         _isDead = true;
+        _canRespawn = false;
         _respawnCountdown = respawnTime;
 
         deathScreenPanel.SetActive(true);
@@ -93,41 +102,44 @@ public class DeathScreenUI : NetworkBehaviour
         Cursor.visible = true;
     }
 
-    [TargetRpc]
-    public void TargetHideDeathScreen(NetworkConnection conn)
+    public void HideDeathScreen()
     {
         if (!isLocalPlayer) return;
 
         if (deathScreenPanel != null)
         {
             _isDead = false;
+            _canRespawn = false;
             deathScreenPanel.SetActive(false);
         }
 
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        // НЕ блокируем курсор здесь - это должно управляться в другом месте
+        // Cursor.lockState = CursorLockMode.Locked;
+        // Cursor.visible = false;
     }
 
     private void OnRespawnButtonClicked()
     {
-        if (!isLocalPlayer) return;
+        if (!isLocalPlayer || !_canRespawn) return;
 
-        PlayerCore localPlayer = GetComponent<PlayerCore>();
+        PlayerCore localPlayer = PlayerCore.localPlayerCoreInstance;
         if (localPlayer != null)
         {
             localPlayer.CmdRequestRespawn();
         }
-        TargetHideDeathScreen(connectionToClient);
+
+        // Скрываем экран, но не управляем курсором здесь
+        ForceHide();
     }
 
-    [TargetRpc]
-    public void TargetForceHide(NetworkConnection conn)
+    public void ForceHide()
     {
         if (!isLocalPlayer) return;
 
         if (deathScreenPanel != null)
         {
             _isDead = false;
+            _canRespawn = false;
             deathScreenPanel.SetActive(false);
         }
     }
