@@ -12,7 +12,6 @@ public abstract class SkillBase : NetworkBehaviour, ISkill
     public Texture2D CastCursor => _castCursor;
     public int ManaCost => _manaCost;
     public DamageType SkillDamageType => _damageType;
-
     public float RemainingCooldown => Mathf.Max(0, _cooldown - (Time.time - _lastUseTime));
     public float CooldownProgressNormalized => 1f - (RemainingCooldown / _cooldown);
 
@@ -24,7 +23,6 @@ public abstract class SkillBase : NetworkBehaviour, ISkill
     [SerializeField] protected GameObject _rangeIndicator;
     [SerializeField] protected GameObject _targetIndicatorPrefab;
     [SerializeField] protected Texture2D _castCursor;
-
     [Header("Mana Cost")]
     [SerializeField] protected int _manaCost = 0;
     [SerializeField] protected DamageType _damageType = DamageType.Physical;
@@ -39,7 +37,6 @@ public abstract class SkillBase : NetworkBehaviour, ISkill
             _targetIndicatorInstance = Instantiate(_targetIndicatorPrefab);
             _targetIndicatorInstance.SetActive(false);
         }
-
         if (isLocalPlayer && _rangeIndicator != null)
         {
             _rangeIndicator.SetActive(false);
@@ -75,7 +72,6 @@ public abstract class SkillBase : NetworkBehaviour, ISkill
 
     public void Execute(PlayerCore player, Vector3? targetPosition, GameObject targetObject)
     {
-        // ”бираем проверку маны здесь - переносим на сервер
         ExecuteSkillImplementation(player, targetPosition, targetObject);
     }
 

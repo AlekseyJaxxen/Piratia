@@ -5,7 +5,7 @@ using TMPro;
 public class Health : NetworkBehaviour
 {
     [Header("Health Settings")]
-    [SyncVar(hook = nameof(OnMaxHealthChanged))] // Добавьте SyncVar и хук
+    [SyncVar(hook = nameof(OnMaxHealthChanged))]
     public int MaxHealth = 1000;
 
     private PlayerUI playerUI;
@@ -60,7 +60,7 @@ public class Health : NetworkBehaviour
     public void SetMaxHealth(int newMaxHealth)
     {
         MaxHealth = newMaxHealth;
-        CurrentHealth = Mathf.Min(CurrentHealth, MaxHealth); // Не даем текущему здоровью превысить максимум
+        CurrentHealth = Mathf.Min(CurrentHealth, MaxHealth);
         Debug.Log($"[Server] {gameObject.name} max health set to: {MaxHealth}");
     }
 

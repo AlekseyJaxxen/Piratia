@@ -1,29 +1,23 @@
 using UnityEngine;
 using Mirror;
 
-public enum CharacterClass
-{
-    Warrior,
-    Mage,
-    Archer
-}
-
-public enum DamageType
-{
-    Physical,
-    Magic
-}
-
-public static class CombatConstants
-{
-    public const float MIN_PHYSICAL_DAMAGE = 15f;
-}
-
 public class CharacterStats : NetworkBehaviour
 {
     [Header("Character Class")]
     [SyncVar]
     public CharacterClass characterClass = CharacterClass.Warrior;
+
+    [Header("Level and Experience")]
+    [SyncVar(hook = nameof(OnLevelChanged))]
+    public int level = 1;
+    [SyncVar]
+    public int currentExperience = 0;
+    [SyncVar]
+    public int totalExperience = 0;
+    [SyncVar]
+    public int skillPoints = 0;
+    [SyncVar]
+    public int characteristicPoints = 0;
 
     [Header("Base Attributes")]
     [SyncVar]
@@ -71,36 +65,90 @@ public class CharacterStats : NetworkBehaviour
     [SyncVar(hook = nameof(OnManaChanged))]
     public int currentMana;
 
+    private static readonly int[] ExperiencePerLevel = new int[100];
+
     public override void OnStartServer()
     {
         base.OnStartServer();
+        InitializeExperienceTable();
         CalculateDerivedStats();
         currentMana = maxMana;
+        totalExperience = CalculateTotalExperience();
+        skillPoints = level - 1;
+        characteristicPoints = CalculateCharacteristicPoints();
+    }
+
+    private void InitializeExperienceTable()
+    {
+        for (int i = 0; i < 100; i++)
+        {
+            ExperiencePerLevel[i] = 10 + (i * i * 5);
+        }
+    }
+
+    private int CalculateTotalExperience()
+    {
+        int total = 0;
+        for (int i = 0; i < 100; i++)
+        {
+            total += ExperiencePerLevel[i];
+        }
+        return total;
+    }
+
+    private int CalculateCharacteristicPoints()
+    {
+        int points = 0;
+        for (int i = 1; i <= level; i++)
+        {
+            points += (i % 5 == 0) ? 5 : 1;
+        }
+        return points;
+    }
+
+    [Server]
+    public void AddExperience(int amount)
+    {
+        if (level >= 100) return;
+
+        currentExperience += amount;
+        while (currentExperience >= ExperiencePerLevel[level - 1] && level < 100)
+        {
+            currentExperience -= ExperiencePerLevel[level - 1];
+            level++;
+            skillPoints++;
+            characteristicPoints += (level % 5 == 0) ? 5 : 1;
+            CalculateDerivedStats();
+            Debug.Log($"Player leveled up to {level}! Skill Points: {skillPoints}, Characteristic Points: {characteristicPoints}");
+        }
+        if (level == 100)
+        {
+            currentExperience = 0;
+        }
     }
 
     [Server]
     public void CalculateDerivedStats()
     {
         int newMaxHealth = 1000 + (constitution * 10);
-
-        // Обновляем MaxHealth в Health компоненте
         Health healthComponent = GetComponent<Health>();
         if (healthComponent != null)
         {
             healthComponent.SetMaxHealth(newMaxHealth);
         }
-
-        movementSpeed = 8f + (agility * 0.1f);
-        GetComponent<PlayerMovement>().moveSpeed = movementSpeed;
-
+        movementSpeed = 8f;
+        PlayerMovement movementComponent = GetComponent<PlayerMovement>();
+        if (movementComponent != null)
+        {
+            movementComponent.moveSpeed = movementSpeed;
+        }
+        attackSpeed = 1.0f + (agility * 0.05f);
         dodgeChance = 5.0f + (agility * 0.5f);
         hitChance = 80.0f + (accuracy * 1.0f);
         criticalHitChance = 15.0f + (agility * 0.2f);
-
         maxMana = 100 + (intelligence * 10);
         armor = constitution * 2;
         physicalResistance = Mathf.Min(constitution * 0.5f, 80f);
-
         currentMana = Mathf.Min(currentMana, maxMana);
 
         switch (characterClass)
@@ -120,7 +168,16 @@ public class CharacterStats : NetworkBehaviour
         }
     }
 
-    // Клиентская проверка для UI
+    [Client]
+    private void OnLevelChanged(int oldLevel, int newLevel)
+    {
+        if (isLocalPlayer)
+        {
+            Debug.Log($"Level changed: {oldLevel} -> {newLevel}");
+        }
+    }
+
+    [Client]
     public bool HasEnoughMana(int amount)
     {
         return currentMana >= amount;
@@ -143,6 +200,7 @@ public class CharacterStats : NetworkBehaviour
         currentMana = Mathf.Min(currentMana + amount, maxMana);
     }
 
+    [Client]
     private void OnManaChanged(int oldMana, int newMana)
     {
         if (isLocalPlayer)
@@ -154,7 +212,7 @@ public class CharacterStats : NetworkBehaviour
     [Server]
     public bool TryCriticalHit()
     {
-        float randomValue = Random.Range(0f, 100f);
+        float randomValue = UnityEngine.Random.Range(0f, 100f);
         return randomValue <= criticalHitChance;
     }
 
@@ -162,12 +220,10 @@ public class CharacterStats : NetworkBehaviour
     public int CalculateDamageWithCrit(int baseDamage, out bool isCritical)
     {
         isCritical = TryCriticalHit();
-
         if (isCritical)
         {
             return Mathf.RoundToInt(baseDamage * criticalHitMultiplier);
         }
-
         return baseDamage;
     }
 }
