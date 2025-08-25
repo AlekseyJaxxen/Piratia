@@ -81,9 +81,14 @@ public class CharacterStats : NetworkBehaviour
     [Server]
     public void CalculateDerivedStats()
     {
-        maxHealth = 1000 + (constitution * 10);
-        GetComponent<Health>().MaxHealth = maxHealth;
-        GetComponent<Health>().SetHealth(maxHealth);
+        int newMaxHealth = 1000 + (constitution * 10);
+
+        // Обновляем MaxHealth в Health компоненте
+        Health healthComponent = GetComponent<Health>();
+        if (healthComponent != null)
+        {
+            healthComponent.SetMaxHealth(newMaxHealth);
+        }
 
         movementSpeed = 8f + (agility * 0.1f);
         GetComponent<PlayerMovement>().moveSpeed = movementSpeed;

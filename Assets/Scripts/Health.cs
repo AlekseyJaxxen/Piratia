@@ -5,7 +5,7 @@ using TMPro;
 public class Health : NetworkBehaviour
 {
     [Header("Health Settings")]
-    [HideInInspector]
+    [SyncVar(hook = nameof(OnMaxHealthChanged))] // Добавьте SyncVar и хук
     public int MaxHealth = 1000;
 
     private PlayerUI playerUI;
@@ -13,7 +13,7 @@ public class Health : NetworkBehaviour
     [SyncVar(hook = nameof(OnHealthChanged))]
     private int _currentHealth;
 
-    public event System.Action<int, int> OnHealthUpdated; // Переименовано событие
+    public event System.Action<int, int> OnHealthUpdated;
 
     [Header("Damage Text")]
     public GameObject floatingTextPrefab;
@@ -54,6 +54,14 @@ public class Health : NetworkBehaviour
     {
         CurrentHealth = amount;
         Debug.Log($"[Server] {gameObject.name} health set to: {CurrentHealth}");
+    }
+
+    [Server]
+    public void SetMaxHealth(int newMaxHealth)
+    {
+        MaxHealth = newMaxHealth;
+        CurrentHealth = Mathf.Min(CurrentHealth, MaxHealth); // Не даем текущему здоровью превысить максимум
+        Debug.Log($"[Server] {gameObject.name} max health set to: {MaxHealth}");
     }
 
     [Server]
@@ -126,10 +134,20 @@ public class Health : NetworkBehaviour
     private void OnHealthChanged(int oldHealth, int newHealth)
     {
         Debug.Log($"[Client] Health changed from {oldHealth} to {newHealth}");
-        OnHealthUpdated?.Invoke(newHealth, MaxHealth); // Используем новое имя события
+        OnHealthUpdated?.Invoke(newHealth, MaxHealth);
         if (playerUI != null)
         {
             playerUI.UpdateHealthBar(newHealth, MaxHealth);
+        }
+    }
+
+    private void OnMaxHealthChanged(int oldMaxHealth, int newMaxHealth)
+    {
+        Debug.Log($"[Client] Max Health changed from {oldMaxHealth} to {newMaxHealth}");
+        OnHealthUpdated?.Invoke(CurrentHealth, newMaxHealth);
+        if (playerUI != null)
+        {
+            playerUI.UpdateHealthBar(CurrentHealth, newMaxHealth);
         }
     }
 }
