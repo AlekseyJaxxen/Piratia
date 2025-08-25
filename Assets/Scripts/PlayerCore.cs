@@ -36,7 +36,8 @@ public class PlayerCore : NetworkBehaviour
     private float _timeOfDeath;
 
     [Header("UI References")]
-    public DeathScreenUI deathScreenUI;
+    [SerializeField]
+    private DeathScreenUI deathScreenUI; // Ручная настройка в Inspector
 
     [Header("Dependencies")]
     public LayerMask interactableLayers;
@@ -99,10 +100,10 @@ public class PlayerCore : NetworkBehaviour
         Debug.Log("OnStartLocalPlayer invoked for local player. Initializing components.");
         localPlayerCoreInstance = this;
 
-        deathScreenUI = FindObjectOfType<DeathScreenUI>();
-        if (deathScreenUI == null)
+        PlayerUI ui = GetComponentInChildren<PlayerUI>();
+        if (ui == null)
         {
-            Debug.LogWarning("DeathScreenUI not found in scene!");
+            Debug.LogWarning("PlayerUI not found in player prefab!");
         }
 
         if (Camera != null)
@@ -121,6 +122,10 @@ public class PlayerCore : NetworkBehaviour
                 child.gameObject.layer = localPlayerLayer;
             }
         }
+
+        // Гарантируем, что курсор всегда видим
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
     }
 
     public override void OnStartClient()
@@ -156,12 +161,17 @@ public class PlayerCore : NetworkBehaviour
         if (isLocalPlayer)
         {
             CmdDie();
+            Debug.Log($"Health reached zero for {playerName}, sending CmdDie");
         }
     }
 
     private void Start()
     {
         InitComponents();
+        if (isLocalPlayer && deathScreenUI == null)
+        {
+            Debug.LogError($"DeathScreenUI not assigned in Inspector for {playerName}! Please assign it manually.");
+        }
     }
 
     private void InitComponents()
@@ -179,6 +189,11 @@ public class PlayerCore : NetworkBehaviour
         if (!isLocalPlayer || isStunned || isDead)
         {
             return;
+        }
+
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            CmdAddExperience(100);
         }
 
         Skills.HandleSkills();
@@ -283,10 +298,7 @@ public class PlayerCore : NetworkBehaviour
                 Destroy(vfx, 3f);
             }
 
-            if (deathScreenUI != null && isLocalPlayer)
-            {
-                deathScreenUI.ShowDeathScreen();
-            }
+            RpcShowDeathScreen(true);
         }
         else
         {
@@ -316,10 +328,29 @@ public class PlayerCore : NetworkBehaviour
                 ui.gameObject.SetActive(true);
             }
 
-            if (deathScreenUI != null && isLocalPlayer)
+            RpcShowDeathScreen(false);
+        }
+    }
+
+    [ClientRpc]
+    private void RpcShowDeathScreen(bool state)
+    {
+        if (isLocalPlayer && deathScreenUI != null)
+        {
+            if (state)
+            {
+                deathScreenUI.ShowDeathScreen();
+                Debug.Log($"Showing DeathScreenUI for {playerName}");
+            }
+            else
             {
                 deathScreenUI.HideDeathScreen();
+                Debug.Log($"Hiding DeathScreenUI for {playerName}");
             }
+        }
+        else if (deathScreenUI == null)
+        {
+            Debug.LogError($"DeathScreenUI not assigned for {playerName} during RpcShowDeathScreen!");
         }
     }
 

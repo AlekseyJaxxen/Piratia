@@ -76,17 +76,26 @@ public class PlayerUI : MonoBehaviour
         // Изначально скрываем панель характеристик
         if (attributesPanel != null)
             attributesPanel.SetActive(false);
+
+        // Гарантируем, что курсор всегда видим
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
     }
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.C) && core.isLocalPlayer)
+        if (!core.isLocalPlayer || core.isDead || core.isStunned) return;
+
+        if (Input.GetKeyDown(KeyCode.C))
         {
             if (attributesPanel != null)
             {
-                attributesPanel.SetActive(!attributesPanel.activeSelf);
-                Cursor.lockState = attributesPanel.activeSelf ? CursorLockMode.None : CursorLockMode.Locked;
-                Cursor.visible = attributesPanel.activeSelf;
+                bool newState = !attributesPanel.activeSelf;
+                attributesPanel.SetActive(newState);
+                Cursor.lockState = newState ? CursorLockMode.None : CursorLockMode.None; // Курсор всегда разблокирован
+                Cursor.visible = true; // Курсор всегда видим
+                Debug.Log($"AttributesPanel set to {newState}. Children: {attributesPanel.transform.childCount}");
+                UpdateAttributesPanel();
             }
         }
     }
@@ -174,6 +183,8 @@ public class PlayerUI : MonoBehaviour
 
     private void UpdateAttributesPanel()
     {
+        if (stats == null) return;
+
         if (strengthText != null)
             strengthText.text = $"Strength: {stats.strength}";
         if (agilityText != null)
@@ -187,15 +198,30 @@ public class PlayerUI : MonoBehaviour
 
         bool hasPoints = stats.characteristicPoints > 0;
         if (strengthButton != null)
+        {
             strengthButton.gameObject.SetActive(hasPoints);
+            Debug.Log($"StrengthButton active: {hasPoints}");
+        }
         if (agilityButton != null)
+        {
             agilityButton.gameObject.SetActive(hasPoints);
+            Debug.Log($"AgilityButton active: {hasPoints}");
+        }
         if (spiritButton != null)
+        {
             spiritButton.gameObject.SetActive(hasPoints);
+            Debug.Log($"SpiritButton active: {hasPoints}");
+        }
         if (constitutionButton != null)
+        {
             constitutionButton.gameObject.SetActive(hasPoints);
+            Debug.Log($"ConstitutionButton active: {hasPoints}");
+        }
         if (accuracyButton != null)
+        {
             accuracyButton.gameObject.SetActive(hasPoints);
+            Debug.Log($"AccuracyButton active: {hasPoints}");
+        }
     }
 
     private void UpdateAttribute(string statName, int value)

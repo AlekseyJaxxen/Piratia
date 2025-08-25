@@ -75,7 +75,7 @@ public class Health : NetworkBehaviour
 
         if (CurrentHealth <= 0)
         {
-            Debug.Log($"[Server] {gameObject.name} has died.");
+            Debug.Log($"[Server] {gameObject.name} has died. Setting death state.");
             GetComponent<PlayerCore>()?.SetDeathState(true);
         }
     }
@@ -148,6 +148,14 @@ public class Health : NetworkBehaviour
         if (playerUI != null)
         {
             playerUI.UpdateHealthBar(CurrentHealth, newMaxHealth);
+        }
+    }
+
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.H)) // Тестовый вызов урона
+        {
+            TakeDamage(1000, DamageType.Physical);
         }
     }
 }
