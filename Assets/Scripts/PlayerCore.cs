@@ -260,10 +260,23 @@ public class PlayerCore : NetworkBehaviour
             ActionSystem.CompleteAction();
             ClearControlEffect();
 
+            // Отключаем BoxCollider при смерти
             if (TryGetComponent<BoxCollider>(out var boxCollider))
             {
                 boxCollider.enabled = false;
             }
+
+            // Также отключаем другие возможные коллайдеры
+            if (TryGetComponent<CapsuleCollider>(out var capsuleCollider))
+            {
+                capsuleCollider.enabled = false;
+            }
+
+            if (TryGetComponent<SphereCollider>(out var sphereCollider))
+            {
+                sphereCollider.enabled = false;
+            }
+
             if (TryGetComponent<Renderer>(out var renderer))
             {
                 renderer.enabled = false;
@@ -276,10 +289,23 @@ public class PlayerCore : NetworkBehaviour
         }
         else
         {
+            // Включаем BoxCollider при возрождении
             if (TryGetComponent<BoxCollider>(out var boxCollider))
             {
                 boxCollider.enabled = true;
             }
+
+            // Включаем другие возможные коллайдеры
+            if (TryGetComponent<CapsuleCollider>(out var capsuleCollider))
+            {
+                capsuleCollider.enabled = true;
+            }
+
+            if (TryGetComponent<SphereCollider>(out var sphereCollider))
+            {
+                sphereCollider.enabled = true;
+            }
+
             if (TryGetComponent<Renderer>(out var renderer))
             {
                 renderer.enabled = true;
@@ -325,6 +351,22 @@ public class PlayerCore : NetworkBehaviour
             if (Skills != null) Skills.enabled = false;
             if (ActionSystem != null) ActionSystem.enabled = false;
 
+            // Отключаем коллайдеры на клиенте
+            if (TryGetComponent<BoxCollider>(out var boxCollider))
+            {
+                boxCollider.enabled = false;
+            }
+
+            if (TryGetComponent<CapsuleCollider>(out var capsuleCollider))
+            {
+                capsuleCollider.enabled = false;
+            }
+
+            if (TryGetComponent<SphereCollider>(out var sphereCollider))
+            {
+                sphereCollider.enabled = false;
+            }
+
             PlayerUI ui = GetComponentInChildren<PlayerUI>();
             if (ui != null)
             {
@@ -344,6 +386,22 @@ public class PlayerCore : NetworkBehaviour
             if (Combat != null) Combat.enabled = true;
             if (Skills != null) Skills.enabled = true;
             if (ActionSystem != null) ActionSystem.enabled = true;
+
+            // Включаем коллайдеры на клиенте
+            if (TryGetComponent<BoxCollider>(out var boxCollider))
+            {
+                boxCollider.enabled = true;
+            }
+
+            if (TryGetComponent<CapsuleCollider>(out var capsuleCollider))
+            {
+                capsuleCollider.enabled = true;
+            }
+
+            if (TryGetComponent<SphereCollider>(out var sphereCollider))
+            {
+                sphereCollider.enabled = true;
+            }
 
             PlayerUI ui = GetComponentInChildren<PlayerUI>();
             if (ui != null)
