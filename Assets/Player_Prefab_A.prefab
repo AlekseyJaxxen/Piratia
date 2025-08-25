@@ -345,10 +345,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: New Text
+  m_text: Player!
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2100000, guid: 8b29aaa3eec7468097ff07adfcf29ac9, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 125cb55b44b24c4393181402bc6200e6, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: 125cb55b44b24c4393181402bc6200e6, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -372,8 +372,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 0.37
-  m_fontSizeBase: 0.37
+  m_fontSize: 0.22
+  m_fontSizeBase: 0.22
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -382,9 +382,9 @@ MonoBehaviour:
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
-  m_characterSpacing: 5.73
-  m_wordSpacing: 1.12
-  m_lineSpacing: 0.54
+  m_characterSpacing: 7.26
+  m_wordSpacing: 62.46
+  m_lineSpacing: 1.27
   m_lineSpacingMax: 0
   m_paragraphSpacing: 0
   m_charWidthMaxAdj: 0
@@ -576,8 +576,8 @@ MonoBehaviour:
   criticalHitChance: 15
   criticalHitMultiplier: 2
   maxMana: 100
-  armor: 0
-  physicalResistance: 0
+  armor: 100
+  physicalResistance: 10
   currentMana: 100
 --- !u!114 &6067296820680782066
 MonoBehaviour:
@@ -621,6 +621,8 @@ MonoBehaviour:
   Camera: {fileID: 1961392965024624479}
   Health: {fileID: 6067296820680782066}
   Stats: {fileID: 3920754116015596352}
+  respawnTime: 5
+  deathScreenUI: {fileID: 0}
   interactableLayers:
     serializedVersion: 2
     m_Bits: 83
@@ -635,7 +637,6 @@ MonoBehaviour:
   playerName: EBLAN
   isDead: 0
   isStunned: 0
-  respawnTime: 5
   manaRegenInterval: 1
   manaRegenAmount: 5
 --- !u!114 &2228385071925969768
@@ -945,6 +946,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 388f3f745552bfc4c82d559c90357166, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  deathScreenPanel: {fileID: 0}
+  respawnTimerText: {fileID: 0}
+  respawnButton: {fileID: 0}
+  respawnTime: 5
 --- !u!1001 &1309490088558050987
 PrefabInstance:
   m_ObjectHideFlags: 0

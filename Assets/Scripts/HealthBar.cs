@@ -4,10 +4,10 @@ using UnityEngine.UI;
 public class HealthBar : MonoBehaviour
 {
     [SerializeField] private Image _healthBarImage;
-    [SerializeField] private Image _damageFlashImage; // Новый Image для эффекта
+    [SerializeField] private Image _damageFlashImage;
     [SerializeField] private Vector3 _offset = new Vector3(0, 2f, 0);
     private Health _health;
-    private float _flashDuration = 0.5f; // Длительность эффекта
+    private float _flashDuration = 0.5f;
     private float _flashTimer;
 
     private void Awake()
@@ -41,6 +41,8 @@ public class HealthBar : MonoBehaviour
         else
         {
             _health.OnHealthUpdated += UpdateHealthBar;
+            // Инициализируем полоску сразу
+            UpdateHealthBar(_health.CurrentHealth, _health.MaxHealth);
         }
     }
 
@@ -65,15 +67,22 @@ public class HealthBar : MonoBehaviour
     {
         if (_health != null && _healthBarImage != null)
         {
-            float newHealthRatio = (float)currentHealth / maxHealth;
-            float previousHealthRatio = _healthBarImage.fillAmount;
-            _healthBarImage.fillAmount = newHealthRatio;
+            // Всегда используем актуальные значения из Health компонента
+            float currentRatio = (float)currentHealth / _health.MaxHealth;
+            float previousRatio = _healthBarImage.fillAmount;
 
-            if (newHealthRatio < previousHealthRatio)
+            _healthBarImage.fillAmount = currentRatio;
+
+            if (currentRatio < previousRatio)
             {
-                _damageFlashImage.fillAmount = previousHealthRatio;
+                _damageFlashImage.fillAmount = previousRatio;
                 _flashTimer = _flashDuration;
                 _damageFlashImage.color = new Color(1f, 1f, 1f, 1f);
+            }
+            else if (currentRatio > previousRatio)
+            {
+                // Если здоровье увеличилось (хил), сразу обновляем flash
+                _damageFlashImage.fillAmount = currentRatio;
             }
         }
     }
