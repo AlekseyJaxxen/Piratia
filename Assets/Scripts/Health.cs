@@ -65,7 +65,7 @@ public class Health : NetworkBehaviour
         int finalDamage = CalculateFinalDamage(baseDamage, damageType);
 
         CurrentHealth -= finalDamage;
-        Debug.Log($"[Server] {gameObject.name} took {finalDamage} damage (base: {baseDamage}, type: {damageType}). Current health: {CurrentHealth}");
+        Debug.Log($"[Server] {gameObject.name} took {finalDamage} damage. Current health: {CurrentHealth}");
 
         RpcShowDamageNumber(finalDamage, isCritical, damageType);
 

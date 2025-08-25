@@ -74,16 +74,23 @@ public class MyNetworkManager : NetworkManager
         // Не используйте этот метод для спавна, так как у вас нет информации от клиента здесь.
     }
 
-    public Transform GetTeamSpawnPoint(PlayerTeam desiredTeam)
+    public Transform GetTeamSpawnPoint(PlayerTeam team)
     {
-        var teamSpawnPoints = FindObjectsOfType<TeamSpawnPoint>()
-            .Where(sp => sp.team == desiredTeam)
-            .ToList();
-
-        if (teamSpawnPoints.Count > 0)
+        GameObject[] spawnPoints = GameObject.FindGameObjectsWithTag("SpawnPoint");
+        foreach (GameObject spawnPoint in spawnPoints)
         {
-            return teamSpawnPoints[Random.Range(0, teamSpawnPoints.Count)].transform;
+            TeamSpawnPoint teamSpawn = spawnPoint.GetComponent<TeamSpawnPoint>();
+            if (teamSpawn != null && teamSpawn.team == team)
+            {
+                return spawnPoint.transform;
+            }
         }
+
+        if (spawnPoints.Length > 0)
+        {
+            return spawnPoints[Random.Range(0, spawnPoints.Length)].transform;
+        }
+
         return null;
     }
 }

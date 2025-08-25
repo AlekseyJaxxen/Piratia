@@ -31,9 +31,17 @@ public class PlayerCore : NetworkBehaviour
     public Health Health;
     public CharacterStats Stats; // Added
 
+    [Header("Respawn")]
+    public float respawnTime = 5.0f;
+    private float _timeOfDeath;
+
+    [Header("UI References")]
+    public DeathScreenUI deathScreenUI;
+
     [Header("Dependencies")]
     public LayerMask interactableLayers;
     public LayerMask groundLayer;
+    
 
     [Header("Visuals")]
     public Material localPlayerMaterial;
@@ -63,8 +71,7 @@ public class PlayerCore : NetworkBehaviour
     private float _slowPercentage = 0f;
     private float _originalSpeed = 0f;
 
-    [Header("Respawn")]
-    public float respawnTime = 5.0f;
+    [Header("Respawn")]    
     private float timeOfDeath;
 
     [Header("Mana Regeneration")]
@@ -95,6 +102,15 @@ public class PlayerCore : NetworkBehaviour
     {
         Debug.Log("OnStartLocalPlayer вызван для локального игрока. Логика инициализации компонента запускается.");
         localPlayerCoreInstance = this;
+
+        if (deathScreenUI == null)
+        {
+            deathScreenUI = FindObjectOfType<DeathScreenUI>();
+            if (deathScreenUI == null)
+            {
+                Debug.LogWarning("DeathScreenUI not found in scene!");
+            }
+        }
 
         if (Camera != null)
         {
@@ -192,34 +208,7 @@ public class PlayerCore : NetworkBehaviour
             ClearControlEffect();
         }
 
-        if (isDead)
-        {
-            if (Time.time - timeOfDeath >= respawnTime)
-            {
-                Transform newSpawnPoint = FindObjectOfType<MyNetworkManager>()?.GetTeamSpawnPoint(team);
-
-                if (newSpawnPoint != null)
-                {
-                    RpcRespawnPlayer(newSpawnPoint.position);
-                }
-                else
-                {
-                    Debug.LogError($"No spawn points found for team {team}! Respawning at default location.");
-                    RpcRespawnPlayer(_initialSpawnPosition);
-                }
-            }
-        }
-
-        // Регенерация маны
-        if (Time.time - _lastManaRegenTime >= manaRegenInterval && !isDead)
-        {
-            CharacterStats stats = GetComponent<CharacterStats>();
-            if (stats != null)
-            {
-                stats.RestoreMana(manaRegenAmount);
-            }
-            _lastManaRegenTime = Time.time;
-        }
+        // Убрали автоматический respawn - теперь игрок сам нажимает кнопку
     }
 
     #region State Management
@@ -269,11 +258,12 @@ public class PlayerCore : NetworkBehaviour
         isDead = state;
         if (state)
         {
-            timeOfDeath = Time.time;
+            _timeOfDeath = Time.time;
             Movement.StopMovement();
             Combat.StopAttacking();
             ActionSystem.CompleteAction();
             ClearControlEffect();
+
             if (TryGetComponent<BoxCollider>(out var boxCollider))
             {
                 boxCollider.enabled = false;
@@ -282,7 +272,14 @@ public class PlayerCore : NetworkBehaviour
             {
                 renderer.enabled = false;
             }
+
             RpcSetDeathState(true);
+
+            // Уведомляем локального игрока о смерти
+            if (isLocalPlayer && deathScreenUI != null)
+            {
+                deathScreenUI.ShowDeathScreen();
+            }
         }
         else
         {
@@ -294,32 +291,70 @@ public class PlayerCore : NetworkBehaviour
             {
                 renderer.enabled = true;
             }
+
             RpcSetDeathState(false);
+
+            // Скрываем экран смерти если он показан
+            if (isLocalPlayer && deathScreenUI != null)
+            {
+                deathScreenUI.HideDeathScreen();
+            }
         }
     }
+
 
     [ClientRpc]
     private void RpcSetDeathState(bool state)
     {
-        if (Movement != null)
+        if (state)
         {
-            Movement.StopMovement();
-            Movement.enabled = !state;
-        }
-        if (Combat != null) Combat.enabled = !state;
-        if (Skills != null) Skills.enabled = !state;
-        if (ActionSystem != null) ActionSystem.enabled = !state;
+            // Визуальные эффекты смерти на клиенте
+            if (Movement != null)
+            {
+                Movement.StopMovement();
+                Movement.enabled = false;
+            }
+            if (Combat != null) Combat.enabled = false;
+            if (Skills != null) Skills.enabled = false;
+            if (ActionSystem != null) ActionSystem.enabled = false;
 
-        PlayerUI ui = GetComponentInChildren<PlayerUI>();
-        if (ui != null)
-        {
-            ui.gameObject.SetActive(!state);
-        }
+            PlayerUI ui = GetComponentInChildren<PlayerUI>();
+            if (ui != null)
+            {
+                ui.gameObject.SetActive(false);
+            }
 
-        if (state && deathVFXPrefab != null)
+            if (state && deathVFXPrefab != null)
+            {
+                GameObject vfx = Instantiate(deathVFXPrefab, transform.position, Quaternion.identity);
+                Destroy(vfx, 3f);
+            }
+
+            // Показываем экран смерти локальному игроку
+            if (isLocalPlayer && deathScreenUI != null)
+            {
+                deathScreenUI.ShowDeathScreen();
+            }
+        }
+        else
         {
-            GameObject vfx = Instantiate(deathVFXPrefab, transform.position, Quaternion.identity);
-            Destroy(vfx, 3f);
+            // Восстанавливаем визуальное состояние
+            if (Movement != null) Movement.enabled = true;
+            if (Combat != null) Combat.enabled = true;
+            if (Skills != null) Skills.enabled = true;
+            if (ActionSystem != null) ActionSystem.enabled = true;
+
+            PlayerUI ui = GetComponentInChildren<PlayerUI>();
+            if (ui != null)
+            {
+                ui.gameObject.SetActive(true);
+            }
+
+            // Скрываем экран смерти
+            if (isLocalPlayer && deathScreenUI != null)
+            {
+                deathScreenUI.HideDeathScreen();
+            }
         }
     }
 
@@ -364,6 +399,65 @@ public class PlayerCore : NetworkBehaviour
     private void CmdDie()
     {
         SetDeathState(true);
+    }
+
+    [Command]
+    public void CmdRequestRespawn()
+    {
+        if (!isDead)
+        {
+            Debug.Log("Player is not dead, cannot respawn.");
+            return;
+        }
+
+        // Находим точку respawn'а для команды игрока
+        Transform spawnPoint = FindObjectOfType<MyNetworkManager>()?.GetTeamSpawnPoint(team);
+        Vector3 respawnPosition = spawnPoint != null ? spawnPoint.position : _initialSpawnPosition;
+
+        ServerRespawnPlayer(respawnPosition);
+    }
+
+    [Server]
+    public void ServerRespawnPlayer(Vector3 newPosition)
+    {
+        SetDeathState(false);
+
+        if (Health != null)
+        {
+            Health.SetHealth(Health.MaxHealth);
+        }
+
+        transform.position = newPosition;
+
+        RpcOnRespawned(newPosition);
+    }
+
+    [ClientRpc]
+    private void RpcOnRespawned(Vector3 newPosition)
+    {
+        transform.position = newPosition;
+
+        // Визуальное обновление на клиенте
+        if (isLocalPlayer)
+        {
+            // Обновляем UI здоровья
+            if (Health != null)
+            {
+                //Health.SetHealthVisual(Health.MaxHealth);
+            }
+
+            // Включаем компоненты
+            if (Movement != null) Movement.enabled = true;
+            if (Combat != null) Combat.enabled = true;
+            if (Skills != null) Skills.enabled = true;
+            if (ActionSystem != null) ActionSystem.enabled = true;
+
+            // Скрываем экран смерти
+            if (deathScreenUI != null)
+            {
+                deathScreenUI.HideDeathScreen();
+            }
+        }
     }
 
     [ClientRpc]
