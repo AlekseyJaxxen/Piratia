@@ -12,18 +12,34 @@ public class PlayerUI : MonoBehaviour
     public TextMeshProUGUI skillPointsText;
     public TextMeshProUGUI characteristicPointsText;
 
+    [Header("Attributes Panel")]
+    public GameObject attributesPanel;
+    public TextMeshProUGUI strengthText;
+    public TextMeshProUGUI agilityText;
+    public TextMeshProUGUI spiritText;
+    public TextMeshProUGUI constitutionText;
+    public TextMeshProUGUI accuracyText;
+    public Button strengthButton;
+    public Button agilityButton;
+    public Button spiritButton;
+    public Button constitutionButton;
+    public Button accuracyButton;
+
     private CharacterStats stats;
+    private PlayerCore core;
 
     private void Start()
     {
         stats = GetComponentInParent<CharacterStats>();
-        if (stats != null)
+        core = GetComponentInParent<PlayerCore>();
+        if (stats != null && core != null)
         {
             UpdateLevel(stats.level);
             UpdateExperience(stats.currentExperience, stats.level);
             UpdateManaBar(stats.currentMana, stats.maxMana);
             UpdateSkillPoints(stats.skillPoints);
-            UpdateCharacteristicPoints(stats.characteristicPoints);
+            UpdateCharacteristicPoints(0, stats.characteristicPoints);
+            UpdateAttributesPanel();
 
             // Подписываемся на события
             Health health = stats.GetComponent<Health>();
@@ -33,10 +49,45 @@ public class PlayerUI : MonoBehaviour
             }
             stats.OnManaChangedEvent += UpdateManaBar;
             stats.OnLevelChangedEvent += UpdateLevelAndExperience;
+            stats.OnCharacteristicPointsChangedEvent += (oldPoints, newPoints) => UpdateCharacteristicPoints(oldPoints, newPoints);
+            stats.OnStrengthChangedEvent += (oldValue, newValue) => UpdateAttribute("strength", newValue);
+            stats.OnAgilityChangedEvent += (oldValue, newValue) => UpdateAttribute("agility", newValue);
+            stats.OnSpiritChangedEvent += (oldValue, newValue) => UpdateAttribute("spirit", newValue);
+            stats.OnConstitutionChangedEvent += (oldValue, newValue) => UpdateAttribute("constitution", newValue);
+            stats.OnAccuracyChangedEvent += (oldValue, newValue) => UpdateAttribute("accuracy", newValue);
+
+            // Настраиваем кнопки
+            if (strengthButton != null)
+                strengthButton.onClick.AddListener(() => core.CmdIncreaseStat("strength"));
+            if (agilityButton != null)
+                agilityButton.onClick.AddListener(() => core.CmdIncreaseStat("agility"));
+            if (spiritButton != null)
+                spiritButton.onClick.AddListener(() => core.CmdIncreaseStat("spirit"));
+            if (constitutionButton != null)
+                constitutionButton.onClick.AddListener(() => core.CmdIncreaseStat("constitution"));
+            if (accuracyButton != null)
+                accuracyButton.onClick.AddListener(() => core.CmdIncreaseStat("accuracy"));
         }
         else
         {
-            Debug.LogError("CharacterStats component not found in parent!");
+            Debug.LogError("CharacterStats or PlayerCore component not found in parent!");
+        }
+
+        // Изначально скрываем панель характеристик
+        if (attributesPanel != null)
+            attributesPanel.SetActive(false);
+    }
+
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.C) && core.isLocalPlayer)
+        {
+            if (attributesPanel != null)
+            {
+                attributesPanel.SetActive(!attributesPanel.activeSelf);
+                Cursor.lockState = attributesPanel.activeSelf ? CursorLockMode.None : CursorLockMode.Locked;
+                Cursor.visible = attributesPanel.activeSelf;
+            }
         }
     }
 
@@ -51,6 +102,12 @@ public class PlayerUI : MonoBehaviour
             }
             stats.OnManaChangedEvent -= UpdateManaBar;
             stats.OnLevelChangedEvent -= UpdateLevelAndExperience;
+            stats.OnCharacteristicPointsChangedEvent -= (oldPoints, newPoints) => UpdateCharacteristicPoints(oldPoints, newPoints);
+            stats.OnStrengthChangedEvent -= (oldValue, newValue) => UpdateAttribute("strength", newValue);
+            stats.OnAgilityChangedEvent -= (oldValue, newValue) => UpdateAttribute("agility", newValue);
+            stats.OnSpiritChangedEvent -= (oldValue, newValue) => UpdateAttribute("spirit", newValue);
+            stats.OnConstitutionChangedEvent -= (oldValue, newValue) => UpdateAttribute("constitution", newValue);
+            stats.OnAccuracyChangedEvent -= (oldValue, newValue) => UpdateAttribute("accuracy", newValue);
         }
     }
 
@@ -98,12 +155,13 @@ public class PlayerUI : MonoBehaviour
         }
     }
 
-    public void UpdateCharacteristicPoints(int characteristicPoints)
+    public void UpdateCharacteristicPoints(int oldPoints, int newPoints)
     {
         if (characteristicPointsText != null)
         {
-            characteristicPointsText.text = $"Characteristic Points: {characteristicPoints}";
+            characteristicPointsText.text = $"Characteristic Points: {newPoints}";
         }
+        UpdateAttributesPanel();
     }
 
     private void UpdateLevelAndExperience(int oldLevel, int newLevel)
@@ -111,6 +169,54 @@ public class PlayerUI : MonoBehaviour
         UpdateLevel(newLevel);
         UpdateExperience(stats.currentExperience, newLevel);
         UpdateSkillPoints(stats.skillPoints);
-        UpdateCharacteristicPoints(stats.characteristicPoints);
+        UpdateCharacteristicPoints(0, stats.characteristicPoints);
+    }
+
+    private void UpdateAttributesPanel()
+    {
+        if (strengthText != null)
+            strengthText.text = $"Strength: {stats.strength}";
+        if (agilityText != null)
+            agilityText.text = $"Agility: {stats.agility}";
+        if (spiritText != null)
+            spiritText.text = $"Spirit: {stats.spirit}";
+        if (constitutionText != null)
+            constitutionText.text = $"Constitution: {stats.constitution}";
+        if (accuracyText != null)
+            accuracyText.text = $"Accuracy: {stats.accuracy}";
+
+        bool hasPoints = stats.characteristicPoints > 0;
+        if (strengthButton != null)
+            strengthButton.gameObject.SetActive(hasPoints);
+        if (agilityButton != null)
+            agilityButton.gameObject.SetActive(hasPoints);
+        if (spiritButton != null)
+            spiritButton.gameObject.SetActive(hasPoints);
+        if (constitutionButton != null)
+            constitutionButton.gameObject.SetActive(hasPoints);
+        if (accuracyButton != null)
+            accuracyButton.gameObject.SetActive(hasPoints);
+    }
+
+    private void UpdateAttribute(string statName, int value)
+    {
+        switch (statName.ToLower())
+        {
+            case "strength":
+                if (strengthText != null) strengthText.text = $"Strength: {value}";
+                break;
+            case "agility":
+                if (agilityText != null) agilityText.text = $"Agility: {value}";
+                break;
+            case "spirit":
+                if (spiritText != null) spiritText.text = $"Spirit: {value}";
+                break;
+            case "constitution":
+                if (constitutionText != null) constitutionText.text = $"Constitution: {value}";
+                break;
+            case "accuracy":
+                if (accuracyText != null) accuracyText.text = $"Accuracy: {value}";
+                break;
+        }
     }
 }

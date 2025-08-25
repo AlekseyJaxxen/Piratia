@@ -53,8 +53,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   moveSpeed: 2
+  moveRandomness: 1.5
+  moveDirection: {x: 0, y: 1}
   fadeOutTime: 1
   damageColor: {r: 1, g: 0.029678378, b: 0, a: 1}
+  healColor: {r: 0, g: 1, b: 0, a: 1}
+  criticalColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  scaleUpTime: 0.2
+  maxScale: 1.5
+  horizontalRandomness: 1
+  verticalRandomness: 0.5
+  rotationRandomness: 10
+  normalFontSize: 4
+  criticalFontSize: 6
 --- !u!23 &6612171701822489547
 MeshRenderer:
   m_ObjectHideFlags: 0

@@ -16,19 +16,19 @@ public class CharacterStats : NetworkBehaviour
     public int totalExperience = 0;
     [SyncVar]
     public int skillPoints = 0;
-    [SyncVar]
+    [SyncVar(hook = nameof(OnCharacteristicPointsChanged))]
     public int characteristicPoints = 0;
 
     [Header("Base Attributes")]
-    [SyncVar]
+    [SyncVar(hook = nameof(OnStrengthChanged))]
     public int strength = 5;
-    [SyncVar]
+    [SyncVar(hook = nameof(OnAgilityChanged))]
     public int agility = 5;
-    [SyncVar]
+    [SyncVar(hook = nameof(OnSpiritChanged))]
     public int spirit = 5;
-    [SyncVar]
+    [SyncVar(hook = nameof(OnConstitutionChanged))]
     public int constitution = 5;
-    [SyncVar]
+    [SyncVar(hook = nameof(OnAccuracyChanged))]
     public int accuracy = 5;
     [SyncVar]
     public int intelligence = 5;
@@ -68,6 +68,12 @@ public class CharacterStats : NetworkBehaviour
     // События для UI
     public event System.Action<int, int> OnManaChangedEvent;
     public event System.Action<int, int> OnLevelChangedEvent;
+    public event System.Action<int, int> OnCharacteristicPointsChangedEvent;
+    public event System.Action<int, int> OnStrengthChangedEvent;
+    public event System.Action<int, int> OnAgilityChangedEvent;
+    public event System.Action<int, int> OnSpiritChangedEvent;
+    public event System.Action<int, int> OnConstitutionChangedEvent;
+    public event System.Action<int, int> OnAccuracyChangedEvent;
 
     private static readonly int[] ExperiencePerLevel = new int[100];
 
@@ -156,6 +162,52 @@ public class CharacterStats : NetworkBehaviour
         currentMana = Mathf.Min(currentMana, maxMana);
     }
 
+    [Server]
+    public bool IncreaseStat(string statName)
+    {
+        if (characteristicPoints <= 0) return false;
+
+        characteristicPoints--;
+        switch (statName.ToLower())
+        {
+            case "strength":
+                strength++;
+                break;
+            case "agility":
+                agility++;
+                break;
+            case "spirit":
+                spirit++;
+                break;
+            case "constitution":
+                constitution++;
+                break;
+            case "accuracy":
+                accuracy++;
+                break;
+            default:
+                characteristicPoints++; // Откатываем, если характеристика не найдена
+                return false;
+        }
+        CalculateDerivedStats();
+        Debug.Log($"[Server] Increased {statName} to {GetStatValue(statName)}. Characteristic Points left: {characteristicPoints}");
+        return true;
+    }
+
+    [Server]
+    private int GetStatValue(string statName)
+    {
+        switch (statName.ToLower())
+        {
+            case "strength": return strength;
+            case "agility": return agility;
+            case "spirit": return spirit;
+            case "constitution": return constitution;
+            case "accuracy": return accuracy;
+            default: return 0;
+        }
+    }
+
     [Client]
     public bool HasEnoughMana(int amount)
     {
@@ -197,6 +249,66 @@ public class CharacterStats : NetworkBehaviour
             Debug.Log($"Level changed: {oldLevel} -> {newLevel}");
         }
         OnLevelChangedEvent?.Invoke(oldLevel, newLevel);
+    }
+
+    [Client]
+    public void OnCharacteristicPointsChanged(int oldPoints, int newPoints)
+    {
+        if (isLocalPlayer)
+        {
+            Debug.Log($"Characteristic Points changed: {oldPoints} -> {newPoints}");
+        }
+        OnCharacteristicPointsChangedEvent?.Invoke(oldPoints, newPoints);
+    }
+
+    [Client]
+    public void OnStrengthChanged(int oldValue, int newValue)
+    {
+        if (isLocalPlayer)
+        {
+            Debug.Log($"Strength changed: {oldValue} -> {newValue}");
+        }
+        OnStrengthChangedEvent?.Invoke(oldValue, newValue);
+    }
+
+    [Client]
+    public void OnAgilityChanged(int oldValue, int newValue)
+    {
+        if (isLocalPlayer)
+        {
+            Debug.Log($"Agility changed: {oldValue} -> {newValue}");
+        }
+        OnAgilityChangedEvent?.Invoke(oldValue, newValue);
+    }
+
+    [Client]
+    public void OnSpiritChanged(int oldValue, int newValue)
+    {
+        if (isLocalPlayer)
+        {
+            Debug.Log($"Spirit changed: {oldValue} -> {newValue}");
+        }
+        OnSpiritChangedEvent?.Invoke(oldValue, newValue);
+    }
+
+    [Client]
+    public void OnConstitutionChanged(int oldValue, int newValue)
+    {
+        if (isLocalPlayer)
+        {
+            Debug.Log($"Constitution changed: {oldValue} -> {newValue}");
+        }
+        OnConstitutionChangedEvent?.Invoke(oldValue, newValue);
+    }
+
+    [Client]
+    public void OnAccuracyChanged(int oldValue, int newValue)
+    {
+        if (isLocalPlayer)
+        {
+            Debug.Log($"Accuracy changed: {oldValue} -> {newValue}");
+        }
+        OnAccuracyChangedEvent?.Invoke(oldValue, newValue);
     }
 
     [Server]

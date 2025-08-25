@@ -769,15 +769,15 @@ MonoBehaviour:
   ActionSystem: {fileID: 9141868853825329552}
   Camera: {fileID: 1961392965024624479}
   Health: {fileID: 6067296820680782066}
+  Stats: {fileID: 0}
+  respawnTime: 5
+  deathScreenUI: {fileID: 0}
   interactableLayers:
     serializedVersion: 2
     m_Bits: 83
   groundLayer:
     serializedVersion: 2
     m_Bits: 64
-  playerModels:
-  - {fileID: 2848703504906341886}
-  - {fileID: 3961151501452008855}
   localPlayerMaterial: {fileID: 2100000, guid: 55252a8764346c04693e046293e04e23, type: 2}
   allyMaterial: {fileID: 2100000, guid: 55252a8764346c04693e046293e04e23, type: 2}
   enemyMaterial: {fileID: 2100000, guid: d249408a15900d142a2f99784945ac05, type: 2}
@@ -786,7 +786,8 @@ MonoBehaviour:
   playerName: EBLAN
   isDead: 0
   isStunned: 0
-  respawnTime: 5
+  manaRegenInterval: 1
+  manaRegenAmount: 5
 --- !u!114 &2228385071925969768
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -821,9 +822,6 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   _lastAttackTime: -Infinity
-  attackRange: 10
-  attackCooldown: 0.1
-  attackDamage: 100
 --- !u!114 &2785307464818136286
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -849,6 +847,8 @@ MonoBehaviour:
     type: 3}
   defaultCursor: {fileID: 2800000, guid: f75349a286817b6479976a10636d3b2c, type: 3}
   castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
+  attackCursor: {fileID: 0}
+  cursorUpdateInterval: 0.1
 --- !u!114 &1961392965024624479
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -932,6 +932,8 @@ MonoBehaviour:
   _targetIndicatorPrefab: {fileID: 7367436715575335037, guid: e7964bca176e04f43aa79653e9fb44cd,
     type: 3}
   _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
+  _manaCost: 0
+  _damageType: 0
   stunDuration: 8
   effectPrefab: {fileID: 1861272202064540, guid: 2d1b4e33180cb7d4c878efa593a8943d,
     type: 3}
@@ -959,6 +961,8 @@ MonoBehaviour:
   _targetIndicatorPrefab: {fileID: 7367436715575335037, guid: e7964bca176e04f43aa79653e9fb44cd,
     type: 3}
   _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
+  _manaCost: 0
+  _damageType: 0
   damageAmount: 900
   projectilePrefab: {fileID: 109592, guid: 125cbece63e40cf40a589e32859eda38, type: 3}
   impactEffectPrefab: {fileID: 0}
@@ -985,6 +989,8 @@ MonoBehaviour:
   _targetIndicatorPrefab: {fileID: 5345158863170431004, guid: 1e58995795a0fe2499adfe674daed0cc,
     type: 3}
   _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
+  _manaCost: 0
+  _damageType: 0
   healAmount: 2500
   effectPrefab: {fileID: 152564, guid: 0e4a7fa9fd28f154b91c98ee6fe8ebea, type: 3}
 --- !u!114 &7355873465176282773
@@ -1010,8 +1016,9 @@ MonoBehaviour:
   _targetIndicatorPrefab: {fileID: 5345158863170431004, guid: 9f6309ebe66d136499539ac2e21e9510,
     type: 3}
   _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
+  _manaCost: 0
+  _damageType: 0
   stunDuration: 2
-  effectRadius: 3
   effectPrefab: {fileID: 173590, guid: 7469283484e0dcc4887fa575d1fd7ecc, type: 3}
 --- !u!114 &9202704491151275562
 MonoBehaviour:
@@ -1035,8 +1042,14 @@ MonoBehaviour:
   _rangeIndicator: {fileID: 0}
   _targetIndicatorPrefab: {fileID: 0}
   _castCursor: {fileID: 0}
-  damageAmount: 200
+  _manaCost: 0
+  _damageType: 0
   vfxPrefab: {fileID: 171468, guid: 9bb3c2595cddc25468a1fccc3b563ae4, type: 3}
+  projectilePrefab: {fileID: 0}
+  projectileSpeed: 20
+  criticalHitVfxPrefab: {fileID: 0}
+  impactEffectPrefab: {fileID: 0}
+  criticalHitColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
 --- !u!1001 &2204221415589107067
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1311,12 +1324,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d6bcb595bf54a4f4f95427062e3a8664, type: 3}
---- !u!1 &2848703504906341886 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: d6bcb595bf54a4f4f95427062e3a8664,
-    type: 3}
-  m_PrefabInstance: {fileID: 3119245696655913135}
-  m_PrefabAsset: {fileID: 0}
 --- !u!4 &3225544981727549252 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: d6bcb595bf54a4f4f95427062e3a8664,
@@ -1397,12 +1404,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d8ba1748b7c714c40b6691faaa6f8d0d, type: 3}
---- !u!1 &3961151501452008855 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: d8ba1748b7c714c40b6691faaa6f8d0d,
-    type: 3}
-  m_PrefabInstance: {fileID: 4195595206042607814}
-  m_PrefabAsset: {fileID: 0}
 --- !u!4 &4445904821307639597 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: d8ba1748b7c714c40b6691faaa6f8d0d,

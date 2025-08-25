@@ -282,6 +282,11 @@ public class PlayerCore : NetworkBehaviour
                 GameObject vfx = Instantiate(deathVFXPrefab, transform.position, Quaternion.identity);
                 Destroy(vfx, 3f);
             }
+
+            if (deathScreenUI != null && isLocalPlayer)
+            {
+                deathScreenUI.ShowDeathScreen();
+            }
         }
         else
         {
@@ -309,6 +314,11 @@ public class PlayerCore : NetworkBehaviour
             if (ui != null)
             {
                 ui.gameObject.SetActive(true);
+            }
+
+            if (deathScreenUI != null && isLocalPlayer)
+            {
+                deathScreenUI.HideDeathScreen();
             }
         }
     }
@@ -438,6 +448,15 @@ public class PlayerCore : NetworkBehaviour
         if (Stats != null)
         {
             Stats.AddExperience(amount);
+        }
+    }
+
+    [Command]
+    public void CmdIncreaseStat(string statName)
+    {
+        if (Stats != null)
+        {
+            Stats.IncreaseStat(statName);
         }
     }
 
