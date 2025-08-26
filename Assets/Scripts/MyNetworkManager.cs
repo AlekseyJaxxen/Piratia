@@ -83,8 +83,20 @@ public class MyNetworkManager : NetworkManager
             return;
         }
 
+        // Ќазначаем игрока дл€ соединени€ с авторизацией
         NetworkServer.AddPlayerForConnection(conn, playerInstance);
-        Debug.Log($"[MyNetworkManager] Player {info.playerName} successfully spawned with prefab {playerInstance.name}. isOwned={playerInstance.GetComponent<NetworkIdentity>().isOwned}");
+        NetworkIdentity identity = playerInstance.GetComponent<NetworkIdentity>();
+        if (identity != null)
+        {
+            identity.AssignClientAuthority(conn);
+            Debug.Log($"[MyNetworkManager] Assigned client authority for player {info.playerName}. isOwned={identity.isOwned}");
+        }
+        else
+        {
+            Debug.LogError("[MyNetworkManager] NetworkIdentity component missing on spawned player!");
+        }
+
+        Debug.Log($"[MyNetworkManager] Player {info.playerName} successfully spawned with prefab {playerInstance.name}. isOwned={identity.isOwned}");
     }
 
     public override void OnServerAddPlayer(NetworkConnectionToClient conn)

@@ -73,6 +73,7 @@ public class PlayerUI_Team : MonoBehaviour
             nameInputField.text = tempPlayerInfo.name;
         }
         UpdateButtonColors(tempPlayerInfo.team);
+        Debug.Log($"[PlayerUI_Team] Initialized with tempPlayerInfo: Name={tempPlayerInfo.name}, Team={tempPlayerInfo.team}, PrefabIndex={tempPlayerInfo.prefabIndex}");
     }
 
     public void OnHostClicked()
@@ -83,7 +84,6 @@ public class PlayerUI_Team : MonoBehaviour
         {
             myNetworkManager.StartHost();
             teamSelectionPanel.SetActive(false);
-            // Отправляем начальную команду для хоста
             StartCoroutine(SendInitialTeamForHost());
         }
     }
@@ -103,6 +103,7 @@ public class PlayerUI_Team : MonoBehaviour
     {
         yield return new WaitUntil(() => NetworkServer.active && PlayerCore.localPlayerCoreInstance != null);
         OnTeamSelected(tempPlayerInfo.team);
+        Debug.Log($"[PlayerUI_Team] Sent initial team for host: {tempPlayerInfo.team}");
     }
 
     private void OnTeamSelected(PlayerTeam selectedTeam)
@@ -123,7 +124,9 @@ public class PlayerUI_Team : MonoBehaviour
                 PlayerCore playerCore = playerInstance.GetComponent<PlayerCore>();
                 if (playerCore != null)
                 {
-                    playerCore.CmdSetPlayerInfo(tempPlayerInfo.name, selectedTeam);
+                    playerCore.playerName = tempPlayerInfo.name;
+                    playerCore.team = selectedTeam;
+                    Debug.Log($"[PlayerUI_Team] Set host player info: Name={tempPlayerInfo.name}, Team={selectedTeam}");
                 }
             }
         }
@@ -153,7 +156,9 @@ public class PlayerUI_Team : MonoBehaviour
                 PlayerCore playerCore = playerInstance.GetComponent<PlayerCore>();
                 if (playerCore != null)
                 {
-                    playerCore.CmdSetPlayerInfo(newName, tempPlayerInfo.team);
+                    playerCore.playerName = newName;
+                    playerCore.team = tempPlayerInfo.team;
+                    Debug.Log($"[PlayerUI_Team] Set host player info: Name={newName}, Team={tempPlayerInfo.team}");
                 }
             }
         }

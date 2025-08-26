@@ -2919,16 +2919,16 @@ MonoBehaviour:
   m_GameObject: {fileID: 1855098296}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c08d4d3ac1b810e419c3807ef94fbbb6, type: 3}
+  m_Script: {fileID: 11500000, guid: a2581e53a770c7a4f88cd5d50d504e5c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   warriorSkills:
   - {fileID: 212025122}
   - {fileID: 1869530943}
   mageSkills:
-  - {fileID: 1484290801}
+  - {fileID: 0}
   archerSkills:
-  - {fileID: 2082535636}
+  - {fileID: 0}
 --- !u!4 &1855098298
 Transform:
   m_ObjectHideFlags: 0

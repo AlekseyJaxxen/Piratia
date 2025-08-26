@@ -110,7 +110,7 @@ public class PlayerCore : NetworkBehaviour
 
     public override void OnStartLocalPlayer()
     {
-        Debug.Log($"[PlayerCore] OnStartLocalPlayer invoked. isOwned: {netIdentity.isOwned}, isDead: {isDead}, isStunned: {isStunned}, team: {team}");
+        Debug.Log($"[PlayerCore] OnStartLocalPlayer invoked. isOwned: {netIdentity.isOwned}, isDead: {isDead}, isStunned: {isStunned}, team: {team}, name: {playerName}");
         localPlayerCoreInstance = this;
 
         PlayerUI ui = GetComponentInChildren<PlayerUI>();
@@ -142,6 +142,13 @@ public class PlayerCore : NetworkBehaviour
         else
         {
             Debug.LogError("[PlayerCore] Layer 'Player' not found!");
+        }
+
+        // Проверяем назначение команды
+        if (team == PlayerTeam.None)
+        {
+            Debug.LogWarning($"[PlayerCore] Team is None for player {playerName}. Requesting team assignment.");
+            CmdRequestTeamAssignment();
         }
 
         Cursor.visible = true;
@@ -206,7 +213,7 @@ public class PlayerCore : NetworkBehaviour
 
         if (isLocalPlayer)
         {
-            Debug.Log($"[PlayerCore] Update: isDead={isDead}, isStunned={isStunned}, Movement.enabled={Movement != null && Movement.enabled}, team={team}");
+            Debug.Log($"[PlayerCore] Update: isDead={isDead}, isStunned={isStunned}, Movement.enabled={Movement != null && Movement.enabled}, team={team}, name={playerName}");
         }
     }
 
@@ -288,11 +295,13 @@ public class PlayerCore : NetworkBehaviour
     }
 
     [Command]
-    public void CmdSetPlayerInfo(string newName, PlayerTeam newTeam)
+    private void CmdRequestTeamAssignment()
     {
-        playerName = newName;
+        PlayerUI_Team.PlayerInfo uiInfo = PlayerUI_Team.GetTempPlayerInfo();
+        PlayerTeam newTeam = uiInfo.team != PlayerTeam.None ? uiInfo.team : PlayerTeam.Red;
         team = newTeam;
-        Debug.Log($"[PlayerCore] Server: Player {newName} has joined team {newTeam}.");
+        playerName = uiInfo.name;
+        Debug.Log($"[PlayerCore] Server: Assigned team {newTeam} and name {playerName} for player via CmdRequestTeamAssignment");
     }
 
     [Command]
@@ -340,6 +349,7 @@ public class PlayerCore : NetworkBehaviour
     private void OnTeamChanged(PlayerTeam oldTeam, PlayerTeam newTeam)
     {
         UpdateTeamIndicatorColor();
+        Debug.Log($"[PlayerCore] Team changed: {oldTeam} -> {newTeam}");
     }
 
     private void OnNameChanged(string oldName, string newName)
@@ -348,6 +358,7 @@ public class PlayerCore : NetworkBehaviour
         {
             _nameText.text = newName;
         }
+        Debug.Log($"[PlayerCore] Name changed: {oldName} -> {newName}");
     }
 
     private void UpdateTeamIndicatorColor()
