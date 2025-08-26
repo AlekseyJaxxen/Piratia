@@ -250,9 +250,9 @@ public class PlayerSkills : NetworkBehaviour
                 Health targetHealth = targetIdentity.GetComponent<Health>();
                 if (targetHealth != null)
                 {
-                    float critChance = stats != null ? stats.criticalHitChance : 0f;
-                    bool isCritical = Random.value < critChance;
-                    int damage = isCritical ? Mathf.RoundToInt(projectileSkill.damageAmount * 1.5f) : projectileSkill.damageAmount;
+                    bool isCritical = stats.TryCriticalHit();
+                    int damage = projectileSkill.damageAmount;
+                    if (isCritical) damage = Mathf.RoundToInt(damage * stats.criticalHitMultiplier);
                     targetHealth.TakeDamage(damage, skill.SkillDamageType, isCritical);
                 }
             }
@@ -329,6 +329,31 @@ public class PlayerSkills : NetworkBehaviour
                 RpcPlayAreaOfEffectStun(targetPosition.Value, skillName);
             else if (skill is AreaOfEffectHealSkill)
                 RpcPlayAreaOfEffectHeal(targetPosition.Value, skillName);
+        }
+        else if (skill is BasicAttackSkill basicAttackSkill)
+        {
+            if (targetIdentity == null)
+            {
+                Debug.LogWarning($"[PlayerSkills] Target netId {targetNetId} not found for {skillName}");
+                return;
+            }
+
+            PlayerCore targetCore = targetIdentity.GetComponent<PlayerCore>();
+            if (targetCore == null || caster.team == targetCore.team)
+            {
+                Debug.LogWarning($"[PlayerSkills] Invalid target or same team for {skillName}");
+                return;
+            }
+
+            Health targetHealth = targetIdentity.GetComponent<Health>();
+            if (targetHealth != null)
+            {
+                bool isCritical = stats.TryCriticalHit();
+                int damage = Random.Range(stats.minAttack, stats.maxAttack + 1);
+                if (isCritical) damage = Mathf.RoundToInt(damage * stats.criticalHitMultiplier);
+                targetHealth.TakeDamage(damage, skill.SkillDamageType, isCritical);
+                RpcPlayBasicAttackVFX(caster.transform.position, caster.transform.rotation, targetCore.transform.position, isCritical, skillName);
+            }
         }
 
         if (stats != null)
