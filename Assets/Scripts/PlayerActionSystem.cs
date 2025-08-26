@@ -242,7 +242,7 @@ public class PlayerActionSystem : NetworkBehaviour
             {
                 _core.Movement.StopMovement();
                 _core.Movement.RotateTo(targetPosition - transform.position);
-                yield return StartCoroutine(_core.Skills.CastSkill(targetPosition, null, skillToCast));
+                skillToCast.Execute(_core, targetPosition, null);
                 _core.Skills.CancelSkillSelection();
                 CompleteAction();
                 yield break;

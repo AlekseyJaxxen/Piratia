@@ -98,6 +98,7 @@ public abstract class SkillBase : MonoBehaviour, ISkill
             Debug.LogWarning($"[SkillBase] Skill execution failed for {_skillName}: Player lacks authority.");
             return;
         }
+        Debug.Log($"[SkillBase] Executing {_skillName}, lastUseTime={_lastUseTime}, Time.time={Time.time}");
         ExecuteSkillImplementation(player, targetPosition, targetObject);
     }
 

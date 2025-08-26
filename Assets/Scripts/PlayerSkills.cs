@@ -25,6 +25,9 @@ public class PlayerSkills : NetworkBehaviour
     private ISkill _activeSkill;
     private Coroutine _castSkillCoroutine;
 
+    [SyncVar]
+    private SyncDictionary<string, float> _skillLastUseTimes = new SyncDictionary<string, float>();
+
     public bool IsSkillSelected => _activeSkill != null;
     public ISkill ActiveSkill => _activeSkill;
 
@@ -96,6 +99,7 @@ public class PlayerSkills : NetworkBehaviour
                 continue;
             }
             skill.Init(_core);
+            _skillLastUseTimes[skill.SkillName] = 0f; // Инициализация времени использования
             Debug.Log($"[PlayerSkills] Initialized skill: {skill.SkillName}");
         }
 
@@ -157,7 +161,7 @@ public class PlayerSkills : NetworkBehaviour
 
         foreach (var skill in skills)
         {
-            if (Input.GetKeyDown(skill.Hotkey) && !skill.IsOnCooldown())
+            if (Input.GetKeyDown(skill.Hotkey) && !IsSkillOnCooldown(skill))
             {
                 Debug.Log($"[PlayerSkills] Skill {skill.SkillName} selected with hotkey {skill.Hotkey}");
                 CancelAllSkillSelections();
@@ -187,272 +191,96 @@ public class PlayerSkills : NetworkBehaviour
             if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
             {
                 GameObject hitObject = hit.collider.gameObject;
-                Debug.Log($"[PlayerSkills] Left click detected, hit object: {hitObject.name}, tag: {hitObject.tag}, skill: {_activeSkill.SkillName}");
-                _activeSkill.Execute(_core, hit.point, hitObject);
+                Debug.Log($"[PlayerSkills] Left click detected, hit object: {hitObject.name}, tag: {hitObject.tag}");
             }
         }
     }
 
-    private void UpdateCursor()
+    private bool IsSkillOnCooldown(SkillBase skill)
     {
-        if (Time.time < _lastCursorUpdate + cursorUpdateInterval) return;
-
-        _lastCursorUpdate = Time.time;
-
-        Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
-        RaycastHit hit;
-
-        if (Physics.Raycast(ray, out hit, Mathf.Infinity, _core.interactableLayers))
+        if (_skillLastUseTimes.TryGetValue(skill.SkillName, out float lastUseTime))
         {
-            if (hit.collider.CompareTag("Enemy") || (hit.collider.CompareTag("Player") && hit.collider.GetComponent<PlayerCore>()?.team != _core.team))
-            {
-                SetCursor(attackCursor);
-            }
-            else
-            {
-                SetCursor(defaultCursor);
-            }
+            Debug.Log($"[PlayerSkills] Checking cooldown for {skill.SkillName}, lastUseTime={lastUseTime}, currentTime={Time.time}, cooldown={skill.Cooldown}");
+            return Time.time - lastUseTime < skill.Cooldown;
         }
-        else
-        {
-            SetCursor(defaultCursor);
-        }
-    }
-
-    private void UpdateTargetIndicator()
-    {
-        if (_activeSkill != null && _activeSkill.TargetIndicator != null)
-        {
-            Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
-            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
-            {
-                _activeSkill.TargetIndicator.SetActive(true);
-                _activeSkill.TargetIndicator.transform.position = hit.point + Vector3.up * 0.1f;
-
-                float distance = Vector3.Distance(transform.position, hit.point);
-                float scale = Mathf.Clamp(distance / _activeSkill.Range, 0.5f, 1f);
-                _activeSkill.TargetIndicator.transform.localScale = Vector3.one * scale;
-            }
-            else
-            {
-                _activeSkill.TargetIndicator.SetActive(false);
-            }
-        }
-    }
-
-    public void CancelSkillSelection()
-    {
-        CancelAllSkillSelections();
-        _isCasting = false;
-        if (_castSkillCoroutine != null)
-        {
-            StopCoroutine(_castSkillCoroutine);
-            _castSkillCoroutine = null;
-        }
-        Debug.Log("[PlayerSkills] Skill selection fully cancelled");
-    }
-
-    private void CancelAllSkillSelections()
-    {
-        foreach (var skill in skills)
-        {
-            if (skill.TargetIndicator != null)
-            {
-                skill.TargetIndicator.transform.localScale = Vector3.one;
-                skill.SetIndicatorVisibility(false);
-            }
-        }
-        _activeSkill = null;
-        Debug.Log("[PlayerSkills] All skill selections cancelled");
-    }
-
-    private void SetCursor(Texture2D cursorTexture)
-    {
-        if (cursorTexture != null)
-        {
-            Cursor.SetCursor(cursorTexture, Vector2.zero, CursorMode.Auto);
-            Debug.Log($"[PlayerSkills] Cursor set to: {cursorTexture.name}");
-        }
-        else
-        {
-            Debug.LogWarning("[PlayerSkills] Cursor texture is null");
-        }
-    }
-
-    public IEnumerator CastSkill(Vector3? targetPosition, GameObject targetObject, ISkill skillToCast)
-    {
-        _isCasting = true;
-        skillToCast.Execute(_core, targetPosition, targetObject);
-        yield return new WaitUntil(() => !_core.ActionSystem.IsPerformingAction);
-        _isCasting = false;
-        CancelSkillSelection();
-    }
-
-    private IEnumerator WaitForSkillCast(Vector3? targetPosition, GameObject targetObject)
-    {
-        if (targetObject != null)
-        {
-            while (targetObject != null && !_core.isDead && _core.ActionSystem.CurrentAction == PlayerAction.SkillCast)
-            {
-                yield return null;
-            }
-        }
-        else if (targetPosition.HasValue)
-        {
-            while (_core.ActionSystem.CurrentAction == PlayerAction.SkillCast)
-            {
-                yield return null;
-            }
-        }
+        return false;
     }
 
     [Command]
     public void CmdExecuteSkill(PlayerCore caster, Vector3? targetPosition, uint targetNetId, string skillName)
     {
-        Debug.Log($"[PlayerSkills] CmdExecuteSkill called: skill={skillName}, caster.isOwned={caster.netIdentity.isOwned}, server={netIdentity.isServer}");
-        if (!netIdentity.isServer)
+        SkillBase skill = skills.Find(s => s.SkillName == skillName);
+        if (skill == null)
         {
-            Debug.LogError($"[PlayerSkills] CmdExecuteSkill called on client for skill {skillName}. This should only run on the server.");
+            Debug.LogWarning($"[PlayerSkills] Skill {skillName} not found");
             return;
         }
 
-        if (caster == null)
+        if (IsSkillOnCooldown(skill))
         {
-            Debug.LogError("[PlayerSkills] Caster is null in CmdExecuteSkill");
+            Debug.LogWarning($"[PlayerSkills] Skill {skillName} is on cooldown. Ignoring.");
             return;
         }
 
         CharacterStats stats = caster.GetComponent<CharacterStats>();
-        SkillBase skill = skills.FirstOrDefault(s => s.SkillName == skillName);
-        if (skill == null)
+        if (stats != null && !stats.HasEnoughMana(skill.ManaCost))
         {
-            Debug.LogError($"[PlayerSkills] Skill {skillName} not found in skills list");
+            Debug.LogWarning($"[PlayerSkills] Not enough mana for {skillName}: {stats.currentMana}/{skill.ManaCost}");
             return;
         }
 
-        bool isCritical = false;
-
-        if (skill is BasicAttackSkill basicAttackSkill)
+        NetworkIdentity targetIdentity = null;
+        if (targetNetId != 0 && NetworkServer.spawned.ContainsKey(targetNetId))
         {
-            if (!NetworkServer.spawned.TryGetValue(targetNetId, out NetworkIdentity targetIdentity))
-            {
-                Debug.LogWarning($"[PlayerSkills] Target with netId {targetNetId} not found on server for skill {skillName}");
-                return;
-            }
-
-            PlayerCore targetCore = targetIdentity.GetComponent<PlayerCore>();
-            PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
-            if (targetCore != null && casterCore != null && casterCore.team != targetCore.team)
-            {
-                Health targetHealth = targetIdentity.GetComponent<Health>();
-                if (targetHealth != null)
-                {
-                    isCritical = Random.value <= stats.criticalHitChance;
-                    int baseDamage = Random.Range(stats.minAttack, stats.maxAttack + 1);
-                    int finalDamage = skill.SkillDamageType == DamageType.Magic
-                        ? Mathf.RoundToInt(baseDamage * stats.magicDamageMultiplier)
-                        : baseDamage;
-                    Debug.Log($"[PlayerSkills] Applying damage: {finalDamage} to {targetCore.playerName}");
-                    targetHealth.TakeDamage(finalDamage, skill.SkillDamageType, isCritical);
-                }
-                RpcPlayBasicAttackVFX(caster.transform.position, caster.transform.rotation, targetIdentity.transform.position, isCritical, skillName);
-            }
-            else
-            {
-                Debug.LogWarning($"[PlayerSkills] Basic attack ignored: invalid target or same team for skill {skillName}");
-            }
+            targetIdentity = NetworkServer.spawned[targetNetId];
         }
-        else if (skill is ProjectileDamageSkill projectileSkill)
+
+        if (skill is ProjectileDamageSkill || skill is SlowSkill || skill is TargetedStunSkill)
         {
-            if (!NetworkServer.spawned.TryGetValue(targetNetId, out NetworkIdentity targetIdentity))
+            if (targetIdentity == null)
             {
-                Debug.LogWarning($"[PlayerSkills] Target with netId {targetNetId} not found on server for skill {skillName}");
+                Debug.LogWarning($"[PlayerSkills] Target netId {targetNetId} not found for {skillName}");
                 return;
             }
 
             PlayerCore targetCore = targetIdentity.GetComponent<PlayerCore>();
-            PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
-            if (targetCore != null && casterCore != null && casterCore.team != targetCore.team)
+            if (targetCore == null || caster.team == targetCore.team)
             {
-                Health targetHealth = targetIdentity.GetComponent<Health>();
-                if (targetHealth != null)
-                {
-                    isCritical = Random.value <= stats.criticalHitChance;
-                    int finalDamage = skill.SkillDamageType == DamageType.Magic
-                        ? Mathf.RoundToInt(projectileSkill.damageAmount * stats.magicDamageMultiplier)
-                        : projectileSkill.damageAmount + (stats.strength * 2);
-                    Debug.Log($"[PlayerSkills] Applying damage: {finalDamage} to {targetCore.playerName}");
-                    targetHealth.TakeDamage(finalDamage, skill.SkillDamageType, isCritical);
-                }
+                Debug.LogWarning($"[PlayerSkills] Invalid target or same team for {skillName}");
+                return;
+            }
+
+            if (skill is ProjectileDamageSkill projectileSkill)
+            {
+                Debug.Log($"[PlayerSkills] Spawning projectile for {skillName} targeting {targetIdentity.gameObject.name}");
                 RpcSpawnProjectile(caster.transform.position, targetIdentity.transform.position, skillName);
-            }
-            else
-            {
-                Debug.LogWarning($"[PlayerSkills] Projectile ignored: invalid target or same team for skill {skillName}");
-            }
-        }
-        else if (skill is SlowSkill slowSkill)
-        {
-            if (!NetworkServer.spawned.TryGetValue(targetNetId, out NetworkIdentity targetIdentity))
-            {
-                Debug.LogWarning($"[PlayerSkills] Target with netId {targetNetId} not found on server for skill {skillName}");
-                return;
-            }
-
-            PlayerCore targetCore = targetIdentity.GetComponent<PlayerCore>();
-            PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
-            if (targetCore != null && casterCore != null && casterCore.team != targetCore.team)
-            {
                 Health targetHealth = targetIdentity.GetComponent<Health>();
                 if (targetHealth != null)
                 {
-                    isCritical = Random.value <= stats.criticalHitChance;
-                    int finalDamage = skill.SkillDamageType == DamageType.Magic
-                        ? Mathf.RoundToInt(slowSkill.baseDamage * stats.magicDamageMultiplier * SlowSkill.DAMAGE_MULTIPLIER)
-                        : Mathf.RoundToInt((slowSkill.baseDamage + (stats.strength * 2)) * SlowSkill.DAMAGE_MULTIPLIER);
-                    Debug.Log($"[PlayerSkills] Applying damage: {finalDamage} to {targetCore.playerName}");
-                    targetHealth.TakeDamage(finalDamage, skill.SkillDamageType, isCritical);
+                    float critChance = stats != null ? stats.criticalHitChance : 0f;
+                    bool isCritical = Random.value < critChance;
+                    int damage = isCritical ? Mathf.RoundToInt(projectileSkill.damageAmount * 1.5f) : projectileSkill.damageAmount;
+                    targetHealth.TakeDamage(damage, skill.SkillDamageType, isCritical);
                 }
+            }
+            else if (skill is SlowSkill slowSkill)
+            {
+                Debug.Log($"[PlayerSkills] Applying slow to {targetCore.playerName} for {slowSkill.slowDuration}s");
                 targetCore.ApplySlow(slowSkill.slowPercentage, slowSkill.slowDuration);
-                RpcApplySlowEffect(targetIdentity.netId, slowSkill.slowDuration, skillName);
+                RpcApplySlowEffect(targetNetId, slowSkill.slowDuration, skillName);
             }
-            else
-            {
-                Debug.LogWarning($"[PlayerSkills] Slow ignored: invalid target or same team for skill {skillName}");
-            }
-        }
-        else if (skill is TargetedStunSkill targetedStunSkill)
-        {
-            if (caster.isStunned)
-            {
-                Debug.LogWarning("[PlayerSkills] Caster is stunned and cannot use TargetedStunSkill");
-                return;
-            }
-
-            if (!NetworkServer.spawned.TryGetValue(targetNetId, out NetworkIdentity targetIdentity))
-            {
-                Debug.LogWarning($"[PlayerSkills] Target with netId {targetNetId} not found on server for skill {skillName}");
-                return;
-            }
-
-            PlayerCore targetCore = targetIdentity.GetComponent<PlayerCore>();
-            PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
-            if (targetCore != null && casterCore != null && casterCore.team != targetCore.team)
+            else if (skill is TargetedStunSkill targetedStunSkill)
             {
                 Debug.Log($"[PlayerSkills] Applying stun to {targetCore.playerName} for {targetedStunSkill.stunDuration}s");
                 targetCore.ApplyControlEffect(ControlEffectType.Stun, targetedStunSkill.stunDuration);
-                RpcPlayTargetedStun(targetIdentity.netId, skillName);
-            }
-            else
-            {
-                Debug.LogWarning($"[PlayerSkills] Stun ignored: invalid target or same team for skill {skillName}");
+                RpcPlayTargetedStun(targetNetId, skillName);
             }
         }
         else if (skill is HealingSkill healingSkill)
         {
-            if (!NetworkServer.spawned.TryGetValue(targetNetId, out NetworkIdentity targetIdentity))
+            if (targetIdentity == null)
             {
-                Debug.LogWarning($"[PlayerSkills] Target with netId {targetNetId} not found on server for skill {skillName}");
+                Debug.LogWarning($"[PlayerSkills] Target netId {targetNetId} not found for {skillName}");
                 return;
             }
 
@@ -463,11 +291,11 @@ public class PlayerSkills : NetworkBehaviour
             {
                 Debug.Log($"[PlayerSkills] Healing {targetCore.playerName} for {healingSkill.healAmount}");
                 targetHealth.Heal(healingSkill.healAmount);
-                RpcPlayHealingSkill(targetIdentity.netId, skillName);
+                RpcPlayHealingSkill(targetNetId, skillName);
             }
             else
             {
-                Debug.LogWarning($"[PlayerSkills] Heal ignored: invalid target or different team for skill {skillName}");
+                Debug.LogWarning($"[PlayerSkills] Heal ignored: invalid target or different team for {skillName}");
             }
         }
         else if (skill is AreaOfEffectStunSkill || skill is AreaOfEffectHealSkill)
@@ -514,6 +342,7 @@ public class PlayerSkills : NetworkBehaviour
         {
             stats.ConsumeMana(skill.ManaCost);
         }
+        _skillLastUseTimes[skill.SkillName] = Time.time;
         skill.StartCooldown();
     }
 
@@ -606,5 +435,45 @@ public class PlayerSkills : NetworkBehaviour
     private void Update()
     {
         if (isLocalPlayer) HandleSkills();
+    }
+
+    public void CancelAllSkillSelections()
+    {
+        if (_activeSkill != null)
+        {
+            _activeSkill.SetIndicatorVisibility(false);
+            _activeSkill = null;
+            Debug.Log("[PlayerSkills] All skill selections cancelled");
+        }
+    }
+
+    public void CancelSkillSelection()
+    {
+        if (_activeSkill != null)
+        {
+            _activeSkill.SetIndicatorVisibility(false);
+            _activeSkill = null;
+            Debug.Log("[PlayerSkills] Skill selection fully cancelled");
+        }
+    }
+
+    private void UpdateTargetIndicator()
+    {
+        // Реализация обновления индикатора цели
+    }
+
+    private void UpdateCursor()
+    {
+        if (Time.time - _lastCursorUpdate > cursorUpdateInterval)
+        {
+            SetCursor(defaultCursor);
+            _lastCursorUpdate = Time.time;
+        }
+    }
+
+    private void SetCursor(Texture2D cursor)
+    {
+        Cursor.SetCursor(cursor, Vector2.zero, CursorMode.Auto);
+        Debug.Log($"[PlayerSkills] Cursor set to: {cursor?.name ?? "null"}");
     }
 }
