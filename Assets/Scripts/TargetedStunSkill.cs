@@ -1,92 +1,73 @@
 using UnityEngine;
-using Mirror;
 using System.Collections;
+using Mirror;
 
 public class TargetedStunSkill : SkillBase
 {
-    [Header("Targeted Stun Skill Specifics")]
-    public float stunDuration = 3f;
+    [Header("Stun Skill Specifics")]
+    public float stunDuration = 2f;
     public GameObject effectPrefab;
 
-    protected override void ExecuteSkillImplementation(PlayerCore player, Vector3? targetPosition, GameObject targetObject)
+    private Coroutine _effectCoroutine;
+
+    protected override void ExecuteSkillImplementation(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
     {
-        if (targetObject == null || !isOwned)
+        if (targetObject == null)
         {
-            Debug.Log("Target is null or not owned");
+            Debug.LogWarning($"[TargetedStunSkill] Target object is null for skill {_skillName}");
             return;
         }
 
         NetworkIdentity targetIdentity = targetObject.GetComponent<NetworkIdentity>();
         if (targetIdentity == null)
         {
-            Debug.Log("Target has no NetworkIdentity");
+            Debug.LogWarning($"[TargetedStunSkill] Target {targetObject.name} has no NetworkIdentity for skill {_skillName}");
             return;
         }
 
-        // Клиентская проверка маны
-        CharacterStats stats = player.GetComponent<CharacterStats>();
+        CharacterStats stats = caster.GetComponent<CharacterStats>();
         if (stats != null && !stats.HasEnoughMana(ManaCost))
         {
-            Debug.Log("Not enough mana to cast skill!");
+            Debug.LogWarning($"[TargetedStunSkill] Not enough mana for skill {_skillName}: {stats.currentMana}/{ManaCost}");
             return;
         }
 
-        Debug.Log($"Attempting to stun target: {targetObject.name}, netId: {targetIdentity.netId}");
+        PlayerSkills skills = caster.GetComponent<PlayerSkills>();
+        if (skills == null)
+        {
+            Debug.LogWarning($"[TargetedStunSkill] PlayerSkills component missing on caster for skill {_skillName}");
+            return;
+        }
 
-        CmdApplyStun(targetIdentity.netId);
+        Debug.Log($"[TargetedStunSkill] Client requesting stun for skill {_skillName} on target: {targetObject.name}, netId: {targetIdentity.netId}");
+        skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName);
     }
 
-    [Command]
-    private void CmdApplyStun(uint targetNetId)
+    public void PlayEffect(GameObject target)
     {
-        Debug.Log($"Server received stun command for target netId: {targetNetId}");
-
-        // Серверная проверка маны
-        CharacterStats stats = connectionToClient.identity.GetComponent<CharacterStats>();
-        if (stats != null && !stats.ConsumeMana(ManaCost))
+        if (effectPrefab != null)
         {
-            Debug.Log("Not enough mana on server!");
-            return;
-        }
-
-        PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
-
-        if (casterCore.isStunned)
-        {
-            Debug.Log("Caster is stunned and cannot use this skill.");
-            return;
-        }
-
-        if (NetworkServer.spawned.TryGetValue(targetNetId, out NetworkIdentity targetIdentity))
-        {
-            PlayerCore targetCore = targetIdentity.GetComponent<PlayerCore>();
-
-            if (targetCore != null && casterCore != null)
-            {
-                if (casterCore.team != targetCore.team)
-                {
-                    targetCore.ApplyControlEffect(ControlEffectType.Stun, stunDuration);
-                    RpcPlayEffect(targetNetId);
-                }
-                else
-                {
-                    Debug.Log("Cannot stun a teammate!");
-                }
-            }
+            GameObject effect = Instantiate(effectPrefab, target.transform.position + Vector3.up * 1f, Quaternion.identity);
+            _effectCoroutine = StartCoroutine(DestroyEffectAfterDelay(effect, 2f));
         }
     }
 
-    [ClientRpc]
-    private void RpcPlayEffect(uint targetNetId)
+    private IEnumerator DestroyEffectAfterDelay(GameObject effect, float delay)
     {
-        if (NetworkClient.spawned.ContainsKey(targetNetId))
+        yield return new WaitForSeconds(delay);
+        if (effect != null)
         {
-            NetworkIdentity targetIdentity = NetworkClient.spawned[targetNetId];
-            if (effectPrefab != null)
-            {
-                GameObject effect = Instantiate(effectPrefab, targetIdentity.transform.position + Vector3.up * 1f, Quaternion.identity);
-                Destroy(effect, 2f);
-            }
+            Destroy(effect);
+        }
+        _effectCoroutine = null;
+    }
+
+    private void OnDisable()
+    {
+        if (_effectCoroutine != null)
+        {
+            StopCoroutine(_effectCoroutine);
+            _effectCoroutine = null;
         }
     }
 }

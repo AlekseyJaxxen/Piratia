@@ -9,12 +9,15 @@ public interface ISkill
     GameObject RangeIndicator { get; }
     GameObject TargetIndicator { get; }
     Texture2D CastCursor { get; }
-
-    bool IsOnCooldown();
-    void StartCooldown();
-    void Execute(PlayerCore player, Vector3? targetPosition, GameObject targetObject);
-    void SetIndicatorVisibility(bool isVisible);
-
+    int ManaCost { get; }
+    DamageType SkillDamageType { get; }
     float RemainingCooldown { get; }
     float CooldownProgressNormalized { get; }
+    string SkillName { get; } // Added SkillName property
+
+    void Init(PlayerCore core);
+    bool IsOnCooldown();
+    void StartCooldown();
+    void SetIndicatorVisibility(bool isVisible);
+    void Execute(PlayerCore player, Vector3? targetPosition, GameObject targetObject);
 }

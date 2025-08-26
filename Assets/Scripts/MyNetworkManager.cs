@@ -1,6 +1,5 @@
-using Mirror;
 using UnityEngine;
-using System.Linq;
+using Mirror;
 
 public class MyNetworkManager : NetworkManager
 {
@@ -9,27 +8,22 @@ public class MyNetworkManager : NetworkManager
     public override void OnStartServer()
     {
         base.OnStartServer();
-        // Регистрируем наш кастомный обработчик для сообщения
         NetworkServer.RegisterHandler<NetworkPlayerInfo>(OnReceivePlayerInfo);
+        Debug.Log("[MyNetworkManager] Server started, handler registered for NetworkPlayerInfo");
     }
 
     public override void OnStopServer()
     {
         base.OnStopServer();
-        // Разрегистрируем обработчик, чтобы избежать утечек памяти
         NetworkServer.UnregisterHandler<NetworkPlayerInfo>();
+        Debug.Log("[MyNetworkManager] Server stopped, handler unregistered");
     }
 
-    // Этот метод вызывается на клиенте, когда он подключается к серверу
     public override void OnClientConnect()
     {
         base.OnClientConnect();
-        Debug.Log("Клиент подключился к серверу. Отправляем информацию об игроке...");
-
-        // Получаем информацию из UI
+        Debug.Log("[MyNetworkManager] Client connected to server. Sending player info...");
         PlayerUI_Team.PlayerInfo uiInfo = PlayerUI_Team.GetTempPlayerInfo();
-
-        // Создаем и отправляем сообщение на сервер
         NetworkClient.Send(new NetworkPlayerInfo
         {
             playerName = uiInfo.name,
@@ -38,40 +32,65 @@ public class MyNetworkManager : NetworkManager
         });
     }
 
-    // Этот метод вызывается на сервере, когда он получает сообщение от клиента
     [Server]
     private void OnReceivePlayerInfo(NetworkConnectionToClient conn, NetworkPlayerInfo info)
     {
-        Debug.Log($"Сервер получил информацию от клиента: Имя: {info.playerName}, Команда: {info.playerTeam}, Префаб: {info.playerPrefabIndex}");
+        Debug.Log($"[MyNetworkManager] Server received player info: Name: {info.playerName}, Team: {info.playerTeam}, Prefab: {info.playerPrefabIndex}, ConnectionId: {conn.connectionId}");
 
-        // Проверяем, что индекс префаба корректен
+        // Проверяем, нет ли уже игрока для этого соединения
+        if (conn.identity != null)
+        {
+            Debug.LogWarning($"[MyNetworkManager] Player already exists for connection {conn.connectionId}. Replacing player.");
+            NetworkServer.ReplacePlayerForConnection(conn, null);
+        }
+
         if (info.playerPrefabIndex < 0 || info.playerPrefabIndex >= playerPrefabs.Length)
         {
-            Debug.LogError($"Получен некорректный индекс префаба: {info.playerPrefabIndex}.");
+            Debug.LogError($"[MyNetworkManager] Invalid prefab index: {info.playerPrefabIndex}");
             return;
         }
 
-        // 1. Создаем экземпляр префаба
-        GameObject playerInstance = Instantiate(playerPrefabs[info.playerPrefabIndex]);
+        // Проверяем, выбрана ли команда
+        if (info.playerTeam == PlayerTeam.None)
+        {
+            Debug.LogWarning($"[MyNetworkManager] Player {info.playerName} has no team assigned. Assigning default team: Red");
+            info.playerTeam = PlayerTeam.Red;
+        }
 
-        // 2. Настраиваем экземпляр, как и раньше
+        GameObject playerInstance = Instantiate(playerPrefabs[info.playerPrefabIndex]);
+        Transform spawnPoint = GetTeamSpawnPoint(info.playerTeam);
+        if (spawnPoint != null)
+        {
+            playerInstance.transform.position = spawnPoint.position;
+            Debug.Log($"[MyNetworkManager] Player {info.playerName} spawned at position: {spawnPoint.position}");
+        }
+        else
+        {
+            Debug.LogWarning("[MyNetworkManager] No valid spawn point found, using default position");
+        }
+
         PlayerCore playerCore = playerInstance.GetComponent<PlayerCore>();
         if (playerCore != null)
         {
-            playerCore.team = info.playerTeam;
+            // Прямое присваивание SyncVar на сервере
             playerCore.playerName = info.playerName;
+            playerCore.team = info.playerTeam;
+            Debug.Log($"[MyNetworkManager] Set player info: Name={info.playerName}, Team={info.playerTeam}");
+        }
+        else
+        {
+            Debug.LogError("[MyNetworkManager] PlayerCore component missing on spawned player!");
+            return;
         }
 
-        // 3. Добавляем созданный экземпляр в сеть
         NetworkServer.AddPlayerForConnection(conn, playerInstance);
-
-        Debug.Log($"Игрок {info.playerName} успешно заспавнен с префабом {playerInstance.name}.");
+        Debug.Log($"[MyNetworkManager] Player {info.playerName} successfully spawned with prefab {playerInstance.name}. isOwned={playerInstance.GetComponent<NetworkIdentity>().isOwned}");
     }
 
-    // Этот метод теперь не используется, так как вся логика спавна находится в OnReceivePlayerInfo
     public override void OnServerAddPlayer(NetworkConnectionToClient conn)
     {
-        // Не используйте этот метод для спавна, так как у вас нет информации от клиента здесь.
+        // Отключаем базовую логику спавна, чтобы избежать дублирования
+        Debug.Log("[MyNetworkManager] OnServerAddPlayer called, handled by OnReceivePlayerInfo");
     }
 
     public Transform GetTeamSpawnPoint(PlayerTeam team)
@@ -85,12 +104,11 @@ public class MyNetworkManager : NetworkManager
                 return spawnPoint.transform;
             }
         }
-
         if (spawnPoints.Length > 0)
         {
             return spawnPoints[Random.Range(0, spawnPoints.Length)].transform;
         }
-
-        return null;
+        Debug.LogWarning("[MyNetworkManager] No spawn points found for team " + team);
+        return transform;
     }
 }

@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using Mirror;
+using System.Collections;
 
 public class PlayerUI_Team : MonoBehaviour
 {
@@ -16,7 +17,6 @@ public class PlayerUI_Team : MonoBehaviour
     public Button changeNameButton;
     public Button disconnectButton;
     public Button returnToMainMenuButton;
-
     private static PlayerInfo tempPlayerInfo = new PlayerInfo();
 
     public class PlayerInfo
@@ -32,57 +32,46 @@ public class PlayerUI_Team : MonoBehaviour
         {
             redTeamButton.onClick.AddListener(() => OnTeamSelected(PlayerTeam.Red));
         }
-
         if (blueTeamButton != null)
         {
             blueTeamButton.onClick.AddListener(() => OnTeamSelected(PlayerTeam.Blue));
         }
-
         if (playerPrefab1Button != null)
         {
             playerPrefab1Button.onClick.AddListener(() => OnPrefabSelected(0));
         }
-
         if (playerPrefab2Button != null)
         {
             playerPrefab2Button.onClick.AddListener(() => OnPrefabSelected(1));
         }
-
         if (hostButton != null)
         {
             hostButton.onClick.AddListener(OnHostClicked);
         }
-
         if (clientButton != null)
         {
             clientButton.onClick.AddListener(OnClientClicked);
         }
-
         if (changeNameButton != null)
         {
             changeNameButton.onClick.AddListener(OnChangeNameClicked);
         }
-
         if (disconnectButton != null)
         {
             disconnectButton.onClick.AddListener(OnDisconnectClicked);
         }
-
         if (returnToMainMenuButton != null)
         {
             returnToMainMenuButton.onClick.AddListener(OnReturnToMainMenuClicked);
         }
-
         if (teamSelectionPanel != null)
         {
             teamSelectionPanel.SetActive(true);
         }
-
         if (nameInputField != null)
         {
             nameInputField.text = tempPlayerInfo.name;
         }
-
         UpdateButtonColors(tempPlayerInfo.team);
     }
 
@@ -93,6 +82,9 @@ public class PlayerUI_Team : MonoBehaviour
         if (myNetworkManager != null)
         {
             myNetworkManager.StartHost();
+            teamSelectionPanel.SetActive(false);
+            // Отправляем начальную команду для хоста
+            StartCoroutine(SendInitialTeamForHost());
         }
     }
 
@@ -103,21 +95,38 @@ public class PlayerUI_Team : MonoBehaviour
         if (myNetworkManager != null)
         {
             myNetworkManager.StartClient();
+            teamSelectionPanel.SetActive(false);
         }
+    }
+
+    private IEnumerator SendInitialTeamForHost()
+    {
+        yield return new WaitUntil(() => NetworkServer.active && PlayerCore.localPlayerCoreInstance != null);
+        OnTeamSelected(tempPlayerInfo.team);
     }
 
     private void OnTeamSelected(PlayerTeam selectedTeam)
     {
+        tempPlayerInfo.team = selectedTeam;
+        UpdateButtonColors(selectedTeam);
+        Debug.Log($"Выбрана команда локально: {selectedTeam}");
+
         if (NetworkClient.isConnected && PlayerCore.localPlayerCoreInstance != null)
         {
             PlayerCore.localPlayerCoreInstance.CmdChangeTeam(selectedTeam);
         }
-        else
+        else if (NetworkServer.active)
         {
-            tempPlayerInfo.team = selectedTeam;
-            UpdateButtonColors(selectedTeam);
+            GameObject playerInstance = NetworkServer.localConnection?.identity?.gameObject;
+            if (playerInstance != null)
+            {
+                PlayerCore playerCore = playerInstance.GetComponent<PlayerCore>();
+                if (playerCore != null)
+                {
+                    playerCore.CmdSetPlayerInfo(tempPlayerInfo.name, selectedTeam);
+                }
+            }
         }
-        Debug.Log($"Выбрана команда локально: {selectedTeam}");
     }
 
     private void OnPrefabSelected(int index)
@@ -129,18 +138,27 @@ public class PlayerUI_Team : MonoBehaviour
     private void OnChangeNameClicked()
     {
         string newName = nameInputField.text;
+        tempPlayerInfo.name = newName;
+        Debug.Log($"Имя изменено локально на: {newName}");
+
         if (NetworkClient.isConnected && PlayerCore.localPlayerCoreInstance != null)
         {
             PlayerCore.localPlayerCoreInstance.CmdChangeName(newName);
         }
-        else
+        else if (NetworkServer.active)
         {
-            tempPlayerInfo.name = newName;
+            GameObject playerInstance = NetworkServer.localConnection?.identity?.gameObject;
+            if (playerInstance != null)
+            {
+                PlayerCore playerCore = playerInstance.GetComponent<PlayerCore>();
+                if (playerCore != null)
+                {
+                    playerCore.CmdSetPlayerInfo(newName, tempPlayerInfo.team);
+                }
+            }
         }
-        Debug.Log($"Имя изменено локально на: {newName}");
     }
 
-    // Метод для дисконнекта
     public void OnDisconnectClicked()
     {
         if (NetworkServer.active && NetworkClient.isConnected)
@@ -155,7 +173,6 @@ public class PlayerUI_Team : MonoBehaviour
         }
     }
 
-    // Метод для возвращения в главное меню
     public void OnReturnToMainMenuClicked()
     {
         if (NetworkServer.active && NetworkClient.isConnected)
@@ -184,10 +201,8 @@ public class PlayerUI_Team : MonoBehaviour
     {
         Color selectedColor = Color.yellow;
         Color defaultColor = Color.white;
-
         if (redTeamButton != null)
             redTeamButton.GetComponent<Image>().color = (currentTeam == PlayerTeam.Red) ? selectedColor : defaultColor;
-
         if (blueTeamButton != null)
             blueTeamButton.GetComponent<Image>().color = (currentTeam == PlayerTeam.Blue) ? selectedColor : defaultColor;
     }

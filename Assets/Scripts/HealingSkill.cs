@@ -1,53 +1,46 @@
 using UnityEngine;
+using System.Collections;
 using Mirror;
 
 public class HealingSkill : SkillBase
 {
-    [Header("Healing Skill Settings")]
+    [Header("Heal Settings")]
     public int healAmount = 20;
+    public GameObject effectPrefab;
 
     protected override void ExecuteSkillImplementation(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
     {
-        if (targetObject == null || !isOwned)
+        if (targetObject == null)
         {
-            Debug.Log("Target is null or not owned");
+            Debug.LogWarning("[HealingSkill] Target object is null");
             return;
         }
 
         NetworkIdentity targetIdentity = targetObject.GetComponent<NetworkIdentity>();
         if (targetIdentity == null)
         {
-            Debug.Log("Target has no NetworkIdentity");
+            Debug.LogWarning($"[HealingSkill] Target {targetObject.name} has no NetworkIdentity");
             return;
         }
 
-        Debug.Log($"Attempting to heal target: {targetObject.name}, netId: {targetIdentity.netId}");
+        CharacterStats stats = caster.GetComponent<CharacterStats>();
+        if (stats != null && !stats.HasEnoughMana(ManaCost))
+        {
+            Debug.LogWarning($"[HealingSkill] Not enough mana: {stats.currentMana}/{ManaCost}");
+            return;
+        }
 
-        CmdPerformHeal(targetIdentity.netId);
+        PlayerSkills skills = caster.GetComponent<PlayerSkills>();
+        Debug.Log($"[HealingSkill] Attempting to heal target: {targetObject.name}, netId: {targetIdentity.netId}");
+        skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName);
     }
 
-    [Command]
-    private void CmdPerformHeal(uint targetNetId)
+    public void PlayEffect(GameObject target)
     {
-        Debug.Log($"Server received heal command for target netId: {targetNetId}");
-
-        if (NetworkServer.spawned.TryGetValue(targetNetId, out NetworkIdentity targetIdentity))
+        if (effectPrefab != null)
         {
-            Health targetHealth = targetIdentity.GetComponent<Health>();
-            PlayerCore targetCore = targetIdentity.GetComponent<PlayerCore>();
-            PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
-
-            if (targetHealth != null && targetCore != null && casterCore != null)
-            {
-                if (casterCore.team == targetCore.team)
-                {
-                    targetHealth.Heal(healAmount);
-                }
-                else
-                {
-                    Debug.Log("Cannot heal an enemy!");
-                }
-            }
+            GameObject effect = Instantiate(effectPrefab, target.transform.position + Vector3.up * 1f, Quaternion.identity);
+            Destroy(effect, 2f);
         }
     }
 }

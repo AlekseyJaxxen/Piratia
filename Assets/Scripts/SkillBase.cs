@@ -1,7 +1,7 @@
 using UnityEngine;
 using Mirror;
 
-public abstract class SkillBase : NetworkBehaviour, ISkill
+public abstract class SkillBase : MonoBehaviour, ISkill
 {
     public float Cooldown => _cooldown;
     public float Range => _range;
@@ -14,8 +14,10 @@ public abstract class SkillBase : NetworkBehaviour, ISkill
     public DamageType SkillDamageType => _damageType;
     public float RemainingCooldown => Mathf.Max(0, _cooldown - (Time.time - _lastUseTime));
     public float CooldownProgressNormalized => 1f - (RemainingCooldown / _cooldown);
+    public string SkillName => _skillName;
 
     [Header("Base Skill Settings")]
+    [SerializeField] protected string _skillName;
     [SerializeField] protected KeyCode _hotkey;
     [SerializeField] protected float _range;
     [SerializeField] protected float _cooldown;
@@ -32,14 +34,18 @@ public abstract class SkillBase : NetworkBehaviour, ISkill
 
     public virtual void Init(PlayerCore core)
     {
-        if (isLocalPlayer && _targetIndicatorPrefab != null)
+        if (_targetIndicatorPrefab != null)
         {
             _targetIndicatorInstance = Instantiate(_targetIndicatorPrefab);
             _targetIndicatorInstance.SetActive(false);
         }
-        if (isLocalPlayer && _rangeIndicator != null)
+        if (_rangeIndicator != null)
         {
             _rangeIndicator.SetActive(false);
+        }
+        if (string.IsNullOrEmpty(_skillName))
+        {
+            Debug.LogError($"[SkillBase] SkillName not set for {gameObject.name}");
         }
     }
 
@@ -66,12 +72,32 @@ public abstract class SkillBase : NetworkBehaviour, ISkill
         }
         if (_targetIndicatorInstance != null)
         {
-            _targetIndicatorInstance.SetActive(false);
+            _targetIndicatorInstance.SetActive(isVisible);
         }
     }
 
     public void Execute(PlayerCore player, Vector3? targetPosition, GameObject targetObject)
     {
+        if (!NetworkClient.active)
+        {
+            Debug.LogWarning($"[SkillBase] Skill execution failed for {_skillName}: Client is not connected.");
+            return;
+        }
+        if (!player.isLocalPlayer)
+        {
+            Debug.LogWarning($"[SkillBase] Skill execution ignored for {_skillName}: Not a local player.");
+            return;
+        }
+        if (IsOnCooldown())
+        {
+            Debug.LogWarning($"[SkillBase] Skill {_skillName} is on cooldown. Remaining: {RemainingCooldown:F2}s");
+            return;
+        }
+        if (!player.netIdentity.isOwned)
+        {
+            Debug.LogWarning($"[SkillBase] Skill execution failed for {_skillName}: Player lacks authority.");
+            return;
+        }
         ExecuteSkillImplementation(player, targetPosition, targetObject);
     }
 

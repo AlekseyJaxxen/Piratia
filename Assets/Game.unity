@@ -257,6 +257,66 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2da0c512f12947e489f739169773d7ca, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!1 &212025121
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 212025123}
+  - component: {fileID: 212025122}
+  m_Layer: 0
+  m_Name: basicskill
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &212025122
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 212025121}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33afd28f7414d1441b3c320c86a39a5f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _skillName: WarriorMelee
+  _hotkey: 0
+  _range: 2
+  _cooldown: 0.5
+  _castTime: 0.1
+  _rangeIndicator: {fileID: 0}
+  _targetIndicatorPrefab: {fileID: 0}
+  _castCursor: {fileID: 0}
+  _manaCost: 0
+  _damageType: 1
+  vfxPrefab: {fileID: 0}
+  projectilePrefab: {fileID: 0}
+  projectileSpeed: 20
+  criticalHitVfxPrefab: {fileID: 0}
+  impactEffectPrefab: {fileID: 0}
+  criticalHitColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+--- !u!4 &212025123
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 212025121}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 652620083}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &218207558
 GameObject:
   m_ObjectHideFlags: 0
@@ -1418,6 +1478,40 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &652620082
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 652620083}
+  m_Layer: 0
+  m_Name: basicSkills
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &652620083
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 652620082}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 212025123}
+  - {fileID: 2082535637}
+  - {fileID: 1484290802}
+  m_Father: {fileID: 1855098298}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &696998313
 GameObject:
   m_ObjectHideFlags: 0
@@ -2238,6 +2332,66 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 9
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1484290800
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1484290802}
+  - component: {fileID: 1484290801}
+  m_Layer: 0
+  m_Name: basicskillmage
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1484290801
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1484290800}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33afd28f7414d1441b3c320c86a39a5f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _skillName: MageMelee
+  _hotkey: 0
+  _range: 5
+  _cooldown: 0.5
+  _castTime: 0.1
+  _rangeIndicator: {fileID: 0}
+  _targetIndicatorPrefab: {fileID: 0}
+  _castCursor: {fileID: 0}
+  _manaCost: 0
+  _damageType: 1
+  vfxPrefab: {fileID: 0}
+  projectilePrefab: {fileID: 0}
+  projectileSpeed: 20
+  criticalHitVfxPrefab: {fileID: 0}
+  impactEffectPrefab: {fileID: 0}
+  criticalHitColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+--- !u!4 &1484290802
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1484290800}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 652620083}
+  m_RootOrder: 2
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1516454050
 GameObject:
   m_ObjectHideFlags: 0
@@ -2739,6 +2893,115 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 7
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1855098296
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1855098298}
+  - component: {fileID: 1855098297}
+  m_Layer: 0
+  m_Name: SkillManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1855098297
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1855098296}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c08d4d3ac1b810e419c3807ef94fbbb6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  warriorSkills:
+  - {fileID: 212025122}
+  - {fileID: 1869530943}
+  mageSkills:
+  - {fileID: 1484290801}
+  archerSkills:
+  - {fileID: 2082535636}
+--- !u!4 &1855098298
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1855098296}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.5493771, y: 1.6660917, z: -11.131422}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 652620083}
+  - {fileID: 1869530942}
+  m_Father: {fileID: 0}
+  m_RootOrder: 15
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1869530941
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1869530942}
+  - component: {fileID: 1869530943}
+  m_Layer: 0
+  m_Name: stunSkills
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1869530942
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1869530941}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1855098298}
+  m_RootOrder: 1
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1869530943
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1869530941}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f371d8bf95d7ea4ab18be386db285d9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _skillName: warriorStun
+  _hotkey: 283
+  _range: 2
+  _cooldown: 10
+  _castTime: 0.2
+  _rangeIndicator: {fileID: 0}
+  _targetIndicatorPrefab: {fileID: 0}
+  _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
+  _manaCost: 0
+  _damageType: 0
+  stunDuration: 5
+  effectPrefab: {fileID: 109542, guid: 2ed06ab528b7c474eb9246421cd7c791, type: 3}
 --- !u!43 &1898222128
 Mesh:
   m_ObjectHideFlags: 0
@@ -3276,6 +3539,66 @@ Mesh:
     offset: 0
     size: 0
     path: 
+--- !u!1 &2082535635
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2082535637}
+  - component: {fileID: 2082535636}
+  m_Layer: 0
+  m_Name: basicskillrange
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2082535636
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2082535635}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33afd28f7414d1441b3c320c86a39a5f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _skillName: ArcherMelee
+  _hotkey: 0
+  _range: 6
+  _cooldown: 0.5
+  _castTime: 0.1
+  _rangeIndicator: {fileID: 0}
+  _targetIndicatorPrefab: {fileID: 0}
+  _castCursor: {fileID: 0}
+  _manaCost: 0
+  _damageType: 0
+  vfxPrefab: {fileID: 0}
+  projectilePrefab: {fileID: 0}
+  projectileSpeed: 20
+  criticalHitVfxPrefab: {fileID: 0}
+  impactEffectPrefab: {fileID: 0}
+  criticalHitColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+--- !u!4 &2082535637
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2082535635}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 652620083}
+  m_RootOrder: 1
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &2146098732
 PrefabInstance:
   m_ObjectHideFlags: 0

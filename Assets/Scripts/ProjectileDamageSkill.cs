@@ -1,6 +1,6 @@
 using UnityEngine;
-using Mirror;
 using System.Collections;
+using Mirror;
 
 public class ProjectileDamageSkill : SkillBase
 {
@@ -9,51 +9,34 @@ public class ProjectileDamageSkill : SkillBase
     public GameObject projectilePrefab;
     public GameObject impactEffectPrefab;
 
-    protected override void ExecuteSkillImplementation(PlayerCore player, Vector3? targetPosition, GameObject targetObject)
+    protected override void ExecuteSkillImplementation(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
     {
-        if (targetObject == null || !isOwned)
+        if (targetObject == null)
         {
-            Debug.Log("Target is null or not owned");
+            Debug.LogWarning("[ProjectileDamageSkill] Target object is null");
             return;
         }
 
         NetworkIdentity targetIdentity = targetObject.GetComponent<NetworkIdentity>();
         if (targetIdentity == null)
         {
-            Debug.Log("Target has no NetworkIdentity");
+            Debug.LogWarning($"[ProjectileDamageSkill] Target {targetObject.name} has no NetworkIdentity");
             return;
         }
 
-        Debug.Log($"Attempting to projectile attack target: {targetObject.name}, netId: {targetIdentity.netId}");
-
-        CmdSpawnProjectileAndDamage(player.transform.position, targetObject.transform.position, targetIdentity.netId);
-    }
-
-    [Command]
-    private void CmdSpawnProjectileAndDamage(Vector3 startPos, Vector3 targetPos, uint targetNetId)
-    {
-        Debug.Log($"Server received projectile attack command for target netId: {targetNetId}");
-
-        RpcSpawnProjectile(startPos, targetPos);
-
-        if (NetworkServer.spawned.TryGetValue(targetNetId, out NetworkIdentity targetIdentity))
+        CharacterStats stats = caster.GetComponent<CharacterStats>();
+        if (stats != null && !stats.HasEnoughMana(ManaCost))
         {
-            Health targetHealth = targetIdentity.GetComponent<Health>();
-            PlayerCore targetCore = targetIdentity.GetComponent<PlayerCore>();
-            PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
-
-            if (targetHealth != null && targetCore != null && casterCore != null)
-            {
-                if (casterCore.team != targetCore.team)
-                {
-                    targetHealth.TakeDamage(damageAmount, SkillDamageType);
-                }
-            }
+            Debug.LogWarning($"[ProjectileDamageSkill] Not enough mana: {stats.currentMana}/{ManaCost}");
+            return;
         }
+
+        PlayerSkills skills = caster.GetComponent<PlayerSkills>();
+        Debug.Log($"[ProjectileDamageSkill] Attempting to projectile attack target: {targetObject.name}, netId: {targetIdentity.netId}");
+        skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName);
     }
 
-    [ClientRpc]
-    private void RpcSpawnProjectile(Vector3 startPos, Vector3 targetPos)
+    public void SpawnProjectile(Vector3 startPos, Vector3 targetPos)
     {
         if (projectilePrefab != null)
         {

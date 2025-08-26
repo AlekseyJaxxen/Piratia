@@ -1,6 +1,6 @@
 using UnityEngine;
-using Mirror;
 using System.Collections;
+using Mirror;
 
 public class BasicAttackSkill : SkillBase
 {
@@ -16,89 +16,38 @@ public class BasicAttackSkill : SkillBase
 
     protected override void ExecuteSkillImplementation(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
     {
-        if (targetObject == null || !isOwned)
+        if (targetObject == null)
         {
-            Debug.Log("Target is null or not owned");
+            Debug.LogWarning($"[BasicAttackSkill] Target object is null for skill {_skillName}");
             return;
         }
 
         NetworkIdentity targetIdentity = targetObject.GetComponent<NetworkIdentity>();
         if (targetIdentity == null)
         {
-            Debug.Log("Target has no NetworkIdentity");
+            Debug.LogWarning($"[BasicAttackSkill] Target {targetObject.name} has no NetworkIdentity for skill {_skillName}");
             return;
         }
 
         CharacterStats stats = caster.GetComponent<CharacterStats>();
         if (stats != null && !stats.HasEnoughMana(ManaCost))
         {
-            Debug.Log("Not enough mana to cast skill!");
+            Debug.LogWarning($"[BasicAttackSkill] Not enough mana for skill {_skillName}: {stats.currentMana}/{ManaCost}");
             return;
         }
 
-        Debug.Log($"Attempting to attack target: {targetObject.name}, netId: {targetIdentity.netId}");
-        CmdPerformAttack(caster.transform.position, caster.transform.rotation, targetIdentity.netId);
+        PlayerSkills skills = caster.GetComponent<PlayerSkills>();
+        if (skills == null)
+        {
+            Debug.LogWarning($"[BasicAttackSkill] PlayerSkills component missing on caster for skill {_skillName}");
+            return;
+        }
+
+        Debug.Log($"[BasicAttackSkill] Client requesting attack for skill {_skillName} on target: {targetObject.name}, netId: {targetIdentity.netId}, strength: {stats.strength}, minAttack: {stats.minAttack}, maxAttack: {stats.maxAttack}");
+        skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName);
     }
 
-    [Command]
-    private void CmdPerformAttack(Vector3 casterPosition, Quaternion casterRotation, uint targetNetId)
-    {
-        Debug.Log($"Server received attack command for target netId: {targetNetId}");
-
-        CharacterStats stats = connectionToClient.identity.GetComponent<CharacterStats>();
-        if (stats != null && !stats.ConsumeMana(ManaCost))
-        {
-            Debug.Log("Not enough mana on server!");
-            return;
-        }
-
-        if (!NetworkServer.spawned.TryGetValue(targetNetId, out NetworkIdentity targetIdentity))
-        {
-            Debug.Log($"Target with netId {targetNetId} not found on server");
-            return;
-        }
-
-        Health targetHealth = targetIdentity.GetComponent<Health>();
-        PlayerCore targetCore = targetIdentity.GetComponent<PlayerCore>();
-        PlayerCore attackerCore = connectionToClient.identity.GetComponent<PlayerCore>();
-        CharacterStats targetStats = targetIdentity.GetComponent<CharacterStats>();
-
-        if (targetHealth == null || targetCore == null || attackerCore == null || targetStats == null)
-        {
-            Debug.Log("Missing components on target or attacker");
-            return;
-        }
-
-        if (attackerCore.team == targetCore.team)
-        {
-            Debug.Log("Cannot attack a teammate!");
-            return;
-        }
-
-        // Проверка шанса попадания и уклонения
-        float randomValue = UnityEngine.Random.Range(0f, 100f);
-        if (randomValue > stats.hitChance - targetStats.dodgeChance)
-        {
-            Debug.Log($"Attack missed: hitChance={stats.hitChance}, dodgeChance={targetStats.dodgeChance}");
-            return;
-        }
-
-        int baseDamage = stats != null ? UnityEngine.Random.Range(stats.minAttack, stats.maxAttack + 1) : 10;
-        bool isCritical = false;
-        int finalDamage = baseDamage;
-
-        if (stats != null)
-        {
-            finalDamage = stats.CalculateDamageWithCrit(baseDamage, out isCritical);
-            Debug.Log($"Attack {(isCritical ? "CRITICAL " : "")}damage: {finalDamage} (base: {baseDamage}, minAttack: {stats.minAttack}, maxAttack: {stats.maxAttack}, strength: {stats.strength}, class: {stats.characterClass})");
-        }
-
-        targetHealth.TakeDamage(finalDamage, SkillDamageType, isCritical);
-        RpcPlayVFX(casterPosition, casterRotation, targetIdentity.transform.position, isCritical);
-    }
-
-    [ClientRpc]
-    private void RpcPlayVFX(Vector3 startPosition, Quaternion startRotation, Vector3 endPosition, bool isCritical)
+    public void PlayVFX(Vector3 startPosition, Quaternion startRotation, Vector3 endPosition, bool isCritical)
     {
         if (vfxPrefab != null)
         {

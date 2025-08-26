@@ -920,9 +920,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f371d8bf95d7ea4ab18be386db285d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  syncDirection: 0
-  syncMode: 0
-  syncInterval: 0
+  _skillName: 
   _hotkey: 283
   _range: 1.9
   _cooldown: 15
@@ -949,9 +947,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: da6862f7b7b560544b2ac82929229ae9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  syncDirection: 0
-  syncMode: 0
-  syncInterval: 0
+  _skillName: 
   _hotkey: 282
   _range: 10
   _cooldown: 5
@@ -978,9 +974,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6725be40aa7610240985629a311d2bc7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  syncDirection: 0
-  syncMode: 0
-  syncInterval: 0
+  _skillName: 
   _hotkey: 285
   _range: 5
   _cooldown: 5
@@ -1005,9 +999,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5f566b4e89617e6469eda4f012325d89, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  syncDirection: 0
-  syncMode: 0
-  syncInterval: 0
+  _skillName: 
   _hotkey: 284
   _range: 6
   _cooldown: 10
@@ -1032,9 +1024,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 33afd28f7414d1441b3c320c86a39a5f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  syncDirection: 0
-  syncMode: 0
-  syncInterval: 0
+  _skillName: 
   _hotkey: 286
   _range: 1
   _cooldown: 0.2

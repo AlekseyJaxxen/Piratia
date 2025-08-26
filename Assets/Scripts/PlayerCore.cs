@@ -37,7 +37,7 @@ public class PlayerCore : NetworkBehaviour
 
     [Header("UI References")]
     [SerializeField]
-    private DeathScreenUI deathScreenUI; // Ручная настройка в Inspector
+    private DeathScreenUI deathScreenUI;
 
     [Header("Dependencies")]
     public LayerMask interactableLayers;
@@ -93,27 +93,44 @@ public class PlayerCore : NetworkBehaviour
         Camera = GetComponent<PlayerCameraController>();
         Health = GetComponent<Health>();
         Stats = GetComponent<CharacterStats>();
+
+        if (Movement == null) Debug.LogError("[PlayerCore] PlayerMovement component missing!");
+        if (Combat == null) Debug.LogError("[PlayerCore] PlayerCombat component missing!");
+        if (Skills == null) Debug.LogError("[PlayerCore] PlayerSkills component missing!");
+        if (ActionSystem == null) Debug.LogError("[PlayerCore] PlayerActionSystem component missing!");
+        if (Camera == null) Debug.LogError("[PlayerCore] PlayerCameraController component missing!");
+        if (Health == null) Debug.LogError("[PlayerCore] Health component missing!");
+        if (Stats == null) Debug.LogError("[PlayerCore] CharacterStats component missing!");
+
+        if (Movement != null) Movement.Init(this);
+        if (Combat != null) Combat.Init(this);
+        if (ActionSystem != null) ActionSystem.Init(this);
+        if (Camera != null) Camera.Init(this);
     }
 
     public override void OnStartLocalPlayer()
     {
-        Debug.Log("OnStartLocalPlayer invoked for local player. Initializing components.");
+        Debug.Log($"[PlayerCore] OnStartLocalPlayer invoked. isOwned: {netIdentity.isOwned}, isDead: {isDead}, isStunned: {isStunned}, team: {team}");
         localPlayerCoreInstance = this;
 
         PlayerUI ui = GetComponentInChildren<PlayerUI>();
         if (ui == null)
         {
-            Debug.LogWarning("PlayerUI not found in player prefab!");
+            Debug.LogWarning("[PlayerCore] PlayerUI not found in player prefab!");
         }
 
         if (Camera != null)
         {
             Camera.Init(this);
         }
+        else
+        {
+            Debug.LogError("[PlayerCore] Camera component is null!");
+        }
 
         base.OnStartLocalPlayer();
 
-        int localPlayerLayer = LayerMask.NameToLayer("LocalPlayer");
+        int localPlayerLayer = LayerMask.NameToLayer("Player");
         if (localPlayerLayer != -1)
         {
             gameObject.layer = localPlayerLayer;
@@ -122,8 +139,11 @@ public class PlayerCore : NetworkBehaviour
                 child.gameObject.layer = localPlayerLayer;
             }
         }
+        else
+        {
+            Debug.LogError("[PlayerCore] Layer 'Player' not found!");
+        }
 
-        // Гарантируем, что курсор всегда видим
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
     }
@@ -150,113 +170,44 @@ public class PlayerCore : NetworkBehaviour
         isStunned = false;
         _lastManaRegenTime = Time.time;
         if (Health != null) Health.Init();
-        if (Stats != null)
-        {
-            _originalSpeed = Stats.movementSpeed;
-        }
+        if (Stats != null) Stats.CalculateDerivedStats();
+        _initialSpawnPosition = transform.position;
+        Debug.Log($"[PlayerCore] OnStartServer: Initialized player {playerName}, team={team}");
     }
 
-    public void OnHealthZero()
+    public override void OnStopClient()
     {
+        base.OnStopClient();
         if (isLocalPlayer)
         {
-            CmdDie();
-            Debug.Log($"Health reached zero for {playerName}, sending CmdDie");
+            if (Skills != null) Skills.CancelSkillSelection();
+            if (ActionSystem != null) ActionSystem.CompleteAction();
+            Debug.Log("[PlayerCore] Cleaned up on client disconnect.");
         }
     }
 
-    private void Start()
+    private void OnDisable()
     {
-        InitComponents();
-        if (isLocalPlayer && deathScreenUI == null)
-        {
-            Debug.LogError($"DeathScreenUI not assigned in Inspector for {playerName}! Please assign it manually.");
-        }
-    }
-
-    private void InitComponents()
-    {
-        if (Movement != null) Movement.Init(this);
-        if (Combat != null) Combat.Init(this);
-        if (Skills != null) Skills.Init(this);
-        if (ActionSystem != null) ActionSystem.Init(this);
+        if (Skills != null) Skills.CancelSkillSelection();
+        if (ActionSystem != null) ActionSystem.CompleteAction();
+        Debug.Log("[PlayerCore] Cleaned up on disable.");
     }
 
     private void Update()
     {
-        ServerUpdate();
-
-        if (!isLocalPlayer || isStunned || isDead)
+        if (netIdentity.isServer && isStunned && Time.time >= controlEffectEndTime)
         {
-            return;
-        }
-
-        if (Input.GetKeyDown(KeyCode.E))
-        {
-            CmdAddExperience(100);
-        }
-
-        Skills.HandleSkills();
-        Combat.HandleCombat();
-        Movement.HandleMovement();
-    }
-
-    [ServerCallback]
-    private void ServerUpdate()
-    {
-        if (currentControlEffect != ControlEffectType.None && Time.time >= controlEffectEndTime)
-        {
-            ClearControlEffect();
-        }
-
-        if (!isDead && Time.time >= _lastManaRegenTime + manaRegenInterval)
-        {
-            if (Stats != null)
-            {
-                Stats.RestoreMana(manaRegenAmount);
-                Debug.Log($"[Server] Regenerated {manaRegenAmount} mana for {playerName}. Current mana: {Stats.currentMana}");
-            }
-            _lastManaRegenTime = Time.time;
-        }
-    }
-
-    [Server]
-    public void ApplyControlEffect(ControlEffectType newEffectType, float duration)
-    {
-        if (newEffectType > currentControlEffect)
-        {
-            currentControlEffect = newEffectType;
-            controlEffectEndTime = Time.time + duration;
-
-            if (currentControlEffect == ControlEffectType.Stun)
-            {
-                SetStunState(true);
-            }
-
-            Debug.Log($"Applied new control effect: {currentControlEffect} for {duration} seconds.");
-        }
-        else
-        {
-            Debug.Log($"Ignored control effect: {newEffectType}. Current effect is {currentControlEffect}.");
-        }
-    }
-
-    [Server]
-    public void ClearControlEffect()
-    {
-        if (currentControlEffect == ControlEffectType.Stun)
-        {
-            SetStunState(false);
-        }
-
-        if (currentControlEffect == ControlEffectType.Slow)
-        {
-            Movement.SetMovementSpeed(_originalSpeed);
+            isStunned = false;
+            currentControlEffect = ControlEffectType.None;
             _slowPercentage = 0f;
-            Debug.Log("Slow effect removed. Speed restored.");
+            if (Movement != null) Movement.SetMovementSpeed(Stats.movementSpeed);
+            Debug.Log("[PlayerCore] Stun expired, restoring movement speed.");
         }
 
-        currentControlEffect = ControlEffectType.None;
+        if (isLocalPlayer)
+        {
+            Debug.Log($"[PlayerCore] Update: isDead={isDead}, isStunned={isStunned}, Movement.enabled={Movement != null && Movement.enabled}, team={team}");
+        }
     }
 
     [Server]
@@ -265,130 +216,20 @@ public class PlayerCore : NetworkBehaviour
         isDead = state;
         if (state)
         {
-            _timeOfDeath = Time.time;
-            Movement.StopMovement();
-            Combat.StopAttacking();
-            ActionSystem.CompleteAction();
-            ClearControlEffect();
-
-            if (TryGetComponent<BoxCollider>(out var boxCollider))
-            {
-                boxCollider.enabled = false;
-            }
-
-            if (TryGetComponent<CapsuleCollider>(out var capsuleCollider))
-            {
-                capsuleCollider.enabled = false;
-            }
-
-            if (TryGetComponent<SphereCollider>(out var sphereCollider))
-            {
-                sphereCollider.enabled = false;
-            }
-
-            PlayerUI ui = GetComponentInChildren<PlayerUI>();
-            if (ui != null)
-            {
-                ui.gameObject.SetActive(false);
-            }
-
-            if (deathVFXPrefab != null)
-            {
-                GameObject vfx = Instantiate(deathVFXPrefab, transform.position, Quaternion.identity);
-                Destroy(vfx, 3f);
-            }
-
-            RpcShowDeathScreen(true);
-        }
-        else
-        {
-            if (Movement != null) Movement.enabled = true;
-            if (Combat != null) Combat.enabled = true;
-            if (Skills != null) Skills.enabled = true;
-            if (ActionSystem != null) ActionSystem.enabled = true;
-
-            if (TryGetComponent<BoxCollider>(out var boxCollider))
-            {
-                boxCollider.enabled = true;
-            }
-
-            if (TryGetComponent<CapsuleCollider>(out var capsuleCollider))
-            {
-                capsuleCollider.enabled = true;
-            }
-
-            if (TryGetComponent<SphereCollider>(out var sphereCollider))
-            {
-                sphereCollider.enabled = true;
-            }
-
-            PlayerUI ui = GetComponentInChildren<PlayerUI>();
-            if (ui != null)
-            {
-                ui.gameObject.SetActive(true);
-            }
-
-            RpcShowDeathScreen(false);
+            if (ActionSystem != null) ActionSystem.CompleteAction();
+            if (Skills != null) Skills.CancelSkillSelection();
+            RpcPlayDeathVFX();
         }
     }
 
     [ClientRpc]
-    private void RpcShowDeathScreen(bool state)
+    private void RpcPlayDeathVFX()
     {
-        if (isLocalPlayer && deathScreenUI != null)
+        if (deathVFXPrefab != null)
         {
-            if (state)
-            {
-                deathScreenUI.ShowDeathScreen();
-                Debug.Log($"Showing DeathScreenUI for {playerName}");
-            }
-            else
-            {
-                deathScreenUI.HideDeathScreen();
-                Debug.Log($"Hiding DeathScreenUI for {playerName}");
-            }
+            GameObject vfx = Instantiate(deathVFXPrefab, transform.position, Quaternion.identity);
+            Destroy(vfx, 2f);
         }
-        else if (deathScreenUI == null)
-        {
-            Debug.LogError($"DeathScreenUI not assigned for {playerName} during RpcShowDeathScreen!");
-        }
-    }
-
-    [Server]
-    public void SetStunState(bool state)
-    {
-        isStunned = state;
-        if (state)
-        {
-            ActionSystem.CompleteAction();
-            RpcSetStunState(true);
-        }
-        else
-        {
-            RpcSetStunState(false);
-        }
-    }
-
-    [Server]
-    public void ApplySlow(float slowPercentage, float duration)
-    {
-        _slowPercentage = slowPercentage;
-        controlEffectEndTime = Time.time + duration;
-        currentControlEffect = ControlEffectType.Slow;
-
-        float newSpeed = _originalSpeed * (1f - _slowPercentage);
-        Movement.SetMovementSpeed(newSpeed);
-
-        Debug.Log($"Applied slow effect: {_slowPercentage:P0} for {duration} seconds. New speed: {newSpeed}");
-    }
-
-    [ClientRpc]
-    private void RpcSetStunState(bool state)
-    {
-        if (Movement != null) Movement.enabled = !state;
-        if (Combat != null) Combat.enabled = !state;
-        if (Skills != null) Skills.enabled = !state;
-        if (ActionSystem != null) ActionSystem.enabled = !state;
     }
 
     [Command]
@@ -402,7 +243,7 @@ public class PlayerCore : NetworkBehaviour
     {
         if (!isDead)
         {
-            Debug.Log("Player is not dead, cannot respawn.");
+            Debug.Log("[PlayerCore] Player is not dead, cannot respawn.");
             return;
         }
 
@@ -416,6 +257,10 @@ public class PlayerCore : NetworkBehaviour
     public void ServerRespawnPlayer(Vector3 newPosition)
     {
         SetDeathState(false);
+        isStunned = false;
+        currentControlEffect = ControlEffectType.None;
+        _slowPercentage = 0f;
+        if (Movement != null) Movement.SetMovementSpeed(Stats.movementSpeed);
 
         if (Health != null)
         {
@@ -438,6 +283,7 @@ public class PlayerCore : NetworkBehaviour
             if (Combat != null) Combat.enabled = true;
             if (Skills != null) Skills.enabled = true;
             if (ActionSystem != null) ActionSystem.enabled = true;
+            Debug.Log("[PlayerCore] Respawned, components re-enabled.");
         }
     }
 
@@ -446,7 +292,7 @@ public class PlayerCore : NetworkBehaviour
     {
         playerName = newName;
         team = newTeam;
-        Debug.Log($"Server: Player {newName} has joined team {newTeam}.");
+        Debug.Log($"[PlayerCore] Server: Player {newName} has joined team {newTeam}.");
     }
 
     [Command]
@@ -454,11 +300,11 @@ public class PlayerCore : NetworkBehaviour
     {
         if (string.IsNullOrWhiteSpace(newName) || newName.Length > 20)
         {
-            Debug.LogWarning($"Server: Invalid name '{newName}' received from client.");
+            Debug.LogWarning($"[PlayerCore] Server: Invalid name '{newName}' received from client.");
             return;
         }
         playerName = newName;
-        Debug.Log($"Server: Player name changed to: {newName}");
+        Debug.Log($"[PlayerCore] Server: Player name changed to: {newName}");
     }
 
     [Command]
@@ -466,11 +312,11 @@ public class PlayerCore : NetworkBehaviour
     {
         if (isDead)
         {
-            Debug.LogWarning($"Server: Cannot change team while dead.");
+            Debug.LogWarning($"[PlayerCore] Server: Cannot change team while dead.");
             return;
         }
         team = newTeam;
-        Debug.Log($"Server: Player team changed to: {newTeam}");
+        Debug.Log($"[PlayerCore] Server: Player team changed to: {newTeam}");
     }
 
     [Command]
@@ -531,20 +377,48 @@ public class PlayerCore : NetworkBehaviour
     {
         if (newValue)
         {
-            Combat.enabled = false;
-            Skills.enabled = false;
-            Movement.enabled = false;
+            if (Combat != null) Combat.enabled = false;
+            if (Skills != null) Skills.enabled = false;
+            if (Movement != null) Movement.enabled = false;
+            if (ActionSystem != null) ActionSystem.CompleteAction();
+            if (Skills != null) Skills.CancelSkillSelection();
         }
         else
         {
-            Combat.enabled = true;
-            Skills.enabled = true;
-            Movement.enabled = true;
+            if (Combat != null) Combat.enabled = true;
+            if (Skills != null) Skills.enabled = true;
+            if (Movement != null) Movement.enabled = true;
         }
+        Debug.Log($"[PlayerCore] Death state changed: {oldValue} -> {newValue}, Movement.enabled={Movement != null && Movement.enabled}");
     }
 
     private void OnStunStateChanged(bool oldValue, bool newValue)
     {
         if (Skills != null) Skills.HandleStunEffect(newValue);
+        if (newValue && ActionSystem != null) ActionSystem.CompleteAction();
+        Debug.Log($"[PlayerCore] Stun state changed: {oldValue} -> {newValue}");
+    }
+
+    [Server]
+    public void ApplyControlEffect(ControlEffectType effectType, float duration)
+    {
+        if (effectType == ControlEffectType.Stun)
+        {
+            isStunned = true;
+            controlEffectEndTime = Time.time + duration;
+        }
+        else if (effectType == ControlEffectType.Slow)
+        {
+            _slowPercentage = duration; // Assuming duration is misused as percentage
+            if (Movement != null) Movement.SetMovementSpeed(Stats.movementSpeed * (1f - _slowPercentage));
+        }
+    }
+
+    [Server]
+    public void ApplySlow(float percentage, float duration)
+    {
+        _slowPercentage = percentage;
+        if (Movement != null) Movement.SetMovementSpeed(Stats.movementSpeed * (1f - _slowPercentage));
+        controlEffectEndTime = Time.time + duration;
     }
 }
