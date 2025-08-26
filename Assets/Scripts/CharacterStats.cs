@@ -38,9 +38,9 @@ public class CharacterStats : NetworkBehaviour
     public float movementSpeed = 8f;
     [SyncVar]
     public int maxHealth = 1000;
-    [SyncVar(hook = nameof(OnMinAttackChanged))]
+    [SyncVar(hook = nameof(OnMinAttackChangedHook))]
     public int minAttack = 5;
-    [SyncVar(hook = nameof(OnMaxAttackChanged))]
+    [SyncVar(hook = nameof(OnMaxAttackChangedHook))]
     public int maxAttack = 5;
     [SyncVar]
     public float attackSpeed = 1.0f;
@@ -76,6 +76,8 @@ public class CharacterStats : NetworkBehaviour
     public event System.Action<int, int> OnSpiritChangedEvent;
     public event System.Action<int, int> OnConstitutionChangedEvent;
     public event System.Action<int, int> OnAccuracyChangedEvent;
+    public event System.Action<int, int> OnMinAttackChangedEvent;
+    public event System.Action<int, int> OnMaxAttackChangedEvent;
 
     private static readonly int[] ExperiencePerLevel = new int[100];
 
@@ -154,14 +156,12 @@ public class CharacterStats : NetworkBehaviour
         {
             healthComponent.SetMaxHealth(newMaxHealth);
         }
-
         movementSpeed = 8f + (agility * 0.2f);
         PlayerMovement movementComponent = GetComponent<PlayerMovement>();
         if (movementComponent != null)
         {
             movementComponent.moveSpeed = movementSpeed;
         }
-
         attackSpeed = 1.0f + (agility * 0.05f);
         dodgeChance = 5.0f + (agility * 0.5f);
         hitChance = 80.0f + (accuracy * 1.0f);
@@ -171,7 +171,6 @@ public class CharacterStats : NetworkBehaviour
         physicalResistance = 0f;
         magicDamageMultiplier = 1.0f + (spirit * 0.05f);
         currentMana = Mathf.Min(currentMana, maxMana);
-
         if (characterClass == CharacterClass.Warrior)
         {
             minAttack = 5 + (strength * 3);
@@ -187,7 +186,6 @@ public class CharacterStats : NetworkBehaviour
             minAttack = 5;
             maxAttack = 10;
         }
-
         Debug.Log($"[Server] CalculateDerivedStats: class={characterClass}, strength={strength}, minAttack={minAttack}, maxAttack={maxAttack}, attackSpeed={attackSpeed}, dodgeChance={dodgeChance}, hitChance={hitChance}");
     }
 
@@ -236,7 +234,7 @@ public class CharacterStats : NetworkBehaviour
         }
     }
 
-    [Client]
+    [Server]
     public bool HasEnoughMana(int amount)
     {
         return currentMana >= amount;
@@ -340,15 +338,23 @@ public class CharacterStats : NetworkBehaviour
     }
 
     [Client]
-    private void OnMinAttackChanged(int oldValue, int newValue)
+    private void OnMinAttackChangedHook(int oldValue, int newValue)
     {
-        Debug.Log($"[Client] minAttack changed: {oldValue} -> {newValue}");
+        if (isLocalPlayer)
+        {
+            Debug.Log($"[Client] minAttack changed: {oldValue} -> {newValue}");
+        }
+        OnMinAttackChangedEvent?.Invoke(oldValue, newValue);
     }
 
     [Client]
-    private void OnMaxAttackChanged(int oldValue, int newValue)
+    private void OnMaxAttackChangedHook(int oldValue, int newValue)
     {
-        Debug.Log($"[Client] maxAttack changed: {oldValue} -> {newValue}");
+        if (isLocalPlayer)
+        {
+            Debug.Log($"[Client] maxAttack changed: {oldValue} -> {newValue}");
+        }
+        OnMaxAttackChangedEvent?.Invoke(oldValue, newValue);
     }
 
     [Server]
