@@ -38,9 +38,9 @@ public class CharacterStats : NetworkBehaviour
     public float movementSpeed = 8f;
     [SyncVar]
     public int maxHealth = 1000;
-    [SyncVar]
+    [SyncVar(hook = nameof(OnMinAttackChanged))]
     public int minAttack = 5;
-    [SyncVar]
+    [SyncVar(hook = nameof(OnMaxAttackChanged))]
     public int maxAttack = 5;
     [SyncVar]
     public float attackSpeed = 1.0f;
@@ -60,6 +60,8 @@ public class CharacterStats : NetworkBehaviour
     public int armor = 0;
     [SyncVar]
     public float physicalResistance = 0f;
+    [SyncVar]
+    public float magicDamageMultiplier = 1.0f;
 
     [Header("Current Stats")]
     [SyncVar(hook = nameof(OnManaChanged))]
@@ -86,6 +88,13 @@ public class CharacterStats : NetworkBehaviour
         totalExperience = CalculateTotalExperience();
         skillPoints = level - 1;
         characteristicPoints = CalculateCharacteristicPoints();
+        Debug.Log($"[Server] Character initialized: class={characterClass}, strength={strength}, minAttack={minAttack}, maxAttack={maxAttack}");
+    }
+
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+        Debug.Log($"[Client] Character initialized: class={characterClass}, strength={strength}, minAttack={minAttack}, maxAttack={maxAttack}");
     }
 
     private void InitializeExperienceTable()
@@ -120,7 +129,6 @@ public class CharacterStats : NetworkBehaviour
     public void AddExperience(int amount)
     {
         if (level >= 100) return;
-
         currentExperience += amount;
         while (currentExperience >= ExperiencePerLevel[level - 1] && level < 100)
         {
@@ -140,33 +148,53 @@ public class CharacterStats : NetworkBehaviour
     [Server]
     public void CalculateDerivedStats()
     {
-        int newMaxHealth = 1000 + (constitution * 10);
+        int newMaxHealth = 1000 + (constitution * 20);
         Health healthComponent = GetComponent<Health>();
         if (healthComponent != null)
         {
             healthComponent.SetMaxHealth(newMaxHealth);
         }
-        movementSpeed = 8f;
+
+        movementSpeed = 8f + (agility * 0.2f);
         PlayerMovement movementComponent = GetComponent<PlayerMovement>();
         if (movementComponent != null)
         {
             movementComponent.moveSpeed = movementSpeed;
         }
+
         attackSpeed = 1.0f + (agility * 0.05f);
         dodgeChance = 5.0f + (agility * 0.5f);
         hitChance = 80.0f + (accuracy * 1.0f);
         criticalHitChance = 15.0f + (agility * 0.2f);
-        maxMana = 100 + (intelligence * 10);
-        armor = constitution * 2;
-        physicalResistance = Mathf.Min(constitution * 0.5f, 80f);
+        maxMana = 100 + (intelligence * 5) + (spirit * 5);
+        armor = constitution * 3;
+        physicalResistance = 0f;
+        magicDamageMultiplier = 1.0f + (spirit * 0.05f);
         currentMana = Mathf.Min(currentMana, maxMana);
+
+        if (characterClass == CharacterClass.Warrior)
+        {
+            minAttack = 5 + (strength * 3);
+            maxAttack = 10 + (strength * 3);
+        }
+        else if (characterClass == CharacterClass.Archer)
+        {
+            minAttack = 5 + (accuracy * 2);
+            maxAttack = 10 + (accuracy * 2);
+        }
+        else
+        {
+            minAttack = 5;
+            maxAttack = 10;
+        }
+
+        Debug.Log($"[Server] CalculateDerivedStats: class={characterClass}, strength={strength}, minAttack={minAttack}, maxAttack={maxAttack}, attackSpeed={attackSpeed}, dodgeChance={dodgeChance}, hitChance={hitChance}");
     }
 
     [Server]
     public bool IncreaseStat(string statName)
     {
         if (characteristicPoints <= 0) return false;
-
         characteristicPoints--;
         switch (statName.ToLower())
         {
@@ -186,11 +214,11 @@ public class CharacterStats : NetworkBehaviour
                 accuracy++;
                 break;
             default:
-                characteristicPoints++; // Откатываем, если характеристика не найдена
+                characteristicPoints++;
                 return false;
         }
         CalculateDerivedStats();
-        Debug.Log($"[Server] Increased {statName} to {GetStatValue(statName)}. Characteristic Points left: {characteristicPoints}");
+        Debug.Log($"[Server] Increased {statName} to {GetStatValue(statName)}. minAttack={minAttack}, maxAttack={maxAttack}, characteristicPoints={characteristicPoints}");
         return true;
     }
 
@@ -309,6 +337,18 @@ public class CharacterStats : NetworkBehaviour
             Debug.Log($"Accuracy changed: {oldValue} -> {newValue}");
         }
         OnAccuracyChangedEvent?.Invoke(oldValue, newValue);
+    }
+
+    [Client]
+    private void OnMinAttackChanged(int oldValue, int newValue)
+    {
+        Debug.Log($"[Client] minAttack changed: {oldValue} -> {newValue}");
+    }
+
+    [Client]
+    private void OnMaxAttackChanged(int oldValue, int newValue)
+    {
+        Debug.Log($"[Client] maxAttack changed: {oldValue} -> {newValue}");
     }
 
     [Server]

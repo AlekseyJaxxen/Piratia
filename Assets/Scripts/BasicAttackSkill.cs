@@ -61,8 +61,9 @@ public class BasicAttackSkill : SkillBase
         Health targetHealth = targetIdentity.GetComponent<Health>();
         PlayerCore targetCore = targetIdentity.GetComponent<PlayerCore>();
         PlayerCore attackerCore = connectionToClient.identity.GetComponent<PlayerCore>();
+        CharacterStats targetStats = targetIdentity.GetComponent<CharacterStats>();
 
-        if (targetHealth == null || targetCore == null || attackerCore == null)
+        if (targetHealth == null || targetCore == null || attackerCore == null || targetStats == null)
         {
             Debug.Log("Missing components on target or attacker");
             return;
@@ -74,6 +75,14 @@ public class BasicAttackSkill : SkillBase
             return;
         }
 
+        // Проверка шанса попадания и уклонения
+        float randomValue = UnityEngine.Random.Range(0f, 100f);
+        if (randomValue > stats.hitChance - targetStats.dodgeChance)
+        {
+            Debug.Log($"Attack missed: hitChance={stats.hitChance}, dodgeChance={targetStats.dodgeChance}");
+            return;
+        }
+
         int baseDamage = stats != null ? UnityEngine.Random.Range(stats.minAttack, stats.maxAttack + 1) : 10;
         bool isCritical = false;
         int finalDamage = baseDamage;
@@ -81,7 +90,7 @@ public class BasicAttackSkill : SkillBase
         if (stats != null)
         {
             finalDamage = stats.CalculateDamageWithCrit(baseDamage, out isCritical);
-            Debug.Log($"Attack {(isCritical ? "CRITICAL " : "")}damage: {finalDamage} (base: {baseDamage})");
+            Debug.Log($"Attack {(isCritical ? "CRITICAL " : "")}damage: {finalDamage} (base: {baseDamage}, minAttack: {stats.minAttack}, maxAttack: {stats.maxAttack}, strength: {stats.strength}, class: {stats.characterClass})");
         }
 
         targetHealth.TakeDamage(finalDamage, SkillDamageType, isCritical);
