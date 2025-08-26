@@ -25,8 +25,7 @@ public class PlayerSkills : NetworkBehaviour
     private ISkill _activeSkill;
     private Coroutine _castSkillCoroutine;
 
-    [SyncVar]
-    private SyncDictionary<string, float> _skillLastUseTimes = new SyncDictionary<string, float>();
+    private readonly SyncDictionary<string, float> _skillLastUseTimes = new SyncDictionary<string, float>();
 
     public bool IsSkillSelected => _activeSkill != null;
     public ISkill ActiveSkill => _activeSkill;
@@ -82,12 +81,6 @@ public class PlayerSkills : NetworkBehaviour
             yield break;
         }
 
-        if (stats.characterClass == null)
-        {
-            Debug.LogError("[PlayerSkills] CharacterStats.characterClass is null or not set!");
-            yield break;
-        }
-
         skills = SkillManager.Instance.GetSkillsForClass(stats.characterClass);
         Debug.Log($"[PlayerSkills] Loaded {skills.Count} skills for class {stats.characterClass}: {string.Join(", ", skills.Select(s => s != null ? s.SkillName : "null"))}");
 
@@ -99,7 +92,7 @@ public class PlayerSkills : NetworkBehaviour
                 continue;
             }
             skill.Init(_core);
-            _skillLastUseTimes[skill.SkillName] = 0f; // Инициализация времени использования
+            _skillLastUseTimes[skill.SkillName] = 0f;
             Debug.Log($"[PlayerSkills] Initialized skill: {skill.SkillName}");
         }
 
@@ -207,7 +200,7 @@ public class PlayerSkills : NetworkBehaviour
     }
 
     [Command]
-    public void CmdExecuteSkill(PlayerCore caster, Vector3? targetPosition, uint targetNetId, string skillName)
+    public void CmdExecuteSkill(PlayerCore caster, Vector3? targetPosition, uint targetNetId, string skillName, int skillWeight)
     {
         SkillBase skill = skills.Find(s => s.SkillName == skillName);
         if (skill == null)
@@ -266,13 +259,13 @@ public class PlayerSkills : NetworkBehaviour
             else if (skill is SlowSkill slowSkill)
             {
                 Debug.Log($"[PlayerSkills] Applying slow to {targetCore.playerName} for {slowSkill.slowDuration}s");
-                targetCore.ApplySlow(slowSkill.slowPercentage, slowSkill.slowDuration);
+                targetCore.ApplySlow(slowSkill.slowPercentage, slowSkill.slowDuration, skillWeight);
                 RpcApplySlowEffect(targetNetId, slowSkill.slowDuration, skillName);
             }
             else if (skill is TargetedStunSkill targetedStunSkill)
             {
                 Debug.Log($"[PlayerSkills] Applying stun to {targetCore.playerName} for {targetedStunSkill.stunDuration}s");
-                targetCore.ApplyControlEffect(ControlEffectType.Stun, targetedStunSkill.stunDuration);
+                targetCore.ApplyControlEffect(ControlEffectType.Stun, targetedStunSkill.stunDuration, skillWeight);
                 RpcPlayTargetedStun(targetNetId, skillName);
             }
         }
@@ -319,7 +312,7 @@ public class PlayerSkills : NetworkBehaviour
                 if (skill is AreaOfEffectStunSkill aoeStunSkill && casterCore.team != targetCore.team)
                 {
                     Debug.Log($"[PlayerSkills] Applying AOE stun to {targetCore.playerName} for {aoeStunSkill.stunDuration}s");
-                    targetCore.ApplyControlEffect(ControlEffectType.Stun, aoeStunSkill.stunDuration);
+                    targetCore.ApplyControlEffect(ControlEffectType.Stun, aoeStunSkill.stunDuration, skillWeight);
                 }
                 else if (skill is AreaOfEffectHealSkill aoeHealSkill && casterCore.team == targetCore.team)
                 {

@@ -13,7 +13,8 @@ public interface ISkill
     DamageType SkillDamageType { get; }
     float RemainingCooldown { get; }
     float CooldownProgressNormalized { get; }
-    string SkillName { get; } // Added SkillName property
+    string SkillName { get; }
+    int Weight { get; } // Добавлено свойство Weight
 
     void Init(PlayerCore core);
     bool IsOnCooldown();

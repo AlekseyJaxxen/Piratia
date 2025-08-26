@@ -296,6 +296,7 @@ MonoBehaviour:
   _castCursor: {fileID: 0}
   _manaCost: 0
   _damageType: 1
+  _weight: 1
   vfxPrefab: {fileID: 0}
   projectilePrefab: {fileID: 0}
   projectileSpeed: 20
@@ -2085,6 +2086,7 @@ MonoBehaviour:
   _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
   _manaCost: 0
   _damageType: 0
+  _weight: 1
   damageAmount: 1000
   projectilePrefab: {fileID: 171468, guid: 9bb3c2595cddc25468a1fccc3b563ae4, type: 3}
   impactEffectPrefab: {fileID: 0}
@@ -2428,6 +2430,7 @@ MonoBehaviour:
   _castCursor: {fileID: 0}
   _manaCost: 0
   _damageType: 1
+  _weight: 1
   vfxPrefab: {fileID: 0}
   projectilePrefab: {fileID: 0}
   projectileSpeed: 20
@@ -3061,6 +3064,7 @@ MonoBehaviour:
   _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
   _manaCost: 0
   _damageType: 0
+  _weight: 2
   stunDuration: 5
   effectPrefab: {fileID: 109542, guid: 2ed06ab528b7c474eb9246421cd7c791, type: 3}
 --- !u!43 &1898222128
@@ -3490,6 +3494,7 @@ MonoBehaviour:
   _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
   _manaCost: 0
   _damageType: 0
+  _weight: 1
   stunDuration: 1
   effectPrefab: {fileID: 4637046911172921311, guid: ed6adf846f49efa40917a41cb58e76d9,
     type: 3}
@@ -3696,6 +3701,7 @@ MonoBehaviour:
   _castCursor: {fileID: 0}
   _manaCost: 0
   _damageType: 0
+  _weight: 1
   vfxPrefab: {fileID: 0}
   projectilePrefab: {fileID: 0}
   projectileSpeed: 20

@@ -33,7 +33,7 @@ public class ProjectileDamageSkill : SkillBase
 
         PlayerSkills skills = caster.GetComponent<PlayerSkills>();
         Debug.Log($"[ProjectileDamageSkill] Attempting to projectile attack target: {targetObject.name}, netId: {targetIdentity.netId}");
-        skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName);
+        skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName, 0); // Некотрольный скилл, weight = 0
     }
 
     public void SpawnProjectile(Vector3 startPos, Vector3 targetPos)

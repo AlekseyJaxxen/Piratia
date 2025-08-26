@@ -38,8 +38,8 @@ public class TargetedStunSkill : SkillBase
             return;
         }
 
-        Debug.Log($"[TargetedStunSkill] Client requesting stun for skill {_skillName} on target: {targetObject.name}, netId: {targetIdentity.netId}");
-        skills.CmdExecuteSkill(caster, null, targetIdentity.netId, _skillName);
+        Debug.Log($"[TargetedStunSkill] Client requesting stun for skill {_skillName} on target: {targetObject.name}, netId: {targetIdentity.netId}, weight: {Weight}");
+        skills.CmdExecuteSkill(caster, null, targetIdentity.netId, _skillName, Weight);
     }
 
     public void PlayEffect(GameObject target)

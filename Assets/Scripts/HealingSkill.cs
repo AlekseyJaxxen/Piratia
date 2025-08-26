@@ -32,7 +32,7 @@ public class HealingSkill : SkillBase
 
         PlayerSkills skills = caster.GetComponent<PlayerSkills>();
         Debug.Log($"[HealingSkill] Attempting to heal target: {targetObject.name}, netId: {targetIdentity.netId}");
-        skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName);
+        skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName, 0); // Некотрольный скилл, weight = 0
     }
 
     public void PlayEffect(GameObject target)

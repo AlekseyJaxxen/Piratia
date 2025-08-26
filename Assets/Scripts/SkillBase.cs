@@ -15,6 +15,7 @@ public abstract class SkillBase : MonoBehaviour, ISkill
     public float RemainingCooldown => Mathf.Max(0, _cooldown - (Time.time - _lastUseTime));
     public float CooldownProgressNormalized => 1f - (RemainingCooldown / _cooldown);
     public string SkillName => _skillName;
+    public int Weight => _weight; // Новое свойство для веса скилла
 
     [Header("Base Skill Settings")]
     [SerializeField] protected string _skillName;
@@ -28,6 +29,7 @@ public abstract class SkillBase : MonoBehaviour, ISkill
     [Header("Mana Cost")]
     [SerializeField] protected int _manaCost = 0;
     [SerializeField] protected DamageType _damageType = DamageType.Physical;
+    [SerializeField] protected int _weight = 1; // Новое поле для веса скилла
 
     protected float _lastUseTime;
     protected GameObject _targetIndicatorInstance;

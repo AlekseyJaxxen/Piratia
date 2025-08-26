@@ -44,7 +44,7 @@ public class BasicAttackSkill : SkillBase
         }
 
         Debug.Log($"[BasicAttackSkill] Client requesting attack for skill {_skillName} on target: {targetObject.name}, netId: {targetIdentity.netId}, strength: {stats.strength}, minAttack: {stats.minAttack}, maxAttack: {stats.maxAttack}");
-        skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName);
+        skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName, 0); // Некотрольный скилл, weight = 0
     }
 
     public void PlayVFX(Vector3 startPosition, Quaternion startRotation, Vector3 endPosition, bool isCritical)

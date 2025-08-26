@@ -8,7 +8,7 @@ public class SlowSkill : SkillBase
     public float slowPercentage = 0.5f;
     public float slowDuration = 3.0f;
     public int baseDamage = 10;
-    public const float DAMAGE_MULTIPLIER = 1.5f; // Изменено на public
+    public const float DAMAGE_MULTIPLIER = 1.5f;
     public GameObject projectilePrefab;
     public GameObject impactEffectPrefab;
     public GameObject slowEffectPrefab;
@@ -36,8 +36,8 @@ public class SlowSkill : SkillBase
         }
 
         PlayerSkills skills = caster.GetComponent<PlayerSkills>();
-        Debug.Log($"[SlowSkill] Attempting to slow target: {targetObject.name}, netId: {targetIdentity.netId}");
-        skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName);
+        Debug.Log($"[SlowSkill] Attempting to slow target: {targetObject.name}, netId: {targetIdentity.netId}, weight: {Weight}");
+        skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName, Weight);
     }
 
     public void SpawnProjectile(Vector3 startPos, Vector3 targetPos)

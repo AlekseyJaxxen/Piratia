@@ -15,9 +15,16 @@ public class AreaOfEffectHealSkill : SkillBase
             return;
         }
 
+        CharacterStats stats = caster.GetComponent<CharacterStats>();
+        if (stats != null && !stats.HasEnoughMana(ManaCost))
+        {
+            Debug.LogWarning($"[AreaOfEffectHealSkill] Not enough mana: {stats.currentMana}/{ManaCost}");
+            return;
+        }
+
         PlayerSkills skills = caster.GetComponent<PlayerSkills>();
         Debug.Log($"[AreaOfEffectHealSkill] Attempting to AOE heal at position: {targetPosition.Value}");
-        skills.CmdExecuteSkill(caster, targetPosition, 0, _skillName);
+        skills.CmdExecuteSkill(caster, targetPosition, 0, _skillName, 0); // Некотрольный скилл, weight = 0
     }
 
     public void PlayEffect(Vector3 position)

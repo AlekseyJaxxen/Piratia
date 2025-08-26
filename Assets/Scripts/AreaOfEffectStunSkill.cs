@@ -16,8 +16,8 @@ public class AreaOfEffectStunSkill : SkillBase
         }
 
         PlayerSkills skills = caster.GetComponent<PlayerSkills>();
-        Debug.Log($"[AreaOfEffectStunSkill] Attempting to AOE stun at position: {targetPosition.Value}");
-        skills.CmdExecuteSkill(caster, targetPosition, 0, _skillName);
+        Debug.Log($"[AreaOfEffectStunSkill] Attempting to AOE stun at position: {targetPosition.Value}, weight: {Weight}");
+        skills.CmdExecuteSkill(caster, targetPosition, 0, _skillName, Weight);
     }
 
     public void PlayEffect(Vector3 position)

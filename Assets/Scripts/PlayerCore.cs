@@ -66,6 +66,8 @@ public class PlayerCore : NetworkBehaviour
     private ControlEffectType currentControlEffect = ControlEffectType.None;
     [SyncVar]
     private float controlEffectEndTime = 0f;
+    [SyncVar]
+    private int currentEffectWeight = 0;
 
     [SyncVar]
     private float _slowPercentage = 0f;
@@ -108,17 +110,38 @@ public class PlayerCore : NetworkBehaviour
         if (Camera != null) Camera.Init(this);
     }
 
+    private void Update()
+    {
+        if (isLocalPlayer)
+        {
+            Debug.Log($"[PlayerCore] Update: isDead={isDead}, isStunned={isStunned}, Movement.enabled={Movement != null && Movement.enabled}, team={team}, name={playerName}");
+        }
+        ServerUpdate(); // Вызываем серверную логику
+    }
+
+    [Server]
+    private void ServerUpdate()
+    {
+        if (currentControlEffect != ControlEffectType.None && Time.time >= controlEffectEndTime)
+        {
+            ClearControlEffect();
+        }
+        if (Time.time >= _lastManaRegenTime + manaRegenInterval)
+        {
+            Stats.RestoreMana(manaRegenAmount);
+            _lastManaRegenTime = Time.time;
+        }
+    }
+
     public override void OnStartLocalPlayer()
     {
         Debug.Log($"[PlayerCore] OnStartLocalPlayer invoked. isOwned: {netIdentity.isOwned}, isDead: {isDead}, isStunned: {isStunned}, team: {team}, name: {playerName}");
         localPlayerCoreInstance = this;
-
         PlayerUI ui = GetComponentInChildren<PlayerUI>();
         if (ui == null)
         {
             Debug.LogWarning("[PlayerCore] PlayerUI not found in player prefab!");
         }
-
         if (Camera != null)
         {
             Camera.Init(this);
@@ -127,9 +150,7 @@ public class PlayerCore : NetworkBehaviour
         {
             Debug.LogError("[PlayerCore] Camera component is null!");
         }
-
         base.OnStartLocalPlayer();
-
         int localPlayerLayer = LayerMask.NameToLayer("Player");
         if (localPlayerLayer != -1)
         {
@@ -143,14 +164,11 @@ public class PlayerCore : NetworkBehaviour
         {
             Debug.LogError("[PlayerCore] Layer 'Player' not found!");
         }
-
-        // Проверяем назначение команды
         if (team == PlayerTeam.None)
         {
             Debug.LogWarning($"[PlayerCore] Team is None for player {playerName}. Requesting team assignment.");
             CmdRequestTeamAssignment();
         }
-
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
     }
@@ -158,16 +176,13 @@ public class PlayerCore : NetworkBehaviour
     public override void OnStartClient()
     {
         base.OnStartClient();
-
         _nameText = GetComponentInChildren<TextMeshProUGUI>();
         _teamIndicator = transform.Find("TeamIndicator")?.gameObject;
         _playerUI_Team = GetComponentInChildren<PlayerUI_Team>();
-
         if (_nameText != null)
         {
             _nameText.text = playerName;
         }
-
         OnTeamChanged(team, team);
     }
 
@@ -200,23 +215,6 @@ public class PlayerCore : NetworkBehaviour
         Debug.Log("[PlayerCore] Cleaned up on disable.");
     }
 
-    private void Update()
-    {
-        if (netIdentity.isServer && isStunned && Time.time >= controlEffectEndTime)
-        {
-            isStunned = false;
-            currentControlEffect = ControlEffectType.None;
-            _slowPercentage = 0f;
-            if (Movement != null) Movement.SetMovementSpeed(Stats.movementSpeed);
-            Debug.Log("[PlayerCore] Stun expired, restoring movement speed.");
-        }
-
-        if (isLocalPlayer)
-        {
-            Debug.Log($"[PlayerCore] Update: isDead={isDead}, isStunned={isStunned}, Movement.enabled={Movement != null && Movement.enabled}, team={team}, name={playerName}");
-        }
-    }
-
     [Server]
     public void SetDeathState(bool state)
     {
@@ -240,12 +238,6 @@ public class PlayerCore : NetworkBehaviour
     }
 
     [Command]
-    private void CmdDie()
-    {
-        SetDeathState(true);
-    }
-
-    [Command]
     public void CmdRequestRespawn()
     {
         if (!isDead)
@@ -253,10 +245,8 @@ public class PlayerCore : NetworkBehaviour
             Debug.Log("[PlayerCore] Player is not dead, cannot respawn.");
             return;
         }
-
         Transform spawnPoint = FindObjectOfType<MyNetworkManager>()?.GetTeamSpawnPoint(team);
         Vector3 respawnPosition = spawnPoint != null ? spawnPoint.position : _initialSpawnPosition;
-
         ServerRespawnPlayer(respawnPosition);
     }
 
@@ -266,16 +256,14 @@ public class PlayerCore : NetworkBehaviour
         SetDeathState(false);
         isStunned = false;
         currentControlEffect = ControlEffectType.None;
+        currentEffectWeight = 0;
         _slowPercentage = 0f;
         if (Movement != null) Movement.SetMovementSpeed(Stats.movementSpeed);
-
         if (Health != null)
         {
             Health.SetHealth(Health.MaxHealth);
         }
-
         transform.position = newPosition;
-
         RpcOnRespawned(newPosition);
     }
 
@@ -283,7 +271,6 @@ public class PlayerCore : NetworkBehaviour
     private void RpcOnRespawned(Vector3 newPosition)
     {
         transform.position = newPosition;
-
         if (isLocalPlayer)
         {
             if (Movement != null) Movement.enabled = true;
@@ -367,7 +354,6 @@ public class PlayerCore : NetworkBehaviour
         if (_teamIndicator == null) return;
         Renderer rend = _teamIndicator.GetComponent<Renderer>();
         if (rend == null) return;
-
         if (isLocalPlayer)
         {
             rend.material = localPlayerMaterial;
@@ -413,25 +399,82 @@ public class PlayerCore : NetworkBehaviour
     }
 
     [Server]
-    public void ApplyControlEffect(ControlEffectType effectType, float duration)
+    public void ApplyControlEffect(ControlEffectType effectType, float duration, int skillWeight)
     {
+        if (currentControlEffect != ControlEffectType.None && Time.time < controlEffectEndTime && skillWeight <= currentEffectWeight)
+        {
+            Debug.Log($"[PlayerCore] Cannot apply {effectType} (weight {skillWeight}): {currentControlEffect} (weight {currentEffectWeight}) is active until {controlEffectEndTime}");
+            return;
+        }
+
+        if (currentControlEffect != ControlEffectType.None)
+        {
+            ClearControlEffect();
+        }
+
+        currentControlEffect = effectType;
+        currentEffectWeight = skillWeight;
+        controlEffectEndTime = Time.time + duration;
+
         if (effectType == ControlEffectType.Stun)
         {
             isStunned = true;
-            controlEffectEndTime = Time.time + duration;
+            Debug.Log($"[PlayerCore] Applied stun effect, weight={skillWeight}, duration={duration}");
         }
         else if (effectType == ControlEffectType.Slow)
         {
-            _slowPercentage = duration; // Assuming duration is misused as percentage
+            _slowPercentage = duration; // Предполагается, что duration используется как процент замедления
+            _originalSpeed = Stats.movementSpeed;
             if (Movement != null) Movement.SetMovementSpeed(Stats.movementSpeed * (1f - _slowPercentage));
+            Debug.Log($"[PlayerCore] Applied slow effect, weight={skillWeight}, percentage={_slowPercentage}, duration={duration}");
         }
     }
 
     [Server]
-    public void ApplySlow(float percentage, float duration)
+    public void ApplySlow(float percentage, float duration, int skillWeight)
     {
+        if (currentControlEffect != ControlEffectType.None && Time.time < controlEffectEndTime && skillWeight <= currentEffectWeight)
+        {
+            Debug.Log($"[PlayerCore] Cannot apply slow (weight {skillWeight}): {currentControlEffect} (weight {currentEffectWeight}) is active until {controlEffectEndTime}");
+            return;
+        }
+
+        if (currentControlEffect != ControlEffectType.None)
+        {
+            ClearControlEffect();
+        }
+
+        currentControlEffect = ControlEffectType.Slow;
+        currentEffectWeight = skillWeight;
         _slowPercentage = percentage;
+        _originalSpeed = Stats.movementSpeed;
         if (Movement != null) Movement.SetMovementSpeed(Stats.movementSpeed * (1f - _slowPercentage));
         controlEffectEndTime = Time.time + duration;
+        Debug.Log($"[PlayerCore] Applied slow: percentage={percentage}, duration={duration}, weight={skillWeight}");
+    }
+
+    [Server]
+    private void ClearControlEffect()
+    {
+        if (currentControlEffect == ControlEffectType.Stun)
+        {
+            isStunned = false;
+        }
+        else if (currentControlEffect == ControlEffectType.Slow && _originalSpeed > 0f)
+        {
+            if (Movement != null) Movement.SetMovementSpeed(_originalSpeed);
+            _slowPercentage = 0f;
+            _originalSpeed = 0f;
+        }
+        currentControlEffect = ControlEffectType.None;
+        currentEffectWeight = 0;
+        controlEffectEndTime = 0f;
+        Debug.Log("[PlayerCore] Cleared control effect");
+    }
+
+    [Command]
+    private void CmdDie()
+    {
+        SetDeathState(true);
     }
 }
