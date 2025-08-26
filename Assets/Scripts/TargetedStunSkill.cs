@@ -7,7 +7,6 @@ public class TargetedStunSkill : SkillBase
     [Header("Stun Skill Specifics")]
     public float stunDuration = 2f;
     public GameObject effectPrefab;
-
     private Coroutine _effectCoroutine;
 
     protected override void ExecuteSkillImplementation(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
@@ -40,7 +39,7 @@ public class TargetedStunSkill : SkillBase
         }
 
         Debug.Log($"[TargetedStunSkill] Client requesting stun for skill {_skillName} on target: {targetObject.name}, netId: {targetIdentity.netId}");
-        skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName);
+        skills.CmdExecuteSkill(caster, null, targetIdentity.netId, _skillName);
     }
 
     public void PlayEffect(GameObject target)

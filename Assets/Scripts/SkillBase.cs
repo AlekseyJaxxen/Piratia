@@ -101,5 +101,13 @@ public abstract class SkillBase : MonoBehaviour, ISkill
         ExecuteSkillImplementation(player, targetPosition, targetObject);
     }
 
+    private void OnDisable()
+    {
+        if (_targetIndicatorInstance != null)
+        {
+            Destroy(_targetIndicatorInstance);
+        }
+    }
+
     protected abstract void ExecuteSkillImplementation(PlayerCore player, Vector3? targetPosition, GameObject targetObject);
 }

@@ -79,9 +79,9 @@ public class PlayerActionSystem : NetworkBehaviour
                     {
                         _currentAction = StartCoroutine(CastSkillAction(targetPosition.Value, skillToCast));
                     }
-                    else
+                    else if (targetObject != null)
                     {
-                        _currentAction = StartCoroutine(_core.Skills.CastSkill(targetPosition, targetObject, skillToCast));
+                        _currentAction = StartCoroutine(CastSkillAction(targetObject, skillToCast));
                     }
                     return true;
                 }
@@ -243,12 +243,56 @@ public class PlayerActionSystem : NetworkBehaviour
                 _core.Movement.StopMovement();
                 _core.Movement.RotateTo(targetPosition - transform.position);
                 yield return StartCoroutine(_core.Skills.CastSkill(targetPosition, null, skillToCast));
+                _core.Skills.CancelSkillSelection();
                 CompleteAction();
                 yield break;
             }
             else
             {
                 _core.Movement.MoveTo(targetPosition);
+            }
+            yield return null;
+        }
+    }
+
+    private IEnumerator CastSkillAction(GameObject targetObject, ISkill skillToCast)
+    {
+        if (_core == null || _core.Movement == null)
+        {
+            Debug.LogError("[PlayerActionSystem] Cannot perform CastSkillAction: _core or Movement is null");
+            CompleteAction();
+            yield break;
+        }
+
+        if (targetObject == null)
+        {
+            Debug.LogError("[PlayerActionSystem] Target object is null in CastSkillAction");
+            CompleteAction();
+            yield break;
+        }
+
+        while (true)
+        {
+            if (_core.isDead || _core.isStunned)
+            {
+                Debug.Log("[PlayerActionSystem] Skill cast stopped: player is dead or stunned");
+                CompleteAction();
+                yield break;
+            }
+
+            float distance = Vector3.Distance(transform.position, targetObject.transform.position);
+            if (distance <= skillToCast.Range)
+            {
+                _core.Movement.StopMovement();
+                _core.Movement.RotateTo(targetObject.transform.position - transform.position);
+                skillToCast.Execute(_core, targetObject.transform.position, targetObject);
+                _core.Skills.CancelSkillSelection();
+                CompleteAction();
+                yield break;
+            }
+            else
+            {
+                _core.Movement.MoveTo(targetObject.transform.position);
             }
             yield return null;
         }

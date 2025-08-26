@@ -290,6 +290,7 @@ public class PlayerCore : NetworkBehaviour
             if (Combat != null) Combat.enabled = true;
             if (Skills != null) Skills.enabled = true;
             if (ActionSystem != null) ActionSystem.enabled = true;
+            deathScreenUI.HideDeathScreen();
             Debug.Log("[PlayerCore] Respawned, components re-enabled.");
         }
     }
@@ -393,6 +394,7 @@ public class PlayerCore : NetworkBehaviour
             if (Movement != null) Movement.enabled = false;
             if (ActionSystem != null) ActionSystem.CompleteAction();
             if (Skills != null) Skills.CancelSkillSelection();
+            if (isLocalPlayer) deathScreenUI.ShowDeathScreen();
         }
         else
         {

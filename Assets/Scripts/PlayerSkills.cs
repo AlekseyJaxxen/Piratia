@@ -180,6 +180,17 @@ public class PlayerSkills : NetworkBehaviour
         {
             UpdateCursor();
         }
+
+        if (_activeSkill != null && Input.GetMouseButtonDown(0))
+        {
+            Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
+            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
+            {
+                GameObject hitObject = hit.collider.gameObject;
+                Debug.Log($"[PlayerSkills] Left click detected, hit object: {hitObject.name}, tag: {hitObject.tag}, skill: {_activeSkill.SkillName}");
+                _activeSkill.Execute(_core, hit.point, hitObject);
+            }
+        }
     }
 
     private void UpdateCursor()
@@ -271,15 +282,10 @@ public class PlayerSkills : NetworkBehaviour
     public IEnumerator CastSkill(Vector3? targetPosition, GameObject targetObject, ISkill skillToCast)
     {
         _isCasting = true;
-        _castSkillCoroutine = StartCoroutine(_core.ActionSystem.TryStartAction(PlayerAction.SkillCast, targetPosition, targetObject, skillToCast) ? WaitForSkillCast(targetPosition, targetObject) : null);
-
-        if (_castSkillCoroutine != null)
-        {
-            yield return _castSkillCoroutine;
-        }
-
+        skillToCast.Execute(_core, targetPosition, targetObject);
+        yield return new WaitUntil(() => !_core.ActionSystem.IsPerformingAction);
         _isCasting = false;
-        _castSkillCoroutine = null;
+        CancelSkillSelection();
     }
 
     private IEnumerator WaitForSkillCast(Vector3? targetPosition, GameObject targetObject)
@@ -312,38 +318,21 @@ public class PlayerSkills : NetworkBehaviour
 
         if (caster == null)
         {
-            Debug.LogWarning($"[PlayerSkills] Caster is null in CmdExecuteSkill for skill {skillName}");
-            return;
-        }
-
-        if (!caster.netIdentity.isOwned && !netIdentity.isServer)
-        {
-            Debug.LogWarning($"[PlayerSkills] Caster lacks authority for skill {skillName}");
+            Debug.LogError("[PlayerSkills] Caster is null in CmdExecuteSkill");
             return;
         }
 
         CharacterStats stats = caster.GetComponent<CharacterStats>();
-        if (stats == null)
-        {
-            Debug.LogWarning($"[PlayerSkills] CharacterStats component missing on caster for skill {skillName}");
-            return;
-        }
-
-        SkillBase skill = this.skills.Find(s => s.SkillName == skillName);
+        SkillBase skill = skills.FirstOrDefault(s => s.SkillName == skillName);
         if (skill == null)
         {
-            Debug.LogWarning($"[PlayerSkills] Skill {skillName} not found in skills list");
-            return;
-        }
-
-        if (!stats.HasEnoughMana(skill.ManaCost))
-        {
-            Debug.LogWarning($"[PlayerSkills] Not enough mana for skill {skillName}: {stats.currentMana}/{skill.ManaCost}");
+            Debug.LogError($"[PlayerSkills] Skill {skillName} not found in skills list");
             return;
         }
 
         bool isCritical = false;
-        if (skill is BasicAttackSkill)
+
+        if (skill is BasicAttackSkill basicAttackSkill)
         {
             if (!NetworkServer.spawned.TryGetValue(targetNetId, out NetworkIdentity targetIdentity))
             {
@@ -359,15 +348,18 @@ public class PlayerSkills : NetworkBehaviour
                 if (targetHealth != null)
                 {
                     isCritical = Random.value <= stats.criticalHitChance;
-                    int damage = isCritical ? stats.maxAttack * 2 : Random.Range(stats.minAttack, stats.maxAttack + 1);
-                    Debug.Log($"[PlayerSkills] Applying damage: {damage} to {targetCore.playerName}");
-                    targetHealth.TakeDamage(damage, skill.SkillDamageType, isCritical);
+                    int baseDamage = Random.Range(stats.minAttack, stats.maxAttack + 1);
+                    int finalDamage = skill.SkillDamageType == DamageType.Magic
+                        ? Mathf.RoundToInt(baseDamage * stats.magicDamageMultiplier)
+                        : baseDamage;
+                    Debug.Log($"[PlayerSkills] Applying damage: {finalDamage} to {targetCore.playerName}");
+                    targetHealth.TakeDamage(finalDamage, skill.SkillDamageType, isCritical);
                 }
                 RpcPlayBasicAttackVFX(caster.transform.position, caster.transform.rotation, targetIdentity.transform.position, isCritical, skillName);
             }
             else
             {
-                Debug.LogWarning($"[PlayerSkills] Attack ignored: invalid target or same team for skill {skillName}");
+                Debug.LogWarning($"[PlayerSkills] Basic attack ignored: invalid target or same team for skill {skillName}");
             }
         }
         else if (skill is ProjectileDamageSkill projectileSkill)
@@ -609,5 +601,10 @@ public class PlayerSkills : NetworkBehaviour
                 healingSkill.PlayEffect(targetIdentity.gameObject);
             }
         }
+    }
+
+    private void Update()
+    {
+        if (isLocalPlayer) HandleSkills();
     }
 }
