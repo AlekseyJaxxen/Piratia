@@ -31,6 +31,9 @@ public class PlayerCore : NetworkBehaviour
     public Health Health;
     public CharacterStats Stats;
 
+    [SerializeField] private GameObject healthBarPrefab; // Назначьте prefab в инспекторе
+    private HealthBarUI healthBarUI;
+
     [Header("Respawn")]
     public float respawnTime = 5.0f;
     private float _timeOfDeath;
@@ -184,6 +187,27 @@ public class PlayerCore : NetworkBehaviour
             _nameText.text = playerName;
         }
         OnTeamChanged(team, team);
+
+        if (healthBarPrefab != null)
+        {
+            Canvas mainCanvas = MainCanvas.Instance;
+            if (mainCanvas != null)
+            {
+                GameObject barInstance = Instantiate(healthBarPrefab, mainCanvas.transform);
+                healthBarUI = barInstance.GetComponent<HealthBarUI>();
+                if (healthBarUI != null)
+                {
+                    healthBarUI.target = transform;
+                    // Подписка на события здоровья
+                    if (Health != null)
+                    {
+                        Health.OnHealthUpdated += healthBarUI.UpdateHP;
+                        // Инициализация текущим значением
+                        healthBarUI.UpdateHP(Health.CurrentHealth, Health.MaxHealth);
+                    }
+                }
+            }
+        }
     }
 
     public override void OnStartServer()
@@ -205,6 +229,15 @@ public class PlayerCore : NetworkBehaviour
             if (Skills != null) Skills.CancelSkillSelection();
             if (ActionSystem != null) ActionSystem.CompleteAction();
             Debug.Log("[PlayerCore] Cleaned up on client disconnect.");
+        }
+
+        if (healthBarUI != null)
+        {
+            if (Health != null)
+            {
+                Health.OnHealthUpdated -= healthBarUI.UpdateHP;
+            }
+            Destroy(healthBarUI.gameObject);
         }
     }
 

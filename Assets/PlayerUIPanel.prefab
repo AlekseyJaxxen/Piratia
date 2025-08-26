@@ -1933,8 +1933,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c6fdf6055d7744c429a66dbaec2fdea5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  healthSlider: {fileID: 0}
-  manaSlider: {fileID: 0}
+  healthBar: {fileID: 0}
+  manaBar: {fileID: 0}
   levelText: {fileID: 0}
   experienceSlider: {fileID: 0}
   skillPointsText: {fileID: 0}
@@ -1945,6 +1945,17 @@ MonoBehaviour:
   spiritText: {fileID: 3967362964943871557}
   constitutionText: {fileID: 523315280484648056}
   accuracyText: {fileID: 6444858285051365456}
+  armorText: {fileID: 0}
+  physicalResistanceText: {fileID: 0}
+  magicDamageMultiplierText: {fileID: 0}
+  movementSpeedText: {fileID: 0}
+  attackSpeedText: {fileID: 0}
+  dodgeChanceText: {fileID: 0}
+  hitChanceText: {fileID: 0}
+  criticalHitChanceText: {fileID: 0}
+  criticalHitMultiplierText: {fileID: 0}
+  minAttackText: {fileID: 0}
+  maxAttackText: {fileID: 0}
   strengthButton: {fileID: 3412828526767318815}
   agilityButton: {fileID: 6775978651866620766}
   spiritButton: {fileID: 4175367593551522586}

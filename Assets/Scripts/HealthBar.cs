@@ -9,9 +9,24 @@ public class HealthBar : MonoBehaviour
     private Health _health;
     private float _flashDuration = 0.5f;
     private float _flashTimer;
+    private Camera _mainCamera;
+    private RectTransform _rectTransform;
+
+    public void Initialize(Health health)
+    {
+        _health = health;
+        if (_health != null)
+        {
+            _health.OnHealthUpdated += UpdateHealthBar;
+            UpdateHealthBar(_health.CurrentHealth, _health.MaxHealth);
+        }
+    }
 
     private void Awake()
     {
+        _mainCamera = Camera.main;
+        _rectTransform = GetComponent<RectTransform>();
+
         if (_healthBarImage == null)
         {
             _healthBarImage = GetComponent<Image>();
@@ -20,7 +35,6 @@ public class HealthBar : MonoBehaviour
                 Debug.LogError("Image component not found on the GameObject.", this);
             }
         }
-
         if (_damageFlashImage == null)
         {
             GameObject flashObj = new GameObject("DamageFlash");
@@ -32,18 +46,7 @@ public class HealthBar : MonoBehaviour
             _damageFlashImage.fillMethod = Image.FillMethod.Horizontal;
             _damageFlashImage.rectTransform.sizeDelta = _healthBarImage.rectTransform.sizeDelta;
         }
-
-        _health = GetComponentInParent<Health>();
-        if (_health == null)
-        {
-            Debug.LogError("Health component not found on the parent object.", this);
-        }
-        else
-        {
-            _health.OnHealthUpdated += UpdateHealthBar;
-            // Инициализируем полоску сразу
-            UpdateHealthBar(_health.CurrentHealth, _health.MaxHealth);
-        }
+        // _health теперь инициализируется через Initialize
     }
 
     private void OnDestroy()
@@ -56,9 +59,11 @@ public class HealthBar : MonoBehaviour
 
     private void Update()
     {
-        if (_health != null)
+        if (_health != null && _mainCamera != null)
         {
-            transform.position = _health.transform.position + _offset;
+            Vector3 worldPos = _health.transform.position + _offset;
+            Vector3 screenPos = _mainCamera.WorldToScreenPoint(worldPos);
+            _rectTransform.position = screenPos;
             UpdateFlashEffect();
         }
     }
@@ -67,12 +72,9 @@ public class HealthBar : MonoBehaviour
     {
         if (_health != null && _healthBarImage != null)
         {
-            // Всегда используем актуальные значения из Health компонента
             float currentRatio = (float)currentHealth / _health.MaxHealth;
             float previousRatio = _healthBarImage.fillAmount;
-
             _healthBarImage.fillAmount = currentRatio;
-
             if (currentRatio < previousRatio)
             {
                 _damageFlashImage.fillAmount = previousRatio;
@@ -81,7 +83,6 @@ public class HealthBar : MonoBehaviour
             }
             else if (currentRatio > previousRatio)
             {
-                // Если здоровье увеличилось (хил), сразу обновляем flash
                 _damageFlashImage.fillAmount = currentRatio;
             }
         }
