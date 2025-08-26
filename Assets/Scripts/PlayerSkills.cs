@@ -32,6 +32,7 @@ public class PlayerSkills : NetworkBehaviour
 
     private void Start()
     {
+        _core = GetComponent<PlayerCore>();
         StartCoroutine(InitializeSkills());
     }
 
@@ -92,7 +93,10 @@ public class PlayerSkills : NetworkBehaviour
                 continue;
             }
             skill.Init(_core);
-            _skillLastUseTimes[skill.SkillName] = 0f;
+            if (NetworkServer.active)
+            {
+                _skillLastUseTimes[skill.SkillName] = 0f;
+            }
             Debug.Log($"[PlayerSkills] Initialized skill: {skill.SkillName}");
         }
 
@@ -167,7 +171,6 @@ public class PlayerSkills : NetworkBehaviour
         if (_activeSkill != null)
         {
             UpdateTargetIndicator();
-
             if (Input.GetMouseButtonDown(1))
             {
                 CancelSkillSelection();
@@ -236,7 +239,6 @@ public class PlayerSkills : NetworkBehaviour
                 Debug.LogWarning($"[PlayerSkills] Target netId {targetNetId} not found for {skillName}");
                 return;
             }
-
             PlayerCore targetCore = targetIdentity.GetComponent<PlayerCore>();
             if (targetCore == null || caster.team == targetCore.team)
             {
@@ -277,7 +279,6 @@ public class PlayerSkills : NetworkBehaviour
                 Debug.LogWarning($"[PlayerSkills] Target netId {targetNetId} not found for {skillName}");
                 return;
             }
-
             Health targetHealth = targetIdentity.GetComponent<Health>();
             PlayerCore targetCore = targetIdentity.GetComponent<PlayerCore>();
             PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
@@ -299,16 +300,13 @@ public class PlayerSkills : NetworkBehaviour
                 Debug.LogWarning($"[PlayerSkills] Target position is null for {skillName}");
                 return;
             }
-
             Collider[] hits = Physics.OverlapSphere(targetPosition.Value, skill.Range, caster.interactableLayers);
             foreach (Collider hit in hits)
             {
                 NetworkIdentity identity = hit.GetComponent<NetworkIdentity>();
                 if (identity == null) continue;
-
                 PlayerCore targetCore = hit.GetComponent<PlayerCore>();
                 if (targetCore == null) continue;
-
                 PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
                 if (skill is AreaOfEffectStunSkill aoeStunSkill && casterCore.team != targetCore.team)
                 {
@@ -325,7 +323,6 @@ public class PlayerSkills : NetworkBehaviour
                     }
                 }
             }
-
             if (skill is AreaOfEffectStunSkill)
                 RpcPlayAreaOfEffectStun(targetPosition.Value, skillName);
             else if (skill is AreaOfEffectHealSkill)
@@ -338,14 +335,12 @@ public class PlayerSkills : NetworkBehaviour
                 Debug.LogWarning($"[PlayerSkills] Target netId {targetNetId} not found for {skillName}");
                 return;
             }
-
             PlayerCore targetCore = targetIdentity.GetComponent<PlayerCore>();
             if (targetCore == null || caster.team == targetCore.team)
             {
                 Debug.LogWarning($"[PlayerSkills] Invalid target or same team for {skillName}");
                 return;
             }
-
             Health targetHealth = targetIdentity.GetComponent<Health>();
             if (targetHealth != null)
             {
@@ -361,6 +356,7 @@ public class PlayerSkills : NetworkBehaviour
         {
             stats.ConsumeMana(skill.ManaCost);
         }
+
         _skillLastUseTimes[skill.SkillName] = Time.time;
         skill.StartCooldown();
     }

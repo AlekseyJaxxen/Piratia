@@ -234,7 +234,6 @@ public class CharacterStats : NetworkBehaviour
         }
     }
 
-    [Server]
     public bool HasEnoughMana(int amount)
     {
         return currentMana >= amount;

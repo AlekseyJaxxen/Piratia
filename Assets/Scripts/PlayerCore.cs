@@ -116,7 +116,7 @@ public class PlayerCore : NetworkBehaviour
         {
             Debug.Log($"[PlayerCore] Update: isDead={isDead}, isStunned={isStunned}, Movement.enabled={Movement != null && Movement.enabled}, team={team}, name={playerName}");
         }
-        ServerUpdate(); // Вызываем серверную логику
+        if (NetworkServer.active) ServerUpdate();
     }
 
     [Server]
