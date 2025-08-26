@@ -883,9 +883,6 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  Ground:
-    serializedVersion: 2
-    m_Bits: 0
 --- !u!195 &7616953105411128818
 NavMeshAgent:
   m_ObjectHideFlags: 0
