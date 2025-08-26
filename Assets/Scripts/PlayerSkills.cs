@@ -160,6 +160,7 @@ public class PlayerSkills : NetworkBehaviour
                 CancelAllSkillSelections();
                 _activeSkill = skill;
                 _activeSkill.SetIndicatorVisibility(true);
+                SetCursor(skill.CastCursor ?? castCursor);
             }
         }
 
@@ -461,6 +462,7 @@ public class PlayerSkills : NetworkBehaviour
         {
             _activeSkill.SetIndicatorVisibility(false);
             _activeSkill = null;
+            SetCursor(defaultCursor);
             Debug.Log("[PlayerSkills] All skill selections cancelled");
         }
     }
@@ -471,6 +473,7 @@ public class PlayerSkills : NetworkBehaviour
         {
             _activeSkill.SetIndicatorVisibility(false);
             _activeSkill = null;
+            SetCursor(defaultCursor);
             Debug.Log("[PlayerSkills] Skill selection fully cancelled");
         }
     }
@@ -484,7 +487,24 @@ public class PlayerSkills : NetworkBehaviour
     {
         if (Time.time - _lastCursorUpdate > cursorUpdateInterval)
         {
-            SetCursor(defaultCursor);
+            Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
+            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
+            {
+                GameObject hitObject = hit.collider.gameObject;
+                PlayerCore hitCore = hitObject.GetComponent<PlayerCore>();
+                if (hitCore != null && hitCore.team != _core.team)
+                {
+                    SetCursor(attackCursor);
+                }
+                else
+                {
+                    SetCursor(defaultCursor);
+                }
+            }
+            else
+            {
+                SetCursor(defaultCursor);
+            }
             _lastCursorUpdate = Time.time;
         }
     }
