@@ -93,9 +93,10 @@ public class PlayerSkills : NetworkBehaviour
                 continue;
             }
             skill.Init(_core);
-            if (NetworkServer.active)
+            if (isServer) // Changed from NetworkServer.active to isServer for clarity
             {
                 _skillLastUseTimes[skill.SkillName] = 0f;
+                Debug.Log($"[PlayerSkills] Initialized cooldown for {skill.SkillName} to 0 on server");
             }
             Debug.Log($"[PlayerSkills] Initialized skill: {skill.SkillName}");
         }
@@ -197,9 +198,11 @@ public class PlayerSkills : NetworkBehaviour
     {
         if (_skillLastUseTimes.TryGetValue(skill.SkillName, out float lastUseTime))
         {
-            Debug.Log($"[PlayerSkills] Checking cooldown for {skill.SkillName}, lastUseTime={lastUseTime}, currentTime={Time.time}, cooldown={skill.Cooldown}");
-            return Time.time - lastUseTime < skill.Cooldown;
+            float currentTime = Time.time;
+            Debug.Log($"[PlayerSkills] Checking cooldown for {skill.SkillName}, lastUseTime={lastUseTime}, currentTime={currentTime}, cooldown={skill.Cooldown}, isServer={isServer}, isClient={isClient}");
+            return currentTime - lastUseTime < skill.Cooldown;
         }
+        Debug.Log($"[PlayerSkills] No cooldown record for {skill.SkillName}, assuming ready");
         return false;
     }
 
@@ -357,7 +360,9 @@ public class PlayerSkills : NetworkBehaviour
             stats.ConsumeMana(skill.ManaCost);
         }
 
+        // Update and sync cooldown
         _skillLastUseTimes[skill.SkillName] = Time.time;
+        Debug.Log($"[PlayerSkills] Server updated cooldown for {skill.SkillName} to {Time.time}");
         skill.StartCooldown();
     }
 
@@ -476,7 +481,7 @@ public class PlayerSkills : NetworkBehaviour
 
     private void UpdateTargetIndicator()
     {
-        // Реализация обновления индикатора цели
+        // Implementation for updating target indicator
     }
 
     private void UpdateCursor()
