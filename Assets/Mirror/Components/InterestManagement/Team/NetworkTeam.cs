@@ -28,7 +28,7 @@ namespace Mirror
                 _teamId = value;
 
                 //Only inform the AOI if this netIdentity has been spawned(isServer) and only if using a TeamInterestManagement
-                if (isLocal && NetworkServer.aoi is TeamInterestManagement teamInterestManagement)
+                if (isServer && NetworkServer.aoi is TeamInterestManagement teamInterestManagement)
                     teamInterestManagement.OnTeamChanged(this, oldTeam);
             }
         }

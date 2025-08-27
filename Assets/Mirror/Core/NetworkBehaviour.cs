@@ -49,7 +49,7 @@ namespace Mirror
         /// <summary>True if this object is on the server and has been spawned.</summary>
         // This is different from NetworkServer.active, which is true if the
         // server itself is active rather than this object being active.
-        public bool isLocal => netIdentity.isServer;
+        public bool isServer => netIdentity.isServer;
 
         /// <summary>True if this object is on the client and has been spawned by the server.</summary>
         public bool isClient => netIdentity.isClient;
@@ -87,7 +87,7 @@ namespace Mirror
             get
             {
                 // host mode needs to be checked explicitly
-                if (isClient && isLocal) return syncDirection == SyncDirection.ServerToClient || isOwned;
+                if (isClient && isServer) return syncDirection == SyncDirection.ServerToClient || isOwned;
 
                 // client-only
                 if (isClient) return syncDirection == SyncDirection.ClientToServer && isOwned;
@@ -316,10 +316,10 @@ namespace Mirror
                 // fixes: https://github.com/MirrorNetworking/Mirror/issues/3342
 
                 // host mode: only if observed
-                if (isLocal && isClient) return netIdentity.observers.Count > 0;
+                if (isServer && isClient) return netIdentity.observers.Count > 0;
 
                 // server only: only if observed
-                if (isLocal) return netIdentity.observers.Count > 0;
+                if (isServer) return netIdentity.observers.Count > 0;
 
                 // client only: only ClientToServer and owned
                 if (isClient) return syncDirection == SyncDirection.ClientToServer && isOwned;
@@ -412,7 +412,7 @@ namespace Mirror
             }
 
             // This cannot use NetworkServer.active, as that is not specific to this object.
-            if (!isLocal)
+            if (!isServer)
             {
                 Debug.LogWarning($"ClientRpc {functionFullName} called on un-spawned object: {name}", gameObject);
                 return;
@@ -464,7 +464,7 @@ namespace Mirror
                 return;
             }
 
-            if (!isLocal)
+            if (!isServer)
             {
                 Debug.LogWarning($"TargetRpc {functionFullName} called on {name} but that object has not been spawned or has been unspawned.", gameObject);
                 return;
@@ -695,7 +695,7 @@ namespace Mirror
             // server always uses the field
             // if neither, fallback to original field
             // fixes: https://github.com/MirrorNetworking/Mirror/issues/3447
-            if (isLocal || !isClient)
+            if (isServer || !isClient)
             {
                 return gameObjectField;
             }
@@ -1001,7 +1001,7 @@ namespace Mirror
             // server always uses the field
             // if neither, fallback to original field
             // fixes: https://github.com/MirrorNetworking/Mirror/issues/3447
-            if (isLocal || !isClient)
+            if (isServer || !isClient)
             {
                 return identityField;
             }
@@ -1066,7 +1066,7 @@ namespace Mirror
             // server always uses the field
             // if neither, fallback to original field
             // fixes: https://github.com/MirrorNetworking/Mirror/issues/3447
-            if (isLocal || !isClient)
+            if (isServer || !isClient)
             {
                 return behaviourField;
             }

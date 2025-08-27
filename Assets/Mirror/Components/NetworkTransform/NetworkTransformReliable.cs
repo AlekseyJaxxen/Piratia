@@ -48,7 +48,7 @@ namespace Mirror
         void Update()
         {
             // if server then always sync to others.
-            if (isLocal) UpdateServer();
+            if (isServer) UpdateServer();
             // 'else if' because host mode shouldn't send anything to server.
             // it is the server. don't overwrite anything there.
             else if (isClient) UpdateClient();
@@ -73,7 +73,7 @@ namespace Mirror
             // the possibility of Update() running first before the object's movement
             // script's Update(), which then causes NT to send every alternate frame
             // instead.
-            if (isLocal || (IsClientWithAuthority && NetworkClient.ready))
+            if (isServer || (IsClientWithAuthority && NetworkClient.ready))
             {
                 if (sendIntervalCounter == sendIntervalMultiplier && (!onlySyncOnChange || Changed(Construct())))
                     SetDirty();
@@ -312,7 +312,7 @@ namespace Mirror
 
             // handle depending on server / client / host.
             // server has priority for host mode.
-            if (isLocal) OnClientToServerSync(position, rotation, scale);
+            if (isServer) OnClientToServerSync(position, rotation, scale);
             else if (isClient) OnServerToClientSync(position, rotation, scale);
 
             // save deserialized as 'last' for next delta compression

@@ -87,7 +87,7 @@ namespace Mirror
             // host mode: baseline Rpc is also sent through host's local connection and applied.
             // applying host's baseline as last deserialized would overwrite the owner client's data and cause jitter.
             // in other words: never apply the rpcs in host mode.
-            if (isLocal) return;
+            if (isServer) return;
 
             using (NetworkReaderPooled reader = NetworkReaderPool.Get(data))
             {
@@ -110,7 +110,7 @@ namespace Mirror
             // host mode: baseline Rpc is also sent through host's local connection and applied.
             // applying host's baseline as last deserialized would overwrite the owner client's data and cause jitter.
             // in other words: never apply the rpcs in host mode.
-            if (isLocal) return;
+            if (isServer) return;
 
             // deserialize
             using (NetworkReaderPooled reader = NetworkReaderPool.Get(data))
@@ -435,7 +435,7 @@ namespace Mirror
         protected virtual void Update()
         {
             // if server then always sync to others.
-            if (isLocal) UpdateServerSync();
+            if (isServer) UpdateServerSync();
             // 'else if' because host mode shouldn't send anything to server.
             // it is the server. don't overwrite anything there.
             else if (isClient) UpdateClientSync();

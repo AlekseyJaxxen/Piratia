@@ -69,7 +69,7 @@ namespace Mirror
             // so that only the Transform component is synced.
 
             // host mode
-            if (isLocal && isClient)
+            if (isServer && isClient)
             {
                 // in host mode, we own it it if:
                 // clientAuthority is disabled (hence server / we own it)
@@ -102,7 +102,7 @@ namespace Mirror
 #endif
             }
             // server only
-            else if (isLocal)
+            else if (isServer)
             {
                 // on the server, we always own it if clientAuthority is disabled.
                 bool owned = !clientAuthority;

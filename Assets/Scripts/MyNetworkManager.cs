@@ -36,27 +36,23 @@ public class MyNetworkManager : NetworkManager
     private void OnReceivePlayerInfo(NetworkConnectionToClient conn, NetworkPlayerInfo info)
     {
         Debug.Log($"[MyNetworkManager] Server received player info: Name: {info.playerName}, Team: {info.playerTeam}, Prefab: {info.playerPrefabIndex}, ConnectionId: {conn.connectionId}");
-
         // ѕровер€ем, нет ли уже игрока дл€ этого соединени€
         if (conn.identity != null)
         {
             Debug.LogWarning($"[MyNetworkManager] Player already exists for connection {conn.connectionId}. Replacing player.");
-            NetworkServer.ReplacePlayerForConnection(conn, null);
+            NetworkServer.ReplacePlayerForConnection(conn, null, new ReplacePlayerOptions()); // Fixed line
         }
-
         if (info.playerPrefabIndex < 0 || info.playerPrefabIndex >= playerPrefabs.Length)
         {
             Debug.LogError($"[MyNetworkManager] Invalid prefab index: {info.playerPrefabIndex}");
             return;
         }
-
         // ѕровер€ем, выбрана ли команда
         if (info.playerTeam == PlayerTeam.None)
         {
             Debug.LogWarning($"[MyNetworkManager] Player {info.playerName} has no team assigned. Assigning default team: Red");
             info.playerTeam = PlayerTeam.Red;
         }
-
         GameObject playerInstance = Instantiate(playerPrefabs[info.playerPrefabIndex]);
         Transform spawnPoint = GetTeamSpawnPoint(info.playerTeam);
         if (spawnPoint != null)
@@ -68,7 +64,6 @@ public class MyNetworkManager : NetworkManager
         {
             Debug.LogWarning("[MyNetworkManager] No valid spawn point found, using default position");
         }
-
         PlayerCore playerCore = playerInstance.GetComponent<PlayerCore>();
         if (playerCore != null)
         {
@@ -82,7 +77,6 @@ public class MyNetworkManager : NetworkManager
             Debug.LogError("[MyNetworkManager] PlayerCore component missing on spawned player!");
             return;
         }
-
         // Ќазначаем игрока дл€ соединени€ с авторизацией
         NetworkServer.AddPlayerForConnection(conn, playerInstance);
         NetworkIdentity identity = playerInstance.GetComponent<NetworkIdentity>();
@@ -95,7 +89,6 @@ public class MyNetworkManager : NetworkManager
         {
             Debug.LogError("[MyNetworkManager] NetworkIdentity component missing on spawned player!");
         }
-
         Debug.Log($"[MyNetworkManager] Player {info.playerName} successfully spawned with prefab {playerInstance.name}. isOwned={identity.isOwned}");
     }
 

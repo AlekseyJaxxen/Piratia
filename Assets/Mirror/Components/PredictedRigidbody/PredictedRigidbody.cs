@@ -181,7 +181,7 @@ namespace Mirror
         protected virtual void CreateGhosts()
         {
             // skip if host mode or already separated
-            if (isLocal || physicsCopy != null) return;
+            if (isServer || physicsCopy != null) return;
 
             // Debug.Log($"Separating Physics for {name}"); // logging this allocates too much
 
@@ -505,7 +505,7 @@ namespace Mirror
 
         void Update()
         {
-            if (isLocal) UpdateServer();
+            if (isServer) UpdateServer();
             if (isClientOnly)
             {
                  if (mode == PredictionMode.Smooth)

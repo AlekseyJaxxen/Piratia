@@ -31,7 +31,7 @@ namespace Mirror
         // Update applies interpolation
         void Update()
         {
-            if (isLocal) UpdateServerInterpolation();
+            if (isServer) UpdateServerInterpolation();
             // for all other clients (and for local player if !authority),
             // we need to apply snapshots from the buffer.
             // 'else if' because host mode shouldn't interpolate client
@@ -57,7 +57,7 @@ namespace Mirror
         void LateUpdate()
         {
             // if server then always sync to others.
-            if (isLocal) UpdateServerBroadcast();
+            if (isServer) UpdateServerBroadcast();
             // client authority, and local player (= allowed to move myself)?
             // 'else if' because host mode shouldn't send anything to server.
             // it is the server. don't overwrite anything there.
@@ -399,7 +399,7 @@ namespace Mirror
             // -> we can ignore any rpc on the host client
             // => otherwise host objects would have ever growing clientBuffers
             // (rpc goes to clients. if isServer is true too then we are host)
-            if (isLocal) return;
+            if (isServer) return;
 
             // don't apply for local player with authority
             if (IsClientWithAuthority) return;

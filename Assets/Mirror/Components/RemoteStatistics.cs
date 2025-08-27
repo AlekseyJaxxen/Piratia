@@ -219,7 +219,7 @@ namespace Mirror
 
         void Update()
         {
-            if (isLocal)      UpdateServer();
+            if (isServer)      UpdateServer();
             if (isLocalPlayer) UpdateClient();
         }
 

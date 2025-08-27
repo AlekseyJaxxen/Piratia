@@ -539,7 +539,7 @@ namespace Mirror
             if (!Application.isPlaying) return;
             if (!showGizmos) return;
 
-            if (isLocal) DrawGizmos(serverSnapshots);
+            if (isServer) DrawGizmos(serverSnapshots);
             if (isClient) DrawGizmos(clientSnapshots);
         }
 #endif

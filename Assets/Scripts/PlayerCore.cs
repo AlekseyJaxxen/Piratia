@@ -211,7 +211,7 @@ public class PlayerCore : NetworkBehaviour
         if (healthBarPrefab != null)
         {
             Debug.Log("Checking healthBarPrefab");
-            Canvas mainCanvas = MainCanvas.Instance ?? FindObjectOfType<Canvas>();
+            Canvas mainCanvas = MainCanvas.Instance ?? FindFirstObjectByType<Canvas>();
             Debug.Log("MainCanvas assigned: " + (mainCanvas != null));
             if (mainCanvas != null)
             {
@@ -237,7 +237,7 @@ public class PlayerCore : NetworkBehaviour
         if (nameTagPrefab != null)
         {
             Debug.Log("Checking nameTagPrefab");
-            Canvas mainCanvas = MainCanvas.Instance ?? FindObjectOfType<Canvas>();
+            Canvas mainCanvas = MainCanvas.Instance ?? FindFirstObjectByType<Canvas>();
             Debug.Log("MainCanvas assigned: " + (mainCanvas != null));
             if (mainCanvas != null)
             {
@@ -409,7 +409,7 @@ public class PlayerCore : NetworkBehaviour
             Debug.Log("[PlayerCore] Player is not dead, cannot respawn.");
             return;
         }
-        Transform spawnPoint = FindObjectOfType<MyNetworkManager>()?.GetTeamSpawnPoint(team);
+        Transform spawnPoint = FindFirstObjectByType<MyNetworkManager>()?.GetTeamSpawnPoint(team);
         Vector3 respawnPosition = spawnPoint != null ? spawnPoint.position : _initialSpawnPosition;
         ServerRespawnPlayer(respawnPosition);
     }

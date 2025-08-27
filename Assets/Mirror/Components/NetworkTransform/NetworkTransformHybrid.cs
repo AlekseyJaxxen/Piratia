@@ -222,7 +222,7 @@ namespace Mirror
             // if baseline counts as delta, insert it into snapshot buffer too
             if (baselineIsDelta)
             {
-                if (isLocal)
+                if (isServer)
                 {
                     OnClientToServerDeltaSync(position, rotation, scale);
                 }
@@ -260,7 +260,7 @@ namespace Mirror
             // debug draw: delta = white
             if (debugDraw && position.HasValue) Debug.DrawLine(position.Value, position.Value + Vector3.up, Color.white, 10f);
 
-            if (isLocal)
+            if (isServer)
             {
                 OnClientToServerDeltaSync(position, rotation, scale);
             }
@@ -306,7 +306,7 @@ namespace Mirror
             // -> we can ignore any rpc on the host client
             // => otherwise host objects would have ever growing clientBuffers
             // (rpc goes to clients. if isServer is true too then we are host)
-            if (isLocal) return;
+            if (isServer) return;
 
             // don't apply for local player with authority
             if (IsClientWithAuthority) return;
@@ -414,7 +414,7 @@ namespace Mirror
         {
             base.Update(); // NetworkBehaviourHybrid
 
-            if (isLocal)
+            if (isServer)
             {
                 // interpolate remote clients
                 UpdateServerInterpolation();
@@ -709,7 +709,7 @@ namespace Mirror
             if (!Application.isPlaying) return;
             if (!showGizmos) return;
 
-            if (isLocal) DrawGizmos(serverSnapshots);
+            if (isServer) DrawGizmos(serverSnapshots);
             if (isClient) DrawGizmos(clientSnapshots);
         }
 #endif

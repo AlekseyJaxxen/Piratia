@@ -54,7 +54,7 @@ namespace Mirror
         {
             get
             {
-                if (isLocal)
+                if (isServer)
                 {
                     if (!clientAuthority)
                         return true;
@@ -134,7 +134,7 @@ namespace Mirror
             if (Mathf.Abs(previousSpeed - newSpeed) > 0.001f)
             {
                 previousSpeed = newSpeed;
-                if (isLocal)
+                if (isServer)
                 {
                     animatorSpeed = newSpeed;
                 }
@@ -149,7 +149,7 @@ namespace Mirror
         {
             // skip if host or client with authority
             // they will have already set the speed so don't set again
-            if (isLocal || (isOwned && clientAuthority))
+            if (isServer || (isOwned && clientAuthority))
                 return;
 
             animator.speed = value;
@@ -215,7 +215,7 @@ namespace Mirror
 
         void SendAnimationMessage(int stateHash, float normalizedTime, int layerId, float weight, byte[] parameters)
         {
-            if (isLocal)
+            if (isServer)
             {
                 RpcOnAnimationClientMessage(stateHash, normalizedTime, layerId, weight, parameters);
             }
@@ -227,7 +227,7 @@ namespace Mirror
 
         void SendAnimationParametersMessage(byte[] parameters)
         {
-            if (isLocal)
+            if (isServer)
             {
                 RpcOnAnimationParametersClientMessage(parameters);
             }
@@ -485,7 +485,7 @@ namespace Mirror
             }
             else
             {
-                if (!isLocal)
+                if (!isServer)
                 {
                     Debug.LogWarning("Tried to set animation in the client for a server-controlled animator", gameObject);
                     return;
@@ -532,7 +532,7 @@ namespace Mirror
             }
             else
             {
-                if (!isLocal)
+                if (!isServer)
                 {
                     Debug.LogWarning("Tried to reset animation in the client for a server-controlled animator", gameObject);
                     return;
@@ -644,7 +644,7 @@ namespace Mirror
         {
             // already handled on server in SetTrigger
             // or CmdOnAnimationTriggerServerMessage
-            if (!isLocal)
+            if (!isServer)
                 HandleAnimTriggerMsg(hash);
         }
 
@@ -653,7 +653,7 @@ namespace Mirror
         {
             // already handled on server in ResetTrigger
             // or CmdOnAnimationResetTriggerServerMessage
-            if (!isLocal)
+            if (!isServer)
                 HandleAnimResetTriggerMsg(hash);
         }
 
