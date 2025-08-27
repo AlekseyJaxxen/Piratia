@@ -30,6 +30,7 @@ public class NameTagUI : MonoBehaviour
             {
                 gameObject.SetActive(false);
             }
+            Debug.Log($"NameTagUI updating for {nameText?.text}, active: {gameObject.activeSelf}");
         }
     }
 
@@ -38,9 +39,9 @@ public class NameTagUI : MonoBehaviour
         if (nameText != null) nameText.text = playerName;
         if (teamText != null) teamText.text = playerTeam.ToString();
 
-        Color color = (playerTeam == localTeam) ? Color.green : Color.red;
-        if (nameText != null) nameText.color = color; // »ÎË teamText.color
-        if (nameText != null) teamText.color = color; // »ÎË teamText.color
+        Color color = (localTeam != PlayerTeam.None && playerTeam == localTeam) ? Color.green : Color.red;
+        if (nameText != null) nameText.color = color;
+        if (teamText != null) teamText.color = color;
     }
 
     void OnDestroy()

@@ -31,12 +31,10 @@ public class PlayerCore : NetworkBehaviour
     public Health Health;
     public CharacterStats Stats;
 
-    [SerializeField] private GameObject healthBarPrefab; // Назначьте prefab в инспекторе
+    [SerializeField] private GameObject healthBarPrefab;
     private HealthBarUI healthBarUI;
-    [SerializeField] private GameObject nameTagPrefab; // Назначьте prefab в инспекторе
-    private NameTagUI nameTagUI;
-
-
+    [SerializeField] private GameObject nameTagPrefab;
+    [HideInInspector] public NameTagUI nameTagUI; // Публичное для NameManager
 
     [Header("Respawn")]
     public float respawnTime = 5.0f;
@@ -178,11 +176,18 @@ public class PlayerCore : NetworkBehaviour
         }
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
+
+        // Регистрируем локального игрока
+        if (NameManager.Instance != null)
+        {
+            NameManager.Instance.RegisterPlayer(this);
+        }
     }
 
     public override void OnStartClient()
     {
         base.OnStartClient();
+        Debug.Log($"OnStartClient started for {playerName}, isLocalPlayer: {isLocalPlayer}");
         _nameText = GetComponentInChildren<TextMeshProUGUI>();
         _teamIndicator = transform.Find("TeamIndicator")?.gameObject;
         _playerUI_Team = GetComponentInChildren<PlayerUI_Team>();
@@ -192,22 +197,28 @@ public class PlayerCore : NetworkBehaviour
         }
         OnTeamChanged(team, team);
 
+        // Создаем HP bar и NameTag для всех игроков
         if (healthBarPrefab != null)
         {
-            Canvas mainCanvas = MainCanvas.Instance;
+            Debug.Log("Checking healthBarPrefab");
+            Canvas mainCanvas = MainCanvas.Instance ?? FindObjectOfType<Canvas>();
+            Debug.Log("MainCanvas assigned: " + (mainCanvas != null));
             if (mainCanvas != null)
             {
+                Debug.Log("mainCanvas found");
                 GameObject barInstance = Instantiate(healthBarPrefab, mainCanvas.transform);
+                Debug.Log("HP bar instantiated");
                 healthBarUI = barInstance.GetComponent<HealthBarUI>();
                 if (healthBarUI != null)
                 {
+                    Debug.Log("healthBarUI assigned");
                     healthBarUI.target = transform;
-                    // Подписка на события здоровья
                     if (Health != null)
                     {
+                        Debug.Log("Health found");
                         Health.OnHealthUpdated += healthBarUI.UpdateHP;
-                        // Инициализация текущим значением
                         healthBarUI.UpdateHP(Health.CurrentHealth, Health.MaxHealth);
+                        Debug.Log("Subscribed to OnHealthUpdated and HP initialized");
                     }
                 }
             }
@@ -215,17 +226,30 @@ public class PlayerCore : NetworkBehaviour
 
         if (nameTagPrefab != null)
         {
-            Canvas mainCanvas = MainCanvas.Instance;
+            Debug.Log("Checking nameTagPrefab");
+            Canvas mainCanvas = MainCanvas.Instance ?? FindObjectOfType<Canvas>();
+            Debug.Log("MainCanvas assigned: " + (mainCanvas != null));
             if (mainCanvas != null)
             {
+                Debug.Log("mainCanvas found");
                 GameObject tagInstance = Instantiate(nameTagPrefab, mainCanvas.transform);
+                Debug.Log("NameTag instantiated");
                 nameTagUI = tagInstance.GetComponent<NameTagUI>();
                 if (nameTagUI != null)
                 {
+                    Debug.Log("nameTagUI assigned");
                     nameTagUI.target = transform;
-                    nameTagUI.UpdateNameAndTeam(playerName, team, localPlayerCoreInstance.team);
+                    PlayerTeam localTeam = localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None;
+                    nameTagUI.UpdateNameAndTeam(playerName, team, localTeam);
+                    Debug.Log($"NameTag updated: {playerName}, Team: {team}, LocalTeam: {localTeam}");
                 }
             }
+        }
+
+        // Регистрируем игрока в NameManager
+        if (NameManager.Instance != null)
+        {
+            NameManager.Instance.RegisterPlayer(this);
         }
     }
 
@@ -259,7 +283,16 @@ public class PlayerCore : NetworkBehaviour
             Destroy(healthBarUI.gameObject);
         }
 
-        if (nameTagUI != null) Destroy(nameTagUI.gameObject);
+        if (nameTagUI != null)
+        {
+            Destroy(nameTagUI.gameObject);
+        }
+
+        // Снимаем регистрацию игрока
+        if (NameManager.Instance != null)
+        {
+            NameManager.Instance.UnregisterPlayer(this);
+        }
     }
 
     private void OnDisable()
@@ -392,8 +425,10 @@ public class PlayerCore : NetworkBehaviour
     {
         UpdateTeamIndicatorColor();
         Debug.Log($"[PlayerCore] Team changed: {oldTeam} -> {newTeam}");
-
-        if (nameTagUI != null) nameTagUI.UpdateNameAndTeam(playerName, newTeam, localPlayerCoreInstance.team);
+        if (NameManager.Instance != null)
+        {
+            NameManager.Instance.UpdateAllNameTags();
+        }
     }
 
     private void OnNameChanged(string oldName, string newName)
@@ -403,8 +438,10 @@ public class PlayerCore : NetworkBehaviour
             _nameText.text = newName;
         }
         Debug.Log($"[PlayerCore] Name changed: {oldName} -> {newName}");
-
-        if (nameTagUI != null) nameTagUI.UpdateNameAndTeam(newName, team, localPlayerCoreInstance.team);
+        if (NameManager.Instance != null)
+        {
+            NameManager.Instance.UpdateAllNameTags();
+        }
     }
 
     private void UpdateTeamIndicatorColor()
@@ -481,7 +518,7 @@ public class PlayerCore : NetworkBehaviour
         }
         else if (effectType == ControlEffectType.Slow)
         {
-            _slowPercentage = duration; // Предполагается, что duration используется как процент замедления
+            _slowPercentage = duration;
             _originalSpeed = Stats.movementSpeed;
             if (Movement != null) Movement.SetMovementSpeed(Stats.movementSpeed * (1f - _slowPercentage));
             Debug.Log($"[PlayerCore] Applied slow effect, weight={skillWeight}, percentage={_slowPercentage}, duration={duration}");

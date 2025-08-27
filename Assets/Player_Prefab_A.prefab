@@ -2403,6 +2403,7 @@ MonoBehaviour:
     type: 3}
   nameTagPrefab: {fileID: 5459530024614120293, guid: 1026841307362d64f9c2c341c9b1a03a,
     type: 3}
+  nameTagUI: {fileID: 0}
   respawnTime: 5
   deathScreenUI: {fileID: 2573483568006832762}
   interactableLayers:
