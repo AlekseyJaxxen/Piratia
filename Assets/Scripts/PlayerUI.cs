@@ -2,6 +2,7 @@
 using UnityEngine.UI;
 using TMPro;
 using UnityEngine.EventSystems;
+using System.Collections;
 
 public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
@@ -39,66 +40,108 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
 
     private CharacterStats stats;
     private PlayerCore core;
-    private RectTransform attributesPanelRect; // Для перетаскивания
-    private Vector2 dragOffset; // Смещение при перетаскивании
+    private RectTransform attributesPanelRect;
+    private Vector2 dragOffset;
 
     private void Start()
     {
-        stats = GetComponentInParent<CharacterStats>();
         core = GetComponentInParent<PlayerCore>();
-        if (stats != null && core != null && core.isLocalPlayer)
+        if (core == null)
         {
-            UpdateLevel(stats.level);
-            UpdateExperience(stats.currentExperience, stats.level);
-            UpdateManaBar(stats.currentMana, stats.maxMana);
-            UpdateSkillPoints(stats.skillPoints);
-            UpdateCharacteristicPoints(0, stats.characteristicPoints);
-            UpdateAttributesPanel();
+            Debug.LogError("[PlayerUI] PlayerCore not found!");
+            gameObject.SetActive(false);
+            return;
+        }
+        if (!core.isLocalPlayer)
+        {
+            Debug.Log("[PlayerUI] Not local player, disabling UI.");
+            gameObject.SetActive(false);
+            return;
+        }
 
-            // Подписываемся на события
-            Health health = stats.GetComponent<Health>();
-            if (health != null)
-            {
-                health.OnHealthUpdated += UpdateHealthBar;
-            }
-            stats.OnManaChangedEvent += UpdateManaBar;
-            stats.OnLevelChangedEvent += UpdateLevelAndExperience;
-            stats.OnCharacteristicPointsChangedEvent += (oldPoints, newPoints) => UpdateCharacteristicPoints(oldPoints, newPoints);
-            stats.OnStrengthChangedEvent += (oldValue, newValue) => UpdateAttribute("strength", newValue);
-            stats.OnAgilityChangedEvent += (oldValue, newValue) => UpdateAttribute("agility", newValue);
-            stats.OnSpiritChangedEvent += (oldValue, newValue) => UpdateAttribute("spirit", newValue);
-            stats.OnConstitutionChangedEvent += (oldValue, newValue) => UpdateAttribute("constitution", newValue);
-            stats.OnAccuracyChangedEvent += (oldValue, newValue) => UpdateAttribute("accuracy", newValue);
-            stats.OnMinAttackChangedEvent += (oldValue, newValue) => UpdateAttribute("minAttack", newValue);
-            stats.OnMaxAttackChangedEvent += (oldValue, newValue) => UpdateAttribute("maxAttack", newValue);
+        stats = core.GetComponent<CharacterStats>();
+        if (stats == null)
+        {
+            Debug.LogError("[PlayerUI] CharacterStats not found!");
+            gameObject.SetActive(false);
+            return;
+        }
 
-            // Настраиваем кнопки
-            if (strengthButton != null)
-                strengthButton.onClick.AddListener(() => core.CmdIncreaseStat("strength"));
-            if (agilityButton != null)
-                agilityButton.onClick.AddListener(() => core.CmdIncreaseStat("agility"));
-            if (spiritButton != null)
-                spiritButton.onClick.AddListener(() => core.CmdIncreaseStat("spirit"));
-            if (constitutionButton != null)
-                constitutionButton.onClick.AddListener(() => core.CmdIncreaseStat("constitution"));
-            if (accuracyButton != null)
-                accuracyButton.onClick.AddListener(() => core.CmdIncreaseStat("accuracy"));
+        StartCoroutine(InitializeUI());
+    }
+
+    private IEnumerator InitializeUI()
+    {
+        yield return new WaitForSeconds(2f); // Increased delay for network sync
+        if (core.Health != null)
+        {
+            core.Health.OnHealthUpdated += UpdateHealthBar;
+            UpdateHealthBar(core.Health.CurrentHealth, core.Health.MaxHealth);
+            Debug.Log($"[PlayerUI] Initial health: {core.Health.CurrentHealth}/{core.Health.MaxHealth}");
         }
         else
         {
-            Debug.LogError("CharacterStats, PlayerCore not found or not local player!");
+            Debug.LogError("[PlayerUI] Health component not found!");
         }
 
-        // Инициализация для перетаскивания
+        UpdateLevel(stats.level);
+        UpdateExperience(stats.currentExperience, stats.level);
+        UpdateManaBar(stats.currentMana, stats.maxMana);
+        UpdateSkillPoints(stats.skillPoints);
+        UpdateCharacteristicPoints(0, stats.characteristicPoints);
+        UpdateAttributesPanel();
+
+        stats.OnManaChangedEvent += UpdateManaBar;
+        stats.OnLevelChangedEvent += UpdateLevelAndExperience;
+        stats.OnCharacteristicPointsChangedEvent += UpdateCharacteristicPoints;
+        stats.OnStrengthChangedEvent += (oldValue, newValue) => UpdateAttribute("strength", newValue);
+        stats.OnAgilityChangedEvent += (oldValue, newValue) => UpdateAttribute("agility", newValue);
+        stats.OnSpiritChangedEvent += (oldValue, newValue) => UpdateAttribute("spirit", newValue);
+        stats.OnConstitutionChangedEvent += (oldValue, newValue) => UpdateAttribute("constitution", newValue);
+        stats.OnAccuracyChangedEvent += (oldValue, newValue) => UpdateAttribute("accuracy", newValue);
+        stats.OnMinAttackChangedEvent += (oldValue, newValue) => UpdateAttribute("minAttack", newValue);
+        stats.OnMaxAttackChangedEvent += (oldValue, newValue) => UpdateAttribute("maxAttack", newValue);
+
+        if (strengthButton != null)
+        {
+            strengthButton.onClick.AddListener(() => { core.CmdIncreaseStat("strength"); Debug.Log("[PlayerUI] Strength button clicked"); });
+        }
+        if (agilityButton != null)
+        {
+            agilityButton.onClick.AddListener(() => { core.CmdIncreaseStat("agility"); Debug.Log("[PlayerUI] Agility button clicked"); });
+        }
+        if (spiritButton != null)
+        {
+            spiritButton.onClick.AddListener(() => { core.CmdIncreaseStat("spirit"); Debug.Log("[PlayerUI] Spirit button clicked"); });
+        }
+        if (constitutionButton != null)
+        {
+            constitutionButton.onClick.AddListener(() => { core.CmdIncreaseStat("constitution"); Debug.Log("[PlayerUI] Constitution button clicked"); });
+        }
+        if (accuracyButton != null)
+        {
+            accuracyButton.onClick.AddListener(() => { core.CmdIncreaseStat("accuracy"); Debug.Log("[PlayerUI] Accuracy button clicked"); });
+        }
+
         if (attributesPanel != null)
         {
             attributesPanelRect = attributesPanel.GetComponent<RectTransform>();
             attributesPanel.SetActive(false);
         }
 
-        // Гарантируем, что курсор всегда видим
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
+
+        // Ensure only one EventSystem
+        EventSystem[] eventSystems = FindObjectsByType<EventSystem>(FindObjectsSortMode.None);
+        if (eventSystems.Length > 1)
+        {
+            for (int i = 1; i < eventSystems.Length; i++)
+            {
+                Destroy(eventSystems[i].gameObject);
+                Debug.LogWarning("[PlayerUI] Destroyed duplicate EventSystem to prevent input conflicts.");
+            }
+        }
     }
 
     private void Update()
@@ -113,7 +156,7 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
                 attributesPanel.SetActive(newState);
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
-                Debug.Log($"AttributesPanel set to {newState}. Children: {attributesPanel.transform.childCount}");
+                Debug.Log($"[PlayerUI] AttributesPanel set to {newState}. Children: {attributesPanel.transform.childCount}");
                 UpdateAttributesPanel();
             }
         }
@@ -123,14 +166,13 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     {
         if (stats != null)
         {
-            Health health = stats.GetComponent<Health>();
-            if (health != null)
+            if (core != null && core.Health != null)
             {
-                health.OnHealthUpdated -= UpdateHealthBar;
+                core.Health.OnHealthUpdated -= UpdateHealthBar;
             }
             stats.OnManaChangedEvent -= UpdateManaBar;
             stats.OnLevelChangedEvent -= UpdateLevelAndExperience;
-            stats.OnCharacteristicPointsChangedEvent -= (oldPoints, newPoints) => UpdateCharacteristicPoints(oldPoints, newPoints);
+            stats.OnCharacteristicPointsChangedEvent -= UpdateCharacteristicPoints;
             stats.OnStrengthChangedEvent -= (oldValue, newValue) => UpdateAttribute("strength", newValue);
             stats.OnAgilityChangedEvent -= (oldValue, newValue) => UpdateAttribute("agility", newValue);
             stats.OnSpiritChangedEvent -= (oldValue, newValue) => UpdateAttribute("spirit", newValue);
@@ -144,23 +186,29 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     public void UpdateHealthBar(int currentHealth, int maxHealth)
     {
         if (!core.isLocalPlayer) return;
-        if (healthBar != null)
+        if (healthBar == null)
         {
-            float fillAmount = (float)currentHealth / maxHealth;
-            healthBar.fillAmount = fillAmount;
-            //healthBar.color = Color.Lerp(Color.red, Color.green, fillAmount);
+            Debug.LogError("[PlayerUI] healthBar is null! Ensure it is assigned in the Inspector.");
+            return;
         }
+        float fillAmount = maxHealth > 0 ? (float)currentHealth / maxHealth : 0f;
+        healthBar.fillAmount = fillAmount;
+        healthBar.color = Color.Lerp(Color.red, Color.green, fillAmount);
+        Debug.Log($"[PlayerUI] Health bar updated: {currentHealth}/{maxHealth}, fillAmount={fillAmount}");
     }
 
     public void UpdateManaBar(int currentMana, int maxMana)
     {
         if (!core.isLocalPlayer) return;
-        if (manaBar != null)
+        if (manaBar == null)
         {
-            float fillAmount = (float)currentMana / maxMana;
-            manaBar.fillAmount = fillAmount;
-            manaBar.color = Color.Lerp(new Color(0, 0, 0.5f), Color.blue, fillAmount);
+            Debug.LogError("[PlayerUI] manaBar is null! Ensure it is assigned in the Inspector.");
+            return;
         }
+        float fillAmount = maxMana > 0 ? (float)currentMana / maxMana : 0f;
+        manaBar.fillAmount = fillAmount;
+        manaBar.color = Color.Lerp(new Color(0, 0, 0.5f), Color.blue, fillAmount);
+        Debug.Log($"[PlayerUI] Mana bar updated: {currentMana}/{maxMana}, fillAmount={fillAmount}");
     }
 
     public void UpdateLevel(int level)
@@ -252,27 +300,27 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         if (strengthButton != null)
         {
             strengthButton.gameObject.SetActive(hasPoints);
-            Debug.Log($"StrengthButton active: {hasPoints}");
+            Debug.Log($"[PlayerUI] StrengthButton active: {hasPoints}");
         }
         if (agilityButton != null)
         {
             agilityButton.gameObject.SetActive(hasPoints);
-            Debug.Log($"AgilityButton active: {hasPoints}");
+            Debug.Log($"[PlayerUI] AgilityButton active: {hasPoints}");
         }
         if (spiritButton != null)
         {
             spiritButton.gameObject.SetActive(hasPoints);
-            Debug.Log($"SpiritButton active: {hasPoints}");
+            Debug.Log($"[PlayerUI] SpiritButton active: {hasPoints}");
         }
         if (constitutionButton != null)
         {
             constitutionButton.gameObject.SetActive(hasPoints);
-            Debug.Log($"ConstitutionButton active: {hasPoints}");
+            Debug.Log($"[PlayerUI] ConstitutionButton active: {hasPoints}");
         }
         if (accuracyButton != null)
         {
             accuracyButton.gameObject.SetActive(hasPoints);
-            Debug.Log($"AccuracyButton active: {hasPoints}");
+            Debug.Log($"[PlayerUI] AccuracyButton active: {hasPoints}");
         }
     }
 
@@ -305,12 +353,10 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         }
     }
 
-    // Реализация интерфейсов для перетаскивания
     public void OnBeginDrag(PointerEventData eventData)
     {
         if (attributesPanelRect != null)
         {
-            // Сохраняем смещение между позицией курсора и панелью
             dragOffset = attributesPanelRect.position - (Vector3)eventData.position;
         }
     }
@@ -319,13 +365,12 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     {
         if (attributesPanelRect != null)
         {
-            // Перемещаем панель, учитывая смещение
             attributesPanelRect.position = eventData.position + dragOffset;
         }
     }
 
     public void OnEndDrag(PointerEventData eventData)
     {
-        // Ничего не делаем после завершения перетаскивания
+        // Nothing needed here
     }
 }

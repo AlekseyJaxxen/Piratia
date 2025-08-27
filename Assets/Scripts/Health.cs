@@ -9,9 +9,13 @@ public class Health : NetworkBehaviour
     public int MaxHealth = 1000;
 
     private PlayerUI playerUI;
+    private HealthBarUI healthBarUI;
 
     [SyncVar(hook = nameof(OnHealthChanged))]
     private int _currentHealth;
+
+    [SyncVar]
+    public NetworkIdentity LastAttacker;
 
     public event System.Action<int, int> OnHealthUpdated;
 
@@ -24,7 +28,17 @@ public class Health : NetworkBehaviour
     {
         get => _currentHealth;
         [Server]
-        set => _currentHealth = Mathf.Clamp(value, 0, MaxHealth);
+        set
+        {
+            _currentHealth = Mathf.Clamp(value, 0, MaxHealth);
+            RpcUpdateHealthUI(_currentHealth, MaxHealth);
+        }
+    }
+
+    public override void OnStartServer()
+    {
+        base.OnStartServer();
+        Init();
     }
 
     private void Start()
@@ -33,6 +47,20 @@ public class Health : NetworkBehaviour
         {
             playerUI = GetComponentInChildren<PlayerUI>();
         }
+        // Find HealthBarUI for all entities
+        healthBarUI = GetComponentInChildren<HealthBarUI>();
+        if (healthBarUI == null)
+        {
+            Debug.LogWarning($"[Health] HealthBarUI not found for {gameObject.name}, waiting for instantiation...");
+        }
+    }
+
+    [Server]
+    public void Init()
+    {
+        CurrentHealth = MaxHealth;
+        Debug.Log($"[Server] {gameObject.name} health initialized: {CurrentHealth}/{MaxHealth}");
+        RpcUpdateHealthUI(CurrentHealth, MaxHealth);
     }
 
     [Server]
@@ -41,12 +69,6 @@ public class Health : NetworkBehaviour
         CurrentHealth += amount;
         Debug.Log($"[Server] {gameObject.name} healed for {amount}. Current health: {CurrentHealth}");
         RpcShowHealNumber(amount);
-    }
-
-    [Server]
-    public void Init()
-    {
-        CurrentHealth = MaxHealth;
     }
 
     [Server]
@@ -62,21 +84,31 @@ public class Health : NetworkBehaviour
         MaxHealth = newMaxHealth;
         CurrentHealth = Mathf.Min(CurrentHealth, MaxHealth);
         Debug.Log($"[Server] {gameObject.name} max health set to: {MaxHealth}");
+        RpcUpdateHealthUI(CurrentHealth, MaxHealth);
     }
 
     [Server]
-    public void TakeDamage(int baseDamage, DamageType damageType, bool isCritical = false)
+    public void TakeDamage(int baseDamage, DamageType damageType, bool isCritical = false, NetworkIdentity attacker = null)
     {
         int finalDamage = CalculateFinalDamage(baseDamage, damageType);
-
         CurrentHealth -= finalDamage;
-        Debug.Log($"[Server] {gameObject.name} took {finalDamage} damage. Current health: {CurrentHealth}");
+        LastAttacker = attacker;
+        Debug.Log($"[Server] {gameObject.name} took {finalDamage} damage from {attacker?.gameObject.name}. Current health: {CurrentHealth}");
         RpcShowDamageNumber(finalDamage, isCritical, damageType);
 
         if (CurrentHealth <= 0)
         {
             Debug.Log($"[Server] {gameObject.name} has died. Setting death state.");
-            GetComponent<PlayerCore>()?.SetDeathState(true);
+            MonsterCore monster = GetComponent<MonsterCore>();
+            PlayerCore player = GetComponent<PlayerCore>();
+            if (monster != null && attacker != null)
+            {
+                monster.OnDeath(attacker.GetComponent<PlayerCore>());
+            }
+            else if (player != null)
+            {
+                player.SetDeathState(true);
+            }
         }
     }
 
@@ -131,31 +163,46 @@ public class Health : NetworkBehaviour
         }
     }
 
+    [ClientRpc]
+    private void RpcUpdateHealthUI(int currentHealth, int maxHealth)
+    {
+        if (isLocalPlayer && playerUI != null)
+        {
+            playerUI.UpdateHealthBar(currentHealth, maxHealth);
+        }
+        if (healthBarUI != null)
+        {
+            healthBarUI.UpdateHP(currentHealth, maxHealth);
+        }
+        OnHealthUpdated?.Invoke(currentHealth, maxHealth);
+        Debug.Log($"[Client] RpcUpdateHealthUI: {currentHealth}/{maxHealth} for {gameObject.name}");
+    }
+
     private void OnHealthChanged(int oldHealth, int newHealth)
     {
-        Debug.Log($"[Client] Health changed from {oldHealth} to {newHealth}");
+        Debug.Log($"[Client] Health changed from {oldHealth} to {newHealth} for {gameObject.name}");
         OnHealthUpdated?.Invoke(newHealth, MaxHealth);
-        if (playerUI != null)
+        if (isLocalPlayer && playerUI != null)
         {
             playerUI.UpdateHealthBar(newHealth, MaxHealth);
+        }
+        if (healthBarUI != null)
+        {
+            healthBarUI.UpdateHP(newHealth, MaxHealth);
         }
     }
 
     private void OnMaxHealthChanged(int oldMaxHealth, int newMaxHealth)
     {
-        Debug.Log($"[Client] Max Health changed from {oldMaxHealth} to {newMaxHealth}");
+        Debug.Log($"[Client] Max Health changed from {oldMaxHealth} to {newMaxHealth} for {gameObject.name}");
         OnHealthUpdated?.Invoke(CurrentHealth, newMaxHealth);
-        if (playerUI != null)
+        if (isLocalPlayer && playerUI != null)
         {
             playerUI.UpdateHealthBar(CurrentHealth, newMaxHealth);
         }
-    }
-
-    private void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.H)) // Тестовый вызов урона
+        if (healthBarUI != null)
         {
-            TakeDamage(1000, DamageType.Physical);
+            healthBarUI.UpdateHP(CurrentHealth, newMaxHealth);
         }
     }
 }

@@ -146,7 +146,6 @@ GameObject:
   m_Component:
   - component: {fileID: 7628763593168994769}
   - component: {fileID: 8315633461658199075}
-  - component: {fileID: 6593801503493433132}
   m_Layer: 0
   m_Name: PlayerNameBar
   m_TagString: Untagged
@@ -191,19 +190,6 @@ MonoBehaviour:
   teamText: {fileID: 7397768870174066059}
   target: {fileID: 0}
   offset: {x: 0, y: 2.5, z: 0}
---- !u!114 &6593801503493433132
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5459530024614120293}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 70e64c43e14f556429a63edf4d39eebf, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BillBoard
-  targetCamera: {fileID: 0}
 --- !u!1 &5883256770140086143
 GameObject:
   m_ObjectHideFlags: 0

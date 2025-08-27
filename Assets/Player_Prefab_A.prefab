@@ -2387,7 +2387,8 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0.11
-  MaxHealth: 7000
+  MaxHealth: 1000
+  LastAttacker: {fileID: 0}
   floatingTextPrefab: {fileID: 4564945269438271224, guid: 75c435b9f0af2d140828612da10a5496,
     type: 3}
   damageTextSpawnHeight: 2.5
@@ -2421,6 +2422,7 @@ MonoBehaviour:
   nameTagUI: {fileID: 0}
   respawnTime: 5
   deathScreenUI: {fileID: 2573483568006832762}
+  mainCanvasReference: {fileID: 0}
   interactableLayers:
     serializedVersion: 2
     m_Bits: 499
@@ -2432,7 +2434,7 @@ MonoBehaviour:
   enemyMaterial: {fileID: 2100000, guid: d249408a15900d142a2f99784945ac05, type: 2}
   deathVFXPrefab: {fileID: 160684, guid: de85f8f81ea29ea479250adb36debd92, type: 3}
   modelTransform: {fileID: 3225544981727549252}
-  team: 0
+  team: 1
   playerName: EBLAN
   isDead: 0
   isStunned: 0

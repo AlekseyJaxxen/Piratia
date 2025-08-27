@@ -5,7 +5,11 @@ public class CharacterStats : NetworkBehaviour
 {
     [Header("Character Class")]
     [SyncVar]
-    public CharacterClass characterClass = CharacterClass.Warrior;
+    public CharacterClass characterClass = CharacterClass.Warrior; // Ссылка на Enums.cs
+
+    [Header("Monster Attributes")]
+    //[SyncVar] public MonsterRace race = MonsterRace.None;
+    //[SyncVar] public MonsterElement element = MonsterElement.Neutral;
 
     [Header("Level and Experience")]
     [SyncVar(hook = nameof(OnLevelChanged))]
@@ -67,7 +71,6 @@ public class CharacterStats : NetworkBehaviour
     [SyncVar(hook = nameof(OnManaChanged))]
     public int currentMana;
 
-    // События для UI
     public event System.Action<int, int> OnManaChangedEvent;
     public event System.Action<int, int> OnLevelChangedEvent;
     public event System.Action<int, int> OnCharacteristicPointsChangedEvent;

@@ -3,23 +3,6 @@ using Mirror;
 using TMPro;
 using System.Collections;
 
-public enum PlayerAction
-{
-    None,
-    Move,
-    Attack,
-    SkillCast
-}
-
-public enum ControlEffectType
-{
-    None = 0,
-    Stun = 1,
-    Silence = 2,
-    FbStun = 3,
-    Slow = 4,
-}
-
 public class PlayerCore : NetworkBehaviour
 {
     [Header("Core Components")]
@@ -43,6 +26,8 @@ public class PlayerCore : NetworkBehaviour
     [Header("UI References")]
     [SerializeField]
     private DeathScreenUI deathScreenUI;
+    [SerializeField]
+    private Canvas mainCanvasReference;
 
     [Header("Dependencies")]
     public LayerMask interactableLayers;
@@ -53,8 +38,8 @@ public class PlayerCore : NetworkBehaviour
     public Material allyMaterial;
     public Material enemyMaterial;
     public GameObject deathVFXPrefab;
-    [SerializeField] private Transform modelTransform; // Трансформ модели
-    private Quaternion initialModelRotation; // Начальная ротация модели
+    [SerializeField] private Transform modelTransform;
+    private Quaternion initialModelRotation;
 
     [SyncVar(hook = nameof(OnTeamChanged))]
     public PlayerTeam team = PlayerTeam.None;
@@ -85,14 +70,14 @@ public class PlayerCore : NetworkBehaviour
     private float _lastManaRegenTime;
 
     [SyncVar]
-    private Vector3 _initialSpawnPosition;
+    protected Vector3 _initialSpawnPosition;
 
     private GameObject _teamIndicator;
     private TextMeshProUGUI _nameText;
     private PlayerUI_Team _playerUI_Team;
     public static PlayerCore localPlayerCoreInstance;
 
-    private void Awake()
+    protected virtual void Awake()
     {
         Movement = GetComponent<PlayerMovement>();
         Combat = GetComponent<PlayerCombat>();
@@ -115,10 +100,9 @@ public class PlayerCore : NetworkBehaviour
         if (ActionSystem != null) ActionSystem.Init(this);
         if (Camera != null) Camera.Init(this);
 
-        // Сохраняем начальную ротацию модели
         if (modelTransform != null)
         {
-            initialModelRotation = modelTransform.localRotation; // Используем localRotation
+            initialModelRotation = modelTransform.localRotation;
             Debug.Log($"[PlayerCore] Initial model rotation saved: {initialModelRotation.eulerAngles}, for {playerName}");
         }
         else
@@ -137,7 +121,7 @@ public class PlayerCore : NetworkBehaviour
     }
 
     [Server]
-    private void ServerUpdate()
+    protected virtual void ServerUpdate()
     {
         if (currentControlEffect != ControlEffectType.None && Time.time >= controlEffectEndTime)
         {
@@ -158,6 +142,11 @@ public class PlayerCore : NetworkBehaviour
         if (ui == null)
         {
             Debug.LogWarning("[PlayerCore] PlayerUI not found in player prefab!");
+        }
+        else if (!ui.gameObject.activeSelf)
+        {
+            ui.gameObject.SetActive(true);
+            Debug.Log("[PlayerCore] Enabled PlayerUI for local player.");
         }
         if (Camera != null)
         {
@@ -208,210 +197,96 @@ public class PlayerCore : NetworkBehaviour
         }
         OnTeamChanged(team, team);
 
+        // Instantiate HealthBarUI and NameTagUI for all players/monsters
         if (healthBarPrefab != null)
         {
             Debug.Log("Checking healthBarPrefab");
-            Canvas mainCanvas = MainCanvas.Instance ?? FindFirstObjectByType<Canvas>();
-            Debug.Log("MainCanvas assigned: " + (mainCanvas != null));
-            if (mainCanvas != null)
+            Canvas mainCanvas = mainCanvasReference != null ? mainCanvasReference : MainCanvas.Instance ?? FindFirstObjectByType<Canvas>();
+            if (mainCanvas == null)
             {
-                Debug.Log("mainCanvas found");
-                GameObject barInstance = Instantiate(healthBarPrefab, mainCanvas.transform);
-                Debug.Log("HP bar instantiated");
-                healthBarUI = barInstance.GetComponent<HealthBarUI>();
-                if (healthBarUI != null)
+                Debug.LogError("[PlayerCore] No Canvas found for health bar or name tag!");
+                return;
+            }
+            Debug.Log($"[PlayerCore] Canvas found: {mainCanvas.gameObject.name}");
+
+            // Instantiate healthBarPrefab
+            GameObject barInstance = Instantiate(healthBarPrefab, mainCanvas.transform);
+            Debug.Log("HP bar instantiated");
+            healthBarUI = barInstance.GetComponent<HealthBarUI>();
+            if (healthBarUI != null)
+            {
+                Debug.Log("healthBarUI assigned");
+                healthBarUI.target = transform;
+                if (Health != null)
                 {
-                    Debug.Log("healthBarUI assigned");
-                    healthBarUI.target = transform;
-                    if (Health != null)
-                    {
-                        Debug.Log("Health found");
-                        Health.OnHealthUpdated += healthBarUI.UpdateHP;
-                        healthBarUI.UpdateHP(Health.CurrentHealth, Health.MaxHealth);
-                        Debug.Log("Subscribed to OnHealthUpdated and HP initialized");
-                    }
+                    Debug.Log("Health found");
+                    Health.OnHealthUpdated += healthBarUI.UpdateHP;
+                    StartCoroutine(InitializeHealthBarWithRetry());
+                }
+                else
+                {
+                    Debug.LogError("[PlayerCore] Health component is null!");
                 }
             }
-        }
-
-        if (nameTagPrefab != null)
-        {
-            Debug.Log("Checking nameTagPrefab");
-            Canvas mainCanvas = MainCanvas.Instance ?? FindFirstObjectByType<Canvas>();
-            Debug.Log("MainCanvas assigned: " + (mainCanvas != null));
-            if (mainCanvas != null)
+            else
             {
-                Debug.Log("mainCanvas found");
-                GameObject tagInstance = Instantiate(nameTagPrefab, mainCanvas.transform);
-                Debug.Log("NameTag instantiated");
-                nameTagUI = tagInstance.GetComponent<NameTagUI>();
+                Debug.LogError("[PlayerCore] HealthBarUI component missing on instantiated health bar!");
+            }
+
+            // Instantiate nameTagPrefab
+            if (nameTagPrefab != null)
+            {
+                GameObject nameTagInstance = Instantiate(nameTagPrefab, mainCanvas.transform);
+                Debug.Log("Name tag instantiated");
+                nameTagUI = nameTagInstance.GetComponent<NameTagUI>();
                 if (nameTagUI != null)
                 {
                     Debug.Log("nameTagUI assigned");
                     nameTagUI.target = transform;
-                    PlayerTeam localTeam = localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None;
-                    nameTagUI.UpdateNameAndTeam(playerName, team, localTeam);
-                    Debug.Log($"NameTag updated: {playerName}, Team: {team}, LocalTeam: {localTeam}");
+                    nameTagUI.UpdateNameAndTeam(playerName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
+                    Debug.Log($"[PlayerCore] Name tag initialized: {playerName}, team: {team}");
                 }
                 else
                 {
-                    Debug.LogError("NameTagUI component missing on instantiated prefab!");
+                    Debug.LogError("[PlayerCore] NameTagUI component missing on instantiated name tag!");
                 }
             }
             else
             {
-                Debug.LogError("MainCanvas not found for NameTag!");
+                Debug.LogError("[PlayerCore] nameTagPrefab is null!");
             }
         }
         else
         {
-            Debug.LogError("nameTagPrefab is null!");
+            Debug.LogError("[PlayerCore] healthBarPrefab is null!");
         }
 
-        if (NameManager.Instance != null)
+        // Disable PlayerUI for non-local players
+        PlayerUI ui = GetComponentInChildren<PlayerUI>();
+        if (ui != null && !isLocalPlayer)
         {
-            NameManager.Instance.RegisterPlayer(this);
-        }
-        else
-        {
-            Debug.LogError("NameManager.Instance is null!");
+            ui.gameObject.SetActive(false);
+            Debug.Log("[PlayerCore] Disabled PlayerUI for non-local player.");
         }
     }
 
-    public override void OnStartServer()
+    private IEnumerator InitializeHealthBarWithRetry()
     {
-        isDead = false;
-        isStunned = false;
-        _lastManaRegenTime = Time.time;
-        if (Health != null) Health.Init();
-        if (Stats != null) Stats.CalculateDerivedStats();
-        _initialSpawnPosition = transform.position;
-        Debug.Log($"[PlayerCore] OnStartServer: Initialized player {playerName}, team={team}");
-    }
-
-    public override void OnStopClient()
-    {
-        base.OnStopClient();
-        if (isLocalPlayer)
+        int maxRetries = 5;
+        int retryCount = 0;
+        while (retryCount < maxRetries)
         {
-            if (Skills != null) Skills.CancelSkillSelection();
-            if (ActionSystem != null) ActionSystem.CompleteAction();
-            Debug.Log("[PlayerCore] Cleaned up on client disconnect.");
-        }
-
-        if (healthBarUI != null)
-        {
-            if (Health != null)
+            if (Health != null && Health.CurrentHealth > 0)
             {
-                Health.OnHealthUpdated -= healthBarUI.UpdateHP;
+                healthBarUI.UpdateHP(Health.CurrentHealth, Health.MaxHealth);
+                Debug.Log($"[PlayerCore] Health bar initialized: {Health.CurrentHealth}/{Health.MaxHealth}");
+                yield break;
             }
-            Destroy(healthBarUI.gameObject);
+            retryCount++;
+            Debug.LogWarning($"[PlayerCore] Health not ready (CurrentHealth={Health?.CurrentHealth}), retrying {retryCount}/{maxRetries}");
+            yield return new WaitForSeconds(1.5f);
         }
-
-        if (nameTagUI != null)
-        {
-            Destroy(nameTagUI.gameObject);
-        }
-
-        if (NameManager.Instance != null)
-        {
-            NameManager.Instance.UnregisterPlayer(this);
-        }
-    }
-
-    private void OnDisable()
-    {
-        if (Skills != null) Skills.CancelSkillSelection();
-        if (ActionSystem != null) ActionSystem.CompleteAction();
-        Debug.Log("[PlayerCore] Cleaned up on disable.");
-    }
-
-    [Server]
-    public void SetDeathState(bool state)
-    {
-        isDead = state;
-        if (state)
-        {
-            if (ActionSystem != null) ActionSystem.CompleteAction();
-            if (Skills != null) Skills.CancelSkillSelection();
-            foreach (Collider col in GetComponentsInChildren<Collider>())
-            {
-                col.enabled = false;
-            }
-            RpcPlayDeathVFX();
-            RpcSetDeathVisuals(true);
-        }
-        else
-        {
-            foreach (Collider col in GetComponentsInChildren<Collider>())
-            {
-                col.enabled = true;
-            }
-            RpcSetDeathVisuals(false);
-        }
-        Debug.Log($"[PlayerCore] SetDeathState: isDead={state}, Colliders={(GetComponentsInChildren<Collider>().Length > 0 ? "Found" : "None")}");
-    }
-
-    [ClientRpc]
-    private void RpcSetDeathVisuals(bool isDead)
-    {
-        if (modelTransform != null)
-        {
-            if (isDead)
-            {
-                // Поворот на землю при смерти
-                modelTransform.rotation = Quaternion.Euler(90f, modelTransform.rotation.eulerAngles.y, modelTransform.rotation.eulerAngles.z);
-            }
-            else
-            {
-                // Восстанавливаем начальную локальную ротацию
-                modelTransform.localRotation = initialModelRotation;
-                // Если локальный игрок, синхронизируем с глобальной ротацией объекта
-                if (isLocalPlayer)
-                {
-                    modelTransform.rotation = Quaternion.Euler(0f, transform.rotation.eulerAngles.y, 0f);
-                }
-            }
-            Debug.Log($"[PlayerCore] RpcSetDeathVisuals: isDead={isDead}, ModelRotation={modelTransform.rotation.eulerAngles}, LocalPlayer={isLocalPlayer}");
-        }
-        else
-        {
-            Debug.LogWarning("[PlayerCore] modelTransform is null!");
-        }
-
-        if (isLocalPlayer)
-        {
-            if (Combat != null) Combat.enabled = !isDead;
-            if (Skills != null) Skills.enabled = !isDead;
-            if (Movement != null) Movement.enabled = !isDead;
-            if (ActionSystem != null && isDead) ActionSystem.CompleteAction();
-            if (Skills != null && isDead) Skills.CancelSkillSelection();
-            if (isDead) deathScreenUI.ShowDeathScreen();
-            else deathScreenUI.HideDeathScreen();
-        }
-    }
-
-    [ClientRpc]
-    private void RpcPlayDeathVFX()
-    {
-        if (deathVFXPrefab != null)
-        {
-            GameObject vfx = Instantiate(deathVFXPrefab, transform.position, Quaternion.identity);
-            Destroy(vfx, 2f);
-        }
-    }
-
-    [Command]
-    public void CmdRequestRespawn()
-    {
-        if (!isDead)
-        {
-            Debug.Log("[PlayerCore] Player is not dead, cannot respawn.");
-            return;
-        }
-        Transform spawnPoint = FindFirstObjectByType<MyNetworkManager>()?.GetTeamSpawnPoint(team);
-        Vector3 respawnPosition = spawnPoint != null ? spawnPoint.position : _initialSpawnPosition;
-        ServerRespawnPlayer(respawnPosition);
+        Debug.LogError("[PlayerCore] Failed to initialize health bar after retries!");
     }
 
     [Server]
@@ -498,6 +373,16 @@ public class PlayerCore : NetworkBehaviour
         }
     }
 
+    [Command]
+    public void CmdRequestRespawn()
+    {
+        if (isDead)
+        {
+            ServerRespawnPlayer(_initialSpawnPosition);
+            Debug.Log($"[PlayerCore] Server: Respawn requested for {playerName}");
+        }
+    }
+
     private void OnTeamChanged(PlayerTeam oldTeam, PlayerTeam newTeam)
     {
         UpdateTeamIndicatorColor();
@@ -505,6 +390,10 @@ public class PlayerCore : NetworkBehaviour
         if (NameManager.Instance != null)
         {
             NameManager.Instance.UpdateAllNameTags();
+        }
+        if (nameTagUI != null)
+        {
+            nameTagUI.UpdateNameAndTeam(playerName, newTeam, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
         }
     }
 
@@ -518,6 +407,10 @@ public class PlayerCore : NetworkBehaviour
         if (NameManager.Instance != null)
         {
             NameManager.Instance.UpdateAllNameTags();
+        }
+        if (nameTagUI != null)
+        {
+            nameTagUI.UpdateNameAndTeam(newName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
         }
     }
 
@@ -648,5 +541,11 @@ public class PlayerCore : NetworkBehaviour
     private void CmdDie()
     {
         SetDeathState(true);
+    }
+
+    [Server]
+    public void SetDeathState(bool state)
+    {
+        isDead = state;
     }
 }

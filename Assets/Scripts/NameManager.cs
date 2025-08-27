@@ -26,7 +26,7 @@ public class NameManager : MonoBehaviour
         {
             players.Add(player);
             Debug.Log($"[NameManager] Registered player: {player.playerName}");
-            StartCoroutine(UpdateNameTagsDelayed()); // Отложенное обновление
+            StartCoroutine(UpdateNameTagsDelayed());
         }
     }
 
@@ -43,19 +43,35 @@ public class NameManager : MonoBehaviour
 
     private IEnumerator UpdateNameTagsDelayed()
     {
-        yield return new WaitForSeconds(0.5f); // Ждем, пока все игроки инициализируются
-        PlayerTeam localTeam = PlayerCore.localPlayerCoreInstance != null ? PlayerCore.localPlayerCoreInstance.team : PlayerTeam.None;
-        foreach (PlayerCore player in players)
+        yield return new WaitForSeconds(1f); // Increased delay for network sync
+        int maxRetries = 3;
+        int retryCount = 0;
+
+        while (retryCount < maxRetries)
         {
-            if (player.nameTagUI != null)
+            bool allInitialized = true;
+            PlayerTeam localTeam = PlayerCore.localPlayerCoreInstance != null ? PlayerCore.localPlayerCoreInstance.team : PlayerTeam.None;
+            foreach (PlayerCore player in players)
             {
-                player.nameTagUI.UpdateNameAndTeam(player.playerName, player.team, localTeam);
-                Debug.Log($"[NameManager] Updated NameTag for {player.playerName}, Team: {player.team}, LocalTeam: {localTeam}");
+                if (player == null) continue; // Skip null players
+                if (player.nameTagUI != null)
+                {
+                    player.nameTagUI.UpdateNameAndTeam(player.playerName, player.team, localTeam);
+                    Debug.Log($"[NameManager] Updated NameTag for {player.playerName}, Team: {player.team}, LocalTeam: {localTeam}");
+                }
+                else
+                {
+                    Debug.LogWarning($"[NameManager] NameTagUI is null for {player.playerName}, retrying...");
+                    allInitialized = false;
+                }
             }
-            else
-            {
-                Debug.LogWarning($"[NameManager] NameTagUI is null for {player.playerName}");
-            }
+            if (allInitialized) break;
+            retryCount++;
+            yield return new WaitForSeconds(0.5f); // Wait before retry
+        }
+        if (retryCount >= maxRetries)
+        {
+            Debug.LogError("[NameManager] Failed to initialize NameTagUI for some players after retries!");
         }
     }
 }

@@ -7,9 +7,9 @@ public struct NetworkPlayerInfo : NetworkMessage
     public int playerPrefabIndex;
 }
 
-public enum PlayerTeam
-{
-    None,
-    Red,
-    Blue
-}
+//public enum PlayerTeam
+//{
+ //   None,
+ //   Red,
+ //   Blue
+//}
