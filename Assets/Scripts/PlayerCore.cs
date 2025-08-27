@@ -34,7 +34,7 @@ public class PlayerCore : NetworkBehaviour
     [SerializeField] private GameObject healthBarPrefab;
     private HealthBarUI healthBarUI;
     [SerializeField] private GameObject nameTagPrefab;
-    [HideInInspector] public NameTagUI nameTagUI; // Публичное для NameManager
+    [HideInInspector] public NameTagUI nameTagUI;
 
     [Header("Respawn")]
     public float respawnTime = 5.0f;
@@ -52,8 +52,9 @@ public class PlayerCore : NetworkBehaviour
     public Material localPlayerMaterial;
     public Material allyMaterial;
     public Material enemyMaterial;
-
     public GameObject deathVFXPrefab;
+    [SerializeField] private Transform modelTransform; // Трансформ модели
+    private Quaternion initialModelRotation; // Начальная ротация модели
 
     [SyncVar(hook = nameof(OnTeamChanged))]
     public PlayerTeam team = PlayerTeam.None;
@@ -113,6 +114,17 @@ public class PlayerCore : NetworkBehaviour
         if (Combat != null) Combat.Init(this);
         if (ActionSystem != null) ActionSystem.Init(this);
         if (Camera != null) Camera.Init(this);
+
+        // Сохраняем начальную ротацию модели
+        if (modelTransform != null)
+        {
+            initialModelRotation = modelTransform.localRotation; // Используем localRotation
+            Debug.Log($"[PlayerCore] Initial model rotation saved: {initialModelRotation.eulerAngles}, for {playerName}");
+        }
+        else
+        {
+            Debug.LogError("[PlayerCore] modelTransform is null!");
+        }
     }
 
     private void Update()
@@ -177,7 +189,6 @@ public class PlayerCore : NetworkBehaviour
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
 
-        // Регистрируем локального игрока
         if (NameManager.Instance != null)
         {
             NameManager.Instance.RegisterPlayer(this);
@@ -197,7 +208,6 @@ public class PlayerCore : NetworkBehaviour
         }
         OnTeamChanged(team, team);
 
-        // Создаем HP bar и NameTag для всех игроков
         if (healthBarPrefab != null)
         {
             Debug.Log("Checking healthBarPrefab");
@@ -243,13 +253,28 @@ public class PlayerCore : NetworkBehaviour
                     nameTagUI.UpdateNameAndTeam(playerName, team, localTeam);
                     Debug.Log($"NameTag updated: {playerName}, Team: {team}, LocalTeam: {localTeam}");
                 }
+                else
+                {
+                    Debug.LogError("NameTagUI component missing on instantiated prefab!");
+                }
+            }
+            else
+            {
+                Debug.LogError("MainCanvas not found for NameTag!");
             }
         }
+        else
+        {
+            Debug.LogError("nameTagPrefab is null!");
+        }
 
-        // Регистрируем игрока в NameManager
         if (NameManager.Instance != null)
         {
             NameManager.Instance.RegisterPlayer(this);
+        }
+        else
+        {
+            Debug.LogError("NameManager.Instance is null!");
         }
     }
 
@@ -288,7 +313,6 @@ public class PlayerCore : NetworkBehaviour
             Destroy(nameTagUI.gameObject);
         }
 
-        // Снимаем регистрацию игрока
         if (NameManager.Instance != null)
         {
             NameManager.Instance.UnregisterPlayer(this);
@@ -310,7 +334,60 @@ public class PlayerCore : NetworkBehaviour
         {
             if (ActionSystem != null) ActionSystem.CompleteAction();
             if (Skills != null) Skills.CancelSkillSelection();
+            foreach (Collider col in GetComponentsInChildren<Collider>())
+            {
+                col.enabled = false;
+            }
             RpcPlayDeathVFX();
+            RpcSetDeathVisuals(true);
+        }
+        else
+        {
+            foreach (Collider col in GetComponentsInChildren<Collider>())
+            {
+                col.enabled = true;
+            }
+            RpcSetDeathVisuals(false);
+        }
+        Debug.Log($"[PlayerCore] SetDeathState: isDead={state}, Colliders={(GetComponentsInChildren<Collider>().Length > 0 ? "Found" : "None")}");
+    }
+
+    [ClientRpc]
+    private void RpcSetDeathVisuals(bool isDead)
+    {
+        if (modelTransform != null)
+        {
+            if (isDead)
+            {
+                // Поворот на землю при смерти
+                modelTransform.rotation = Quaternion.Euler(90f, modelTransform.rotation.eulerAngles.y, modelTransform.rotation.eulerAngles.z);
+            }
+            else
+            {
+                // Восстанавливаем начальную локальную ротацию
+                modelTransform.localRotation = initialModelRotation;
+                // Если локальный игрок, синхронизируем с глобальной ротацией объекта
+                if (isLocalPlayer)
+                {
+                    modelTransform.rotation = Quaternion.Euler(0f, transform.rotation.eulerAngles.y, 0f);
+                }
+            }
+            Debug.Log($"[PlayerCore] RpcSetDeathVisuals: isDead={isDead}, ModelRotation={modelTransform.rotation.eulerAngles}, LocalPlayer={isLocalPlayer}");
+        }
+        else
+        {
+            Debug.LogWarning("[PlayerCore] modelTransform is null!");
+        }
+
+        if (isLocalPlayer)
+        {
+            if (Combat != null) Combat.enabled = !isDead;
+            if (Skills != null) Skills.enabled = !isDead;
+            if (Movement != null) Movement.enabled = !isDead;
+            if (ActionSystem != null && isDead) ActionSystem.CompleteAction();
+            if (Skills != null && isDead) Skills.CancelSkillSelection();
+            if (isDead) deathScreenUI.ShowDeathScreen();
+            else deathScreenUI.HideDeathScreen();
         }
     }
 

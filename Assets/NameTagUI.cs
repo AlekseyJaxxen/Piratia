@@ -8,11 +8,12 @@ public class NameTagUI : MonoBehaviour
     public TextMeshProUGUI teamText;
     public Transform target;
     private Camera mainCamera;
-    public Vector3 offset = new Vector3(0, 2.5f, 0); // Высота над головой
+    public Vector3 offset = new Vector3(0, 2.5f, 0);
 
     void Start()
     {
         mainCamera = Camera.main;
+        Debug.Log($"[NameTagUI] Initialized for {gameObject.name}, nameText: {(nameText != null)}, teamText: {(teamText != null)}");
     }
 
     void LateUpdate()
@@ -30,7 +31,7 @@ public class NameTagUI : MonoBehaviour
             {
                 gameObject.SetActive(false);
             }
-            Debug.Log($"NameTagUI updating for {nameText?.text}, active: {gameObject.activeSelf}");
+            Debug.Log($"[NameTagUI] Updating for {nameText?.text}, active: {gameObject.activeSelf}");
         }
     }
 
@@ -42,10 +43,12 @@ public class NameTagUI : MonoBehaviour
         Color color = (localTeam != PlayerTeam.None && playerTeam == localTeam) ? Color.green : Color.red;
         if (nameText != null) nameText.color = color;
         if (teamText != null) teamText.color = color;
+
+        Debug.Log($"[NameTagUI] Updated: Name={playerName}, Team={playerTeam}, LocalTeam={localTeam}, Color={(nameText != null ? nameText.color : Color.black)}");
     }
 
     void OnDestroy()
     {
-        // Отписка, если нужно
+        Debug.Log($"[NameTagUI] Destroyed for {nameText?.text}");
     }
 }
