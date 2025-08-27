@@ -2399,7 +2399,9 @@ MonoBehaviour:
   Camera: {fileID: 1961392965024624479}
   Health: {fileID: 6067296820680782066}
   Stats: {fileID: 3920754116015596352}
-  healthBarPrefab: {fileID: 5459530024614120293, guid: 1026841307362d64f9c2c341c9b1a03a,
+  healthBarPrefab: {fileID: 5459530024614120293, guid: e1d805e4e5b950249ae08b7578785256,
+    type: 3}
+  nameTagPrefab: {fileID: 5459530024614120293, guid: 1026841307362d64f9c2c341c9b1a03a,
     type: 3}
   respawnTime: 5
   deathScreenUI: {fileID: 2573483568006832762}

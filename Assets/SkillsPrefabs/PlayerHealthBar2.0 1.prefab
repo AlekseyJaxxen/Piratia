@@ -88,7 +88,7 @@ GameObject:
   - component: {fileID: 7628763593168994769}
   - component: {fileID: 6888509028716608688}
   m_Layer: 0
-  m_Name: PlayerHealthBar2.0
+  m_Name: PlayerHealthBar2.0 1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -130,7 +130,7 @@ MonoBehaviour:
   fillImage: {fileID: 8903410939843785643}
   hpText: {fileID: 0}
   target: {fileID: 0}
-  offset: {x: 0, y: 2, z: 0}
+  offset: {x: 0, y: -2, z: 0}
 --- !u!1 &6116353059670654012
 GameObject:
   m_ObjectHideFlags: 0
@@ -202,7 +202,7 @@ MonoBehaviour:
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 0
-  m_FillAmount: 0.903
+  m_FillAmount: 1
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0

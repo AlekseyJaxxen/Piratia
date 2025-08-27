@@ -33,6 +33,10 @@ public class PlayerCore : NetworkBehaviour
 
     [SerializeField] private GameObject healthBarPrefab; // Назначьте prefab в инспекторе
     private HealthBarUI healthBarUI;
+    [SerializeField] private GameObject nameTagPrefab; // Назначьте prefab в инспекторе
+    private NameTagUI nameTagUI;
+
+
 
     [Header("Respawn")]
     public float respawnTime = 5.0f;
@@ -208,6 +212,21 @@ public class PlayerCore : NetworkBehaviour
                 }
             }
         }
+
+        if (nameTagPrefab != null)
+        {
+            Canvas mainCanvas = MainCanvas.Instance;
+            if (mainCanvas != null)
+            {
+                GameObject tagInstance = Instantiate(nameTagPrefab, mainCanvas.transform);
+                nameTagUI = tagInstance.GetComponent<NameTagUI>();
+                if (nameTagUI != null)
+                {
+                    nameTagUI.target = transform;
+                    nameTagUI.UpdateNameAndTeam(playerName, team, localPlayerCoreInstance.team);
+                }
+            }
+        }
     }
 
     public override void OnStartServer()
@@ -239,6 +258,8 @@ public class PlayerCore : NetworkBehaviour
             }
             Destroy(healthBarUI.gameObject);
         }
+
+        if (nameTagUI != null) Destroy(nameTagUI.gameObject);
     }
 
     private void OnDisable()
@@ -371,6 +392,8 @@ public class PlayerCore : NetworkBehaviour
     {
         UpdateTeamIndicatorColor();
         Debug.Log($"[PlayerCore] Team changed: {oldTeam} -> {newTeam}");
+
+        if (nameTagUI != null) nameTagUI.UpdateNameAndTeam(playerName, newTeam, localPlayerCoreInstance.team);
     }
 
     private void OnNameChanged(string oldName, string newName)
@@ -380,6 +403,8 @@ public class PlayerCore : NetworkBehaviour
             _nameText.text = newName;
         }
         Debug.Log($"[PlayerCore] Name changed: {oldName} -> {newName}");
+
+        if (nameTagUI != null) nameTagUI.UpdateNameAndTeam(newName, team, localPlayerCoreInstance.team);
     }
 
     private void UpdateTeamIndicatorColor()
