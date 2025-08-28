@@ -5,6 +5,7 @@ using UnityEngine.EventSystems;
 using System.Collections;
 using System;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 
 public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
@@ -17,6 +18,9 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     public Slider experienceSlider;
     public TextMeshProUGUI skillPointsText;
     public TextMeshProUGUI characteristicPointsText;
+
+    [SerializeField] Transform skillPanel; // Родитель для кнопок навыков в Canvas.
+    [SerializeField] GameObject skillButtonPrefab; // Префаб кнопки: Button с Image (иконка), child Image (cooldown overlay: Type Filled, Radial360)
 
     [Header("Attributes Panel")]
     public GameObject attributesPanel;
@@ -99,14 +103,12 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         {
             Debug.LogError("[PlayerUI] Health component not found!");
         }
-
         UpdateLevel(stats.level);
         UpdateExperience(stats.currentExperience, stats.level);
         UpdateManaBar(stats.currentMana, stats.maxMana);
         UpdateSkillPoints(stats.skillPoints);
         UpdateCharacteristicPoints(0, stats.characteristicPoints);
         UpdateAttributesPanel();
-
         stats.OnManaChangedEvent += UpdateManaBar;
         stats.OnLevelChangedEvent += UpdateLevelAndExperience;
         stats.OnCharacteristicPointsChangedEvent += UpdateCharacteristicPoints;
@@ -117,7 +119,6 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         stats.OnAccuracyChangedEvent += (oldValue, newValue) => UpdateAttribute("accuracy", newValue);
         stats.OnMinAttackChangedEvent += (oldValue, newValue) => UpdateAttribute("minAttack", newValue);
         stats.OnMaxAttackChangedEvent += (oldValue, newValue) => UpdateAttribute("maxAttack", newValue);
-
         if (strengthButton != null)
         {
             strengthButton.onClick.AddListener(() => { core.CmdIncreaseStat("strength"); Debug.Log("[PlayerUI] Strength button clicked"); });
@@ -138,16 +139,13 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         {
             accuracyButton.onClick.AddListener(() => { core.CmdIncreaseStat("accuracy"); Debug.Log("[PlayerUI] Accuracy button clicked"); });
         }
-
         if (attributesPanel != null)
         {
             attributesPanelRect = attributesPanel.GetComponent<RectTransform>();
             attributesPanel.SetActive(false);
         }
-
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
-
         // Ensure only one EventSystem
         EventSystem[] eventSystems = FindObjectsByType<EventSystem>(FindObjectsSortMode.None);
         if (eventSystems.Length > 1)
@@ -156,6 +154,21 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             {
                 Destroy(eventSystems[i].gameObject);
                 Debug.LogWarning("[PlayerUI] Destroyed duplicate EventSystem to prevent input conflicts.");
+            }
+        }
+        PlayerSkills skillsComponent = core.GetComponent<PlayerSkills>();
+        if (skillsComponent != null)
+        {
+            yield return new WaitUntil(() => skillsComponent.skills.Count > 0); // Ждать загрузки skills.
+            skillCooldownEntries.Clear();
+            foreach (var skill in skillsComponent.skills)
+            {
+                GameObject btn = Instantiate(skillButtonPrefab, skillPanel);
+                var iconTexture = skill.Icon();
+                Texture2D tex = iconTexture.Single();
+                btn.GetComponentInChildren<Image>().sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), Vector2.one * 0.5f);
+                Image cdImage = btn.transform.Find("CooldownOverlay").GetComponent<Image>(); // Имя child.
+                skillCooldownEntries.Add(new SkillCooldownEntry { skillName = skill.SkillName, cooldownImage = cdImage });
             }
         }
     }
