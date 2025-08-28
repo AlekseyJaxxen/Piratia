@@ -16,6 +16,8 @@ public abstract class SkillBase : MonoBehaviour, ISkill
     public int Weight => _weight; // Новое свойство для веса скилла
     public float EffectRadius => _effectRadius; // Добавлено
 
+    protected PlayerCore _player;
+
     [Header("Base Skill Settings")]
     [SerializeField] protected string _skillName;
     [SerializeField] protected KeyCode _hotkey;
@@ -35,6 +37,8 @@ public abstract class SkillBase : MonoBehaviour, ISkill
 
     public virtual void Init(PlayerCore core)
     {
+        _player = core;
+
         if (string.IsNullOrEmpty(_skillName))
         {
             Debug.LogError($"[SkillBase] SkillName not set for {gameObject.name}");
@@ -57,15 +61,19 @@ public abstract class SkillBase : MonoBehaviour, ISkill
         {
             // Создать индикатор радиуса действия (вокруг игрока)
             if (castRangeIndicator == null)
-            {
+            {              
                 castRangeIndicator = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                castRangeIndicator.transform.localScale = new Vector3(Range * 2, 0.01f, Range * 2);
+                castRangeIndicator.transform.localScale = new Vector3(Range * 2, 0.1f, Range * 2);
                 Renderer castRend = castRangeIndicator.GetComponent<Renderer>();
-                castRend.material = new Material(Shader.Find("Standard")) { color = new Color(0, 1, 0, 0.3f) }; // Прозрачный зеленый, не выделяющийся
+
+                castRend.material = new Material(Shader.Find("Sprites/Default")) { color = new Color(0, 1, 0, 0.3f) };
+
+                // castRend.material = new Material(Shader.Find("Standard")) { color = new Color(0, 1, 0, 0.3f) }; // Прозрачный зеленый, не выделяющийся
                 castRangeIndicator.name = $"{SkillName} Cast Range";
-                castRangeIndicator.transform.SetParent(transform);
+                castRangeIndicator.transform.SetParent(_player.transform); castRangeIndicator.transform.localPosition = Vector3.up * 0.01f;
+
                 castRangeIndicator.transform.localPosition = Vector3.up * 0.01f;
-                castRangeIndicator.transform.localRotation = Quaternion.Euler(90, 0, 0);
+                castRangeIndicator.transform.localRotation = Quaternion.Euler(0, 0, 0);
             }
             castRangeIndicator.SetActive(true);
 
@@ -73,9 +81,9 @@ public abstract class SkillBase : MonoBehaviour, ISkill
             if (effectRadiusIndicator == null && EffectRadius > 0)
             {
                 effectRadiusIndicator = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                effectRadiusIndicator.transform.localScale = new Vector3(EffectRadius * 2, 0.01f, EffectRadius * 2);
+                effectRadiusIndicator.transform.localScale = new Vector3(EffectRadius * 2, 0.1f, EffectRadius * 2);
                 Renderer effectRend = effectRadiusIndicator.GetComponent<Renderer>();
-                effectRend.material = new Material(Shader.Find("Standard")) { color = new Color(1, 1, 1, 0.2f) }; // Прозрачный белый, не выделяющийся
+                effectRend.material = new Material(Shader.Find("Sprites/Default")) { color = new Color(1, 0, 0, 0.3f) };
                 effectRadiusIndicator.name = $"{SkillName} Effect Radius";
             }
             if (effectRadiusIndicator != null) effectRadiusIndicator.SetActive(true);

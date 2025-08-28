@@ -157,7 +157,7 @@ public class PlayerSkills : NetworkBehaviour
         if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.groundLayer))
         {
             ((SkillBase)_activeSkill).effectRadiusIndicator.transform.position = hit.point + Vector3.up * 0.01f;
-            ((SkillBase)_activeSkill).effectRadiusIndicator.transform.rotation = Quaternion.Euler(90, 0, 0);
+            ((SkillBase)_activeSkill).effectRadiusIndicator.transform.rotation = Quaternion.Euler(0, 0, 0);
         }
     }
 
