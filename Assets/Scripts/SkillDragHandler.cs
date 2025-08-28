@@ -28,6 +28,9 @@ public class SkillDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, 
         dragRectTransform = dragObject.GetComponent<RectTransform>();
         dragRectTransform.sizeDelta = new Vector2(50, 50); // Adjust size as needed
 
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(canvas.transform as RectTransform, eventData.position, canvas.worldCamera, out Vector2 localPoint);
+        dragRectTransform.localPosition = localPoint;
+
         canvasGroup.alpha = 0.6f;
         canvasGroup.blocksRaycasts = false;
     }
@@ -46,9 +49,11 @@ public class SkillDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, 
         // Check for drop target (implement IDropHandler on hotbar slots)
         if (eventData.pointerEnter != null)
         {
-            // Logic to assign skill to slot
-            // e.g., var slot = eventData.pointerEnter.GetComponent<HotbarSlot>();
-            // if (slot) slot.AssignSkill(GetComponent<SkillButton>().skill);
+            var slot = eventData.pointerEnter.GetComponent<HotbarSlot>();
+            if (slot != null)
+            {
+                slot.AssignSkill(GetComponent<SkillButton>().skill);
+            }
         }
     }
 }

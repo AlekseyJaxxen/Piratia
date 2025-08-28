@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 944688274539889923}
   - component: {fileID: 538944925273740688}
   - component: {fileID: 6863157749037624696}
+  - component: {fileID: -2806076559032776187}
   m_Layer: 5
   m_Name: skillButtonPrefab
   m_TagString: Untagged
@@ -148,6 +149,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   skill: {fileID: 0}
+--- !u!225 &-2806076559032776187
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3206120452066355007}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &6043335200741096336
 GameObject:
   m_ObjectHideFlags: 0
