@@ -439,6 +439,14 @@ public class PlayerSkills : NetworkBehaviour
         {
             UpdateGlobalCooldownUI();
         }
+
+        if (isLocalPlayer)
+        {
+            foreach (var skill in skills)
+            {
+                UpdateSkillUI(skill.SkillName);
+            }
+        }
     }
     public void CancelAllSkillSelections()
     {
