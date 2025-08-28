@@ -41,6 +41,8 @@ public class PlayerCore : NetworkBehaviour
     [SerializeField] private Transform modelTransform;
     private Quaternion initialModelRotation;
 
+    [SerializeField] private BoxCollider boxCollider;
+
     [SyncVar(hook = nameof(OnTeamChanged))]
     public PlayerTeam team = PlayerTeam.None;
 
@@ -109,6 +111,9 @@ public class PlayerCore : NetworkBehaviour
         {
             Debug.LogError("[PlayerCore] modelTransform is null!");
         }
+
+        boxCollider = GetComponent<BoxCollider>();
+        if (boxCollider == null) Debug.LogError("[PlayerCore] BoxCollider component missing!");
     }
 
     private void Update()
@@ -446,12 +451,14 @@ public class PlayerCore : NetworkBehaviour
             if (ActionSystem != null) ActionSystem.CompleteAction();
             if (Skills != null) Skills.CancelSkillSelection();
             if (isLocalPlayer) deathScreenUI.ShowDeathScreen();
+            if (boxCollider != null) boxCollider.enabled = false;
         }
         else
         {
             if (Combat != null) Combat.enabled = true;
             if (Skills != null) Skills.enabled = true;
             if (Movement != null) Movement.enabled = true;
+            if (boxCollider != null) boxCollider.enabled = true;
         }
         Debug.Log($"[PlayerCore] Death state changed: {oldValue} -> {newValue}, Movement.enabled={Movement != null && Movement.enabled}");
     }
@@ -548,4 +555,20 @@ public class PlayerCore : NetworkBehaviour
     {
         isDead = state;
     }
+    public void OnStopClient()
+
+
+    {
+        if (healthBarUI != null) Destroy(healthBarUI.gameObject);
+        if (nameTagUI != null) Destroy(nameTagUI.gameObject);
+    }
+
+    public void OnDestroy()
+
+
+    {
+        if (healthBarUI != null) Destroy(healthBarUI.gameObject);
+        if (nameTagUI != null) Destroy(nameTagUI.gameObject);
+    }
+
 }

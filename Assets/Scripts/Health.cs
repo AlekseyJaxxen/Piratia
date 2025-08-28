@@ -190,6 +190,11 @@ public class Health : NetworkBehaviour
         {
             healthBarUI.UpdateHP(newHealth, MaxHealth);
         }
+        if (newHealth < oldHealth)
+        {
+            PlayerAnimation anim = GetComponent<PlayerAnimation>();
+            if (anim != null) anim.PlayDamageFlash();
+        }
     }
 
     private void OnMaxHealthChanged(int oldMaxHealth, int newMaxHealth)
