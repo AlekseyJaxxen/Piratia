@@ -181,12 +181,23 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             {
                 bool newState = !attributesPanel.activeSelf;
                 attributesPanel.SetActive(newState);
-                Cursor.lockState = CursorLockMode.None;
-                Cursor.visible = true;
+
                 Debug.Log($"[PlayerUI] AttributesPanel set to {newState}. Children: {attributesPanel.transform.childCount}");
                 UpdateAttributesPanel();
             }
         }
+
+        if (Input.GetKeyDown(KeyCode.K))
+        {
+            if (skillPanel != null)
+            {
+                bool newState = !skillPanel.gameObject.activeSelf;
+                skillPanel.gameObject.SetActive(newState);
+
+                Debug.Log($"[PlayerUI] SkillPanel set to {newState}. Children: {skillPanel.transform.childCount}");
+            }
+        }
+
     }
 
     private void OnDestroy()
