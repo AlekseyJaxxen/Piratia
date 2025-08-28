@@ -332,13 +332,11 @@ MonoBehaviour:
   _range: 2
   _cooldown: 0.5
   _castTime: 0.1
-  _rangeIndicator: {fileID: 0}
-  _targetIndicatorPrefab: {fileID: 4079116131688760362, guid: ba2ac8616bd7ee843be5230c57ace1be,
-    type: 3}
   _castCursor: {fileID: 0}
   _manaCost: 0
   _damageType: 1
   _weight: 1
+  _effectRadius: 0
   vfxPrefab: {fileID: 0}
   projectilePrefab: {fileID: 0}
   projectileSpeed: 20
@@ -907,6 +905,66 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
+--- !u!1 &330624052
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 330624054}
+  - component: {fileID: 330624053}
+  m_Layer: 0
+  m_Name: Slowlskill
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &330624053
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 330624052}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69fec8161d307cd45bd70937d9dd480e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SlowSkill
+  _skillName: Cripple
+  _hotkey: 282
+  _range: 7
+  _cooldown: 5
+  _castTime: 0.1
+  _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
+  _manaCost: 0
+  _damageType: 0
+  _weight: 1
+  _effectRadius: 0
+  slowPercentage: 0.5
+  slowDuration: 5
+  baseDamage: 10
+  projectilePrefab: {fileID: 124842, guid: 16378541428887043a2d2ba231613bb9, type: 3}
+  impactEffectPrefab: {fileID: 0}
+  slowEffectPrefab: {fileID: 124842, guid: 16378541428887043a2d2ba231613bb9, type: 3}
+--- !u!4 &330624054
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 330624052}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1855098298}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &343939768
 GameObject:
   m_ObjectHideFlags: 0
@@ -2238,13 +2296,11 @@ MonoBehaviour:
   _range: 5
   _cooldown: 2
   _castTime: 0.1
-  _rangeIndicator: {fileID: 5345158863170431004, guid: 1e58995795a0fe2499adfe674daed0cc,
-    type: 3}
-  _targetIndicatorPrefab: {fileID: 0}
   _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
   _manaCost: 0
   _damageType: 1
   _weight: 1
+  _effectRadius: 5
   healAmount: 1000
   effectPrefab: {fileID: 108808, guid: 5128d0fb523fca6439fa131a1063c074, type: 3}
 --- !u!1 &832575517
@@ -2380,13 +2436,11 @@ MonoBehaviour:
   _range: 5
   _cooldown: 5
   _castTime: 0.2
-  _rangeIndicator: {fileID: 0}
-  _targetIndicatorPrefab: {fileID: 4079116131688760362, guid: ba2ac8616bd7ee843be5230c57ace1be,
-    type: 3}
   _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
   _manaCost: 0
   _damageType: 0
   _weight: 1
+  _effectRadius: 0
   damageAmount: 1000
   projectilePrefab: {fileID: 171468, guid: 9bb3c2595cddc25468a1fccc3b563ae4, type: 3}
   impactEffectPrefab: {fileID: 0}
@@ -2740,17 +2794,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _skillName: MageMelee
   _hotkey: 0
-  _range: 5
+  _range: 8
   _cooldown: 0.5
   _castTime: 0.1
-  _rangeIndicator: {fileID: 0}
-  _targetIndicatorPrefab: {fileID: 0}
   _castCursor: {fileID: 0}
   _manaCost: 0
-  _damageType: 1
+  _damageType: 0
   _weight: 1
+  _effectRadius: 0
   vfxPrefab: {fileID: 0}
-  projectilePrefab: {fileID: 0}
+  projectilePrefab: {fileID: 160792, guid: 7e9a3591984cda1499dc675622a57b0b, type: 3}
   projectileSpeed: 20
   criticalHitVfxPrefab: {fileID: 0}
   impactEffectPrefab: {fileID: 0}
@@ -3323,7 +3376,9 @@ MonoBehaviour:
   mageSkills:
   - {fileID: 0}
   archerSkills:
-  - {fileID: 0}
+  - {fileID: 2082535636}
+  - {fileID: 330624053}
+  - {fileID: 1975448289}
 --- !u!4 &1855098298
 Transform:
   m_ObjectHideFlags: 0
@@ -3342,6 +3397,7 @@ Transform:
   - {fileID: 1975448288}
   - {fileID: 1057490533}
   - {fileID: 812010807}
+  - {fileID: 330624054}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1869530941
@@ -3391,17 +3447,15 @@ MonoBehaviour:
   _skillName: warriorStun
   _hotkey: 283
   _range: 2
-  _cooldown: 10
-  _castTime: 0.2
-  _rangeIndicator: {fileID: 0}
-  _targetIndicatorPrefab: {fileID: 4079116131688760362, guid: ba2ac8616bd7ee843be5230c57ace1be,
-    type: 3}
+  _cooldown: 16
+  _castTime: 0.1
   _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
   _manaCost: 0
   _damageType: 0
   _weight: 2
-  stunDuration: 5
-  effectPrefab: {fileID: 109542, guid: 2ed06ab528b7c474eb9246421cd7c791, type: 3}
+  _effectRadius: 0
+  stunDuration: 8
+  effectPrefab: {fileID: 180820, guid: a07608802ac497743a7f19f6633fdd70, type: 3}
 --- !u!43 &1898222128
 Mesh:
   m_ObjectHideFlags: 0
@@ -3852,15 +3906,13 @@ MonoBehaviour:
   _range: 5
   _cooldown: 10
   _castTime: 0.2
-  _rangeIndicator: {fileID: 6831915081314884598, guid: 6bdc0863a206eb34db42dce3186c91ab,
-    type: 3}
-  _targetIndicatorPrefab: {fileID: 0}
   _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
   _manaCost: 0
   _damageType: 0
   _weight: 1
+  _effectRadius: 5
   stunDuration: 1
-  effectPrefab: {fileID: 4637046911172921311, guid: ed6adf846f49efa40917a41cb58e76d9,
+  effectPrefab: {fileID: 1749531076600668, guid: accde411a04fa0a44a831fe628da0cd9,
     type: 3}
 --- !u!43 &2027003007
 Mesh:
@@ -4074,14 +4126,13 @@ MonoBehaviour:
   _range: 6
   _cooldown: 0.5
   _castTime: 0.1
-  _rangeIndicator: {fileID: 0}
-  _targetIndicatorPrefab: {fileID: 0}
   _castCursor: {fileID: 0}
   _manaCost: 0
   _damageType: 0
   _weight: 1
+  _effectRadius: 0
   vfxPrefab: {fileID: 0}
-  projectilePrefab: {fileID: 0}
+  projectilePrefab: {fileID: 160792, guid: 7e9a3591984cda1499dc675622a57b0b, type: 3}
   projectileSpeed: 20
   criticalHitVfxPrefab: {fileID: 0}
   impactEffectPrefab: {fileID: 0}
@@ -4381,79 +4432,6 @@ RectTransform:
     type: 3}
   m_PrefabInstance: {fileID: 1128253979337381163}
   m_PrefabAsset: {fileID: 0}
---- !u!1001 &2627074586086766848
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 2683584605619578611, guid: 1e58995795a0fe2499adfe674daed0cc,
-        type: 3}
-      propertyPath: m_RootOrder
-      value: 10
-      objectReference: {fileID: 0}
-    - target: {fileID: 2683584605619578611, guid: 1e58995795a0fe2499adfe674daed0cc,
-        type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2683584605619578611, guid: 1e58995795a0fe2499adfe674daed0cc,
-        type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.25
-      objectReference: {fileID: 0}
-    - target: {fileID: 2683584605619578611, guid: 1e58995795a0fe2499adfe674daed0cc,
-        type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2683584605619578611, guid: 1e58995795a0fe2499adfe674daed0cc,
-        type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2683584605619578611, guid: 1e58995795a0fe2499adfe674daed0cc,
-        type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2683584605619578611, guid: 1e58995795a0fe2499adfe674daed0cc,
-        type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2683584605619578611, guid: 1e58995795a0fe2499adfe674daed0cc,
-        type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2683584605619578611, guid: 1e58995795a0fe2499adfe674daed0cc,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2683584605619578611, guid: 1e58995795a0fe2499adfe674daed0cc,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2683584605619578611, guid: 1e58995795a0fe2499adfe674daed0cc,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5345158863170431004, guid: 1e58995795a0fe2499adfe674daed0cc,
-        type: 3}
-      propertyPath: m_Name
-      value: RangeIndicatorAOE
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 1e58995795a0fe2499adfe674daed0cc, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -4467,7 +4445,6 @@ SceneRoots:
   - {fileID: 1828986392}
   - {fileID: 1128253979337381163}
   - {fileID: 1451678651}
-  - {fileID: 2627074586086766848}
   - {fileID: 1968125935}
   - {fileID: 709671330}
   - {fileID: 1043059936}

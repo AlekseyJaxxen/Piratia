@@ -2330,11 +2330,11 @@ MonoBehaviour:
   totalExperience: 0
   skillPoints: 0
   characteristicPoints: 0
-  strength: 100
-  agility: 30
+  strength: 5
+  agility: 19
   spirit: 5
   constitution: 50
-  accuracy: 5
+  accuracy: 100
   intelligence: 5
   movementSpeed: 8
   maxHealth: 1000

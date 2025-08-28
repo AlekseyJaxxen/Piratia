@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Collections;
 
+
+
 public class PlayerSkills : NetworkBehaviour
 {
     [Header("Skills")]
@@ -24,6 +26,8 @@ public class PlayerSkills : NetworkBehaviour
     private bool _isCasting;
     private ISkill _activeSkill;
     private Coroutine _castSkillCoroutine;
+
+    private GameObject rangeIndicator;
 
     private readonly SyncDictionary<string, float> _skillLastUseTimes = new SyncDictionary<string, float>();
 
@@ -146,6 +150,17 @@ public class PlayerSkills : NetworkBehaviour
         }
     }
 
+    private void UpdateTargetIndicator()
+    {
+        if (_activeSkill == null || ((SkillBase)_activeSkill).effectRadiusIndicator == null) return;
+        Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
+        if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.groundLayer))
+        {
+            ((SkillBase)_activeSkill).effectRadiusIndicator.transform.position = hit.point + Vector3.up * 0.01f;
+            ((SkillBase)_activeSkill).effectRadiusIndicator.transform.rotation = Quaternion.Euler(90, 0, 0);
+        }
+    }
+
     public void HandleSkills()
     {
         if (!isLocalPlayer || _isCasting || _core.isDead || _core.isStunned)
@@ -165,6 +180,7 @@ public class PlayerSkills : NetworkBehaviour
                 CancelAllSkillSelections();
                 _activeSkill = skill;
                 _activeSkill.SetIndicatorVisibility(true);
+
                 SetCursor(skill.CastCursor ?? castCursor);
             }
         }
@@ -479,10 +495,6 @@ public class PlayerSkills : NetworkBehaviour
         }
     }
 
-    private void UpdateTargetIndicator()
-    {
-        // Implementation for updating target indicator
-    }
 
     private void UpdateCursor()
     {

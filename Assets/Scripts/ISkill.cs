@@ -6,8 +6,8 @@ public interface ISkill
     float Range { get; }
     float CastTime { get; }
     KeyCode Hotkey { get; }
-    GameObject RangeIndicator { get; }
-    GameObject TargetIndicator { get; }
+   // GameObject RangeIndicator { get; }
+   // GameObject TargetIndicator { get; }
     Texture2D CastCursor { get; }
     int ManaCost { get; }
     DamageType SkillDamageType { get; }
