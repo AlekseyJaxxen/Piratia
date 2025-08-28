@@ -166,7 +166,7 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
                 GameObject btn = Instantiate(skillButtonPrefab, skillPanel);
                 var iconTexture = skill.Icon();
                 Texture2D tex = iconTexture.Single();
-                btn.GetComponentInChildren<Image>().sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), Vector2.one * 0.5f);
+                btn.GetComponentInChildren<Image>().sprite = skill.Icon;
                 Image cdImage = btn.transform.Find("CooldownOverlay").GetComponent<Image>(); // Имя child.
                 skillCooldownEntries.Add(new SkillCooldownEntry { skillName = skill.SkillName, cooldownImage = cdImage });
             }

@@ -20,6 +20,8 @@ public abstract class SkillBase : MonoBehaviour, ISkill
 
     protected PlayerCore _player;
 
+    [SerializeField] protected Sprite _icon; public Sprite Icon => _icon;
+
     [Header("Base Skill Settings")]
     [SerializeField] protected string _skillName;
     [SerializeField] protected KeyCode _hotkey;

@@ -328,6 +328,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ignoreGlobalCooldown: 1
+  _icon: {fileID: 21300000, guid: 6fa365c0ceed64a49836c8da6dc0fcf8, type: 3}
   _skillName: WarriorMelee
   _hotkey: 0
   _range: 2
@@ -937,6 +938,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SlowSkill
   ignoreGlobalCooldown: 0
+  _icon: {fileID: 21300000, guid: 035ad24471fd66e45aabada49b94eb27, type: 3}
   _skillName: Cripple
   _hotkey: 282
   _range: 7
@@ -2296,6 +2298,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ignoreGlobalCooldown: 0
+  _icon: {fileID: 21300000, guid: 8709f8a7c51e74043934a4c53703cf09, type: 3}
   _skillName: AOeHeal
   _hotkey: 285
   _range: 5
@@ -2438,6 +2441,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ignoreGlobalCooldown: 0
+  _icon: {fileID: 21300000, guid: 4f242f6091714734e8d2f2002b45498d, type: 3}
   _skillName: Slash
   _hotkey: 282
   _range: 5
@@ -2801,6 +2805,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ignoreGlobalCooldown: 1
+  _icon: {fileID: 21300000, guid: b6dff2a3895b38441ae4e419a1f153b0, type: 3}
   _skillName: MageMelee
   _hotkey: 0
   _range: 8
@@ -3455,6 +3460,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ignoreGlobalCooldown: 0
+  _icon: {fileID: 21300000, guid: ae206ef5d298d4f47af2fe242f8da78f, type: 3}
   _skillName: warriorStun
   _hotkey: 283
   _range: 2
@@ -3914,6 +3920,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ignoreGlobalCooldown: 0
+  _icon: {fileID: 21300000, guid: 9e368a4a52e3b3e41bf2c3bd7ed697b5, type: 3}
   _skillName: flashbang
   _hotkey: 284
   _range: 5
@@ -4136,6 +4143,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ignoreGlobalCooldown: 1
+  _icon: {fileID: 21300000, guid: 588745f53374cf9489dc30130c18c9ab, type: 3}
   _skillName: ArcherMelee
   _hotkey: 0
   _range: 6
