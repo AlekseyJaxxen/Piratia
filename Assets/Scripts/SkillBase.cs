@@ -16,6 +16,8 @@ public abstract class SkillBase : MonoBehaviour, ISkill
     public int Weight => _weight; // Новое свойство для веса скилла
     public float EffectRadius => _effectRadius; // Добавлено
 
+    public bool ignoreGlobalCooldown = false;
+
     protected PlayerCore _player;
 
     [Header("Base Skill Settings")]

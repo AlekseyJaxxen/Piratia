@@ -202,14 +202,13 @@ public class PlayerSkills : NetworkBehaviour
     [Command]
     public void CmdExecuteSkill(PlayerCore caster, Vector3? targetPosition, uint targetNetId, string skillName, int skillWeight)
     {
-        if (Time.time - _lastGlobalUseTime < globalCooldown) return;
-        _lastGlobalUseTime = Time.time;
         SkillBase skill = skills.Find(s => s.SkillName == skillName);
         if (skill == null)
         {
             Debug.LogWarning($"[PlayerSkills] Skill {skillName} not found");
             return;
         }
+        if (!skill.ignoreGlobalCooldown && Time.time - _lastGlobalUseTime < globalCooldown) return;
         if (IsSkillOnCooldown(skill))
         {
             Debug.LogWarning($"[PlayerSkills] Skill {skillName} is on cooldown. Ignoring.");
@@ -221,6 +220,7 @@ public class PlayerSkills : NetworkBehaviour
             Debug.LogWarning($"[PlayerSkills] Not enough mana for {skillName}: {stats.currentMana}/{skill.ManaCost}");
             return;
         }
+        if (!skill.ignoreGlobalCooldown) _lastGlobalUseTime = Time.time;
         NetworkIdentity targetIdentity = null;
         if (targetNetId != 0 && NetworkServer.spawned.ContainsKey(targetNetId))
         {

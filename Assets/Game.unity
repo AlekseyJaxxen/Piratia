@@ -327,6 +327,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 33afd28f7414d1441b3c320c86a39a5f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ignoreGlobalCooldown: 1
   _skillName: WarriorMelee
   _hotkey: 0
   _range: 2
@@ -337,6 +338,7 @@ MonoBehaviour:
   _damageType: 1
   _weight: 1
   _effectRadius: 0
+  effectRadiusIndicator: {fileID: 0}
   vfxPrefab: {fileID: 0}
   projectilePrefab: {fileID: 0}
   projectileSpeed: 20
@@ -934,6 +936,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 69fec8161d307cd45bd70937d9dd480e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SlowSkill
+  ignoreGlobalCooldown: 0
   _skillName: Cripple
   _hotkey: 282
   _range: 7
@@ -944,6 +947,7 @@ MonoBehaviour:
   _damageType: 0
   _weight: 1
   _effectRadius: 0
+  effectRadiusIndicator: {fileID: 0}
   slowPercentage: 0.5
   slowDuration: 5
   baseDamage: 10
@@ -2291,6 +2295,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6725be40aa7610240985629a311d2bc7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ignoreGlobalCooldown: 0
   _skillName: AOeHeal
   _hotkey: 285
   _range: 5
@@ -2301,6 +2306,7 @@ MonoBehaviour:
   _damageType: 1
   _weight: 1
   _effectRadius: 5
+  effectRadiusIndicator: {fileID: 0}
   healAmount: 1000
   effectPrefab: {fileID: 108808, guid: 5128d0fb523fca6439fa131a1063c074, type: 3}
 --- !u!1 &832575517
@@ -2431,6 +2437,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: da6862f7b7b560544b2ac82929229ae9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ignoreGlobalCooldown: 0
   _skillName: Slash
   _hotkey: 282
   _range: 5
@@ -2441,6 +2448,7 @@ MonoBehaviour:
   _damageType: 0
   _weight: 1
   _effectRadius: 0
+  effectRadiusIndicator: {fileID: 0}
   damageAmount: 1000
   projectilePrefab: {fileID: 171468, guid: 9bb3c2595cddc25468a1fccc3b563ae4, type: 3}
   impactEffectPrefab: {fileID: 0}
@@ -2792,6 +2800,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 33afd28f7414d1441b3c320c86a39a5f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ignoreGlobalCooldown: 1
   _skillName: MageMelee
   _hotkey: 0
   _range: 8
@@ -2802,6 +2811,7 @@ MonoBehaviour:
   _damageType: 0
   _weight: 1
   _effectRadius: 0
+  effectRadiusIndicator: {fileID: 0}
   vfxPrefab: {fileID: 0}
   projectilePrefab: {fileID: 160792, guid: 7e9a3591984cda1499dc675622a57b0b, type: 3}
   projectileSpeed: 20
@@ -3444,6 +3454,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f371d8bf95d7ea4ab18be386db285d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ignoreGlobalCooldown: 0
   _skillName: warriorStun
   _hotkey: 283
   _range: 2
@@ -3454,6 +3465,7 @@ MonoBehaviour:
   _damageType: 0
   _weight: 2
   _effectRadius: 0
+  effectRadiusIndicator: {fileID: 0}
   stunDuration: 8
   effectPrefab: {fileID: 180820, guid: a07608802ac497743a7f19f6633fdd70, type: 3}
 --- !u!43 &1898222128
@@ -3901,6 +3913,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5f566b4e89617e6469eda4f012325d89, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ignoreGlobalCooldown: 0
   _skillName: flashbang
   _hotkey: 284
   _range: 5
@@ -3911,6 +3924,7 @@ MonoBehaviour:
   _damageType: 0
   _weight: 1
   _effectRadius: 5
+  effectRadiusIndicator: {fileID: 0}
   stunDuration: 1
   effectPrefab: {fileID: 1749531076600668, guid: accde411a04fa0a44a831fe628da0cd9,
     type: 3}
@@ -4121,6 +4135,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 33afd28f7414d1441b3c320c86a39a5f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ignoreGlobalCooldown: 1
   _skillName: ArcherMelee
   _hotkey: 0
   _range: 6
@@ -4131,6 +4146,7 @@ MonoBehaviour:
   _damageType: 0
   _weight: 1
   _effectRadius: 0
+  effectRadiusIndicator: {fileID: 0}
   vfxPrefab: {fileID: 0}
   projectilePrefab: {fileID: 160792, guid: 7e9a3591984cda1499dc675622a57b0b, type: 3}
   projectileSpeed: 20
