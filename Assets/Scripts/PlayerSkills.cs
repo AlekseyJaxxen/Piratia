@@ -435,6 +435,10 @@ public class PlayerSkills : NetworkBehaviour
     private void Update()
     {
         if (isLocalPlayer) HandleSkills();
+        if (isLocalPlayer)
+        {
+            UpdateGlobalCooldownUI();
+        }
     }
     public void CancelAllSkillSelections()
     {
