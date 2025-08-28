@@ -555,7 +555,7 @@ public class PlayerCore : NetworkBehaviour
     {
         isDead = state;
     }
-    public void OnStopClient()
+    public override void OnStopClient()
 
 
     {

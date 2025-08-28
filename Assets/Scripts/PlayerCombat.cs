@@ -9,12 +9,6 @@ public class PlayerCombat : NetworkBehaviour
     [HideInInspector]
     public float _lastAttackTime = -Mathf.Infinity;
 
-    // The following settings are now obsolete and managed by CharacterStats.cs
-    // [Header("Combat Settings")]
-    // public float attackRange = 2.5f;
-    // public float attackCooldown = 1.0f;
-    // public int attackDamage = 10;
-
     public void Init(PlayerCore core)
     {
         _core = core;
