@@ -163,10 +163,11 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             foreach (var skill in skillsComponent.skills)
             {
                 GameObject btn = Instantiate(skillButtonPrefab, skillPanel);
-
                 btn.GetComponentInChildren<Image>().sprite = skill.Icon;
                 Image cdImage = btn.transform.Find("CooldownOverlay").GetComponent<Image>(); // Имя child.
                 skillCooldownEntries.Add(new SkillCooldownEntry { skillName = skill.SkillName, cooldownImage = cdImage });
+                var skillBtn = btn.AddComponent<SkillButton>();
+                skillBtn.skill = skill;
             }
         }
     }

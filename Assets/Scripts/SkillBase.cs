@@ -57,6 +57,7 @@ public abstract class SkillBase : MonoBehaviour, ISkill
             if (castRangeIndicator == null)
             {
                 castRangeIndicator = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                castRangeIndicator.GetComponent<Collider>().enabled = false;
                 castRangeIndicator.transform.localScale = new Vector3(Range * 2, 0.1f, Range * 2);
                 Renderer castRend = castRangeIndicator.GetComponent<Renderer>();
                 castRend.material = new Material(Shader.Find("Sprites/Default")) { color = new Color(0, 1, 0, 0.3f) };
@@ -71,6 +72,7 @@ public abstract class SkillBase : MonoBehaviour, ISkill
             if (effectRadiusIndicator == null && EffectRadius > 0)
             {
                 effectRadiusIndicator = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                effectRadiusIndicator.GetComponent<Collider>().enabled = false;
                 effectRadiusIndicator.transform.localScale = new Vector3(EffectRadius * 2, 0.1f, EffectRadius * 2);
                 Renderer effectRend = effectRadiusIndicator.GetComponent<Renderer>();
                 effectRend.material = new Material(Shader.Find("Sprites/Default")) { color = new Color(1, 0, 0, 0.3f) };
