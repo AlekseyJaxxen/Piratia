@@ -5,7 +5,6 @@ using UnityEngine.EventSystems;
 using System.Collections;
 using System;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 
 public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
@@ -164,8 +163,7 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             foreach (var skill in skillsComponent.skills)
             {
                 GameObject btn = Instantiate(skillButtonPrefab, skillPanel);
-                var iconTexture = skill.Icon();
-                Texture2D tex = iconTexture.Single();
+
                 btn.GetComponentInChildren<Image>().sprite = skill.Icon;
                 Image cdImage = btn.transform.Find("CooldownOverlay").GetComponent<Image>(); // Имя child.
                 skillCooldownEntries.Add(new SkillCooldownEntry { skillName = skill.SkillName, cooldownImage = cdImage });
