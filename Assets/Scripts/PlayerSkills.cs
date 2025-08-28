@@ -4,46 +4,41 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Collections;
 
-
-
 public class PlayerSkills : NetworkBehaviour
 {
     [Header("Skills")]
     public List<SkillBase> skills = new List<SkillBase>();
-
     [Header("Stun Effect")]
     public GameObject stunEffectPrefab;
     private GameObject _stunEffectInstance;
-
     [Header("Cursor Settings")]
     public Texture2D defaultCursor;
     public Texture2D castCursor;
     public Texture2D attackCursor;
     public float cursorUpdateInterval = 0.1f;
     private float _lastCursorUpdate = 0f;
-
     private PlayerCore _core;
     private bool _isCasting;
     private ISkill _activeSkill;
     private Coroutine _castSkillCoroutine;
-
     private GameObject rangeIndicator;
-
     private readonly SyncDictionary<string, float> _skillLastUseTimes = new SyncDictionary<string, float>();
-
+    [SerializeField] private float globalCooldown = 1f;
+    [SyncVar(hook = nameof(OnGlobalCooldownChanged))] private float _lastGlobalUseTime;
     public bool IsSkillSelected => _activeSkill != null;
     public ISkill ActiveSkill => _activeSkill;
-
+    private void Awake()
+    {
+        _skillLastUseTimes.OnChange += OnCooldownChanged;
+    }
     private void Start()
     {
         _core = GetComponent<PlayerCore>();
         StartCoroutine(InitializeSkills());
     }
-
     private IEnumerator InitializeSkills()
     {
         yield return new WaitForEndOfFrame();
-
         if (_core == null)
         {
             _core = GetComponent<PlayerCore>();
@@ -53,7 +48,6 @@ public class PlayerSkills : NetworkBehaviour
                 yield break;
             }
         }
-
         if (stunEffectPrefab != null)
         {
             _stunEffectInstance = Instantiate(stunEffectPrefab, transform);
@@ -63,14 +57,12 @@ public class PlayerSkills : NetworkBehaviour
         {
             Debug.LogWarning("[PlayerSkills] stunEffectPrefab is not assigned");
         }
-
         CharacterStats stats = GetComponent<CharacterStats>();
         if (stats == null)
         {
             Debug.LogError("[PlayerSkills] CharacterStats component missing!");
             yield break;
         }
-
         int maxWaitFrames = 100;
         int currentFrame = 0;
         while (SkillManager.Instance == null && currentFrame < maxWaitFrames)
@@ -79,16 +71,13 @@ public class PlayerSkills : NetworkBehaviour
             yield return null;
             currentFrame++;
         }
-
         if (SkillManager.Instance == null)
         {
             Debug.LogError("[PlayerSkills] SkillManager.Instance is still null after waiting!");
             yield break;
         }
-
         skills = SkillManager.Instance.GetSkillsForClass(stats.characterClass);
         Debug.Log($"[PlayerSkills] Loaded {skills.Count} skills for class {stats.characterClass}: {string.Join(", ", skills.Select(s => s != null ? s.SkillName : "null"))}");
-
         foreach (var skill in skills)
         {
             if (skill == null)
@@ -104,13 +93,11 @@ public class PlayerSkills : NetworkBehaviour
             }
             Debug.Log($"[PlayerSkills] Initialized skill: {skill.SkillName}");
         }
-
         if (isLocalPlayer)
         {
             SetCursor(defaultCursor);
         }
     }
-
     private void OnDisable()
     {
         if (_castSkillCoroutine != null)
@@ -125,7 +112,6 @@ public class PlayerSkills : NetworkBehaviour
         CancelAllSkillSelections();
         Debug.Log("[PlayerSkills] Cleaned up on disable.");
     }
-
     public override void OnStopClient()
     {
         base.OnStopClient();
@@ -141,7 +127,6 @@ public class PlayerSkills : NetworkBehaviour
         CancelAllSkillSelections();
         Debug.Log("[PlayerSkills] Cleaned up on client disconnect.");
     }
-
     public void HandleStunEffect(bool isStunned)
     {
         if (_stunEffectInstance != null)
@@ -149,7 +134,6 @@ public class PlayerSkills : NetworkBehaviour
             _stunEffectInstance.SetActive(isStunned);
         }
     }
-
     private void UpdateTargetIndicator()
     {
         if (_activeSkill == null || ((SkillBase)_activeSkill).effectRadiusIndicator == null) return;
@@ -160,7 +144,6 @@ public class PlayerSkills : NetworkBehaviour
             ((SkillBase)_activeSkill).effectRadiusIndicator.transform.rotation = Quaternion.Euler(0, 0, 0);
         }
     }
-
     public void HandleSkills()
     {
         if (!isLocalPlayer || _isCasting || _core.isDead || _core.isStunned)
@@ -171,7 +154,6 @@ public class PlayerSkills : NetworkBehaviour
             if (_core.isStunned) Debug.Log("[PlayerSkills] Input ignored: is stunned");
             return;
         }
-
         foreach (var skill in skills)
         {
             if (Input.GetKeyDown(skill.Hotkey) && !IsSkillOnCooldown(skill))
@@ -180,11 +162,9 @@ public class PlayerSkills : NetworkBehaviour
                 CancelAllSkillSelections();
                 _activeSkill = skill;
                 _activeSkill.SetIndicatorVisibility(true);
-
                 SetCursor(skill.CastCursor ?? castCursor);
             }
         }
-
         if (_activeSkill != null)
         {
             UpdateTargetIndicator();
@@ -198,7 +178,6 @@ public class PlayerSkills : NetworkBehaviour
         {
             UpdateCursor();
         }
-
         if (_activeSkill != null && Input.GetMouseButtonDown(0))
         {
             Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
@@ -209,7 +188,6 @@ public class PlayerSkills : NetworkBehaviour
             }
         }
     }
-
     private bool IsSkillOnCooldown(SkillBase skill)
     {
         if (_skillLastUseTimes.TryGetValue(skill.SkillName, out float lastUseTime))
@@ -221,36 +199,33 @@ public class PlayerSkills : NetworkBehaviour
         Debug.Log($"[PlayerSkills] No cooldown record for {skill.SkillName}, assuming ready");
         return false;
     }
-
     [Command]
     public void CmdExecuteSkill(PlayerCore caster, Vector3? targetPosition, uint targetNetId, string skillName, int skillWeight)
     {
+        if (Time.time - _lastGlobalUseTime < globalCooldown) return;
+        _lastGlobalUseTime = Time.time;
         SkillBase skill = skills.Find(s => s.SkillName == skillName);
         if (skill == null)
         {
             Debug.LogWarning($"[PlayerSkills] Skill {skillName} not found");
             return;
         }
-
         if (IsSkillOnCooldown(skill))
         {
             Debug.LogWarning($"[PlayerSkills] Skill {skillName} is on cooldown. Ignoring.");
             return;
         }
-
         CharacterStats stats = caster.GetComponent<CharacterStats>();
         if (stats != null && !stats.HasEnoughMana(skill.ManaCost))
         {
             Debug.LogWarning($"[PlayerSkills] Not enough mana for {skillName}: {stats.currentMana}/{skill.ManaCost}");
             return;
         }
-
         NetworkIdentity targetIdentity = null;
         if (targetNetId != 0 && NetworkServer.spawned.ContainsKey(targetNetId))
         {
             targetIdentity = NetworkServer.spawned[targetNetId];
         }
-
         if (skill is ProjectileDamageSkill || skill is SlowSkill || skill is TargetedStunSkill)
         {
             if (targetIdentity == null)
@@ -264,7 +239,6 @@ public class PlayerSkills : NetworkBehaviour
                 Debug.LogWarning($"[PlayerSkills] Invalid target or same team for {skillName}");
                 return;
             }
-
             if (skill is ProjectileDamageSkill projectileSkill)
             {
                 Debug.Log($"[PlayerSkills] Spawning projectile for {skillName} targeting {targetIdentity.gameObject.name}");
@@ -370,18 +344,15 @@ public class PlayerSkills : NetworkBehaviour
                 RpcPlayBasicAttackVFX(caster.transform.position, caster.transform.rotation, targetCore.transform.position, isCritical, skillName);
             }
         }
-
         if (stats != null)
         {
             stats.ConsumeMana(skill.ManaCost);
         }
-
         // Update and sync cooldown
         _skillLastUseTimes[skill.SkillName] = Time.time;
         Debug.Log($"[PlayerSkills] Server updated cooldown for {skill.SkillName} to {Time.time}");
         skill.StartCooldown();
     }
-
     [ClientRpc]
     private void RpcPlayBasicAttackVFX(Vector3 startPosition, Quaternion startRotation, Vector3 endPosition, bool isCritical, string skillName)
     {
@@ -391,7 +362,6 @@ public class PlayerSkills : NetworkBehaviour
             basicAttackSkill.PlayVFX(startPosition, startRotation, endPosition, isCritical);
         }
     }
-
     [ClientRpc]
     private void RpcPlayAreaOfEffectStun(Vector3 position, string skillName)
     {
@@ -401,7 +371,6 @@ public class PlayerSkills : NetworkBehaviour
             aoeStunSkill.PlayEffect(position);
         }
     }
-
     [ClientRpc]
     private void RpcPlayAreaOfEffectHeal(Vector3 position, string skillName)
     {
@@ -411,7 +380,6 @@ public class PlayerSkills : NetworkBehaviour
             aoeHealSkill.PlayEffect(position);
         }
     }
-
     [ClientRpc]
     private void RpcSpawnProjectile(Vector3 startPos, Vector3 targetPos, string skillName)
     {
@@ -425,7 +393,6 @@ public class PlayerSkills : NetworkBehaviour
             slowSkill.SpawnProjectile(startPos, targetPos);
         }
     }
-
     [ClientRpc]
     private void RpcApplySlowEffect(uint targetNetId, float duration, string skillName)
     {
@@ -439,7 +406,6 @@ public class PlayerSkills : NetworkBehaviour
             }
         }
     }
-
     [ClientRpc]
     private void RpcPlayTargetedStun(uint targetNetId, string skillName)
     {
@@ -453,7 +419,6 @@ public class PlayerSkills : NetworkBehaviour
             }
         }
     }
-
     [ClientRpc]
     private void RpcPlayHealingSkill(uint targetNetId, string skillName)
     {
@@ -467,12 +432,10 @@ public class PlayerSkills : NetworkBehaviour
             }
         }
     }
-
     private void Update()
     {
         if (isLocalPlayer) HandleSkills();
     }
-
     public void CancelAllSkillSelections()
     {
         if (_activeSkill != null)
@@ -483,7 +446,6 @@ public class PlayerSkills : NetworkBehaviour
             Debug.Log("[PlayerSkills] All skill selections cancelled");
         }
     }
-
     public void CancelSkillSelection()
     {
         if (_activeSkill != null)
@@ -494,8 +456,6 @@ public class PlayerSkills : NetworkBehaviour
             Debug.Log("[PlayerSkills] Skill selection fully cancelled");
         }
     }
-
-
     private void UpdateCursor()
     {
         if (Time.time - _lastCursorUpdate > cursorUpdateInterval)
@@ -521,10 +481,27 @@ public class PlayerSkills : NetworkBehaviour
             _lastCursorUpdate = Time.time;
         }
     }
-
     private void SetCursor(Texture2D cursor)
     {
         Cursor.SetCursor(cursor, Vector2.zero, CursorMode.Auto);
         Debug.Log($"[PlayerSkills] Cursor set to: {cursor?.name ?? "null"}");
+    }
+    private void OnCooldownChanged(SyncDictionary<string, float>.Operation op, string key, float item)
+    {
+        if (isLocalPlayer) UpdateSkillUI(key);
+    }
+    private void OnGlobalCooldownChanged(float oldVal, float newVal)
+    {
+        if (isLocalPlayer) UpdateGlobalCooldownUI();
+    }
+    private void UpdateSkillUI(string key)
+    {
+        SkillBase skill = skills.Find(s => s.SkillName == key);
+        if (skill != null) PlayerUI.Instance.UpdateSkillCooldown(key, skill.CooldownProgressNormalized);
+    }
+    private void UpdateGlobalCooldownUI()
+    {
+        float progress = 1f - Mathf.Max(0, globalCooldown - (Time.time - _lastGlobalUseTime)) / globalCooldown;
+        PlayerUI.Instance.UpdateGlobalCooldown(progress);
     }
 }

@@ -3,9 +3,13 @@ using UnityEngine.UI;
 using TMPro;
 using UnityEngine.EventSystems;
 using System.Collections;
+using System;
+using System.Collections.Generic;
 
 public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
+    public static PlayerUI Instance { get; private set; }
+
     [Header("UI Elements")]
     public Image healthBar;
     public Image manaBar;
@@ -38,6 +42,16 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     public Button constitutionButton;
     public Button accuracyButton;
 
+    [Header("Cooldown UI")]
+    public Image globalCooldownImage;
+    [System.Serializable]
+    public class SkillCooldownEntry
+    {
+        public string skillName;
+        public Image cooldownImage;
+    }
+    [SerializeField] private List<SkillCooldownEntry> skillCooldownEntries = new List<SkillCooldownEntry>();
+
     private CharacterStats stats;
     private PlayerCore core;
     private RectTransform attributesPanelRect;
@@ -58,6 +72,8 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             gameObject.SetActive(false);
             return;
         }
+
+        Instance = this;
 
         stats = core.GetComponent<CharacterStats>();
         if (stats == null)
@@ -350,6 +366,23 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             case "maxattack":
                 if (maxAttackText != null) maxAttackText.text = $"{value}";
                 break;
+        }
+    }
+
+    public void UpdateSkillCooldown(string skillName, float progress)
+    {
+        var entry = skillCooldownEntries.Find(e => e.skillName == skillName);
+        if (entry != null && entry.cooldownImage != null)
+        {
+            entry.cooldownImage.fillAmount = 1f - progress;
+        }
+    }
+
+    public void UpdateGlobalCooldown(float progress)
+    {
+        if (globalCooldownImage != null)
+        {
+            globalCooldownImage.fillAmount = 1f - progress;
         }
     }
 
