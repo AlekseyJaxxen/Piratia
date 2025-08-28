@@ -10,13 +10,14 @@ public abstract class SkillBase : MonoBehaviour, ISkill
     public Texture2D CastCursor => _castCursor;
     public int ManaCost => _manaCost;
     public DamageType SkillDamageType => _damageType;
-    public float RemainingCooldown => Mathf.Max(0, _cooldown - (Time.time - _lastUseTime));
-    public float CooldownProgressNormalized => 1f - (RemainingCooldown / _cooldown);
+    public float RemainingCooldown => _playerSkills != null ? _playerSkills.GetRemainingCooldown(SkillName) : 0f;
+    public float CooldownProgressNormalized => Cooldown > 0 ? 1f - (RemainingCooldown / Cooldown) : 1f;
     public string SkillName => _skillName;
-    public int Weight => _weight; // Новое свойство для веса скилла
-    public float EffectRadius => _effectRadius; // Добавлено
+    public int Weight => _weight;
+    public float EffectRadius => _effectRadius;
     public bool ignoreGlobalCooldown = false;
     protected PlayerCore _player;
+    protected PlayerSkills _playerSkills;
     [SerializeField] protected Sprite _icon; public Sprite Icon => _icon;
     [Header("Base Skill Settings")]
     [SerializeField] protected string _skillName;
@@ -28,32 +29,36 @@ public abstract class SkillBase : MonoBehaviour, ISkill
     [Header("Mana Cost")]
     [SerializeField] protected int _manaCost = 0;
     [SerializeField] protected DamageType _damageType = DamageType.Physical;
-    [SerializeField] protected int _weight = 1; // Новое поле для веса скилла
-    [SerializeField] protected float _effectRadius; // Добавлено для радиуса эффекта
-    protected float _lastUseTime;
-    protected GameObject castRangeIndicator; // Радиус действия (вокруг игрока)
-    public GameObject effectRadiusIndicator; // Радиус применения (на цели)
+    [SerializeField] protected int _weight = 1;
+    [SerializeField] protected float _effectRadius;
+    protected GameObject castRangeIndicator;
+    public GameObject effectRadiusIndicator;
+
     public virtual void Init(PlayerCore core)
     {
         _player = core;
+        _playerSkills = core.GetComponent<PlayerSkills>();
         if (string.IsNullOrEmpty(_skillName))
         {
             Debug.LogError($"[SkillBase] SkillName not set for {gameObject.name}");
         }
     }
+
     public bool IsOnCooldown()
     {
-        return Time.time - _lastUseTime < _cooldown;
+        return RemainingCooldown > 0;
     }
+
     public void StartCooldown()
     {
-        _lastUseTime = Time.time;
+        if (_playerSkills != null)
+            _playerSkills.StartSkillCooldown(SkillName);
     }
+
     public virtual void SetIndicatorVisibility(bool visible)
     {
         if (visible)
         {
-            // Создать индикатор радиуса действия (вокруг игрока)
             if (castRangeIndicator == null)
             {
                 castRangeIndicator = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
@@ -61,14 +66,12 @@ public abstract class SkillBase : MonoBehaviour, ISkill
                 castRangeIndicator.transform.localScale = new Vector3(Range * 2, 0.1f, Range * 2);
                 Renderer castRend = castRangeIndicator.GetComponent<Renderer>();
                 castRend.material = new Material(Shader.Find("Sprites/Default")) { color = new Color(0, 1, 0, 0.3f) };
-                // castRend.material = new Material(Shader.Find("Standard")) { color = new Color(0, 1, 0, 0.3f) }; // Прозрачный зеленый, не выделяющийся
                 castRangeIndicator.name = $"{SkillName} Cast Range";
-                castRangeIndicator.transform.SetParent(_player.transform); castRangeIndicator.transform.localPosition = Vector3.up * 0.01f;
+                castRangeIndicator.transform.SetParent(_player.transform);
                 castRangeIndicator.transform.localPosition = Vector3.up * 0.01f;
                 castRangeIndicator.transform.localRotation = Quaternion.Euler(0, 0, 0);
             }
             castRangeIndicator.SetActive(true);
-            // Создать индикатор радиуса применения (на цели)
             if (effectRadiusIndicator == null && EffectRadius > 0)
             {
                 effectRadiusIndicator = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
@@ -86,6 +89,7 @@ public abstract class SkillBase : MonoBehaviour, ISkill
             if (effectRadiusIndicator != null) effectRadiusIndicator.SetActive(false);
         }
     }
+
     public void Execute(PlayerCore player, Vector3? targetPosition, GameObject targetObject)
     {
         if (!NetworkClient.active)
@@ -108,13 +112,15 @@ public abstract class SkillBase : MonoBehaviour, ISkill
             Debug.LogWarning($"[SkillBase] Skill execution failed for {_skillName}: Player lacks authority.");
             return;
         }
-        Debug.Log($"[SkillBase] Executing {_skillName}, lastUseTime={_lastUseTime}, Time.time={Time.time}");
+        Debug.Log($"[SkillBase] Executing {_skillName}");
         ExecuteSkillImplementation(player, targetPosition, targetObject);
     }
+
     private void OnDisable()
     {
         if (castRangeIndicator != null) Destroy(castRangeIndicator);
         if (effectRadiusIndicator != null) Destroy(effectRadiusIndicator);
     }
+
     protected abstract void ExecuteSkillImplementation(PlayerCore player, Vector3? targetPosition, GameObject targetObject);
 }

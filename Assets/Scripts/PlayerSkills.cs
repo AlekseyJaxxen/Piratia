@@ -27,15 +27,18 @@ public class PlayerSkills : NetworkBehaviour
     [SyncVar(hook = nameof(OnGlobalCooldownChanged))] private float _lastGlobalUseTime;
     public bool IsSkillSelected => _activeSkill != null;
     public ISkill ActiveSkill => _activeSkill;
+
     private void Awake()
     {
         _skillLastUseTimes.OnChange += OnCooldownChanged;
     }
+
     private void Start()
     {
         _core = GetComponent<PlayerCore>();
         StartCoroutine(InitializeSkills());
     }
+
     private IEnumerator InitializeSkills()
     {
         yield return new WaitForEndOfFrame();
@@ -86,7 +89,7 @@ public class PlayerSkills : NetworkBehaviour
                 continue;
             }
             skill.Init(_core);
-            if (isServer) // Changed from NetworkServer.active to isServer for clarity
+            if (isServer)
             {
                 _skillLastUseTimes[skill.SkillName] = 0f;
                 Debug.Log($"[PlayerSkills] Initialized cooldown for {skill.SkillName} to 0 on server");
@@ -98,6 +101,7 @@ public class PlayerSkills : NetworkBehaviour
             SetCursor(defaultCursor);
         }
     }
+
     private void OnDisable()
     {
         if (_castSkillCoroutine != null)
@@ -112,6 +116,7 @@ public class PlayerSkills : NetworkBehaviour
         CancelAllSkillSelections();
         Debug.Log("[PlayerSkills] Cleaned up on disable.");
     }
+
     public override void OnStopClient()
     {
         base.OnStopClient();
@@ -127,6 +132,7 @@ public class PlayerSkills : NetworkBehaviour
         CancelAllSkillSelections();
         Debug.Log("[PlayerSkills] Cleaned up on client disconnect.");
     }
+
     public void HandleStunEffect(bool isStunned)
     {
         if (_stunEffectInstance != null)
@@ -134,6 +140,7 @@ public class PlayerSkills : NetworkBehaviour
             _stunEffectInstance.SetActive(isStunned);
         }
     }
+
     private void UpdateTargetIndicator()
     {
         if (_activeSkill == null || ((SkillBase)_activeSkill).effectRadiusIndicator == null) return;
@@ -144,6 +151,7 @@ public class PlayerSkills : NetworkBehaviour
             ((SkillBase)_activeSkill).effectRadiusIndicator.transform.rotation = Quaternion.Euler(0, 0, 0);
         }
     }
+
     public void HandleSkills()
     {
         if (!isLocalPlayer || _isCasting || _core.isDead || _core.isStunned)
@@ -188,6 +196,7 @@ public class PlayerSkills : NetworkBehaviour
             }
         }
     }
+
     private bool IsSkillOnCooldown(SkillBase skill)
     {
         if (_skillLastUseTimes.TryGetValue(skill.SkillName, out float lastUseTime))
@@ -199,6 +208,23 @@ public class PlayerSkills : NetworkBehaviour
         Debug.Log($"[PlayerSkills] No cooldown record for {skill.SkillName}, assuming ready");
         return false;
     }
+
+    public float GetRemainingCooldown(string skillName)
+    {
+        if (_skillLastUseTimes.TryGetValue(skillName, out float lastUseTime))
+        {
+            SkillBase skill = skills.Find(s => s.SkillName == skillName);
+            return Mathf.Max(0, skill.Cooldown - (Time.time - lastUseTime));
+        }
+        return 0f;
+    }
+
+    public void StartSkillCooldown(string skillName)
+    {
+        _skillLastUseTimes[skillName] = Time.time;
+        Debug.Log($"[PlayerSkills] Started cooldown for {skillName} at {Time.time}");
+    }
+
     [Command]
     public void CmdExecuteSkill(PlayerCore caster, Vector3? targetPosition, uint targetNetId, string skillName, int skillWeight)
     {
@@ -348,11 +374,10 @@ public class PlayerSkills : NetworkBehaviour
         {
             stats.ConsumeMana(skill.ManaCost);
         }
-        // Update and sync cooldown
-        _skillLastUseTimes[skill.SkillName] = Time.time;
-        Debug.Log($"[PlayerSkills] Server updated cooldown for {skill.SkillName} to {Time.time}");
+        StartSkillCooldown(skill.SkillName);
         skill.StartCooldown();
     }
+
     [ClientRpc]
     private void RpcPlayBasicAttackVFX(Vector3 startPosition, Quaternion startRotation, Vector3 endPosition, bool isCritical, string skillName)
     {
@@ -362,6 +387,7 @@ public class PlayerSkills : NetworkBehaviour
             basicAttackSkill.PlayVFX(startPosition, startRotation, endPosition, isCritical);
         }
     }
+
     [ClientRpc]
     private void RpcPlayAreaOfEffectStun(Vector3 position, string skillName)
     {
@@ -371,6 +397,7 @@ public class PlayerSkills : NetworkBehaviour
             aoeStunSkill.PlayEffect(position);
         }
     }
+
     [ClientRpc]
     private void RpcPlayAreaOfEffectHeal(Vector3 position, string skillName)
     {
@@ -380,6 +407,7 @@ public class PlayerSkills : NetworkBehaviour
             aoeHealSkill.PlayEffect(position);
         }
     }
+
     [ClientRpc]
     private void RpcSpawnProjectile(Vector3 startPos, Vector3 targetPos, string skillName)
     {
@@ -393,6 +421,7 @@ public class PlayerSkills : NetworkBehaviour
             slowSkill.SpawnProjectile(startPos, targetPos);
         }
     }
+
     [ClientRpc]
     private void RpcApplySlowEffect(uint targetNetId, float duration, string skillName)
     {
@@ -406,6 +435,7 @@ public class PlayerSkills : NetworkBehaviour
             }
         }
     }
+
     [ClientRpc]
     private void RpcPlayTargetedStun(uint targetNetId, string skillName)
     {
@@ -419,6 +449,7 @@ public class PlayerSkills : NetworkBehaviour
             }
         }
     }
+
     [ClientRpc]
     private void RpcPlayHealingSkill(uint targetNetId, string skillName)
     {
@@ -432,6 +463,7 @@ public class PlayerSkills : NetworkBehaviour
             }
         }
     }
+
     private void Update()
     {
         if (isLocalPlayer) HandleSkills();
@@ -439,7 +471,6 @@ public class PlayerSkills : NetworkBehaviour
         {
             UpdateGlobalCooldownUI();
         }
-
         if (isLocalPlayer)
         {
             foreach (var skill in skills)
@@ -448,6 +479,7 @@ public class PlayerSkills : NetworkBehaviour
             }
         }
     }
+
     public void CancelAllSkillSelections()
     {
         if (_activeSkill != null)
@@ -458,6 +490,7 @@ public class PlayerSkills : NetworkBehaviour
             Debug.Log("[PlayerSkills] All skill selections cancelled");
         }
     }
+
     public void CancelSkillSelection()
     {
         if (_activeSkill != null)
@@ -468,6 +501,7 @@ public class PlayerSkills : NetworkBehaviour
             Debug.Log("[PlayerSkills] Skill selection fully cancelled");
         }
     }
+
     private void UpdateCursor()
     {
         if (Time.time - _lastCursorUpdate > cursorUpdateInterval)
@@ -493,24 +527,29 @@ public class PlayerSkills : NetworkBehaviour
             _lastCursorUpdate = Time.time;
         }
     }
+
     private void SetCursor(Texture2D cursor)
     {
         Cursor.SetCursor(cursor, Vector2.zero, CursorMode.Auto);
         Debug.Log($"[PlayerSkills] Cursor set to: {cursor?.name ?? "null"}");
     }
+
     private void OnCooldownChanged(SyncDictionary<string, float>.Operation op, string key, float item)
     {
         if (isLocalPlayer) UpdateSkillUI(key);
     }
+
     private void OnGlobalCooldownChanged(float oldVal, float newVal)
     {
         if (isLocalPlayer) UpdateGlobalCooldownUI();
     }
+
     private void UpdateSkillUI(string key)
     {
         SkillBase skill = skills.Find(s => s.SkillName == key);
         if (skill != null) PlayerUI.Instance.UpdateSkillCooldown(key, skill.CooldownProgressNormalized);
     }
+
     private void UpdateGlobalCooldownUI()
     {
         float progress = 1f - Mathf.Max(0, globalCooldown - (Time.time - _lastGlobalUseTime)) / globalCooldown;
