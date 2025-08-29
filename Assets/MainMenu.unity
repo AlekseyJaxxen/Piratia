@@ -662,7 +662,6 @@ MonoBehaviour:
   playerSpawnMethod: 0
   spawnPrefabs:
   - {fileID: 3774602016594009712, guid: 64fa1db29f590d644ac361ea0f9d871f, type: 3}
-  - {fileID: 5355621235216259941, guid: 99a5029acaf007343851d0ad1efbdaf4, type: 3}
   exceptionsDisconnect: 1
   snapshotSettings:
     bufferTimeMultiplier: 2
@@ -680,15 +679,6 @@ MonoBehaviour:
   timeInterpolationGui: 0
   playerPrefabs:
   - {fileID: 8270360301193926596, guid: 298e741ab94a19947941efdcac997ca1, type: 3}
-  monsterPrefab: {fileID: 3774602016594009712, guid: 64fa1db29f590d644ac361ea0f9d871f,
-    type: 3}
-  monsterSpawnPoints:
-  - {fileID: 6072700513459725398, guid: af5aef51f1b2ea8408762a43eccc3a54, type: 3}
-  - {fileID: 819502332410895481, guid: b734f03ae748b2b47abf1b97a08d273b, type: 3}
-  - {fileID: 3596910604322994800, guid: d162310668cf9cf46be363797adb3a42, type: 3}
-  - {fileID: 149505656092624534, guid: f466828e717bf184aaf9ceb7d94f492b, type: 3}
-  maxMonsters: 5
-  monsterSpawnDelay: 5
 --- !u!114 &387040019
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -42542,6 +42542,7 @@ MonoBehaviour:
   - {fileID: 607002311}
   - {fileID: 1080855209}
   respawnInterval: 10
+  maxMonsters: 1
 --- !u!114 &1372684383
 MonoBehaviour:
   m_ObjectHideFlags: 0

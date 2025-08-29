@@ -331,10 +331,18 @@ public class Monster : NetworkBehaviour
     [Server]
     private void Die()
     {
+        if (_isDead) return;
         _isDead = true;
+        Debug.Log($"[Monster] Die called for {monsterName}, Health: {currentHealth}");
         if (_agent != null && _agent.isOnNavMesh) _agent.isStopped = true;
+        BoxCollider boxCollider = GetComponent<BoxCollider>();
+        if (boxCollider != null)
+        {
+            boxCollider.enabled = false;
+            Debug.Log($"[Monster] BoxCollider disabled for {monsterName}");
+        }
         RpcDie();
-        StartCoroutine(DespawnAfterDelay(3f));
+        StartCoroutine(DespawnAfterDelay(1f));
     }
 
     [ClientRpc]
@@ -349,8 +357,12 @@ public class Monster : NetworkBehaviour
 
     private IEnumerator DespawnAfterDelay(float delay)
     {
-        yield return new WaitForSeconds(delay);
-        NetworkServer.Destroy(gameObject);
+        yield return new WaitForSeconds(1f);
+        if (gameObject != null)
+        {
+            NetworkServer.Destroy(gameObject);
+            Debug.Log($"[Monster] Destroyed {monsterName}");
+        }
     }
 
     public override void OnStopClient()
