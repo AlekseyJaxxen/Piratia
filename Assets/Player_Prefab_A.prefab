@@ -2844,7 +2844,7 @@ MonoBehaviour:
   mainCanvasReference: {fileID: 0}
   interactableLayers:
     serializedVersion: 2
-    m_Bits: 499
+    m_Bits: 1011
   groundLayer:
     serializedVersion: 2
     m_Bits: 64

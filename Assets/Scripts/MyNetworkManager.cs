@@ -1,15 +1,34 @@
 using UnityEngine;
 using Mirror;
+using UnityEngine.AI;
+using System.Collections;
 
 public class MyNetworkManager : NetworkManager
 {
+    [Header("Player Settings")]
     public GameObject[] playerPrefabs;
+
+    [Header("Monster Settings")]
+    [SerializeField] private GameObject monsterPrefab;
+    [SerializeField] private Transform[] monsterSpawnPoints;
+    [SerializeField] private int maxMonsters = 5;
+    [SerializeField] private float monsterSpawnDelay = 5f;
 
     public override void OnStartServer()
     {
         base.OnStartServer();
         NetworkServer.RegisterHandler<NetworkPlayerInfo>(OnReceivePlayerInfo);
         Debug.Log("[MyNetworkManager] Server started, handler registered for NetworkPlayerInfo");
+
+        // Запускаем спавн монстров
+        if (monsterPrefab != null)
+        {
+            StartCoroutine(SpawnMonsters());
+        }
+        else
+        {
+            Debug.LogError("[MyNetworkManager] Monster prefab not assigned!");
+        }
     }
 
     public override void OnStopServer()
@@ -36,18 +55,16 @@ public class MyNetworkManager : NetworkManager
     private void OnReceivePlayerInfo(NetworkConnectionToClient conn, NetworkPlayerInfo info)
     {
         Debug.Log($"[MyNetworkManager] Server received player info: Name: {info.playerName}, Team: {info.playerTeam}, Prefab: {info.playerPrefabIndex}, ConnectionId: {conn.connectionId}");
-        // Проверяем, нет ли уже игрока для этого соединения
         if (conn.identity != null)
         {
             Debug.LogWarning($"[MyNetworkManager] Player already exists for connection {conn.connectionId}. Replacing player.");
-            NetworkServer.ReplacePlayerForConnection(conn, null, new ReplacePlayerOptions()); // Fixed line
+            NetworkServer.ReplacePlayerForConnection(conn, null, new ReplacePlayerOptions());
         }
         if (info.playerPrefabIndex < 0 || info.playerPrefabIndex >= playerPrefabs.Length)
         {
             Debug.LogError($"[MyNetworkManager] Invalid prefab index: {info.playerPrefabIndex}");
             return;
         }
-        // Проверяем, выбрана ли команда
         if (info.playerTeam == PlayerTeam.None)
         {
             Debug.LogWarning($"[MyNetworkManager] Player {info.playerName} has no team assigned. Assigning default team: Red");
@@ -67,7 +84,6 @@ public class MyNetworkManager : NetworkManager
         PlayerCore playerCore = playerInstance.GetComponent<PlayerCore>();
         if (playerCore != null)
         {
-            // Прямое присваивание SyncVar на сервере
             playerCore.playerName = info.playerName;
             playerCore.team = info.playerTeam;
             Debug.Log($"[MyNetworkManager] Set player info: Name={info.playerName}, Team={info.playerTeam}");
@@ -77,7 +93,6 @@ public class MyNetworkManager : NetworkManager
             Debug.LogError("[MyNetworkManager] PlayerCore component missing on spawned player!");
             return;
         }
-        // Назначаем игрока для соединения с авторизацией
         NetworkServer.AddPlayerForConnection(conn, playerInstance);
         NetworkIdentity identity = playerInstance.GetComponent<NetworkIdentity>();
         if (identity != null)
@@ -94,7 +109,6 @@ public class MyNetworkManager : NetworkManager
 
     public override void OnServerAddPlayer(NetworkConnectionToClient conn)
     {
-        // Отключаем базовую логику спавна, чтобы избежать дублирования
         Debug.Log("[MyNetworkManager] OnServerAddPlayer called, handled by OnReceivePlayerInfo");
     }
 
@@ -114,6 +128,70 @@ public class MyNetworkManager : NetworkManager
             return spawnPoints[Random.Range(0, spawnPoints.Length)].transform;
         }
         Debug.LogWarning("[MyNetworkManager] No spawn points found for team " + team);
+        return transform;
+    }
+
+    [Server]
+    private IEnumerator SpawnMonsters()
+    {
+        while (true)
+        {
+            int currentMonsterCount = FindObjectsOfType<Monster>().Length;
+            if (currentMonsterCount < maxMonsters)
+            {
+                SpawnMonster();
+            }
+            yield return new WaitForSeconds(monsterSpawnDelay);
+        }
+    }
+
+    [Server]
+    private void SpawnMonster()
+    {
+        if (monsterPrefab == null)
+        {
+            Debug.LogError("[MyNetworkManager] Monster prefab not assigned!");
+            return;
+        }
+
+        Transform spawnPoint = GetMonsterSpawnPoint();
+        Vector3 spawnPosition = spawnPoint != null ? spawnPoint.position : transform.position;
+
+        // Проверяем, находится ли позиция спавна на NavMesh
+        NavMeshHit hit;
+        if (NavMesh.SamplePosition(spawnPosition, out hit, 5f, NavMesh.AllAreas))
+        {
+            spawnPosition = hit.position;
+            GameObject monsterInstance = Instantiate(monsterPrefab, spawnPosition, Quaternion.identity);
+            Monster monster = monsterInstance.GetComponent<Monster>();
+            if (monster != null)
+            {
+                monster.monsterName = $"Monster_{Random.Range(1000, 9999)}";
+                monster.maxHealth = 1000; // Устанавливаем здоровье
+                monster.currentHealth = monster.maxHealth;
+                Debug.Log($"[MyNetworkManager] Spawning monster {monster.monsterName} at {spawnPosition}");
+            }
+            else
+            {
+                Debug.LogError("[MyNetworkManager] Monster component missing on spawned monster!");
+            }
+            NetworkServer.Spawn(monsterInstance);
+            Debug.Log($"[MyNetworkManager] Monster spawned at {spawnPosition}");
+        }
+        else
+        {
+            Debug.LogWarning($"[MyNetworkManager] Spawn point {spawnPosition} is not on NavMesh. Monster not spawned.");
+        }
+    }
+
+    [Server]
+    private Transform GetMonsterSpawnPoint()
+    {
+        if (monsterSpawnPoints != null && monsterSpawnPoints.Length > 0)
+        {
+            return monsterSpawnPoints[Random.Range(0, monsterSpawnPoints.Length)];
+        }
+        Debug.LogWarning("[MyNetworkManager] No monster spawn points assigned, using default position");
         return transform;
     }
 }

@@ -1,5 +1,6 @@
 using UnityEngine;
 using Mirror;
+using UnityEngine.AI;
 using System.Collections.Generic;
 
 public class MonsterSpawner : NetworkBehaviour
@@ -7,7 +8,6 @@ public class MonsterSpawner : NetworkBehaviour
     [SerializeField] private GameObject monsterPrefab;
     [SerializeField] private List<Vector3> spawnPoints;
     [SerializeField] private float respawnInterval = 10f;
-
     private List<GameObject> spawnedMonsters = new List<GameObject>();
 
     public override void OnStartServer()
@@ -18,15 +18,49 @@ public class MonsterSpawner : NetworkBehaviour
             SpawnMonster(point);
         }
         InvokeRepeating(nameof(CheckAndRespawn), respawnInterval, respawnInterval);
+        Debug.Log("[MonsterSpawner] Started spawning monsters");
+    }
+
+    public override void OnStopServer()
+    {
+        base.OnStopServer();
+        CancelInvoke(nameof(CheckAndRespawn));
+        Debug.Log("[MonsterSpawner] Stopped spawning monsters");
     }
 
     [Server]
     private void SpawnMonster(Vector3 position)
     {
-        GameObject monster = Instantiate(monsterPrefab, position, Quaternion.identity);
-        NetworkServer.Spawn(monster);
-        spawnedMonsters.Add(monster);
-        Debug.Log($"[MonsterSpawner] Spawned monster at {position}");
+        if (monsterPrefab == null)
+        {
+            Debug.LogError("[MonsterSpawner] Monster prefab not assigned!");
+            return;
+        }
+
+        NavMeshHit hit;
+        if (NavMesh.SamplePosition(position, out hit, 5f, NavMesh.AllAreas))
+        {
+            position = hit.position;
+            GameObject monster = Instantiate(monsterPrefab, position, Quaternion.identity);
+            Monster monsterComp = monster.GetComponent<Monster>();
+            if (monsterComp != null)
+            {
+                monsterComp.monsterName = $"Monster_{Random.Range(1000, 9999)}";
+                monsterComp.maxHealth = 1000;
+                monsterComp.currentHealth = monsterComp.maxHealth;
+            }
+            else
+            {
+                Debug.LogError("[MonsterSpawner] Monster component missing on spawned monster!");
+            }
+            NetworkServer.Spawn(monster);
+            spawnedMonsters.Add(monster);
+            Debug.Log($"[MonsterSpawner] Spawned monster at {position}");
+        }
+        else
+        {
+            Debug.LogWarning($"[MonsterSpawner] Spawn point {position} is not on NavMesh. Monster not spawned.");
+        }
     }
 
     [Server]
@@ -34,7 +68,7 @@ public class MonsterSpawner : NetworkBehaviour
     {
         for (int i = spawnedMonsters.Count - 1; i >= 0; i--)
         {
-            if (spawnedMonsters[i] == null || spawnedMonsters[i].GetComponent<Health>().CurrentHealth <= 0)
+            if (spawnedMonsters[i] == null || spawnedMonsters[i].GetComponent<HealthMonster>().CurrentHealth <= 0)
             {
                 spawnedMonsters.RemoveAt(i);
                 SpawnMonster(spawnPoints[i % spawnPoints.Count]);
