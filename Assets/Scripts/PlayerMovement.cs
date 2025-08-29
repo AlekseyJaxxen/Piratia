@@ -83,7 +83,7 @@ public class PlayerMovement : NetworkBehaviour
             Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
             Debug.Log($"[PlayerMovement] Raycast from mouse position: {Input.mousePosition}, camera: {_core.Camera.CameraInstance.name}");
 
-            if (_core.Skills.IsSkillSelected && !_core.ActionSystem.IsPerformingAction)
+            if (_core.Skills.IsSkillSelected)
             {
                 Debug.Log($"[PlayerMovement] Skill selected: {_core.Skills.ActiveSkill?.SkillName ?? "null"}");
                 bool isTargetedSkill = _core.Skills.ActiveSkill is ProjectileDamageSkill || _core.Skills.ActiveSkill is TargetedStunSkill || _core.Skills.ActiveSkill is SlowSkill;
@@ -115,7 +115,7 @@ public class PlayerMovement : NetworkBehaviour
                         }
                         else
                         {
-                            Debug.Log($"[PlayerMovement] Raycast hit ignored: invalid tag {hit.collider.tag}");
+                            Debug.Log($"[PlayerMovement] Raycast hit ignored for targeted skill: invalid tag {hit.collider.tag}");
                         }
                     }
                     else
