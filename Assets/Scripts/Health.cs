@@ -98,11 +98,11 @@ public class Health : NetworkBehaviour
         if (CurrentHealth <= 0)
         {
             Debug.Log($"[Server] {gameObject.name} has died. Setting death state.");
-            MonsterCore monster = GetComponent<MonsterCore>();
+            Monster monster = GetComponent<Monster>();
             PlayerCore player = GetComponent<PlayerCore>();
             if (monster != null && attacker != null)
             {
-                monster.OnDeath(attacker.GetComponent<PlayerCore>());
+                monster.Die();
             }
             else if (player != null)
             {
