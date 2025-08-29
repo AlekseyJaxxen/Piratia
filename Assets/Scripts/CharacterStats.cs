@@ -159,12 +159,12 @@ public class CharacterStats : NetworkBehaviour
         {
             healthComponent.SetMaxHealth(newMaxHealth);
         }
-        movementSpeed = 8f + (agility * 0.2f);
-        PlayerMovement movementComponent = GetComponent<PlayerMovement>();
-        if (movementComponent != null)
-        {
-            movementComponent.moveSpeed = movementSpeed;
-        }
+       // movementSpeed = 8f + (agility * 0.2f);
+        //PlayerMovement movementComponent = GetComponent<PlayerMovement>();
+       // if (movementComponent != null)
+      //  {
+      //     movementComponent.moveSpeed = movementSpeed;
+       // }
         attackSpeed = 1.0f + (agility * 0.05f);
         dodgeChance = 5.0f + (agility * 0.5f);
         hitChance = 80.0f + (accuracy * 1.0f);
