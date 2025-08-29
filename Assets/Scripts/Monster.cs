@@ -30,7 +30,7 @@ public class Monster : NetworkBehaviour
     [SyncVar] private ControlEffectType _currentControlEffect = ControlEffectType.None;
     [SyncVar] private float _controlEffectEndTime = 0f;
     [SyncVar(hook = nameof(OnStunStateChanged))] private bool _isStunned = false;
-    [SyncVar] private int _currentEffectWeight = 0; // Added missing field
+    [SyncVar] private int _currentEffectWeight = 0;
 
     private void Awake()
     {
@@ -44,6 +44,7 @@ public class Monster : NetworkBehaviour
             }
             else
             {
+                _agent.baseOffset = 0.2f; // Установите подходящее значение
                 _agent.speed = moveSpeed;
                 _agent.stoppingDistance = attackRange;
                 if (!_agent.isOnNavMesh)
@@ -261,14 +262,18 @@ public class Monster : NetworkBehaviour
         if (effectType == ControlEffectType.Stun)
         {
             _isStunned = true;
-            Debug.Log($"[Monster] Applied stun effect, weight={skillWeight}, duration={duration}");
+            if (_agent != null && _agent.isOnNavMesh)
+            {
+                _agent.isStopped = true;
+            }
+            Debug.Log($"[Monster] Applied stun effect to {monsterName}, weight={skillWeight}, duration={duration}");
         }
         else if (effectType == ControlEffectType.Slow)
         {
             _slowPercentage = duration;
             _originalSpeed = moveSpeed;
             if (_agent != null && _agent.isOnNavMesh) _agent.speed = moveSpeed * (1f - _slowPercentage);
-            Debug.Log($"[Monster] Applied slow effect, weight={skillWeight}, percentage={_slowPercentage}, duration={duration}");
+            Debug.Log($"[Monster] Applied slow effect to {monsterName}, weight={skillWeight}, percentage={_slowPercentage}, duration={duration}");
         }
     }
 
@@ -292,7 +297,7 @@ public class Monster : NetworkBehaviour
         _originalSpeed = moveSpeed;
         if (_agent != null && _agent.isOnNavMesh) _agent.speed = moveSpeed * (1f - _slowPercentage);
         _controlEffectEndTime = Time.time + duration;
-        Debug.Log($"[Monster] Applied slow: percentage={percentage}, duration={duration}, weight={skillWeight}");
+        Debug.Log($"[Monster] Applied slow to {monsterName}: percentage={percentage}, duration={duration}, weight={skillWeight}");
     }
 
     [Server]
@@ -301,6 +306,10 @@ public class Monster : NetworkBehaviour
         if (_currentControlEffect == ControlEffectType.Stun)
         {
             _isStunned = false;
+            if (_agent != null && _agent.isOnNavMesh)
+            {
+                _agent.isStopped = false;
+            }
         }
         else if (_currentControlEffect == ControlEffectType.Slow && _originalSpeed > 0f)
         {
@@ -311,7 +320,7 @@ public class Monster : NetworkBehaviour
         _currentControlEffect = ControlEffectType.None;
         _currentEffectWeight = 0;
         _controlEffectEndTime = 0f;
-        Debug.Log("[Monster] Cleared control effect");
+        Debug.Log($"[Monster] Cleared control effect for {monsterName}");
     }
 
     private void OnHealthChanged(int oldHealth, int newHealth)
@@ -334,13 +343,19 @@ public class Monster : NetworkBehaviour
         if (_isDead) return;
         _isDead = true;
         Debug.Log($"[Monster] Die called for {monsterName}, Health: {currentHealth}");
-        if (_agent != null && _agent.isOnNavMesh) _agent.isStopped = true;
+        if (_agent != null && _agent.isOnNavMesh)
+        {
+            _agent.isStopped = true;
+            _agent.enabled = false;
+        }
         BoxCollider boxCollider = GetComponent<BoxCollider>();
         if (boxCollider != null)
         {
             boxCollider.enabled = false;
             Debug.Log($"[Monster] BoxCollider disabled for {monsterName}");
         }
+        canMove = false;
+        canAttack = false;
         RpcDie();
         StartCoroutine(DespawnAfterDelay(1f));
     }
