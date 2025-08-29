@@ -29,10 +29,14 @@ public class HealthMonster : Health
         }
     }
 
-    public void SetHealthBarUI(HealthBarUI healthBarUI)
+    public void SetHealthBarUI(MonsterHealthBarUI healthBarUI)
     {
-        base.SetHealthBarUI(healthBarUI);
-        Debug.Log($"[HealthMonster] SetHealthBarUI called for {gameObject.name}");
+        // Do not call base.SetHealthBarUI, as it’s for the generic HealthBarUI
+        if (healthBarUI != null)
+        {
+            healthBarUI.UpdateHP(CurrentHealth, MaxHealth);
+            Debug.Log($"[HealthMonster] MonsterHealthBarUI set for {gameObject.name}");
+        }
     }
 
     private void OnEnable()

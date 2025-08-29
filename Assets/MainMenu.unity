@@ -687,7 +687,6 @@ MonoBehaviour:
   - {fileID: 819502332410895481, guid: b734f03ae748b2b47abf1b97a08d273b, type: 3}
   - {fileID: 3596910604322994800, guid: d162310668cf9cf46be363797adb3a42, type: 3}
   - {fileID: 149505656092624534, guid: f466828e717bf184aaf9ceb7d94f492b, type: 3}
-  - {fileID: 0}
   maxMonsters: 5
   monsterSpawnDelay: 5
 --- !u!114 &387040019

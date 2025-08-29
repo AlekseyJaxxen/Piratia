@@ -2,20 +2,27 @@ using UnityEngine;
 using Mirror;
 using UnityEngine.AI;
 using System.Collections.Generic;
+using System.Collections;
 
 public class MonsterSpawner : NetworkBehaviour
 {
     [SerializeField] private GameObject monsterPrefab;
-    [SerializeField] private List<Vector3> spawnPoints;
+    [SerializeField] private List<Transform> spawnPoints; // Изменено на List<Transform>
     [SerializeField] private float respawnInterval = 10f;
     private List<GameObject> spawnedMonsters = new List<GameObject>();
 
     public override void OnStartServer()
     {
         base.OnStartServer();
+        StartCoroutine(SpawnMonstersDelayed());
+    }
+
+    private IEnumerator SpawnMonstersDelayed()
+    {
+        yield return new WaitUntil(() => NavMesh.CalculateTriangulation().vertices.Length > 0 && GameObject.Find("TeamSelectionCanvas") != null);
         foreach (var point in spawnPoints)
         {
-            SpawnMonster(point);
+            SpawnMonster(point.position); // Используем position из Transform
         }
         InvokeRepeating(nameof(CheckAndRespawn), respawnInterval, respawnInterval);
         Debug.Log("[MonsterSpawner] Started spawning monsters");
@@ -71,7 +78,7 @@ public class MonsterSpawner : NetworkBehaviour
             if (spawnedMonsters[i] == null || spawnedMonsters[i].GetComponent<HealthMonster>().CurrentHealth <= 0)
             {
                 spawnedMonsters.RemoveAt(i);
-                SpawnMonster(spawnPoints[i % spawnPoints.Count]);
+                SpawnMonster(spawnPoints[i % spawnPoints.Count].position);
             }
         }
     }

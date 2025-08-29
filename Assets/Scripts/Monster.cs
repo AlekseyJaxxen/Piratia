@@ -7,14 +7,13 @@ public class Monster : NetworkBehaviour
 {
     [Header("Monster Settings")]
     [SyncVar] public string monsterName = "Monster";
-    [SyncVar] public int maxHealth = 100;
+    [SyncVar] public int maxHealth = 1000;
     [SyncVar(hook = nameof(OnHealthChanged))] public int currentHealth;
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float attackRange = 2f;
     [SerializeField] private float attackCooldown = 2f;
     [SerializeField] private LayerMask playerLayer;
     [SerializeField] private GameObject deathVFXPrefab;
-    [SerializeField] private GameObject healthBarPrefab;
     [SerializeField] private GameObject nameTagPrefab;
     [SerializeField] private MonsterBasicAttackSkill attackSkill;
     [SerializeField] private bool canMove = true;
@@ -23,15 +22,15 @@ public class Monster : NetworkBehaviour
     private NavMeshAgent _agent;
     private PlayerCore _target;
     private float _lastAttackTime;
-    private HealthBarUI _healthBarUI;
+    private MonsterHealthBarUI _healthBarUI;
     private NameTagUI _nameTagUI;
     private bool _isDead;
     [SyncVar] private float _slowPercentage = 0f;
     [SyncVar] private float _originalSpeed = 0f;
     [SyncVar] private ControlEffectType _currentControlEffect = ControlEffectType.None;
     [SyncVar] private float _controlEffectEndTime = 0f;
-    [SyncVar] private int _currentEffectWeight = 0;
     [SyncVar(hook = nameof(OnStunStateChanged))] private bool _isStunned = false;
+    [SyncVar] private int _currentEffectWeight = 0; // Added missing field
 
     private void Awake()
     {
@@ -66,6 +65,12 @@ public class Monster : NetworkBehaviour
                 canAttack = false;
             }
         }
+
+        _healthBarUI = GetComponentInChildren<MonsterHealthBarUI>();
+        if (_healthBarUI == null)
+        {
+            Debug.LogWarning($"[Monster] MonsterHealthBarUI component missing for {monsterName}");
+        }
     }
 
     public override void OnStartClient()
@@ -78,30 +83,30 @@ public class Monster : NetworkBehaviour
     {
         while (true)
         {
-            Canvas mainCanvas = FindObjectOfType<Canvas>();
-            if (mainCanvas != null)
+            GameObject canvasObject = GameObject.Find("TeamSelectionCanvas");
+            Canvas mainCanvas = canvasObject != null ? canvasObject.GetComponent<Canvas>() : null;
+
+            if (mainCanvas != null && mainCanvas.gameObject.activeInHierarchy)
             {
-                // Existing UI setup code
-                if (healthBarPrefab != null)
+                if (nameTagPrefab != null)
                 {
-                    GameObject barInstance = Instantiate(healthBarPrefab, mainCanvas.transform);
-                    _healthBarUI = barInstance.GetComponent<HealthBarUI>();
-                    if (_healthBarUI != null)
+                    GameObject nameTagInstance = Instantiate(nameTagPrefab, mainCanvas.transform);
+                    _nameTagUI = nameTagInstance.GetComponent<NameTagUI>();
+                    if (_nameTagUI != null)
                     {
-                        _healthBarUI.target = transform;
-                        _healthBarUI.UpdateHP(currentHealth, maxHealth);
-                        HealthMonster health = GetComponent<HealthMonster>();
-                        if (health != null)
-                        {
-                            health.SetHealthBarUI(_healthBarUI);
-                            Debug.Log($"[Monster] HealthBarUI initialized and set for {monsterName}");
-                        }
+                        _nameTagUI.target = transform;
+                        _nameTagUI.UpdateNameAndTeam(monsterName, PlayerTeam.None, PlayerCore.localPlayerCoreInstance != null ? PlayerCore.localPlayerCoreInstance.team : PlayerTeam.None);
+                        Debug.Log($"[Monster] NameTagUI initialized for {monsterName}");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[Monster] NameTagUI component missing on nameTagPrefab for {monsterName}");
                     }
                 }
-                // NameTagUI setup code...
                 yield break;
             }
-            Debug.LogWarning($"[Monster] No Canvas found for UI, retrying...");
+
+            Debug.LogWarning($"[Monster] No TeamSelectionCanvas found or not active for {monsterName}, retrying...");
             yield return new WaitForSeconds(0.5f);
         }
     }
@@ -351,13 +356,11 @@ public class Monster : NetworkBehaviour
     public override void OnStopClient()
     {
         base.OnStopClient();
-        if (_healthBarUI != null) Destroy(_healthBarUI.gameObject);
         if (_nameTagUI != null) Destroy(_nameTagUI.gameObject);
     }
 
     private void OnDestroy()
     {
-        if (_healthBarUI != null) Destroy(_healthBarUI.gameObject);
         if (_nameTagUI != null) Destroy(_nameTagUI.gameObject);
     }
 }
