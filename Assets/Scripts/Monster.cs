@@ -18,7 +18,6 @@ public class Monster : NetworkBehaviour
     [SerializeField] private MonsterBasicAttackSkill attackSkill;
     [SerializeField] private bool canMove = true;
     [SerializeField] private bool canAttack = true;
-
     private NavMeshAgent _agent;
     private PlayerCore _target;
     private float _lastAttackTime;
@@ -44,7 +43,7 @@ public class Monster : NetworkBehaviour
             }
             else
             {
-                _agent.baseOffset = 0.2f; // Установите подходящее значение
+                _agent.baseOffset = 0.2f;
                 _agent.speed = moveSpeed;
                 _agent.stoppingDistance = attackRange;
                 if (!_agent.isOnNavMesh)
@@ -54,9 +53,7 @@ public class Monster : NetworkBehaviour
                 }
             }
         }
-
         currentHealth = maxHealth;
-
         if (canAttack)
         {
             attackSkill = GetComponent<MonsterBasicAttackSkill>();
@@ -66,7 +63,6 @@ public class Monster : NetworkBehaviour
                 canAttack = false;
             }
         }
-
         _healthBarUI = GetComponentInChildren<MonsterHealthBarUI>();
         if (_healthBarUI == null)
         {
@@ -86,7 +82,6 @@ public class Monster : NetworkBehaviour
         {
             GameObject canvasObject = GameObject.Find("TeamSelectionCanvas");
             Canvas mainCanvas = canvasObject != null ? canvasObject.GetComponent<Canvas>() : null;
-
             if (mainCanvas != null && mainCanvas.gameObject.activeInHierarchy)
             {
                 if (nameTagPrefab != null)
@@ -106,7 +101,6 @@ public class Monster : NetworkBehaviour
                 }
                 yield break;
             }
-
             Debug.LogWarning($"[Monster] No TeamSelectionCanvas found or not active for {monsterName}, retrying...");
             yield return new WaitForSeconds(0.5f);
         }
@@ -120,14 +114,18 @@ public class Monster : NetworkBehaviour
             {
                 ClearControlEffect();
             }
-
+            if (_isStunned)
+            {
+                Debug.Log($"[Monster] Stunned, skipping Update for {monsterName}");
+                return;
+            }
             if (canMove && _agent != null && _agent.isOnNavMesh)
             {
                 FindTarget();
                 if (_target != null)
                 {
                     float distance = Vector3.Distance(transform.position, _target.transform.position);
-                    if (distance <= attackRange && !_isStunned && canAttack)
+                    if (distance <= attackRange && canAttack)
                     {
                         _agent.isStopped = true;
                         RotateTo(_target.transform.position - transform.position);
@@ -140,7 +138,7 @@ public class Monster : NetworkBehaviour
                     }
                 }
             }
-            else if (canAttack && !_isStunned)
+            else if (canAttack)
             {
                 FindTarget();
                 if (_target != null && Vector3.Distance(transform.position, _target.transform.position) <= attackRange)
@@ -157,7 +155,6 @@ public class Monster : NetworkBehaviour
         Collider[] hits = Physics.OverlapSphere(transform.position, 10f, playerLayer);
         float closestDistance = float.MaxValue;
         PlayerCore closestPlayer = null;
-
         foreach (Collider hit in hits)
         {
             PlayerCore player = hit.GetComponent<PlayerCore>();
@@ -178,6 +175,11 @@ public class Monster : NetworkBehaviour
 
     private void TryAttack()
     {
+        if (_isStunned)
+        {
+            Debug.Log($"[Monster] Attack blocked due to stun for {monsterName}");
+            return;
+        }
         if (!canAttack) return;
         if (Time.time >= _lastAttackTime + attackCooldown && _target != null && attackSkill != null)
         {
@@ -194,7 +196,6 @@ public class Monster : NetworkBehaviour
             Debug.LogWarning($"[Monster] Target netId {targetNetId} not found for {skillName}");
             return;
         }
-
         NetworkIdentity targetIdentity = NetworkServer.spawned[targetNetId];
         Health targetHealth = targetIdentity.GetComponent<Health>();
         if (targetHealth != null)
@@ -249,22 +250,20 @@ public class Monster : NetworkBehaviour
             Debug.Log($"[Monster] Cannot apply {effectType} (weight {skillWeight}): {_currentControlEffect} (weight {_currentEffectWeight}) is active until {_controlEffectEndTime}");
             return;
         }
-
         if (_currentControlEffect != ControlEffectType.None)
         {
             ClearControlEffect();
         }
-
         _currentControlEffect = effectType;
         _currentEffectWeight = skillWeight;
         _controlEffectEndTime = Time.time + duration;
-
         if (effectType == ControlEffectType.Stun)
         {
             _isStunned = true;
             if (_agent != null && _agent.isOnNavMesh)
             {
                 _agent.isStopped = true;
+                Debug.Log($"[Monster] Stun applied, NavMeshAgent stopped: isStopped={_agent.isStopped}, isOnNavMesh={_agent.isOnNavMesh}");
             }
             Debug.Log($"[Monster] Applied stun effect to {monsterName}, weight={skillWeight}, duration={duration}");
         }
@@ -285,12 +284,10 @@ public class Monster : NetworkBehaviour
             Debug.Log($"[Monster] Cannot apply slow (weight {skillWeight}): {_currentControlEffect} (weight {_currentEffectWeight}) is active until {_controlEffectEndTime}");
             return;
         }
-
         if (_currentControlEffect != ControlEffectType.None)
         {
             ClearControlEffect();
         }
-
         _currentControlEffect = ControlEffectType.Slow;
         _currentEffectWeight = skillWeight;
         _slowPercentage = percentage;
@@ -334,7 +331,7 @@ public class Monster : NetworkBehaviour
 
     private void OnStunStateChanged(bool oldValue, bool newValue)
     {
-        Debug.Log($"[Monster] Stun state changed: {oldValue} -> {newValue}");
+        Debug.Log($"[Monster] Stun state changed: {oldValue} -> {newValue}, isClient={isClient}, isServer={isServer}");
     }
 
     [Server]
