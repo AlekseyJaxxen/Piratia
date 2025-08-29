@@ -1,7 +1,6 @@
 ﻿using UnityEngine;
 using Mirror;
 using System.Collections;
-using System.Collections.Generic;
 
 public class PlayerActionSystem : NetworkBehaviour
 {
@@ -100,7 +99,6 @@ public class PlayerActionSystem : NetworkBehaviour
         {
             int newPriority = GetPriority(actionType);
             int currentPriority = GetPriority(_currentActionType);
-            // Allow Move to interrupt only if not casting a targeted skill
             if (actionType == PlayerAction.Move && _currentActionType == PlayerAction.SkillCast)
             {
                 bool isAoESkill = !(skillToCast is ProjectileDamageSkill || skillToCast is TargetedStunSkill || skillToCast is SlowSkill);
@@ -198,15 +196,18 @@ public class PlayerActionSystem : NetworkBehaviour
 
         Debug.Log($"[PlayerActionSystem] Starting AttackAction on target: {target.name}, has NetworkIdentity: {target.GetComponent<NetworkIdentity>() != null}");
 
-        PlayerCore targetCore = target.GetComponent<PlayerCore>();
-        if (targetCore == null)
+        // Check for PlayerCore or Monster component
+        PlayerCore targetPlayerCore = target.GetComponent<PlayerCore>();
+        Monster targetMonster = target.GetComponent<Monster>();
+        if (targetPlayerCore == null && targetMonster == null)
         {
-            Debug.LogError($"[PlayerActionSystem] Target {target.name} has no PlayerCore component");
+            Debug.LogError($"[PlayerActionSystem] Target {target.name} has neither PlayerCore nor Monster component");
             CompleteAction();
             yield break;
         }
 
-        if (targetCore.team == _core.team)
+        // Validate team for PlayerCore targets
+        if (targetPlayerCore != null && targetPlayerCore.team == _core.team)
         {
             Debug.Log($"[PlayerActionSystem] Attack ignored: target {target.name} is on the same team");
             CompleteAction();

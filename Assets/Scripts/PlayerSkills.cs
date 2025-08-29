@@ -260,48 +260,68 @@ public class PlayerSkills : NetworkBehaviour
                 return;
             }
             PlayerCore targetCore = targetIdentity.GetComponent<PlayerCore>();
-            if (targetCore == null || caster.team == targetCore.team)
+            Monster targetMonster = targetIdentity.GetComponent<Monster>();
+            if (targetCore == null && targetMonster == null)
             {
-                Debug.LogWarning($"[PlayerSkills] Invalid target or same team for {skillName}");
+                Debug.LogWarning($"[PlayerSkills] Invalid target for {skillName}: no PlayerCore or Monster component");
+                return;
+            }
+            if (targetCore != null && caster.team == targetCore.team)
+            {
+                Debug.LogWarning($"[PlayerSkills] Skill {skillName} ignored: target {targetCore.playerName} is on the same team");
                 return;
             }
             if (skill is ProjectileDamageSkill projectileSkill)
             {
-                Debug.Log($"[PlayerSkills] Spawning projectile for {skillName} targeting {targetIdentity.gameObject.name}");
-                RpcSpawnProjectile(caster.transform.position, targetIdentity.transform.position, skillName);
                 Health targetHealth = targetIdentity.GetComponent<Health>();
                 if (targetHealth != null)
                 {
                     bool isCritical = stats.TryCriticalHit();
-                    int damage = projectileSkill.damageAmount;
+                    int damage = Random.Range(stats.minAttack, stats.maxAttack + 1);
                     if (isCritical) damage = Mathf.RoundToInt(damage * stats.criticalHitMultiplier);
-                    targetHealth.TakeDamage(damage, skill.SkillDamageType, isCritical);
+                    targetHealth.TakeDamage(damage, skill.SkillDamageType, isCritical, caster.GetComponent<NetworkIdentity>());
+                    RpcSpawnProjectile(caster.transform.position, targetIdentity.transform.position, skillName);
                 }
             }
             else if (skill is SlowSkill slowSkill)
             {
-                Debug.Log($"[PlayerSkills] Applying slow to {targetCore.playerName} for {slowSkill.slowDuration}s");
-                targetCore.ApplySlow(slowSkill.slowPercentage, slowSkill.slowDuration, skillWeight);
-                RpcApplySlowEffect(targetNetId, slowSkill.slowDuration, skillName);
+                PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
+                if (targetCore != null && casterCore.team != targetCore.team)
+                {
+                    Debug.Log($"[PlayerSkills] Applying slow to {targetCore.playerName} for {slowSkill.slowDuration}s");
+                    targetCore.ApplySlow(slowSkill.slowPercentage, slowSkill.slowDuration, skillWeight);
+                    RpcSpawnProjectile(caster.transform.position, targetIdentity.transform.position, skillName);
+                }
+                else if (targetMonster != null)
+                {
+                    Debug.Log($"[PlayerSkills] Applying slow to Monster {targetMonster.monsterName} for {slowSkill.slowDuration}s");
+                    targetMonster.ApplySlow(slowSkill.slowPercentage, slowSkill.slowDuration, skillWeight);
+                    RpcSpawnProjectile(caster.transform.position, targetIdentity.transform.position, skillName);
+                }
             }
             else if (skill is TargetedStunSkill targetedStunSkill)
             {
-                Debug.Log($"[PlayerSkills] Applying stun to {targetCore.playerName} for {targetedStunSkill.stunDuration}s");
-                targetCore.ApplyControlEffect(ControlEffectType.Stun, targetedStunSkill.stunDuration, skillWeight);
-                RpcPlayTargetedStun(targetNetId, skillName);
+                PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
+                if (targetCore != null && casterCore.team != targetCore.team)
+                {
+                    Debug.Log($"[PlayerSkills] Applying stun to {targetCore.playerName} for {targetedStunSkill.stunDuration}s");
+                    targetCore.ApplyControlEffect(ControlEffectType.Stun, targetedStunSkill.stunDuration, skillWeight);
+                    RpcPlayTargetedStun(targetNetId, skillName);
+                }
+                else if (targetMonster != null)
+                {
+                    Debug.Log($"[PlayerSkills] Applying stun to Monster {targetMonster.monsterName} for {targetedStunSkill.stunDuration}s");
+                    targetMonster.ApplyControlEffect(ControlEffectType.Stun, targetedStunSkill.stunDuration, skillWeight);
+                    RpcPlayTargetedStun(targetNetId, skillName);
+                }
             }
         }
         else if (skill is HealingSkill healingSkill)
         {
-            if (targetIdentity == null)
-            {
-                Debug.LogWarning($"[PlayerSkills] Target netId {targetNetId} not found for {skillName}");
-                return;
-            }
-            Health targetHealth = targetIdentity.GetComponent<Health>();
-            PlayerCore targetCore = targetIdentity.GetComponent<PlayerCore>();
+            Health targetHealth = targetIdentity?.GetComponent<Health>();
+            PlayerCore targetCore = targetIdentity?.GetComponent<PlayerCore>();
             PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
-            if (targetHealth != null && targetCore != null && casterCore != null && casterCore.team == targetCore.team)
+            if (targetIdentity != null && targetHealth != null && targetCore != null && casterCore != null && casterCore.team == targetCore.team)
             {
                 Debug.Log($"[PlayerSkills] Healing {targetCore.playerName} for {healingSkill.healAmount}");
                 targetHealth.Heal(healingSkill.healAmount);
@@ -325,17 +345,26 @@ public class PlayerSkills : NetworkBehaviour
                 NetworkIdentity identity = hit.GetComponent<NetworkIdentity>();
                 if (identity == null) continue;
                 PlayerCore targetCore = hit.GetComponent<PlayerCore>();
-                if (targetCore == null) continue;
+                Monster targetMonster = hit.GetComponent<Monster>();
+                if (targetCore == null && targetMonster == null) continue;
                 PlayerCore casterCore = connectionToClient.identity.GetComponent<PlayerCore>();
-                if (skill is AreaOfEffectStunSkill aoeStunSkill && casterCore.team != targetCore.team)
+                if (skill is AreaOfEffectStunSkill aoeStunSkill)
                 {
-                    Debug.Log($"[PlayerSkills] Applying AOE stun to {targetCore.playerName} for {aoeStunSkill.stunDuration}s");
-                    targetCore.ApplyControlEffect(ControlEffectType.Stun, aoeStunSkill.stunDuration, skillWeight);
+                    if (targetCore != null && casterCore.team != targetCore.team)
+                    {
+                        Debug.Log($"[PlayerSkills] Applying AOE stun to {targetCore.playerName} for {aoeStunSkill.stunDuration}s");
+                        targetCore.ApplyControlEffect(ControlEffectType.Stun, aoeStunSkill.stunDuration, skillWeight);
+                    }
+                    else if (targetMonster != null)
+                    {
+                        Debug.Log($"[PlayerSkills] Applying AOE stun to Monster {targetMonster.monsterName} for {aoeStunSkill.stunDuration}s");
+                        targetMonster.ApplyControlEffect(ControlEffectType.Stun, aoeStunSkill.stunDuration, skillWeight);
+                    }
                 }
-                else if (skill is AreaOfEffectHealSkill aoeHealSkill && casterCore.team == targetCore.team)
+                else if (skill is AreaOfEffectHealSkill aoeHealSkill)
                 {
                     Health targetHealth = hit.GetComponent<Health>();
-                    if (targetHealth != null)
+                    if (targetHealth != null && targetCore != null && casterCore.team == targetCore.team)
                     {
                         Debug.Log($"[PlayerSkills] Healing {targetCore.playerName} for {aoeHealSkill.healAmount}");
                         targetHealth.Heal(aoeHealSkill.healAmount);
@@ -355,9 +384,15 @@ public class PlayerSkills : NetworkBehaviour
                 return;
             }
             PlayerCore targetCore = targetIdentity.GetComponent<PlayerCore>();
-            if (targetCore == null || caster.team == targetCore.team)
+            Monster targetMonster = targetIdentity.GetComponent<Monster>();
+            if (targetCore == null && targetMonster == null)
             {
-                Debug.LogWarning($"[PlayerSkills] Invalid target or same team for {skillName}");
+                Debug.LogWarning($"[PlayerSkills] Invalid target for {skillName}: no PlayerCore or Monster component");
+                return;
+            }
+            if (targetCore != null && caster.team == targetCore.team)
+            {
+                Debug.LogWarning($"[PlayerSkills] Attack ignored: target {targetCore.playerName} is on the same team");
                 return;
             }
             Health targetHealth = targetIdentity.GetComponent<Health>();
@@ -366,8 +401,8 @@ public class PlayerSkills : NetworkBehaviour
                 bool isCritical = stats.TryCriticalHit();
                 int damage = Random.Range(stats.minAttack, stats.maxAttack + 1);
                 if (isCritical) damage = Mathf.RoundToInt(damage * stats.criticalHitMultiplier);
-                targetHealth.TakeDamage(damage, skill.SkillDamageType, isCritical);
-                RpcPlayBasicAttackVFX(caster.transform.position, caster.transform.rotation, targetCore.transform.position, isCritical, skillName);
+                targetHealth.TakeDamage(damage, skill.SkillDamageType, isCritical, caster.GetComponent<NetworkIdentity>());
+                RpcPlayBasicAttackVFX(caster.transform.position, caster.transform.rotation, targetCore?.transform.position ?? targetMonster.transform.position, isCritical, skillName);
             }
         }
         if (stats != null)
@@ -511,7 +546,8 @@ public class PlayerSkills : NetworkBehaviour
             {
                 GameObject hitObject = hit.collider.gameObject;
                 PlayerCore hitCore = hitObject.GetComponent<PlayerCore>();
-                if (hitCore != null && hitCore.team != _core.team)
+                Monster hitMonster = hitObject.GetComponent<Monster>();
+                if ((hitCore != null && hitCore.team != _core.team) || hitMonster != null)
                 {
                     SetCursor(attackCursor);
                 }
