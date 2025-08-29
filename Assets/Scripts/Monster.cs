@@ -18,6 +18,7 @@ public class Monster : NetworkBehaviour
     [SerializeField] private MonsterBasicAttackSkill attackSkill;
     [SerializeField] private bool canMove = true;
     [SerializeField] private bool canAttack = true;
+    [SerializeField] private float attackAnimationDuration = 1f;
     private NavMeshAgent _agent;
     private PlayerCore _target;
     private float _lastAttackTime;
@@ -30,6 +31,7 @@ public class Monster : NetworkBehaviour
     [SyncVar] private float _controlEffectEndTime = 0f;
     [SyncVar(hook = nameof(OnStunStateChanged))] private bool _isStunned = false;
     [SyncVar] private int _currentEffectWeight = 0;
+    [SyncVar] private bool isAttacking = false;
 
     private void Awake()
     {
@@ -114,9 +116,9 @@ public class Monster : NetworkBehaviour
             {
                 ClearControlEffect();
             }
-            if (_isStunned)
+            if (isAttacking || _isStunned)
             {
-                Debug.Log($"[Monster] Stunned, skipping Update for {monsterName}");
+                if (_isStunned) Debug.Log($"[Monster] Stunned, skipping Update for {monsterName}");
                 return;
             }
             if (canMove && _agent != null && _agent.isOnNavMesh)
@@ -185,6 +187,19 @@ public class Monster : NetworkBehaviour
         {
             _lastAttackTime = Time.time;
             attackSkill.Execute(this, null, _target.gameObject);
+            isAttacking = true;
+            _agent.isStopped = true;
+            StartCoroutine(EndAttackAnimation());
+        }
+    }
+
+    private IEnumerator EndAttackAnimation()
+    {
+        yield return new WaitForSeconds(attackAnimationDuration);
+        isAttacking = false;
+        if (_agent != null && _agent.isOnNavMesh && !_isStunned)
+        {
+            _agent.isStopped = false;
         }
     }
 

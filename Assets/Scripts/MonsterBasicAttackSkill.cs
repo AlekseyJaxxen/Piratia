@@ -62,7 +62,7 @@ public class MonsterBasicAttackSkill : SkillBase
     {
         if (vfxPrefab != null)
         {
-            Quaternion xRotation = Quaternion.Euler(90, 0, 0);
+            Quaternion xRotation = Quaternion.Euler(0, 0, 0);
             Quaternion finalRotation = startRotation * xRotation;
             GameObject vfxInstance = Instantiate(vfxPrefab, startPosition, finalRotation);
             if (isCritical && vfxInstance.TryGetComponent<Renderer>(out var renderer))

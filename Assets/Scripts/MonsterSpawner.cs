@@ -6,11 +6,14 @@ using System.Collections;
 
 public class MonsterSpawner : NetworkBehaviour
 {
-    [SerializeField] private GameObject monsterPrefab;
+    [SerializeField] private GameObject[] monsterPrefabs;
+    [SerializeField] private GameObject chestPrefab;
     [SerializeField] private List<Transform> spawnPoints;
+    [SerializeField] private Transform chestSpawnPoint;
     [SerializeField] private float respawnInterval = 10f;
     [SerializeField] private int maxMonsters = 5;
     private List<GameObject> spawnedMonsters = new List<GameObject>();
+    private GameObject spawnedChest;
 
     public override void OnStartServer()
     {
@@ -21,6 +24,7 @@ public class MonsterSpawner : NetworkBehaviour
     private IEnumerator SpawnMonstersDelayed()
     {
         yield return new WaitUntil(() => NavMesh.CalculateTriangulation().vertices.Length > 0 && GameObject.Find("TeamSelectionCanvas") != null);
+        SpawnChest();
         foreach (var point in spawnPoints)
         {
             SpawnMonster(point.position);
@@ -41,36 +45,28 @@ public class MonsterSpawner : NetworkBehaviour
             }
         }
         spawnedMonsters.Clear();
+        if (spawnedChest != null)
+        {
+            NetworkServer.Destroy(spawnedChest);
+        }
         Debug.Log("[MonsterSpawner] Stopped spawning monsters and cleared spawnedMonsters list");
     }
 
     [Server]
     private void SpawnMonster(Vector3 position)
     {
-        if (monsterPrefab == null)
+        if (monsterPrefabs == null || monsterPrefabs.Length == 0)
         {
-            Debug.LogError("[MonsterSpawner] Monster prefab not assigned!");
+            Debug.LogError("[MonsterSpawner] Monster prefabs not assigned!");
             return;
         }
+        GameObject prefab = monsterPrefabs[Random.Range(0, monsterPrefabs.Length)];
         NavMeshHit hit;
         if (NavMesh.SamplePosition(position, out hit, 10f, NavMesh.AllAreas))
         {
             position = hit.position;
             Debug.Log($"[MonsterSpawner] Adjusted spawn position to NavMesh: {position}");
-            GameObject monster = Instantiate(monsterPrefab, position, Quaternion.identity);
-            Monster monsterComp = monster.GetComponent<Monster>();
-            if (monsterComp != null)
-            {
-                monsterComp.monsterName = $"Monster_{Random.Range(1000, 9999)}";
-                monsterComp.maxHealth = 1000;
-                monsterComp.currentHealth = monsterComp.maxHealth;
-            }
-            else
-            {
-                Debug.LogError("[MonsterSpawner] Monster component missing!");
-                Destroy(monster);
-                return;
-            }
+            GameObject monster = Instantiate(prefab, position, Quaternion.identity);
             NavMeshAgent agent = monster.GetComponent<NavMeshAgent>();
             if (agent == null || !agent.isOnNavMesh)
             {
@@ -89,6 +85,30 @@ public class MonsterSpawner : NetworkBehaviour
     }
 
     [Server]
+    private void SpawnChest()
+    {
+        if (chestPrefab == null || chestSpawnPoint == null)
+        {
+            Debug.LogError("[MonsterSpawner] Chest prefab or spawn point not assigned!");
+            return;
+        }
+        Vector3 position = chestSpawnPoint.position;
+        NavMeshHit hit;
+        if (NavMesh.SamplePosition(position, out hit, 10f, NavMesh.AllAreas))
+        {
+            position = hit.position;
+        }
+        spawnedChest = Instantiate(chestPrefab, position, Quaternion.identity);
+        NavMeshAgent agent = spawnedChest.GetComponent<NavMeshAgent>();
+        if (agent != null)
+        {
+            agent.enabled = false; // Make immobile
+        }
+        NetworkServer.Spawn(spawnedChest);
+        Debug.Log($"[MonsterSpawner] Spawned chest at {position}");
+    }
+
+    [Server]
     private void CheckAndRespawn()
     {
         for (int i = spawnedMonsters.Count - 1; i >= 0; i--)
@@ -99,6 +119,11 @@ public class MonsterSpawner : NetworkBehaviour
             {
                 spawnedMonsters.RemoveAt(i);
             }
+        }
+        if (spawnedChest == null ||
+            (spawnedChest.GetComponent<HealthMonster>() != null && spawnedChest.GetComponent<HealthMonster>().CurrentHealth <= 0))
+        {
+            SpawnChest();
         }
         if (spawnedMonsters.Count < maxMonsters && spawnPoints.Count > 0)
         {
