@@ -1,0 +1,363 @@
+using UnityEngine;
+using Mirror;
+using System.Collections;
+using UnityEngine.AI;
+
+public class Monster : NetworkBehaviour
+{
+    [Header("Monster Settings")]
+    [SyncVar] public string monsterName = "Monster";
+    [SyncVar] public int maxHealth = 100;
+    [SyncVar(hook = nameof(OnHealthChanged))] public int currentHealth;
+    [SerializeField] private float moveSpeed = 5f;
+    [SerializeField] private float attackRange = 2f;
+    [SerializeField] private float attackCooldown = 2f;
+    [SerializeField] private LayerMask playerLayer;
+    [SerializeField] private GameObject deathVFXPrefab;
+    [SerializeField] private GameObject healthBarPrefab;
+    [SerializeField] private GameObject nameTagPrefab;
+    [SerializeField] private MonsterBasicAttackSkill attackSkill;
+    [SerializeField] private bool canMove = true;
+    [SerializeField] private bool canAttack = true;
+
+    private NavMeshAgent _agent;
+    private PlayerCore _target;
+    private float _lastAttackTime;
+    private HealthBarUI _healthBarUI;
+    private NameTagUI _nameTagUI;
+    private bool _isDead;
+    [SyncVar] private float _slowPercentage = 0f;
+    [SyncVar] private float _originalSpeed = 0f;
+    [SyncVar] private ControlEffectType _currentControlEffect = ControlEffectType.None;
+    [SyncVar] private float _controlEffectEndTime = 0f;
+    [SyncVar] private int _currentEffectWeight = 0;
+    [SyncVar(hook = nameof(OnStunStateChanged))] private bool _isStunned = false;
+
+    private void Awake()
+    {
+        if (canMove)
+        {
+            _agent = GetComponent<NavMeshAgent>();
+            if (_agent == null)
+            {
+                Debug.LogError("[Monster] NavMeshAgent component missing!");
+                canMove = false;
+            }
+            else
+            {
+                _agent.speed = moveSpeed;
+                _agent.stoppingDistance = attackRange;
+                if (!_agent.isOnNavMesh)
+                {
+                    Debug.LogWarning($"[Monster] {monsterName} is not on NavMesh at {transform.position}. Disabling movement.");
+                    canMove = false;
+                }
+            }
+        }
+
+        currentHealth = maxHealth;
+
+        if (canAttack)
+        {
+            attackSkill = GetComponent<MonsterBasicAttackSkill>();
+            if (attackSkill == null)
+            {
+                Debug.LogError("[Monster] MonsterBasicAttackSkill component missing!");
+                canAttack = false;
+            }
+        }
+    }
+
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+        StartCoroutine(SetupUIDelayed());
+    }
+
+    private IEnumerator SetupUIDelayed()
+    {
+        while (true)
+        {
+            Canvas mainCanvas = FindObjectOfType<Canvas>();
+            if (mainCanvas != null)
+            {
+                // Existing UI setup code
+                if (healthBarPrefab != null)
+                {
+                    GameObject barInstance = Instantiate(healthBarPrefab, mainCanvas.transform);
+                    _healthBarUI = barInstance.GetComponent<HealthBarUI>();
+                    if (_healthBarUI != null)
+                    {
+                        _healthBarUI.target = transform;
+                        _healthBarUI.UpdateHP(currentHealth, maxHealth);
+                        HealthMonster health = GetComponent<HealthMonster>();
+                        if (health != null)
+                        {
+                            health.SetHealthBarUI(_healthBarUI);
+                            Debug.Log($"[Monster] HealthBarUI initialized and set for {monsterName}");
+                        }
+                    }
+                }
+                // NameTagUI setup code...
+                yield break;
+            }
+            Debug.LogWarning($"[Monster] No Canvas found for UI, retrying...");
+            yield return new WaitForSeconds(0.5f);
+        }
+    }
+
+    private void Update()
+    {
+        if (isServer && !_isDead)
+        {
+            if (_currentControlEffect != ControlEffectType.None && Time.time >= _controlEffectEndTime)
+            {
+                ClearControlEffect();
+            }
+
+            if (canMove && _agent != null && _agent.isOnNavMesh)
+            {
+                FindTarget();
+                if (_target != null)
+                {
+                    float distance = Vector3.Distance(transform.position, _target.transform.position);
+                    if (distance <= attackRange && !_isStunned && canAttack)
+                    {
+                        _agent.isStopped = true;
+                        RotateTo(_target.transform.position - transform.position);
+                        TryAttack();
+                    }
+                    else
+                    {
+                        _agent.isStopped = false;
+                        _agent.SetDestination(_target.transform.position);
+                    }
+                }
+            }
+            else if (canAttack && !_isStunned)
+            {
+                FindTarget();
+                if (_target != null && Vector3.Distance(transform.position, _target.transform.position) <= attackRange)
+                {
+                    RotateTo(_target.transform.position - transform.position);
+                    TryAttack();
+                }
+            }
+        }
+    }
+
+    private void FindTarget()
+    {
+        Collider[] hits = Physics.OverlapSphere(transform.position, 10f, playerLayer);
+        float closestDistance = float.MaxValue;
+        PlayerCore closestPlayer = null;
+
+        foreach (Collider hit in hits)
+        {
+            PlayerCore player = hit.GetComponent<PlayerCore>();
+            if (player != null && !player.isDead)
+            {
+                float distance = Vector3.Distance(transform.position, player.transform.position);
+                if (distance < closestDistance)
+                {
+                    closestDistance = distance;
+                    closestPlayer = player;
+                }
+            }
+        }
+        _target = closestPlayer;
+        if (_target != null)
+            Debug.Log($"[Monster] Target found: {_target.gameObject.name}");
+    }
+
+    private void TryAttack()
+    {
+        if (!canAttack) return;
+        if (Time.time >= _lastAttackTime + attackCooldown && _target != null && attackSkill != null)
+        {
+            _lastAttackTime = Time.time;
+            attackSkill.Execute(this, null, _target.gameObject);
+        }
+    }
+
+    [Server]
+    public void ExecuteAttack(uint targetNetId, string skillName, int damage, bool isCritical)
+    {
+        if (!NetworkServer.spawned.ContainsKey(targetNetId))
+        {
+            Debug.LogWarning($"[Monster] Target netId {targetNetId} not found for {skillName}");
+            return;
+        }
+
+        NetworkIdentity targetIdentity = NetworkServer.spawned[targetNetId];
+        Health targetHealth = targetIdentity.GetComponent<Health>();
+        if (targetHealth != null)
+        {
+            targetHealth.TakeDamage(damage, DamageType.Physical, isCritical, GetComponent<NetworkIdentity>());
+            RpcPlayAttackVFX(transform.position, transform.rotation, targetIdentity.transform.position, isCritical, skillName);
+        }
+    }
+
+    [ClientRpc]
+    private void RpcPlayAttackVFX(Vector3 startPos, Quaternion startRotation, Vector3 endPos, bool isCritical, string skillName)
+    {
+        if (attackSkill != null)
+        {
+            attackSkill.PlayVFX(startPos, startRotation, endPos, isCritical);
+        }
+    }
+
+    private void RotateTo(Vector3 direction)
+    {
+        direction.y = 0;
+        if (direction != Vector3.zero)
+        {
+            Quaternion lookRotation = Quaternion.LookRotation(direction);
+            transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * 10f);
+        }
+    }
+
+    [Server]
+    public void TakeDamage(int damage)
+    {
+        if (_isDead) return;
+        HealthMonster health = GetComponent<HealthMonster>();
+        if (health == null)
+        {
+            Debug.LogError($"[Monster] HealthMonster component missing on {monsterName}");
+            return;
+        }
+        health.TakeDamage(damage, DamageType.Physical, false, null);
+        currentHealth = health.CurrentHealth;
+        if (currentHealth <= 0)
+        {
+            Die();
+        }
+    }
+
+    [Server]
+    public void ApplyControlEffect(ControlEffectType effectType, float duration, int skillWeight)
+    {
+        if (_currentControlEffect != ControlEffectType.None && Time.time < _controlEffectEndTime && skillWeight <= _currentEffectWeight)
+        {
+            Debug.Log($"[Monster] Cannot apply {effectType} (weight {skillWeight}): {_currentControlEffect} (weight {_currentEffectWeight}) is active until {_controlEffectEndTime}");
+            return;
+        }
+
+        if (_currentControlEffect != ControlEffectType.None)
+        {
+            ClearControlEffect();
+        }
+
+        _currentControlEffect = effectType;
+        _currentEffectWeight = skillWeight;
+        _controlEffectEndTime = Time.time + duration;
+
+        if (effectType == ControlEffectType.Stun)
+        {
+            _isStunned = true;
+            Debug.Log($"[Monster] Applied stun effect, weight={skillWeight}, duration={duration}");
+        }
+        else if (effectType == ControlEffectType.Slow)
+        {
+            _slowPercentage = duration;
+            _originalSpeed = moveSpeed;
+            if (_agent != null && _agent.isOnNavMesh) _agent.speed = moveSpeed * (1f - _slowPercentage);
+            Debug.Log($"[Monster] Applied slow effect, weight={skillWeight}, percentage={_slowPercentage}, duration={duration}");
+        }
+    }
+
+    [Server]
+    public void ApplySlow(float percentage, float duration, int skillWeight)
+    {
+        if (_currentControlEffect != ControlEffectType.None && Time.time < _controlEffectEndTime && skillWeight <= _currentEffectWeight)
+        {
+            Debug.Log($"[Monster] Cannot apply slow (weight {skillWeight}): {_currentControlEffect} (weight {_currentEffectWeight}) is active until {_controlEffectEndTime}");
+            return;
+        }
+
+        if (_currentControlEffect != ControlEffectType.None)
+        {
+            ClearControlEffect();
+        }
+
+        _currentControlEffect = ControlEffectType.Slow;
+        _currentEffectWeight = skillWeight;
+        _slowPercentage = percentage;
+        _originalSpeed = moveSpeed;
+        if (_agent != null && _agent.isOnNavMesh) _agent.speed = moveSpeed * (1f - _slowPercentage);
+        _controlEffectEndTime = Time.time + duration;
+        Debug.Log($"[Monster] Applied slow: percentage={percentage}, duration={duration}, weight={skillWeight}");
+    }
+
+    [Server]
+    private void ClearControlEffect()
+    {
+        if (_currentControlEffect == ControlEffectType.Stun)
+        {
+            _isStunned = false;
+        }
+        else if (_currentControlEffect == ControlEffectType.Slow && _originalSpeed > 0f)
+        {
+            if (_agent != null && _agent.isOnNavMesh) _agent.speed = _originalSpeed;
+            _slowPercentage = 0f;
+            _originalSpeed = 0f;
+        }
+        _currentControlEffect = ControlEffectType.None;
+        _currentEffectWeight = 0;
+        _controlEffectEndTime = 0f;
+        Debug.Log("[Monster] Cleared control effect");
+    }
+
+    private void OnHealthChanged(int oldHealth, int newHealth)
+    {
+        if (_healthBarUI != null)
+        {
+            _healthBarUI.UpdateHP(newHealth, maxHealth);
+            Debug.Log($"[Monster] HealthBarUI updated: {newHealth}/{maxHealth} for {monsterName}");
+        }
+    }
+
+    private void OnStunStateChanged(bool oldValue, bool newValue)
+    {
+        Debug.Log($"[Monster] Stun state changed: {oldValue} -> {newValue}");
+    }
+
+    [Server]
+    private void Die()
+    {
+        _isDead = true;
+        if (_agent != null && _agent.isOnNavMesh) _agent.isStopped = true;
+        RpcDie();
+        StartCoroutine(DespawnAfterDelay(3f));
+    }
+
+    [ClientRpc]
+    private void RpcDie()
+    {
+        if (deathVFXPrefab != null)
+        {
+            GameObject vfx = Instantiate(deathVFXPrefab, transform.position, Quaternion.identity);
+            Destroy(vfx, 1f);
+        }
+    }
+
+    private IEnumerator DespawnAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        NetworkServer.Destroy(gameObject);
+    }
+
+    public override void OnStopClient()
+    {
+        base.OnStopClient();
+        if (_healthBarUI != null) Destroy(_healthBarUI.gameObject);
+        if (_nameTagUI != null) Destroy(_nameTagUI.gameObject);
+    }
+
+    private void OnDestroy()
+    {
+        if (_healthBarUI != null) Destroy(_healthBarUI.gameObject);
+        if (_nameTagUI != null) Destroy(_nameTagUI.gameObject);
+    }
+}
