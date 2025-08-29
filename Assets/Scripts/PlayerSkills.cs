@@ -201,7 +201,7 @@ public class PlayerSkills : NetworkBehaviour
     {
         if (_skillLastUseTimes.TryGetValue(skill.SkillName, out float lastUseTime))
         {
-            float currentTime = Time.time;
+            float currentTime = (float)NetworkTime.time;
             Debug.Log($"[PlayerSkills] Checking cooldown for {skill.SkillName}, lastUseTime={lastUseTime}, currentTime={currentTime}, cooldown={skill.Cooldown}, isServer={isServer}, isClient={isClient}");
             return currentTime - lastUseTime < skill.Cooldown;
         }
@@ -214,15 +214,15 @@ public class PlayerSkills : NetworkBehaviour
         if (_skillLastUseTimes.TryGetValue(skillName, out float lastUseTime))
         {
             SkillBase skill = skills.Find(s => s.SkillName == skillName);
-            return Mathf.Max(0, skill.Cooldown - (Time.time - lastUseTime));
+            return Mathf.Max(0, skill.Cooldown - ((float)NetworkTime.time - lastUseTime));
         }
         return 0f;
     }
 
     public void StartSkillCooldown(string skillName)
     {
-        _skillLastUseTimes[skillName] = Time.time;
-        Debug.Log($"[PlayerSkills] Started cooldown for {skillName} at {Time.time}");
+        _skillLastUseTimes[skillName] = (float)NetworkTime.time;
+        Debug.Log($"[PlayerSkills] Started cooldown for {skillName} at {(float)NetworkTime.time}");
     }
 
     [Command]
@@ -234,7 +234,7 @@ public class PlayerSkills : NetworkBehaviour
             Debug.LogWarning($"[PlayerSkills] Skill {skillName} not found");
             return;
         }
-        if (!skill.ignoreGlobalCooldown && Time.time - _lastGlobalUseTime < globalCooldown) return;
+        if (!skill.ignoreGlobalCooldown && (float)NetworkTime.time - _lastGlobalUseTime < globalCooldown) return;
         if (IsSkillOnCooldown(skill))
         {
             Debug.LogWarning($"[PlayerSkills] Skill {skillName} is on cooldown. Ignoring.");
@@ -246,7 +246,7 @@ public class PlayerSkills : NetworkBehaviour
             Debug.LogWarning($"[PlayerSkills] Not enough mana for {skillName}: {stats.currentMana}/{skill.ManaCost}");
             return;
         }
-        if (!skill.ignoreGlobalCooldown) _lastGlobalUseTime = Time.time;
+        if (!skill.ignoreGlobalCooldown) _lastGlobalUseTime = (float)NetworkTime.time;
         NetworkIdentity targetIdentity = null;
         if (targetNetId != 0 && NetworkServer.spawned.ContainsKey(targetNetId))
         {
@@ -504,7 +504,7 @@ public class PlayerSkills : NetworkBehaviour
 
     private void UpdateCursor()
     {
-        if (Time.time - _lastCursorUpdate > cursorUpdateInterval)
+        if ((float)NetworkTime.time - _lastCursorUpdate > cursorUpdateInterval)
         {
             Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
@@ -524,7 +524,7 @@ public class PlayerSkills : NetworkBehaviour
             {
                 SetCursor(defaultCursor);
             }
-            _lastCursorUpdate = Time.time;
+            _lastCursorUpdate = (float)NetworkTime.time;
         }
     }
 
@@ -552,7 +552,7 @@ public class PlayerSkills : NetworkBehaviour
 
     private void UpdateGlobalCooldownUI()
     {
-        float progress = 1f - Mathf.Max(0, globalCooldown - (Time.time - _lastGlobalUseTime)) / globalCooldown;
+        float progress = 1f - Mathf.Max(0, globalCooldown - ((float)NetworkTime.time - _lastGlobalUseTime)) / globalCooldown;
         PlayerUI.Instance.UpdateGlobalCooldown(progress);
     }
 }

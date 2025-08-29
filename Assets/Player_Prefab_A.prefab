@@ -2931,9 +2931,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   height: 20
   distance: 10
-  angle: 60
+  angle: 65
   rotationSpeed: 3
-  zoomSpeed: 8
+  zoomSpeed: 9
   minFOV: 15
   maxFOV: 60
 --- !u!114 &9141868853825329552

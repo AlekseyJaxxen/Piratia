@@ -34,14 +34,20 @@ public class PlayerActionSystem : NetworkBehaviour
         Debug.Log("[PlayerActionSystem] Cleaned up on client disconnect.");
     }
 
+    private int GetPriority(PlayerAction action)
+    {
+        switch (action)
+        {
+            case PlayerAction.Move: return 1;
+            case PlayerAction.Attack: return 2;
+            case PlayerAction.SkillCast: return 3;
+            default: return 0;
+        }
+    }
+
     public bool TryStartAction(PlayerAction actionType, Vector3? targetPosition = null, GameObject targetObject = null, ISkill skillToCast = null)
     {
         Debug.Log($"[PlayerActionSystem] Trying to start new action: {actionType}, isOwned: {isOwned}");
-        if (_isPerformingAction)
-        {
-            Debug.Log($"[PlayerActionSystem] An action is already being performed ({_currentActionType}). Completing it now.");
-            CompleteAction();
-        }
 
         if (_core == null)
         {
@@ -49,46 +55,98 @@ public class PlayerActionSystem : NetworkBehaviour
             return false;
         }
 
+        bool canInterruptAndStart = true;
+
+        if (actionType == PlayerAction.SkillCast)
+        {
+            if (skillToCast == null)
+            {
+                canInterruptAndStart = false;
+            }
+            else
+            {
+                bool isAoESkill = !(skillToCast is ProjectileDamageSkill || skillToCast is TargetedStunSkill || skillToCast is SlowSkill);
+                if (isAoESkill && targetPosition.HasValue)
+                {
+                    canInterruptAndStart = true;
+                }
+                else if (!isAoESkill && targetObject != null)
+                {
+                    canInterruptAndStart = true;
+                }
+                else
+                {
+                    Debug.LogWarning($"[PlayerActionSystem] Invalid SkillCast parameters: AoE needs targetPosition, targeted needs targetObject");
+                    canInterruptAndStart = false;
+                }
+            }
+        }
+        else if (actionType == PlayerAction.Move && !targetPosition.HasValue)
+        {
+            canInterruptAndStart = false;
+        }
+        else if (actionType == PlayerAction.Attack && targetObject == null)
+        {
+            canInterruptAndStart = false;
+        }
+
+        if (!canInterruptAndStart)
+        {
+            Debug.LogWarning($"[PlayerActionSystem] Cannot start action {actionType}: invalid parameters or configuration");
+            return false;
+        }
+
+        if (_isPerformingAction)
+        {
+            int newPriority = GetPriority(actionType);
+            int currentPriority = GetPriority(_currentActionType);
+            // Allow Move to interrupt only if not casting a targeted skill
+            if (actionType == PlayerAction.Move && _currentActionType == PlayerAction.SkillCast)
+            {
+                bool isAoESkill = !(skillToCast is ProjectileDamageSkill || skillToCast is TargetedStunSkill || skillToCast is SlowSkill);
+                if (!isAoESkill)
+                {
+                    Debug.Log($"[PlayerActionSystem] Ignoring Move: current action is targeted SkillCast");
+                    return false;
+                }
+            }
+            if (newPriority >= currentPriority || actionType == PlayerAction.Move)
+            {
+                Debug.Log($"[PlayerActionSystem] Interrupting {_currentActionType} for higher/equal priority or Move: {actionType}");
+                CompleteAction();
+            }
+            else
+            {
+                Debug.Log($"[PlayerActionSystem] Ignoring {actionType}: lower priority than {_currentActionType}");
+                return false;
+            }
+        }
+
+        _isPerformingAction = true;
+        _currentActionType = actionType;
+
         switch (actionType)
         {
             case PlayerAction.Move:
-                _isPerformingAction = true;
-                _currentActionType = PlayerAction.Move;
-                if (targetPosition.HasValue)
-                {
-                    _currentAction = StartCoroutine(MoveAction(targetPosition.Value));
-                    return true;
-                }
-                break;
+                _currentAction = StartCoroutine(MoveAction(targetPosition.Value));
+                return true;
             case PlayerAction.Attack:
-                _isPerformingAction = true;
-                _currentActionType = PlayerAction.Attack;
+                _currentAction = StartCoroutine(AttackAction(targetObject));
+                return true;
+            case PlayerAction.SkillCast:
                 if (targetObject != null)
                 {
-                    _currentAction = StartCoroutine(AttackAction(targetObject));
-                    return true;
+                    _currentAction = StartCoroutine(CastSkillAction(targetObject, skillToCast));
                 }
-                break;
-            case PlayerAction.SkillCast:
-                _isPerformingAction = true;
-                _currentActionType = PlayerAction.SkillCast;
-                if (skillToCast != null)
+                else
                 {
-                    bool isAoESkill = !(skillToCast is ProjectileDamageSkill || skillToCast is TargetedStunSkill || skillToCast is SlowSkill);
-                    if (isAoESkill && targetPosition.HasValue)
-                    {
-                        _currentAction = StartCoroutine(CastSkillAction(targetPosition.Value, skillToCast));
-                    }
-                    else if (targetObject != null)
-                    {
-                        _currentAction = StartCoroutine(CastSkillAction(targetObject, skillToCast));
-                    }
-                    return true;
+                    _currentAction = StartCoroutine(CastSkillAction(targetPosition.Value, skillToCast));
                 }
-                break;
+                return true;
         }
 
-        Debug.LogWarning($"[PlayerActionSystem] Failed to start action {actionType}: invalid parameters");
+        _isPerformingAction = false;
+        _currentActionType = PlayerAction.None;
         return false;
     }
 
@@ -173,7 +231,7 @@ public class PlayerActionSystem : NetworkBehaviour
         SkillBase basicAttackSkill = _core.Skills.skills[0];
         if (basicAttackSkill == null)
         {
-            Debug.LogError($"[PlayerActionSystem] Basic attack skill is null");
+            Debug.LogError("[PlayerActionSystem] Basic attack skill is null");
             CompleteAction();
             yield break;
         }
@@ -228,11 +286,15 @@ public class PlayerActionSystem : NetworkBehaviour
             yield break;
         }
 
+        float originalStoppingDistance = _core.Movement.Agent.stoppingDistance;
+        _core.Movement.Agent.stoppingDistance = 0f;
+
         while (true)
         {
             if (_core.isDead || _core.isStunned)
             {
                 Debug.Log("[PlayerActionSystem] Skill cast stopped: player is dead or stunned");
+                _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
                 CompleteAction();
                 yield break;
             }
@@ -244,6 +306,7 @@ public class PlayerActionSystem : NetworkBehaviour
                 _core.Movement.RotateTo(targetPosition - transform.position);
                 skillToCast.Execute(_core, targetPosition, null);
                 _core.Skills.CancelSkillSelection();
+                _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
                 CompleteAction();
                 yield break;
             }
@@ -271,11 +334,15 @@ public class PlayerActionSystem : NetworkBehaviour
             yield break;
         }
 
+        float originalStoppingDistance = _core.Movement.Agent.stoppingDistance;
+        _core.Movement.Agent.stoppingDistance = 0f;
+
         while (true)
         {
             if (_core.isDead || _core.isStunned)
             {
                 Debug.Log("[PlayerActionSystem] Skill cast stopped: player is dead or stunned");
+                _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
                 CompleteAction();
                 yield break;
             }
@@ -287,6 +354,7 @@ public class PlayerActionSystem : NetworkBehaviour
                 _core.Movement.RotateTo(targetObject.transform.position - transform.position);
                 skillToCast.Execute(_core, targetObject.transform.position, targetObject);
                 _core.Skills.CancelSkillSelection();
+                _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
                 CompleteAction();
                 yield break;
             }
