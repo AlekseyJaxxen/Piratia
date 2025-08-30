@@ -10,17 +10,12 @@ public class Monster : NetworkBehaviour
     [SyncVar] public int maxHealth = 1000;
     [SyncVar(hook = nameof(OnHealthChanged))] public int currentHealth;
     [SerializeField] private float moveSpeed = 5f;
-    [SerializeField] private float attackRange = 2f;
-    [SerializeField] private float attackCooldown = 2f;
-    [SerializeField] private LayerMask playerLayer;
     [SerializeField] private GameObject deathVFXPrefab;
     [SerializeField] private GameObject nameTagPrefab;
     [SerializeField] public MonsterBasicAttackSkill attackSkill;
     [SerializeField] private bool canMove = true;
     [SerializeField] private bool canAttack = true;
     private NavMeshAgent _agent;
-    private PlayerCore _target;
-    private float _lastAttackTime;
     private MonsterHealthBarUI _healthBarUI;
     private NameTagUI _nameTagUI;
     public bool IsDead;
@@ -30,7 +25,6 @@ public class Monster : NetworkBehaviour
     [SyncVar] private float _controlEffectEndTime = 0f;
     [SyncVar(hook = nameof(OnStunStateChanged))] public bool IsStunned = false;
     [SyncVar] private int _currentEffectWeight = 0;
-    [SyncVar] private bool isCooldown = false;
     [SerializeField] public float stoppingDistance = 1f;
 
     private void Awake()
@@ -110,96 +104,12 @@ public class Monster : NetworkBehaviour
 
     private void Update()
     {
-        if (isServer && !IsDead)
+        if (isServer)
         {
             if (_currentControlEffect != ControlEffectType.None && Time.time >= _controlEffectEndTime)
             {
                 ClearControlEffect();
             }
-            if (isCooldown || IsStunned)
-            {
-                if (IsStunned) Debug.Log($"[Monster] Stunned, skipping Update for {monsterName}");
-                return;
-            }
-            if (canMove && _agent != null && _agent.isOnNavMesh)
-            {
-                FindTarget();
-                if (_target != null)
-                {
-                    float distance = Vector3.Distance(transform.position, _target.transform.position);
-                    if (distance <= attackRange && canAttack)
-                    {
-                        _agent.isStopped = true;
-                        RotateTo(_target.transform.position - transform.position);
-                        TryAttack();
-                    }
-                    else
-                    {
-                        _agent.isStopped = false;
-                        _agent.SetDestination(_target.transform.position);
-                    }
-                }
-            }
-            else if (canAttack)
-            {
-                FindTarget();
-                if (_target != null && Vector3.Distance(transform.position, _target.transform.position) <= attackRange)
-                {
-                    RotateTo(_target.transform.position - transform.position);
-                    TryAttack();
-                }
-            }
-        }
-    }
-
-    private void FindTarget()
-    {
-        Collider[] hits = Physics.OverlapSphere(transform.position, 10f, playerLayer);
-        float closestDistance = float.MaxValue;
-        PlayerCore closestPlayer = null;
-        foreach (Collider hit in hits)
-        {
-            PlayerCore player = hit.GetComponent<PlayerCore>();
-            if (player != null && !player.isDead)
-            {
-                float distance = Vector3.Distance(transform.position, player.transform.position);
-                if (distance < closestDistance)
-                {
-                    closestDistance = distance;
-                    closestPlayer = player;
-                }
-            }
-        }
-        _target = closestPlayer;
-        if (_target != null)
-            Debug.Log($"[Monster] Target found: {_target.gameObject.name}");
-    }
-
-    private void TryAttack()
-    {
-        if (IsStunned)
-        {
-            Debug.Log($"[Monster] Attack blocked due to stun for {monsterName}");
-            return;
-        }
-        if (!canAttack) return;
-        if (Time.time >= _lastAttackTime + attackCooldown && _target != null && attackSkill != null)
-        {
-            _lastAttackTime = Time.time;
-            attackSkill.Execute(this, null, _target.gameObject);
-            isCooldown = true;
-            _agent.isStopped = true;
-            StartCoroutine(EndCooldown());
-        }
-    }
-
-    private IEnumerator EndCooldown()
-    {
-        yield return new WaitForSeconds(attackCooldown);
-        isCooldown = false;
-        if (_agent != null && _agent.isOnNavMesh && !IsStunned)
-        {
-            _agent.isStopped = false;
         }
     }
 
@@ -226,16 +136,6 @@ public class Monster : NetworkBehaviour
         if (attackSkill != null)
         {
             attackSkill.PlayVFX(startPos, startRotation, endPos, isCritical);
-        }
-    }
-
-    private void RotateTo(Vector3 direction)
-    {
-        direction.y = 0;
-        if (direction != Vector3.zero)
-        {
-            Quaternion lookRotation = Quaternion.LookRotation(direction);
-            transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * 10f);
         }
     }
 
@@ -353,13 +253,12 @@ public class Monster : NetworkBehaviour
     public void Die()
     {
         if (IsDead) return;
-        
+        IsDead = true;
         Debug.Log($"[Monster] Die called for {monsterName}, Health: {currentHealth}");
         if (_agent != null && _agent.isOnNavMesh)
         {
             _agent.isStopped = true;
             _agent.enabled = false;
-            IsDead = true;
         }
         BoxCollider boxCollider = GetComponent<BoxCollider>();
         if (boxCollider != null)
@@ -385,7 +284,7 @@ public class Monster : NetworkBehaviour
 
     private IEnumerator DespawnAfterDelay(float delay)
     {
-        yield return new WaitForSeconds(5f);
+        yield return new WaitForSeconds(1f);
         if (gameObject != null)
         {
             NetworkServer.Destroy(gameObject);
