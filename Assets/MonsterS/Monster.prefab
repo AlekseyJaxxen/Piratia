@@ -17,6 +17,7 @@ GameObject:
   - component: {fileID: 3388256022164301377}
   - component: {fileID: -3424931942500901088}
   - component: {fileID: 4449773428208079747}
+  - component: {fileID: 8413731148631188213}
   m_Layer: 9
   m_Name: Monster
   m_TagString: Enemy
@@ -71,6 +72,7 @@ MonoBehaviour:
   attackSkill: {fileID: 8060147995109489418}
   canMove: 1
   canAttack: 1
+  IsDead: 0
   stoppingDistance: 1.8
 --- !u!114 &7657699711342853803
 MonoBehaviour:
@@ -238,6 +240,25 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   modelTransform: {fileID: 4703572173367664737}
+--- !u!114 &8413731148631188213
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3774602016594009712}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9116a9e2dee98b6468cd0ce00ffe2b3f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  patrolRadius: 10
+  chaseTimeout: 10
+  playerLayer:
+    serializedVersion: 2
+    m_Bits: 384
+  attackRange: 2
+  attackCooldown: 1
 --- !u!1 &7917151836908470222
 GameObject:
   m_ObjectHideFlags: 0

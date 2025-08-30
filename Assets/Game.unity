@@ -7285,10 +7285,10 @@ MonoBehaviour:
   _hotkey: 0
   _range: 2
   _cooldown: 0.5
-  _castTime: 0.1
+  _castTime: 0
   _castCursor: {fileID: 0}
   _manaCost: 0
-  _damageType: 1
+  _damageType: 0
   _weight: 1
   _effectRadius: 0
   effectRadiusIndicator: {fileID: 0}

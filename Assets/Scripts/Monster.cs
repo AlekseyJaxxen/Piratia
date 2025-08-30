@@ -15,7 +15,7 @@ public class Monster : NetworkBehaviour
     [SerializeField] private LayerMask playerLayer;
     [SerializeField] private GameObject deathVFXPrefab;
     [SerializeField] private GameObject nameTagPrefab;
-    [SerializeField] private MonsterBasicAttackSkill attackSkill;
+    [SerializeField] public MonsterBasicAttackSkill attackSkill;
     [SerializeField] private bool canMove = true;
     [SerializeField] private bool canAttack = true;
     private NavMeshAgent _agent;
@@ -23,12 +23,12 @@ public class Monster : NetworkBehaviour
     private float _lastAttackTime;
     private MonsterHealthBarUI _healthBarUI;
     private NameTagUI _nameTagUI;
-    private bool _isDead;
+    public bool IsDead;
     [SyncVar] private float _slowPercentage = 0f;
     [SyncVar] private float _originalSpeed = 0f;
     [SyncVar] private ControlEffectType _currentControlEffect = ControlEffectType.None;
     [SyncVar] private float _controlEffectEndTime = 0f;
-    [SyncVar(hook = nameof(OnStunStateChanged))] private bool _isStunned = false;
+    [SyncVar(hook = nameof(OnStunStateChanged))] public bool IsStunned = false;
     [SyncVar] private int _currentEffectWeight = 0;
     [SyncVar] private bool isCooldown = false;
     [SerializeField] public float stoppingDistance = 1f;
@@ -110,15 +110,15 @@ public class Monster : NetworkBehaviour
 
     private void Update()
     {
-        if (isServer && !_isDead)
+        if (isServer && !IsDead)
         {
             if (_currentControlEffect != ControlEffectType.None && Time.time >= _controlEffectEndTime)
             {
                 ClearControlEffect();
             }
-            if (isCooldown || _isStunned)
+            if (isCooldown || IsStunned)
             {
-                if (_isStunned) Debug.Log($"[Monster] Stunned, skipping Update for {monsterName}");
+                if (IsStunned) Debug.Log($"[Monster] Stunned, skipping Update for {monsterName}");
                 return;
             }
             if (canMove && _agent != null && _agent.isOnNavMesh)
@@ -177,7 +177,7 @@ public class Monster : NetworkBehaviour
 
     private void TryAttack()
     {
-        if (_isStunned)
+        if (IsStunned)
         {
             Debug.Log($"[Monster] Attack blocked due to stun for {monsterName}");
             return;
@@ -197,7 +197,7 @@ public class Monster : NetworkBehaviour
     {
         yield return new WaitForSeconds(attackCooldown);
         isCooldown = false;
-        if (_agent != null && _agent.isOnNavMesh && !_isStunned)
+        if (_agent != null && _agent.isOnNavMesh && !IsStunned)
         {
             _agent.isStopped = false;
         }
@@ -242,7 +242,7 @@ public class Monster : NetworkBehaviour
     [Server]
     public void TakeDamage(int damage)
     {
-        if (_isDead) return;
+        if (IsDead) return;
         HealthMonster health = GetComponent<HealthMonster>();
         if (health == null)
         {
@@ -274,7 +274,7 @@ public class Monster : NetworkBehaviour
         _controlEffectEndTime = Time.time + duration;
         if (effectType == ControlEffectType.Stun)
         {
-            _isStunned = true;
+            IsStunned = true;
             if (_agent != null && _agent.isOnNavMesh)
             {
                 _agent.isStopped = true;
@@ -317,7 +317,7 @@ public class Monster : NetworkBehaviour
     {
         if (_currentControlEffect == ControlEffectType.Stun)
         {
-            _isStunned = false;
+            IsStunned = false;
             if (_agent != null && _agent.isOnNavMesh)
             {
                 _agent.isStopped = false;
@@ -352,13 +352,14 @@ public class Monster : NetworkBehaviour
     [Server]
     public void Die()
     {
-        if (_isDead) return;
-        _isDead = true;
+        if (IsDead) return;
+        
         Debug.Log($"[Monster] Die called for {monsterName}, Health: {currentHealth}");
         if (_agent != null && _agent.isOnNavMesh)
         {
             _agent.isStopped = true;
             _agent.enabled = false;
+            IsDead = true;
         }
         BoxCollider boxCollider = GetComponent<BoxCollider>();
         if (boxCollider != null)
@@ -384,7 +385,7 @@ public class Monster : NetworkBehaviour
 
     private IEnumerator DespawnAfterDelay(float delay)
     {
-        yield return new WaitForSeconds(1f);
+        yield return new WaitForSeconds(5f);
         if (gameObject != null)
         {
             NetworkServer.Destroy(gameObject);
