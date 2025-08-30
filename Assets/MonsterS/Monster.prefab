@@ -62,7 +62,7 @@ MonoBehaviour:
   currentHealth: 0
   moveSpeed: 7
   attackRange: 2
-  attackCooldown: 1
+  attackCooldown: 0.5
   playerLayer:
     serializedVersion: 2
     m_Bits: 384
@@ -71,7 +71,6 @@ MonoBehaviour:
   attackSkill: {fileID: 8060147995109489418}
   canMove: 1
   canAttack: 1
-  attackAnimationDuration: 1
 --- !u!114 &7657699711342853803
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -161,8 +160,8 @@ MonoBehaviour:
   _skillName: monster
   _hotkey: 0
   _range: 3
-  _cooldown: 0.1
-  _castTime: 1
+  _cooldown: 0.5
+  _castTime: 0
   _castCursor: {fileID: 0}
   _manaCost: 0
   _damageType: 0
