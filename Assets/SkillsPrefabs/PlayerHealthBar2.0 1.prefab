@@ -265,7 +265,7 @@ MonoBehaviour:
   fillImage: {fileID: 8903410939843785643}
   hpText: {fileID: 3133585924133491453}
   target: {fileID: 0}
-  offset: {x: 0, y: 2, z: 0}
+  offset: {x: 0, y: -2, z: 0}
 --- !u!1 &6116353059670654012
 GameObject:
   m_ObjectHideFlags: 0

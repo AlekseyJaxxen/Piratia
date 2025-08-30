@@ -6,14 +6,14 @@ public class PlayerCameraController : MonoBehaviour
     public Camera CameraInstance { get; private set; }
 
     [Header("Orbit Settings")]
-    [SerializeField] private float minRadius = 5f; // Close zoom distance
-    [SerializeField] private float maxRadius = 30f; // Far zoom distance
-    [SerializeField] private float minElevation = 20f; // Min vertical angle (close, low tilt)
-    [SerializeField] private float maxElevation = 80f; // Max vertical angle (far, near top-down)
-    [SerializeField] private float zoomSpeed = 0.1f;
+    public float minRadius = 5f; // Close zoom distance
+    public float maxRadius = 30f; // Far zoom distance
+    public float minElevation = 20f; // Min vertical angle (close, low tilt)
+    public float maxElevation = 80f; // Max vertical angle (far, near top-down)
+    public float zoomSpeed = 0.1f;
 
     [Header("Rotation")]
-    [SerializeField] private float rotationSpeed = 3f;
+    public float rotationSpeed = 3f;
 
     private float zoomFactor = 0.5f; // 0 close, 1 far
     private float azimuth = 0f; // Horizontal angle
@@ -33,17 +33,24 @@ public class PlayerCameraController : MonoBehaviour
     void LateUpdate()
     {
         if (_core == null || !_core.isLocalPlayer || CameraInstance == null) return;
-
         HandleZoom();
         HandleRotation();
-
         float radius = Mathf.Lerp(minRadius, maxRadius, zoomFactor);
         float elevation = Mathf.Lerp(minElevation, maxElevation, zoomFactor);
-
         Quaternion rotation = Quaternion.Euler(elevation, azimuth, 0);
-        Vector3 position = _target.position + rotation * Vector3.back * radius;
+        Vector3 targetPosition = _target.position + rotation * Vector3.back * radius;
 
-        CameraInstance.transform.position = position;
+        float distance = Vector3.Distance(CameraInstance.transform.position, targetPosition);
+
+        if (distance > 5f)
+        {
+            CameraInstance.transform.position = Vector3.Lerp(CameraInstance.transform.position, targetPosition, 0.1f);
+        }
+        else
+        {
+            CameraInstance.transform.position = targetPosition;
+        }
+
         CameraInstance.transform.LookAt(_target.position);
     }
 
