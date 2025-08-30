@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33afd28f7414d1441b3c320c86a39a5f, type: 3}
+  m_Name: NewBasicAttackSkill
+  m_EditorClassIdentifier: Assembly-CSharp::BasicAttackSkill
+  ignoreGlobalCooldown: 1
+  _icon: {fileID: 0}
+  _skillName: WarriorMelee
+  _hotkey: 0
+  _range: 2
+  _cooldown: 0
+  _castTime: 0
+  _castCursor: {fileID: 0}
+  _manaCost: 0
+  _damageType: 0
+  _weight: 1
+  _effectRadius: 0
+  castRangePrefab: {fileID: 0}
+  effectRadiusPrefab: {fileID: 0}
+  castRangeIndicator: {fileID: 0}
+  effectRadiusIndicator: {fileID: 0}
+  vfxPrefab: {fileID: 0}
+  projectilePrefab: {fileID: 124808, guid: 2d051abfebeda054eac2b6a15edf6d4e, type: 3}
+  projectileSpeed: 20
+  criticalHitVfxPrefab: {fileID: 0}
+  impactEffectPrefab: {fileID: 0}
+  criticalHitColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}

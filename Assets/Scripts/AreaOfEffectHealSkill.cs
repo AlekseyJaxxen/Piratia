@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
-using System.Collections;
 
+[CreateAssetMenu(fileName = "NewAreaOfEffectHealSkill", menuName = "Skills/AreaOfEffectHealSkill")]
 public class AreaOfEffectHealSkill : SkillBase
 {
     [Header("Heal Settings")]
@@ -31,8 +31,8 @@ public class AreaOfEffectHealSkill : SkillBase
     {
         if (effectPrefab != null)
         {
-            GameObject effect = Instantiate(effectPrefab, position + Vector3.up * 1f, Quaternion.identity);
-            Destroy(effect, 2f);
+            GameObject effect = Object.Instantiate(effectPrefab, position + Vector3.up * 1f, Quaternion.identity);
+            Object.Destroy(effect, 2f);
         }
     }
 }

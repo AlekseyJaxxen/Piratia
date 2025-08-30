@@ -183,14 +183,16 @@ public class PlayerCore : NetworkBehaviour
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
 
-        if (NameManager.Instance != null)
-        {
-            NameManager.Instance.RegisterPlayer(this);
-        }
+
     }
 
     public override void OnStartClient()
     {
+        if (NameManager.Instance != null)
+        {
+            NameManager.Instance.RegisterPlayer(this);
+        }
+
         base.OnStartClient();
         Debug.Log($"OnStartClient started for {playerName}, isLocalPlayer: {isLocalPlayer}");
         _nameText = GetComponentInChildren<TextMeshProUGUI>();

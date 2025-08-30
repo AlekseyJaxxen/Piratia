@@ -5,13 +5,11 @@ using System.Collections;
 public class MonsterAI2 : MonoBehaviour
 {
     public enum State { Idle, Patrol, Chase, Return }
-
     [SerializeField] private float patrolRadius = 10f;
     [SerializeField] private float chaseTimeout = 30f;
     [SerializeField] private LayerMask playerLayer;
     [SerializeField] private float attackRange = 2f;
     [SerializeField] private float attackCooldown = 2f;
-
     private NavMeshAgent agent;
     private Monster monster;
     private Vector3 spawnPoint;
@@ -30,7 +28,6 @@ public class MonsterAI2 : MonoBehaviour
     private void Update()
     {
         if (monster.IsDead || monster.IsStunned || !agent.isActiveAndEnabled) return;
-
         switch (currentState)
         {
             case State.Idle:
@@ -111,10 +108,10 @@ public class MonsterAI2 : MonoBehaviour
 
     private void TryAttack()
     {
-        if (Time.time >= lastAttackTime + attackCooldown && monster.attackSkill != null)
+        if (Time.time >= lastAttackTime + attackCooldown && monster.basicAttackSkill != null)
         {
             lastAttackTime = Time.time;
-            monster.attackSkill.Execute(monster, null, target.gameObject);
+            monster.basicAttackSkill.Execute(monster, null, target.gameObject);
             monster.IsCooldown = true;
             agent.isStopped = true;
             StartCoroutine(EndCooldown());
@@ -144,5 +141,6 @@ public class MonsterAI2 : MonoBehaviour
     }
 
     private void SwitchToPatrol() { currentState = State.Patrol; }
+
     private void SwitchToReturn() { currentState = State.Return; }
 }

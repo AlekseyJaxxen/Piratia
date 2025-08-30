@@ -1,7 +1,8 @@
 ﻿using UnityEngine;
-using System.Collections;
 using Mirror;
+using System.Collections;
 
+[CreateAssetMenu(fileName = "NewMonsterBasicAttackSkill", menuName = "Skills/MonsterBasicAttackSkill")]
 public class MonsterBasicAttackSkill : SkillBase
 {
     [Header("Basic Attack Settings")]
@@ -51,40 +52,40 @@ public class MonsterBasicAttackSkill : SkillBase
     {
         // Этот метод оставлен для совместимости с SkillBase, но не используется напрямую
         Debug.LogWarning($"[MonsterBasicAttackSkill] ExecuteSkillImplementation called with PlayerCore, redirecting to Monster logic");
-        Monster monster = GetComponent<Monster>();
+        Monster monster = caster.GetComponent<Monster>();
         if (monster != null)
         {
             Execute(monster, targetPosition, targetObject);
         }
     }
 
-    public void PlayVFX(Vector3 startPosition, Quaternion startRotation, Vector3 endPosition, bool isCritical)
+    public void PlayVFX(Vector3 startPosition, Quaternion startRotation, Vector3 endPosition, bool isCritical, Monster monster)
     {
         if (vfxPrefab != null)
         {
             Quaternion xRotation = Quaternion.Euler(0, 0, 0);
             Quaternion finalRotation = startRotation * xRotation;
-            GameObject vfxInstance = Instantiate(vfxPrefab, startPosition, finalRotation);
+            GameObject vfxInstance = Object.Instantiate(vfxPrefab, startPosition, finalRotation);
             if (isCritical && vfxInstance.TryGetComponent<Renderer>(out var renderer))
             {
                 renderer.material.color = criticalHitColor;
             }
-            Destroy(vfxInstance, 0.2f);
+            Object.Destroy(vfxInstance, 0.2f);
         }
         if (isCritical && criticalHitVfxPrefab != null)
         {
-            GameObject critVfx = Instantiate(criticalHitVfxPrefab, startPosition, startRotation);
-            Destroy(critVfx, 1f);
+            GameObject critVfx = Object.Instantiate(criticalHitVfxPrefab, startPosition, startRotation);
+            Object.Destroy(critVfx, 1f);
         }
         if (projectilePrefab != null)
         {
-            GameObject projectileInstance = Instantiate(projectilePrefab, startPosition, Quaternion.LookRotation(endPosition - startPosition));
+            GameObject projectileInstance = Object.Instantiate(projectilePrefab, startPosition, Quaternion.LookRotation(endPosition - startPosition));
             if (isCritical && projectileInstance.TryGetComponent<Renderer>(out var projectileRenderer))
             {
                 projectileRenderer.material.color = criticalHitColor;
                 projectileInstance.transform.localScale *= 1.3f;
             }
-            StartCoroutine(MoveProjectile(projectileInstance, startPosition, endPosition, isCritical));
+            monster.StartCoroutine(MoveProjectile(projectileInstance, startPosition, endPosition, isCritical));
         }
     }
 
@@ -104,15 +105,15 @@ public class MonsterBasicAttackSkill : SkillBase
         {
             if (impactEffectPrefab != null)
             {
-                GameObject impact = Instantiate(impactEffectPrefab, projectile.transform.position, Quaternion.identity);
+                GameObject impact = Object.Instantiate(impactEffectPrefab, projectile.transform.position, Quaternion.identity);
                 if (isCritical && impact.TryGetComponent<Renderer>(out var impactRenderer))
                 {
                     impactRenderer.material.color = criticalHitColor;
                     impact.transform.localScale *= 1.5f;
                 }
-                Destroy(impact, isCritical ? 2f : 1f);
+                Object.Destroy(impact, isCritical ? 2f : 1f);
             }
-            Destroy(projectile);
+            Object.Destroy(projectile);
         }
     }
 }

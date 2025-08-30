@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f566b4e89617e6469eda4f012325d89, type: 3}
+  m_Name: NewAreaOfEffectStunSkill
+  m_EditorClassIdentifier: Assembly-CSharp::AreaOfEffectStunSkill
+  ignoreGlobalCooldown: 0
+  _icon: {fileID: 0}
+  _skillName: WarriorFB
+  _hotkey: 284
+  _range: 5
+  _cooldown: 10
+  _castTime: 0.1
+  _castCursor: {fileID: 0}
+  _manaCost: 0
+  _damageType: 0
+  _weight: 1
+  _effectRadius: 5
+  castRangePrefab: {fileID: 0}
+  effectRadiusPrefab: {fileID: 0}
+  castRangeIndicator: {fileID: 0}
+  effectRadiusIndicator: {fileID: 0}
+  stunDuration: 2
+  effectPrefab: {fileID: 153256, guid: fe394d041df1a0547990f49cf653249f, type: 3}

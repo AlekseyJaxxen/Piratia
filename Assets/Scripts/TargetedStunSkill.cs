@@ -1,13 +1,13 @@
 using UnityEngine;
-using System.Collections;
 using Mirror;
+using System.Collections;
 
+[CreateAssetMenu(fileName = "NewTargetedStunSkill", menuName = "Skills/TargetedStunSkill")]
 public class TargetedStunSkill : SkillBase
 {
     [Header("Stun Skill Specifics")]
     public float stunDuration = 2f;
     public GameObject effectPrefab;
-    private Coroutine _effectCoroutine;
 
     protected override void ExecuteSkillImplementation(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
     {
@@ -42,12 +42,12 @@ public class TargetedStunSkill : SkillBase
         skills.CmdExecuteSkill(caster, null, targetIdentity.netId, _skillName, Weight);
     }
 
-    public void PlayEffect(GameObject target)
+    public void PlayEffect(GameObject target, PlayerSkills playerSkills)
     {
         if (effectPrefab != null)
         {
-            GameObject effect = Instantiate(effectPrefab, target.transform.position + Vector3.up * 1f, Quaternion.identity);
-            _effectCoroutine = StartCoroutine(DestroyEffectAfterDelay(effect, 2f));
+            GameObject effect = Object.Instantiate(effectPrefab, target.transform.position + Vector3.up * 1f, Quaternion.identity);
+            playerSkills.StartCoroutine(DestroyEffectAfterDelay(effect, 2f));
         }
     }
 
@@ -56,17 +56,7 @@ public class TargetedStunSkill : SkillBase
         yield return new WaitForSeconds(delay);
         if (effect != null)
         {
-            Destroy(effect);
-        }
-        _effectCoroutine = null;
-    }
-
-    private void OnDisable()
-    {
-        if (_effectCoroutine != null)
-        {
-            StopCoroutine(_effectCoroutine);
-            _effectCoroutine = null;
+            Object.Destroy(effect);
         }
     }
 }

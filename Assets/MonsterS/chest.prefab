@@ -13,7 +13,6 @@ GameObject:
   - component: {fileID: 7657699711342853803}
   - component: {fileID: 6532704908327139589}
   - component: {fileID: 6747403938314298328}
-  - component: {fileID: 8060147995109489418}
   - component: {fileID: 3388256022164301377}
   - component: {fileID: -3424931942500901088}
   - component: {fileID: 4449773428208079747}
@@ -59,17 +58,16 @@ MonoBehaviour:
   monsterName: Monster
   maxHealth: 1000
   currentHealth: 0
+  IsCooldown: 0
   moveSpeed: 7
-  attackRange: 2
-  attackCooldown: 1
-  playerLayer:
-    serializedVersion: 2
-    m_Bits: 384
   deathVFXPrefab: {fileID: 0}
   nameTagPrefab: {fileID: 0}
-  attackSkill: {fileID: 8060147995109489418}
   canMove: 0
   canAttack: 0
+  IsDead: 0
+  IsStunned: 0
+  stoppingDistance: 1
+  basicAttackSkill: {fileID: 11400000, guid: 7bbed8c6ef038aa418d85853fbc14319, type: 2}
 --- !u!114 &7657699711342853803
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -142,41 +140,6 @@ MonoBehaviour:
   showGizmos: 0
   showOverlay: 0
   overlayColor: {r: 0, g: 0, b: 0, a: 0.5}
---- !u!114 &8060147995109489418
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3774602016594009712}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 166ab9c335b576c47b39c87988a6a9c1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: '::'
-  ignoreGlobalCooldown: 1
-  _icon: {fileID: 0}
-  _skillName: monster
-  _hotkey: 0
-  _range: 2
-  _cooldown: 0.6
-  _castTime: 0.1
-  _castCursor: {fileID: 0}
-  _manaCost: 0
-  _damageType: 0
-  _weight: 1
-  _effectRadius: 0
-  effectRadiusIndicator: {fileID: 0}
-  vfxPrefab: {fileID: 1359282432330608, guid: 6f2b99ffd381f2b4fb2774133eefc469, type: 3}
-  projectilePrefab: {fileID: 0}
-  projectileSpeed: 20
-  criticalHitVfxPrefab: {fileID: 1133915824432234, guid: 459e8cea3d618c74d8aa368b8cee8ae0,
-    type: 3}
-  impactEffectPrefab: {fileID: 0}
-  criticalHitColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
-  baseDamage: 0
-  criticalChance: 0.1
-  criticalMultiplier: 1.5
 --- !u!65 &3388256022164301377
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -219,6 +182,7 @@ MonoBehaviour:
     type: 3}
   damageTextSpawnHeight: 2.5
   damageTextRandomness: 0.5
+  monsterAnimation: {fileID: 0}
 --- !u!114 &4449773428208079747
 MonoBehaviour:
   m_ObjectHideFlags: 0

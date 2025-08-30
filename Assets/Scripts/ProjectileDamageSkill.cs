@@ -1,7 +1,8 @@
 using UnityEngine;
-using System.Collections;
 using Mirror;
+using System.Collections;
 
+[CreateAssetMenu(fileName = "NewProjectileDamageSkill", menuName = "Skills/ProjectileDamageSkill")]
 public class ProjectileDamageSkill : SkillBase
 {
     [Header("Projectile Damage Skill Specifics")]
@@ -16,32 +17,29 @@ public class ProjectileDamageSkill : SkillBase
             Debug.LogWarning("[ProjectileDamageSkill] Target object is null");
             return;
         }
-
         NetworkIdentity targetIdentity = targetObject.GetComponent<NetworkIdentity>();
         if (targetIdentity == null)
         {
             Debug.LogWarning($"[ProjectileDamageSkill] Target {targetObject.name} has no NetworkIdentity");
             return;
         }
-
         CharacterStats stats = caster.GetComponent<CharacterStats>();
         if (stats != null && !stats.HasEnoughMana(ManaCost))
         {
             Debug.LogWarning($"[ProjectileDamageSkill] Not enough mana: {stats.currentMana}/{ManaCost}");
             return;
         }
-
         PlayerSkills skills = caster.GetComponent<PlayerSkills>();
         Debug.Log($"[ProjectileDamageSkill] Attempting to projectile attack target: {targetObject.name}, netId: {targetIdentity.netId}");
         skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName, 0); // Некотрольный скилл, weight = 0
     }
 
-    public void SpawnProjectile(Vector3 startPos, Vector3 targetPos)
+    public void SpawnProjectile(Vector3 startPos, Vector3 targetPos, PlayerSkills playerSkills)
     {
         if (projectilePrefab != null)
         {
-            GameObject projectile = Instantiate(projectilePrefab, startPos + Vector3.up * 1f, Quaternion.identity);
-            StartCoroutine(MoveProjectile(projectile, targetPos + Vector3.up * 1f));
+            GameObject projectile = Object.Instantiate(projectilePrefab, startPos + Vector3.up * 1f, Quaternion.identity);
+            playerSkills.StartCoroutine(MoveProjectile(projectile, targetPos + Vector3.up * 1f));
         }
     }
 
@@ -50,7 +48,6 @@ public class ProjectileDamageSkill : SkillBase
         float duration = 0.5f;
         float elapsed = 0f;
         Vector3 startPos = projectile.transform.position;
-
         while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
@@ -58,12 +55,11 @@ public class ProjectileDamageSkill : SkillBase
             projectile.transform.position = Vector3.Lerp(startPos, targetPos, t);
             yield return null;
         }
-
         if (impactEffectPrefab != null)
         {
-            GameObject impact = Instantiate(impactEffectPrefab, projectile.transform.position, Quaternion.identity);
-            Destroy(impact, 2f);
+            GameObject impact = Object.Instantiate(impactEffectPrefab, projectile.transform.position, Quaternion.identity);
+            Object.Destroy(impact, 2f);
         }
-        Destroy(projectile);
+        Object.Destroy(projectile);
     }
 }

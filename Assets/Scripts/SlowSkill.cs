@@ -1,7 +1,8 @@
 using UnityEngine;
-using System.Collections;
 using Mirror;
+using System.Collections;
 
+[CreateAssetMenu(fileName = "NewSlowSkill", menuName = "Skills/SlowSkill")]
 public class SlowSkill : SkillBase
 {
     [Header("Slow Skill Specifics")]
@@ -40,20 +41,20 @@ public class SlowSkill : SkillBase
         skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName, Weight);
     }
 
-    public void SpawnProjectile(Vector3 startPos, Vector3 targetPos)
+    public void SpawnProjectile(Vector3 startPos, Vector3 targetPos, PlayerSkills playerSkills)
     {
         if (projectilePrefab != null)
         {
-            GameObject projectile = Instantiate(projectilePrefab, startPos + Vector3.up * 1f, Quaternion.identity);
-            StartCoroutine(MoveProjectile(projectile, targetPos + Vector3.up * 1f));
+            GameObject projectile = Object.Instantiate(projectilePrefab, startPos + Vector3.up * 1f, Quaternion.identity);
+            playerSkills.StartCoroutine(MoveProjectile(projectile, targetPos + Vector3.up * 1f));
         }
     }
 
-    public void ApplySlowEffect(GameObject target, float duration)
+    public void ApplySlowEffect(GameObject target, float duration, PlayerSkills playerSkills)
     {
         if (slowEffectPrefab != null)
         {
-            StartCoroutine(ManageSlowEffect(target, duration));
+            playerSkills.StartCoroutine(ManageSlowEffect(target, duration));
         }
     }
 
@@ -71,20 +72,20 @@ public class SlowSkill : SkillBase
         }
         if (impactEffectPrefab != null)
         {
-            GameObject impact = Instantiate(impactEffectPrefab, projectile.transform.position, Quaternion.identity);
-            Destroy(impact, 2f);
+            GameObject impact = Object.Instantiate(impactEffectPrefab, projectile.transform.position, Quaternion.identity);
+            Object.Destroy(impact, 2f);
         }
-        Destroy(projectile);
+        Object.Destroy(projectile);
     }
 
     private IEnumerator ManageSlowEffect(GameObject target, float duration)
     {
-        GameObject effectInstance = Instantiate(slowEffectPrefab, target.transform);
+        GameObject effectInstance = Object.Instantiate(slowEffectPrefab, target.transform);
         effectInstance.transform.localPosition = Vector3.zero;
         yield return new WaitForSeconds(duration);
         if (effectInstance != null)
         {
-            Destroy(effectInstance);
+            Object.Destroy(effectInstance);
         }
     }
 }

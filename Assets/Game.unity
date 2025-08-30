@@ -7250,69 +7250,6 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 211706524}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &212025121
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 212025123}
-  - component: {fileID: 212025122}
-  m_Layer: 0
-  m_Name: basicskill
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &212025122
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 212025121}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 33afd28f7414d1441b3c320c86a39a5f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ignoreGlobalCooldown: 1
-  _icon: {fileID: 21300000, guid: 6fa365c0ceed64a49836c8da6dc0fcf8, type: 3}
-  _skillName: WarriorMelee
-  _hotkey: 0
-  _range: 2
-  _cooldown: 0.5
-  _castTime: 0
-  _castCursor: {fileID: 0}
-  _manaCost: 0
-  _damageType: 0
-  _weight: 1
-  _effectRadius: 0
-  effectRadiusIndicator: {fileID: 0}
-  vfxPrefab: {fileID: 0}
-  projectilePrefab: {fileID: 0}
-  projectileSpeed: 20
-  criticalHitVfxPrefab: {fileID: 0}
-  impactEffectPrefab: {fileID: 0}
-  criticalHitColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
---- !u!4 &212025123
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 212025121}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 652620083}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &218207558
 GameObject:
   m_ObjectHideFlags: 0
@@ -11337,69 +11274,6 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
---- !u!1 &330624052
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 330624054}
-  - component: {fileID: 330624053}
-  m_Layer: 0
-  m_Name: Slowlskill
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &330624053
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 330624052}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 69fec8161d307cd45bd70937d9dd480e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SlowSkill
-  ignoreGlobalCooldown: 0
-  _icon: {fileID: 21300000, guid: 035ad24471fd66e45aabada49b94eb27, type: 3}
-  _skillName: Cripple
-  _hotkey: 282
-  _range: 7
-  _cooldown: 5
-  _castTime: 0.1
-  _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
-  _manaCost: 0
-  _damageType: 0
-  _weight: 1
-  _effectRadius: 0
-  effectRadiusIndicator: {fileID: 0}
-  slowPercentage: 0.5
-  slowDuration: 5
-  baseDamage: 10
-  projectilePrefab: {fileID: 124842, guid: 16378541428887043a2d2ba231613bb9, type: 3}
-  impactEffectPrefab: {fileID: 0}
-  slowEffectPrefab: {fileID: 124842, guid: 16378541428887043a2d2ba231613bb9, type: 3}
---- !u!4 &330624054
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 330624052}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1855098298}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!43 &330886059
 Mesh:
   m_ObjectHideFlags: 0
@@ -21874,40 +21748,6 @@ Mesh:
       - serializedVersion: 1
         m_IndexStart: 0
         m_IndexCount: 0
---- !u!1 &652620082
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 652620083}
-  m_Layer: 0
-  m_Name: basicSkills
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &652620083
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 652620082}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 212025123}
-  - {fileID: 2082535637}
-  - {fileID: 1484290802}
-  m_Father: {fileID: 1855098298}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!43 &654095555
 Mesh:
   m_ObjectHideFlags: 0
@@ -26061,65 +25901,6 @@ Mesh:
       - serializedVersion: 1
         m_IndexStart: 0
         m_IndexCount: 0
---- !u!1 &812010806
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 812010807}
-  - component: {fileID: 812010808}
-  m_Layer: 0
-  m_Name: AoeHeal
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &812010807
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 812010806}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1855098298}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &812010808
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 812010806}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6725be40aa7610240985629a311d2bc7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ignoreGlobalCooldown: 0
-  _icon: {fileID: 21300000, guid: 8709f8a7c51e74043934a4c53703cf09, type: 3}
-  _skillName: AOeHeal
-  _hotkey: 285
-  _range: 5
-  _cooldown: 2
-  _castTime: 0.1
-  _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
-  _manaCost: 0
-  _damageType: 1
-  _weight: 1
-  _effectRadius: 5
-  effectRadiusIndicator: {fileID: 0}
-  healAmount: 1000
-  effectPrefab: {fileID: 108808, guid: 5128d0fb523fca6439fa131a1063c074, type: 3}
 --- !u!43 &813981069
 Mesh:
   m_ObjectHideFlags: 0
@@ -32981,66 +32762,6 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 1043777877}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &1057490531
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1057490533}
-  - component: {fileID: 1057490532}
-  m_Layer: 0
-  m_Name: Slash
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1057490532
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1057490531}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: da6862f7b7b560544b2ac82929229ae9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ignoreGlobalCooldown: 0
-  _icon: {fileID: 21300000, guid: 4f242f6091714734e8d2f2002b45498d, type: 3}
-  _skillName: Slash
-  _hotkey: 282
-  _range: 5
-  _cooldown: 5
-  _castTime: 0.2
-  _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
-  _manaCost: 0
-  _damageType: 0
-  _weight: 1
-  _effectRadius: 0
-  effectRadiusIndicator: {fileID: 0}
-  damageAmount: 1000
-  projectilePrefab: {fileID: 171468, guid: 9bb3c2595cddc25468a1fccc3b563ae4, type: 3}
-  impactEffectPrefab: {fileID: 0}
---- !u!4 &1057490533
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1057490531}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1855098298}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1058895833
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -46424,69 +46145,6 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 1482025045}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &1484290800
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1484290802}
-  - component: {fileID: 1484290801}
-  m_Layer: 0
-  m_Name: basicskillmage
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1484290801
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1484290800}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 33afd28f7414d1441b3c320c86a39a5f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ignoreGlobalCooldown: 1
-  _icon: {fileID: 21300000, guid: b6dff2a3895b38441ae4e419a1f153b0, type: 3}
-  _skillName: MageMelee
-  _hotkey: 0
-  _range: 8
-  _cooldown: 0.5
-  _castTime: 0.1
-  _castCursor: {fileID: 0}
-  _manaCost: 0
-  _damageType: 0
-  _weight: 1
-  _effectRadius: 0
-  effectRadiusIndicator: {fileID: 0}
-  vfxPrefab: {fileID: 0}
-  projectilePrefab: {fileID: 160792, guid: 7e9a3591984cda1499dc675622a57b0b, type: 3}
-  projectileSpeed: 20
-  criticalHitVfxPrefab: {fileID: 0}
-  impactEffectPrefab: {fileID: 0}
-  criticalHitColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
---- !u!4 &1484290802
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1484290800}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 652620083}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!43 &1486740241
 Mesh:
   m_ObjectHideFlags: 0
@@ -57254,17 +56912,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   warriorSkills:
-  - {fileID: 212025122}
-  - {fileID: 1869530943}
-  - {fileID: 1975448289}
-  - {fileID: 1057490532}
-  - {fileID: 812010808}
+  - {fileID: 11400000, guid: 66e41989aa5f4f94bba13713265dfd2e, type: 2}
+  - {fileID: 11400000, guid: 99c8eac67305e384f974c7ef9b54607c, type: 2}
+  - {fileID: 11400000, guid: 5897ded6612d9e34c922e82c57b6dd1f, type: 2}
+  - {fileID: 11400000, guid: 701db164e762e8d4eb55ee37444ee209, type: 2}
+  - {fileID: 11400000, guid: 46951b2916ba0c54cb9297c9c2ed2dd6, type: 2}
+  - {fileID: 11400000, guid: 1324d2a5c901fe74aa3984de01c176bd, type: 2}
   mageSkills:
   - {fileID: 0}
   archerSkills:
-  - {fileID: 2082535636}
-  - {fileID: 330624053}
-  - {fileID: 1975448289}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
 --- !u!4 &1855098298
 Transform:
   m_ObjectHideFlags: 0
@@ -57277,13 +56936,7 @@ Transform:
   m_LocalPosition: {x: -0.5493771, y: 1.6660917, z: -11.131422}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 652620083}
-  - {fileID: 1869530942}
-  - {fileID: 1975448288}
-  - {fileID: 1057490533}
-  - {fileID: 812010807}
-  - {fileID: 330624054}
+  m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!43 &1862566175
@@ -57751,65 +57404,6 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 1865888058}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &1869530941
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1869530942}
-  - component: {fileID: 1869530943}
-  m_Layer: 0
-  m_Name: stunSkills
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1869530942
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1869530941}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1855098298}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1869530943
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1869530941}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9f371d8bf95d7ea4ab18be386db285d9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ignoreGlobalCooldown: 0
-  _icon: {fileID: 21300000, guid: ae206ef5d298d4f47af2fe242f8da78f, type: 3}
-  _skillName: warriorStun
-  _hotkey: 283
-  _range: 2
-  _cooldown: 16
-  _castTime: 0.1
-  _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
-  _manaCost: 0
-  _damageType: 0
-  _weight: 2
-  _effectRadius: 0
-  effectRadiusIndicator: {fileID: 0}
-  stunDuration: 8
-  effectPrefab: {fileID: 180820, guid: a07608802ac497743a7f19f6633fdd70, type: 3}
 --- !u!1 &1869776905
 GameObject:
   m_ObjectHideFlags: 0
@@ -60880,66 +60474,6 @@ Mesh:
       - serializedVersion: 1
         m_IndexStart: 0
         m_IndexCount: 0
---- !u!1 &1975448287
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1975448288}
-  - component: {fileID: 1975448289}
-  m_Layer: 0
-  m_Name: flashbang
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1975448288
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1975448287}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1855098298}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1975448289
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1975448287}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5f566b4e89617e6469eda4f012325d89, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ignoreGlobalCooldown: 0
-  _icon: {fileID: 21300000, guid: 9e368a4a52e3b3e41bf2c3bd7ed697b5, type: 3}
-  _skillName: flashbang
-  _hotkey: 284
-  _range: 5
-  _cooldown: 10
-  _castTime: 0.2
-  _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
-  _manaCost: 0
-  _damageType: 0
-  _weight: 1
-  _effectRadius: 5
-  effectRadiusIndicator: {fileID: 0}
-  stunDuration: 1
-  effectPrefab: {fileID: 1749531076600668, guid: accde411a04fa0a44a831fe628da0cd9,
-    type: 3}
 --- !u!43 &1979457009
 Mesh:
   m_ObjectHideFlags: 0
@@ -64270,69 +63804,6 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &2082535635
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2082535637}
-  - component: {fileID: 2082535636}
-  m_Layer: 0
-  m_Name: basicskillrange
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &2082535636
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2082535635}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 33afd28f7414d1441b3c320c86a39a5f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ignoreGlobalCooldown: 1
-  _icon: {fileID: 21300000, guid: 588745f53374cf9489dc30130c18c9ab, type: 3}
-  _skillName: ArcherMelee
-  _hotkey: 0
-  _range: 6
-  _cooldown: 0.5
-  _castTime: 0.1
-  _castCursor: {fileID: 0}
-  _manaCost: 0
-  _damageType: 0
-  _weight: 1
-  _effectRadius: 0
-  effectRadiusIndicator: {fileID: 0}
-  vfxPrefab: {fileID: 0}
-  projectilePrefab: {fileID: 160792, guid: 7e9a3591984cda1499dc675622a57b0b, type: 3}
-  projectileSpeed: 20
-  criticalHitVfxPrefab: {fileID: 0}
-  impactEffectPrefab: {fileID: 0}
-  criticalHitColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
---- !u!4 &2082535637
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2082535635}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 652620083}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &2092931730
 PrefabInstance:

@@ -1,7 +1,8 @@
 using UnityEngine;
 using Mirror;
 
-public abstract class SkillBase : MonoBehaviour, ISkill
+[CreateAssetMenu(fileName = "NewSkillBase", menuName = "Skills/SkillBase")]
+public abstract class SkillBase : ScriptableObject, ISkill
 {
     public float Cooldown => _cooldown;
     public float Range => _range;
@@ -31,7 +32,10 @@ public abstract class SkillBase : MonoBehaviour, ISkill
     [SerializeField] protected DamageType _damageType = DamageType.Physical;
     [SerializeField] protected int _weight = 1;
     [SerializeField] protected float _effectRadius;
-    protected GameObject castRangeIndicator;
+    [Header("Indicator Prefabs")]
+    [SerializeField] public GameObject castRangePrefab;
+    [SerializeField] public GameObject effectRadiusPrefab;
+    public GameObject castRangeIndicator;
     public GameObject effectRadiusIndicator;
 
     public virtual void Init(PlayerCore core)
@@ -40,7 +44,7 @@ public abstract class SkillBase : MonoBehaviour, ISkill
         _playerSkills = core.GetComponent<PlayerSkills>();
         if (string.IsNullOrEmpty(_skillName))
         {
-            Debug.LogError($"[SkillBase] SkillName not set for {gameObject.name}");
+            Debug.LogError($"[SkillBase] SkillName not set for {name}");
         }
     }
 
@@ -59,26 +63,20 @@ public abstract class SkillBase : MonoBehaviour, ISkill
     {
         if (visible)
         {
-            if (castRangeIndicator == null)
+            if (castRangeIndicator == null && castRangePrefab != null)
             {
-                castRangeIndicator = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                castRangeIndicator.GetComponent<Collider>().enabled = false;
+                castRangeIndicator = Object.Instantiate(castRangePrefab, _player.transform);
                 castRangeIndicator.transform.localScale = new Vector3(Range * 2, 0.1f, Range * 2);
-                Renderer castRend = castRangeIndicator.GetComponent<Renderer>();
-                castRend.material = new Material(Shader.Find("Sprites/Default")) { color = new Color(0, 1, 0, 0.3f) };
-                castRangeIndicator.name = $"{SkillName} Cast Range";
-                castRangeIndicator.transform.SetParent(_player.transform);
                 castRangeIndicator.transform.localPosition = Vector3.up * 0.01f;
                 castRangeIndicator.transform.localRotation = Quaternion.Euler(0, 0, 0);
+                castRangeIndicator.name = $"{SkillName} Cast Range";
             }
-            castRangeIndicator.SetActive(true);
-            if (effectRadiusIndicator == null && EffectRadius > 0)
+            if (castRangeIndicator != null) castRangeIndicator.SetActive(true);
+
+            if (effectRadiusIndicator == null && effectRadiusPrefab != null && EffectRadius > 0)
             {
-                effectRadiusIndicator = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                effectRadiusIndicator.GetComponent<Collider>().enabled = false;
+                effectRadiusIndicator = Object.Instantiate(effectRadiusPrefab);
                 effectRadiusIndicator.transform.localScale = new Vector3(EffectRadius * 2, 0.1f, EffectRadius * 2);
-                Renderer effectRend = effectRadiusIndicator.GetComponent<Renderer>();
-                effectRend.material = new Material(Shader.Find("Sprites/Default")) { color = new Color(1, 0, 0, 0.3f) };
                 effectRadiusIndicator.name = $"{SkillName} Effect Radius";
             }
             if (effectRadiusIndicator != null) effectRadiusIndicator.SetActive(true);
@@ -116,10 +114,10 @@ public abstract class SkillBase : MonoBehaviour, ISkill
         ExecuteSkillImplementation(player, targetPosition, targetObject);
     }
 
-    private void OnDisable()
+    public virtual void CleanupIndicators()
     {
-        if (castRangeIndicator != null) Destroy(castRangeIndicator);
-        if (effectRadiusIndicator != null) Destroy(effectRadiusIndicator);
+        if (castRangeIndicator != null) Object.Destroy(castRangeIndicator);
+        if (effectRadiusIndicator != null) Object.Destroy(effectRadiusIndicator);
     }
 
     protected abstract void ExecuteSkillImplementation(PlayerCore player, Vector3? targetPosition, GameObject targetObject);

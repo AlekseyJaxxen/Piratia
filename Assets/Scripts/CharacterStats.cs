@@ -376,4 +376,10 @@ public class CharacterStats : NetworkBehaviour
         }
         return baseDamage;
     }
+
+    public void SpendMana(int amount)
+    {
+        currentMana = Mathf.Max(0, currentMana - amount);
+        OnManaChangedEvent?.Invoke(currentMana, maxMana); // Если есть событие
+    }
 }

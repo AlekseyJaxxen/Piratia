@@ -3,7 +3,17 @@ guid: cffb0adc2f9fc354abc2f6a63c235a22
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - _icon: {instanceID: 0}
+  - _castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
+  - castRangePrefab: {fileID: 3299273662854126661, guid: ee30310967d98c04fb16bcfa96cfb3c2,
+      type: 3}
+  - effectRadiusPrefab: {fileID: 8212533921873324154, guid: e6230a171a068cd489eb410abd241717,
+      type: 3}
+  - castRangeIndicator: {fileID: 3299273662854126661, guid: ee30310967d98c04fb16bcfa96cfb3c2,
+      type: 3}
+  - effectRadiusIndicator: {fileID: 8212533921873324154, guid: e6230a171a068cd489eb410abd241717,
+      type: 3}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

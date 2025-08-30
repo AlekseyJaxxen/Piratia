@@ -1,14 +1,14 @@
 using UnityEngine;
-using System.Collections;
 using Mirror;
+using System.Collections;
 
+[CreateAssetMenu(fileName = "NewBasicAttackSkill", menuName = "Skills/BasicAttackSkill")]
 public class BasicAttackSkill : SkillBase
 {
     [Header("Basic Attack Settings")]
     public GameObject vfxPrefab;
     public GameObject projectilePrefab;
     public float projectileSpeed = 20f;
-
     [Header("Critical Hit Settings")]
     public GameObject criticalHitVfxPrefab;
     public GameObject impactEffectPrefab;
@@ -44,35 +44,33 @@ public class BasicAttackSkill : SkillBase
         caster.GetComponent<PlayerAnimation>().PlayAttackAnimation();
     }
 
-    public void PlayVFX(Vector3 startPosition, Quaternion startRotation, Vector3 endPosition, bool isCritical)
+    public void PlayVFX(Vector3 startPosition, Quaternion startRotation, Vector3 endPosition, bool isCritical, PlayerSkills playerSkills)
     {
         if (vfxPrefab != null)
         {
             Quaternion xRotation = Quaternion.Euler(0, 0, 0);
             Quaternion finalRotation = startRotation * xRotation;
-            GameObject vfxInstance = Instantiate(vfxPrefab, startPosition, finalRotation);
+            GameObject vfxInstance = Object.Instantiate(vfxPrefab, startPosition, finalRotation);
             if (isCritical && vfxInstance.TryGetComponent<Renderer>(out var renderer))
             {
                 renderer.material.color = criticalHitColor;
             }
-            Destroy(vfxInstance, 0.2f);
+            Object.Destroy(vfxInstance, 0.2f);
         }
-
         if (isCritical && criticalHitVfxPrefab != null)
         {
-            GameObject critVfx = Instantiate(criticalHitVfxPrefab, startPosition, startRotation);
-            Destroy(critVfx, 1f);
+            GameObject critVfx = Object.Instantiate(criticalHitVfxPrefab, startPosition, startRotation);
+            Object.Destroy(critVfx, 1f);
         }
-
         if (projectilePrefab != null)
         {
-            GameObject projectileInstance = Instantiate(projectilePrefab, startPosition, Quaternion.LookRotation(endPosition - startPosition));
+            GameObject projectileInstance = Object.Instantiate(projectilePrefab, startPosition, Quaternion.LookRotation(endPosition - startPosition));
             if (isCritical && projectileInstance.TryGetComponent<Renderer>(out var projectileRenderer))
             {
                 projectileRenderer.material.color = criticalHitColor;
                 projectileInstance.transform.localScale *= 1.3f;
             }
-            StartCoroutine(MoveProjectile(projectileInstance, startPosition, endPosition, isCritical));
+            playerSkills.StartCoroutine(MoveProjectile(projectileInstance, startPosition, endPosition, isCritical));
         }
     }
 
@@ -88,20 +86,19 @@ public class BasicAttackSkill : SkillBase
             );
             yield return null;
         }
-
         if (projectile != null)
         {
             if (impactEffectPrefab != null)
             {
-                GameObject impact = Instantiate(impactEffectPrefab, projectile.transform.position, Quaternion.identity);
+                GameObject impact = Object.Instantiate(impactEffectPrefab, projectile.transform.position, Quaternion.identity);
                 if (isCritical && impact.TryGetComponent<Renderer>(out var impactRenderer))
                 {
                     impactRenderer.material.color = criticalHitColor;
                     impact.transform.localScale *= 1.5f;
                 }
-                Destroy(impact, isCritical ? 2f : 1f);
+                Object.Destroy(impact, isCritical ? 2f : 1f);
             }
-            Destroy(projectile);
+            Object.Destroy(projectile);
         }
     }
 }

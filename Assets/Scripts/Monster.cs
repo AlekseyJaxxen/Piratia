@@ -13,7 +13,6 @@ public class Monster : NetworkBehaviour
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private GameObject deathVFXPrefab;
     [SerializeField] private GameObject nameTagPrefab;
-    [SerializeField] public MonsterBasicAttackSkill attackSkill;
     [SerializeField] private bool canMove = true;
     [SerializeField] private bool canAttack = true;
     private NavMeshAgent _agent;
@@ -27,9 +26,11 @@ public class Monster : NetworkBehaviour
     [SyncVar(hook = nameof(OnStunStateChanged))] public bool IsStunned = false;
     [SyncVar] private int _currentEffectWeight = 0;
     [SerializeField] public float stoppingDistance = 1f;
+    [SerializeField] public MonsterBasicAttackSkill basicAttackSkill;
 
     private void Awake()
     {
+        if (basicAttackSkill == null) Debug.LogError("Skill not assigned");
         if (canMove)
         {
             _agent = GetComponent<NavMeshAgent>();
@@ -53,8 +54,7 @@ public class Monster : NetworkBehaviour
         currentHealth = maxHealth;
         if (canAttack)
         {
-            attackSkill = GetComponent<MonsterBasicAttackSkill>();
-            if (attackSkill == null)
+            if (basicAttackSkill == null)
             {
                 Debug.LogError("[Monster] MonsterBasicAttackSkill component missing!");
                 canAttack = false;
@@ -134,9 +134,9 @@ public class Monster : NetworkBehaviour
     [ClientRpc]
     private void RpcPlayAttackVFX(Vector3 startPos, Quaternion startRotation, Vector3 endPos, bool isCritical, string skillName)
     {
-        if (attackSkill != null)
+        if (basicAttackSkill != null)
         {
-            attackSkill.PlayVFX(startPos, startRotation, endPos, isCritical);
+            basicAttackSkill.PlayVFX(startPos, startRotation, endPos, isCritical, this);
         }
     }
 

@@ -1,6 +1,6 @@
 using UnityEngine;
-using System.Collections;
 
+[CreateAssetMenu(fileName = "NewAreaOfEffectStunSkill", menuName = "Skills/AreaOfEffectStunSkill")]
 public class AreaOfEffectStunSkill : SkillBase
 {
     [Header("AOE Stun Skill Specifics")]
@@ -24,8 +24,8 @@ public class AreaOfEffectStunSkill : SkillBase
     {
         if (effectPrefab != null)
         {
-            GameObject effect = Instantiate(effectPrefab, position + Vector3.up * 1f, Quaternion.identity);
-            Destroy(effect, 2f);
+            GameObject effect = Object.Instantiate(effectPrefab, position + Vector3.up * 1f, Quaternion.identity);
+            Object.Destroy(effect, 2f);
         }
     }
 }
