@@ -47,6 +47,14 @@ public class MonsterAnimation : NetworkBehaviour
         }
     }
 
+    public void PlayShake(float duration = 0.5f, float strength = 0.5f)
+    {
+        if (modelTransform != null)
+        {
+            modelTransform.DOShakePosition(duration, strength);
+        }
+    }
+
     private void OnDisable()
     {
         damageFlashSequence?.Kill();

@@ -71,6 +71,7 @@ MonoBehaviour:
   attackSkill: {fileID: 8060147995109489418}
   canMove: 1
   canAttack: 1
+  stoppingDistance: 1.8
 --- !u!114 &7657699711342853803
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -159,8 +160,8 @@ MonoBehaviour:
   _icon: {fileID: 0}
   _skillName: monster
   _hotkey: 0
-  _range: 3
-  _cooldown: 0.5
+  _range: 2
+  _cooldown: 1
   _castTime: 0
   _castCursor: {fileID: 0}
   _manaCost: 0
@@ -220,6 +221,7 @@ MonoBehaviour:
     type: 3}
   damageTextSpawnHeight: 2.5
   damageTextRandomness: 0.5
+  monsterAnimation: {fileID: 4449773428208079747}
 --- !u!114 &4449773428208079747
 MonoBehaviour:
   m_ObjectHideFlags: 0

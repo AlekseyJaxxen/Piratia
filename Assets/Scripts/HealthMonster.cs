@@ -5,6 +5,7 @@ using TMPro;
 public class HealthMonster : Health
 {
     private Monster _monster;
+    [SerializeField] private MonsterAnimation monsterAnimation;
 
     public override void OnStartServer()
     {
@@ -64,6 +65,7 @@ public class HealthMonster : Health
         if (animation != null)
         {
             animation.PlayDamageFlash();
+            animation.PlayShake();
             Debug.Log($"[HealthMonster] Triggered damage flash for {gameObject.name}");
         }
     }
