@@ -80,6 +80,7 @@ public class PlayerSkills : NetworkBehaviour
             yield break;
         }
         skills = SkillManager.Instance.GetSkillsForClass(stats.characterClass);
+        skills = skills.Select(s => Instantiate(s)).ToList();
         Debug.Log($"[PlayerSkills] Loaded {skills.Count} skills for class {stats.characterClass}: {string.Join(", ", skills.Select(s => s != null ? s.SkillName : "null"))}");
         foreach (var skill in skills)
         {
