@@ -158,12 +158,6 @@ public class PlayerSkills : NetworkBehaviour
     [Command]
     public void CmdExecuteSkill(PlayerCore caster, Vector3? targetPosition, uint targetNetId, string skillName, int weight)
     {
-        if (!isOwned)
-        {
-            Debug.LogWarning("[PlayerSkills] CmdExecuteSkill ignored: Not owned by client");
-            return;
-        }
-
         SkillBase skill = skills.Find(s => s.SkillName == skillName);
         if (skill == null)
         {
@@ -255,6 +249,7 @@ public class PlayerSkills : NetworkBehaviour
 
         StartSkillCooldown(skill.SkillName);
         if (!skill.ignoreGlobalCooldown) StartGlobalCooldown();
+        CancelSkillSelection();
     }
 
     private void HandleBasicAttack(SkillBase skill, GameObject targetObject)
@@ -405,12 +400,12 @@ public class PlayerSkills : NetworkBehaviour
 
     private void HandleSkills()
     {
-        foreach (var skill in skills)
+        foreach (var skill in skills.Where(s => s.Hotkey != KeyCode.None))
         {
             if (Input.GetKeyDown(skill.Hotkey))
             {
                 SelectSkill(skill);
-                break;
+                return; // Чтобы не обрабатывать несколько
             }
         }
 

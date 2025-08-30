@@ -6,7 +6,6 @@ public class HealthMonster : Health
 {
     private Monster _monster;
     [SerializeField] private MonsterAnimation monsterAnimation;
-
     public override void OnStartServer()
     {
         base.OnStartServer();
@@ -19,7 +18,6 @@ public class HealthMonster : Health
         SetHealth(_monster.maxHealth);
         Debug.Log($"[HealthMonster] Initialized health for {gameObject.name}: {_monster.maxHealth}");
     }
-
     [Server]
     public new void TakeDamage(int damage, DamageType damageType, bool isCritical, NetworkIdentity attacker)
     {
@@ -32,6 +30,10 @@ public class HealthMonster : Health
         }
         RpcShowDamageNumber(damage, isCritical);
         RpcPlayDamageFlash();
+        if (CurrentHealth <= 0)
+        {
+            _monster.Die();
+        }
     }
     [ClientRpc]
     private void RpcShowDamageNumber(int damage, bool isCritical)
@@ -57,7 +59,6 @@ public class HealthMonster : Health
             Debug.LogWarning("[HealthMonster] floatingTextPrefab is null");
         }
     }
-
     [ClientRpc]
     private void RpcPlayDamageFlash()
     {
@@ -69,7 +70,6 @@ public class HealthMonster : Health
             Debug.Log($"[HealthMonster] Triggered damage flash for {gameObject.name}");
         }
     }
-
     public void SetHealthBarUI(MonsterHealthBarUI healthBarUI)
     {
         if (healthBarUI != null)
@@ -78,17 +78,14 @@ public class HealthMonster : Health
             Debug.Log($"[HealthMonster] MonsterHealthBarUI set for {gameObject.name}");
         }
     }
-
     private void OnEnable()
     {
         OnHealthUpdated += UpdateMonsterHealth;
     }
-
     private void OnDisable()
     {
         OnHealthUpdated -= UpdateMonsterHealth;
     }
-
     private void UpdateMonsterHealth(int newHealth, int maxHealth)
     {
         if (_monster != null)

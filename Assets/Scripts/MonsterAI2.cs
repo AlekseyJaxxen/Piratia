@@ -27,6 +27,16 @@ public class MonsterAI2 : MonoBehaviour
 
     private void Update()
     {
+        if (monster.currentHealth <= 0)
+        {
+            enabled = false;
+            return;
+        }
+
+        if (monster.IsDead) { enabled = false; return; }
+
+        if (monster.IsStunned) return;
+
         if (monster.IsDead || monster.IsStunned || !agent.isActiveAndEnabled) return;
         switch (currentState)
         {

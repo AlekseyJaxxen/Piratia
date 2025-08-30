@@ -254,6 +254,7 @@ public class Monster : NetworkBehaviour
     public void Die()
     {
         if (IsDead) return;
+
         IsDead = true;
         Debug.Log($"[Monster] Die called for {monsterName}, Health: {currentHealth}");
         if (_agent != null && _agent.isOnNavMesh)
