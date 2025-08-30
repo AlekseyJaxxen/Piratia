@@ -3132,11 +3132,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1e7fbaf83de6a045bf4a805709d04dd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCameraController
-  minRadius: 5
-  maxRadius: 30
+  minRadius: 9
+  maxRadius: 35
   minElevation: 20
-  maxElevation: 80
-  zoomSpeed: 0.1
+  maxElevation: 65
+  zoomSpeed: 0.4
   rotationSpeed: 3
 --- !u!1 &8623684005865143056
 GameObject:
