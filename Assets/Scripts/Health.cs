@@ -47,7 +47,6 @@ public class Health : NetworkBehaviour
         {
             playerUI = GetComponentInChildren<PlayerUI>();
         }
-        // Find HealthBarUI for all entities
         healthBarUI = GetComponentInChildren<HealthBarUI>();
         if (healthBarUI == null)
         {
@@ -99,11 +98,11 @@ public class Health : NetworkBehaviour
         if (CurrentHealth <= 0)
         {
             Debug.Log($"[Server] {gameObject.name} has died. Setting death state.");
-            MonsterCore monster = GetComponent<MonsterCore>();
+            Monster monster = GetComponent<Monster>();
             PlayerCore player = GetComponent<PlayerCore>();
             if (monster != null && attacker != null)
             {
-                monster.OnDeath(attacker.GetComponent<PlayerCore>());
+                monster.Die();
             }
             else if (player != null)
             {
@@ -133,6 +132,16 @@ public class Health : NetworkBehaviour
         }
     }
 
+    public void SetHealthBarUI(HealthBarUI healthBarUI)
+    {
+        this.healthBarUI = healthBarUI;
+        if (healthBarUI != null)
+        {
+            healthBarUI.UpdateHP(_currentHealth, MaxHealth);
+            Debug.Log($"[Health] HealthBarUI set for {gameObject.name}, initial health: {_currentHealth}/{MaxHealth}");
+        }
+    }
+
     [ClientRpc]
     private void RpcShowDamageNumber(int damage, bool isCritical, DamageType damageType)
     {
@@ -144,7 +153,17 @@ public class Health : NetworkBehaviour
             if (damageTextScript != null)
             {
                 damageTextScript.SetDamageText(damage, isCritical);
+                Debug.Log($"[Client] Spawned damage text: -{damage} (isCritical: {isCritical}) at {spawnPosition} for {gameObject.name}");
             }
+            else
+            {
+                Debug.LogWarning($"[Health] FloatingDamageText component missing on floatingTextPrefab for {gameObject.name}");
+                Destroy(floatingTextInstance);
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"[Health] floatingTextPrefab is null for {gameObject.name}");
         }
     }
 
@@ -159,7 +178,17 @@ public class Health : NetworkBehaviour
             if (healTextScript != null)
             {
                 healTextScript.SetHealText(healAmount);
+                Debug.Log($"[Client] Spawned heal text: +{healAmount} at {spawnPosition} for {gameObject.name}");
             }
+            else
+            {
+                Debug.LogWarning($"[Health] FloatingDamageText component missing on floatingTextPrefab for {gameObject.name}");
+                Destroy(floatingTextInstance);
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"[Health] floatingTextPrefab is null for {gameObject.name}");
         }
     }
 
