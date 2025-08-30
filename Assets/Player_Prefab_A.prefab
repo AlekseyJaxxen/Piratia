@@ -2800,10 +2800,10 @@ GameObject:
   - component: {fileID: 2228385071925969768}
   - component: {fileID: 7327050918202999389}
   - component: {fileID: 2785307464818136286}
-  - component: {fileID: 1961392965024624479}
   - component: {fileID: 9141868853825329552}
   - component: {fileID: 7616953105411128818}
   - component: {fileID: 4413570146147054592}
+  - component: {fileID: 6456380351014860765}
   m_Layer: 8
   m_Name: Player_Prefab_A
   m_TagString: Player
@@ -2981,7 +2981,7 @@ MonoBehaviour:
   Combat: {fileID: 7327050918202999389}
   Skills: {fileID: 2785307464818136286}
   ActionSystem: {fileID: 9141868853825329552}
-  Camera: {fileID: 1961392965024624479}
+  Camera: {fileID: 0}
   Health: {fileID: 6067296820680782066}
   Stats: {fileID: 3920754116015596352}
   healthBarPrefab: {fileID: 5459530024614120293, guid: e1d805e4e5b950249ae08b7578785256,
@@ -3067,25 +3067,6 @@ MonoBehaviour:
   attackCursor: {fileID: 2800000, guid: 8f25a92609cc5a748a87869de53d5614, type: 3}
   cursorUpdateInterval: 0.1
   globalCooldown: 0.3
---- !u!114 &1961392965024624479
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8270360301193926596}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e1e7fbaf83de6a045bf4a805709d04dd, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  height: 20
-  distance: 10
-  angle: 65
-  rotationSpeed: 3
-  zoomSpeed: 9
-  minFOV: 15
-  maxFOV: 60
 --- !u!114 &9141868853825329552
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3139,6 +3120,24 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   modelTransform: {fileID: 2644532312781825564}
+--- !u!114 &6456380351014860765
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8270360301193926596}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1e7fbaf83de6a045bf4a805709d04dd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerCameraController
+  minRadius: 5
+  maxRadius: 30
+  minElevation: 20
+  maxElevation: 80
+  zoomSpeed: 0.1
+  rotationSpeed: 3
 --- !u!1 &8623684005865143056
 GameObject:
   m_ObjectHideFlags: 0

@@ -92,6 +92,7 @@ public class MonsterAI2 : MonoBehaviour
     {
         FindTarget();
         if (target == null || target.isDead) { target = null; SwitchToReturn(); return; }
+        if (monster.IsCooldown) { agent.isStopped = true; return; }
         float distance = Vector3.Distance(transform.position, target.transform.position);
         if (distance <= attackRange)
         {

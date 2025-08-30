@@ -5,71 +5,52 @@ public class PlayerCameraController : MonoBehaviour
 {
     public Camera CameraInstance { get; private set; }
 
-    [Header("Isometric Settings")]
-    [SerializeField] private float height = 15f;
-    [SerializeField] private float distance = 15f;
-    [SerializeField] private float angle = 45f;
+    [Header("Orbit Settings")]
+    [SerializeField] private float minRadius = 5f; // Close zoom distance
+    [SerializeField] private float maxRadius = 30f; // Far zoom distance
+    [SerializeField] private float minElevation = 20f; // Min vertical angle (close, low tilt)
+    [SerializeField] private float maxElevation = 80f; // Max vertical angle (far, near top-down)
+    [SerializeField] private float zoomSpeed = 0.1f;
 
-    [Header("Camera Controls")]
+    [Header("Rotation")]
     [SerializeField] private float rotationSpeed = 3f;
-    [SerializeField] private float zoomSpeed = 2f;
-    [SerializeField] private float minFOV = 15f;
-    [SerializeField] private float maxFOV = 60f;
 
+    private float zoomFactor = 0.5f; // 0 close, 1 far
+    private float azimuth = 0f; // Horizontal angle
     private Transform _target;
     private PlayerCore _core;
 
     public void Init(PlayerCore core)
     {
         _core = core;
-
-        if (!_core.isLocalPlayer)
-        {
-            return;
-        }
-
+        if (!_core.isLocalPlayer) return;
         CameraInstance = Camera.main;
-
-        if (CameraInstance == null)
-        {
-            Debug.LogError("[Client] Main Camera not found in scene!");
-            return;
-        }
-
+        if (CameraInstance == null) return;
         _target = core.transform;
-
-        // Устанавливаем перспективную камеру для зума через Field of View
         CameraInstance.orthographic = false;
-        CameraInstance.fieldOfView = maxFOV; // Начальное поле зрения
-        CameraInstance.transform.rotation = Quaternion.Euler(angle, 0, 0);
-
-        Debug.Log($"[Client] Main camera configured for {gameObject.name}");
     }
 
     void LateUpdate()
     {
-        if (_core == null || !_core.isLocalPlayer || CameraInstance == null)
-        {
-            return;
-        }
+        if (_core == null || !_core.isLocalPlayer || CameraInstance == null) return;
 
-        HandleRotation();
         HandleZoom();
+        HandleRotation();
 
-        // Вычисляем смещение и устанавливаем позицию камеры
-        Vector3 offset = Quaternion.Euler(0, CameraInstance.transform.eulerAngles.y, 0) * new Vector3(0, height, -distance);
-        CameraInstance.transform.position = _target.position + offset;
+        float radius = Mathf.Lerp(minRadius, maxRadius, zoomFactor);
+        float elevation = Mathf.Lerp(minElevation, maxElevation, zoomFactor);
+
+        Quaternion rotation = Quaternion.Euler(elevation, azimuth, 0);
+        Vector3 position = _target.position + rotation * Vector3.back * radius;
+
+        CameraInstance.transform.position = position;
+        CameraInstance.transform.LookAt(_target.position);
     }
 
     private void HandleZoom()
     {
-        float scrollInput = Input.GetAxis("Mouse ScrollWheel");
-
-        if (scrollInput != 0)
-        {
-            // Изменяем поле зрения (FOV) для эффекта зума
-            CameraInstance.fieldOfView = Mathf.Clamp(CameraInstance.fieldOfView - scrollInput * zoomSpeed, minFOV, maxFOV);
-        }
+        float scroll = Input.GetAxis("Mouse ScrollWheel");
+        if (scroll != 0) zoomFactor = Mathf.Clamp(zoomFactor - scroll * zoomSpeed, 0f, 1f);
     }
 
     private void HandleRotation()
@@ -77,11 +58,7 @@ public class PlayerCameraController : MonoBehaviour
         if (Input.GetMouseButton(1))
         {
             float mouseX = Input.GetAxis("Mouse X");
-            if (mouseX != 0)
-            {
-                // Поворачиваем камеру вокруг оси Y
-                CameraInstance.transform.RotateAround(_target.position, Vector3.up, mouseX * rotationSpeed);
-            }
+            if (mouseX != 0) azimuth += mouseX * rotationSpeed;
         }
     }
 }
