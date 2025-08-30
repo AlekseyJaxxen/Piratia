@@ -9,6 +9,7 @@ public class Monster : NetworkBehaviour
     [SyncVar] public string monsterName = "Monster";
     [SyncVar] public int maxHealth = 1000;
     [SyncVar(hook = nameof(OnHealthChanged))] public int currentHealth;
+    [SyncVar] public bool IsCooldown = false;
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private GameObject deathVFXPrefab;
     [SerializeField] private GameObject nameTagPrefab;
