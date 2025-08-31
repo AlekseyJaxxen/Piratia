@@ -692,13 +692,22 @@ public class PlayerSkills : NetworkBehaviour
             float progress;
             if (localCooldowns.ContainsKey(key))
             {
-                progress = Mathf.Clamp01(1 - ((float)NetworkTime.time - (localCooldowns[key] - skill.Cooldown)) / skill.Cooldown);
+                // Инвертируем логику: progress = оставшееся время / длительность кулдауна
+                float remainingCooldown = localCooldowns[key] - (float)NetworkTime.time;
+                progress = Mathf.Clamp01(remainingCooldown / skill.Cooldown);
+                Debug.Log($"[PlayerSkills] Local CD for {key}: progress = {progress}, remaining = {remainingCooldown}, cooldown = {skill.Cooldown}");
             }
             else
             {
-                progress = skill.CooldownProgressNormalized;
+                // Инвертируем CooldownProgressNormalized (который обычно 1 - прогресс)
+                progress = 1f - skill.CooldownProgressNormalized;
+                Debug.Log($"[PlayerSkills] Sync CD for {key}: progress = {progress}, normalized = {skill.CooldownProgressNormalized}");
             }
             PlayerUI.Instance.UpdateSkillCooldown(key, progress);
+        }
+        else
+        {
+            Debug.LogWarning($"[PlayerSkills] Skill not found for key: {key}");
         }
     }
 

@@ -1,6 +1,5 @@
 using UnityEngine;
 using Mirror;
-using UnityEditor;
 
 [CreateAssetMenu(fileName = "NewSkillBase", menuName = "Skills/SkillBase")]
 public abstract class SkillBase : ScriptableObject, ISkill
@@ -36,8 +35,8 @@ public abstract class SkillBase : ScriptableObject, ISkill
     [Header("Indicator Prefabs")]
     [SerializeField] public GameObject castRangePrefab;
     [SerializeField] public GameObject effectRadiusPrefab;
-    private GameObject castRangeIndicator;                // Приватное поле
-    private GameObject effectRadiusIndicator;             // Приватное поле
+    private GameObject castRangeIndicator; // Приватное поле
+    private GameObject effectRadiusIndicator; // Приватное поле
 
     public virtual void Init(PlayerCore core)
     {
@@ -121,28 +120,14 @@ public abstract class SkillBase : ScriptableObject, ISkill
     {
         if (castRangeIndicator != null && !castRangeIndicator.Equals(null))
         {
-            Debug.Log($"[SkillBase] Cleaning up castRangeIndicator for {SkillName}, isPrefab: {PrefabUtility.IsPartOfAnyPrefab(castRangeIndicator)}");
-            if (PrefabUtility.IsPartOfAnyPrefab(castRangeIndicator))
-            {
-                DestroyImmediate(castRangeIndicator, true);
-            }
-            else
-            {
-                Destroy(castRangeIndicator);
-            }
+            Debug.Log($"[SkillBase] Cleaning up castRangeIndicator for {SkillName}");
+            Destroy(castRangeIndicator); // Удаляем только экземпляры
             castRangeIndicator = null;
         }
         if (effectRadiusIndicator != null && !effectRadiusIndicator.Equals(null))
         {
-            Debug.Log($"[SkillBase] Cleaning up effectRadiusIndicator for {SkillName}, isPrefab: {PrefabUtility.IsPartOfAnyPrefab(effectRadiusIndicator)}");
-            if (PrefabUtility.IsPartOfAnyPrefab(effectRadiusIndicator))
-            {
-                DestroyImmediate(effectRadiusIndicator, true);
-            }
-            else
-            {
-                Destroy(effectRadiusIndicator);
-            }
+            Debug.Log($"[SkillBase] Cleaning up effectRadiusIndicator for {SkillName}");
+            Destroy(effectRadiusIndicator); // Удаляем только экземпляры
             effectRadiusIndicator = null;
         }
     }
