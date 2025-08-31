@@ -24,12 +24,7 @@ MonoBehaviour:
   _damageType: 1
   _weight: 1
   _effectRadius: 5
-  castRangePrefab: {fileID: 3299273662854126661, guid: ee30310967d98c04fb16bcfa96cfb3c2,
-    type: 3}
-  effectRadiusPrefab: {fileID: 8212533921873324154, guid: e6230a171a068cd489eb410abd241717,
-    type: 3}
-  castRangeIndicator: {fileID: 0}
-  effectRadiusIndicator: {fileID: 8212533921873324154, guid: e6230a171a068cd489eb410abd241717,
-    type: 3}
+  castRangePrefab: {fileID: 0}
+  effectRadiusPrefab: {fileID: 0}
   healAmount: 1000
   effectPrefab: {fileID: 108808, guid: 5128d0fb523fca6439fa131a1063c074, type: 3}
