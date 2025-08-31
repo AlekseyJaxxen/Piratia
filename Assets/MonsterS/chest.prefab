@@ -61,7 +61,8 @@ MonoBehaviour:
   IsCooldown: 0
   moveSpeed: 7
   deathVFXPrefab: {fileID: 0}
-  nameTagPrefab: {fileID: 0}
+  nameTagPrefab: {fileID: 5459530024614120293, guid: 6c5aa61469403064fb26b99e9d229c34,
+    type: 3}
   canMove: 0
   canAttack: 0
   IsDead: 0

@@ -2860,7 +2860,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   syncDirection: 1
   syncMode: 0
-  syncInterval: 0.033333335
+  syncInterval: 0.1
   baselineRate: 1
   unreliableRedundancy: 0
   baselineIsDelta: 1
@@ -2868,7 +2868,7 @@ MonoBehaviour:
   useFixedUpdate: 0
   target: {fileID: 8988732741915685909}
   bufferSizeLimit: 64
-  sendRate: 30
+  sendRate: 10
   positionSensitivity: 0.01
   rotationSensitivity: 0.01
   scaleSensitivity: 0.01
@@ -2922,9 +2922,9 @@ MonoBehaviour:
   skillPoints: 0
   characteristicPoints: 0
   strength: 100
-  agility: 30
+  agility: 5
   spirit: 5
-  constitution: 50
+  constitution: 5
   accuracy: 5
   intelligence: 5
   movementSpeed: 8

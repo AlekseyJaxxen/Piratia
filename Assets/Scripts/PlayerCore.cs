@@ -182,8 +182,6 @@ public class PlayerCore : NetworkBehaviour
         }
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
-
-
     }
 
     public override void OnStartClient()
@@ -192,7 +190,6 @@ public class PlayerCore : NetworkBehaviour
         {
             NameManager.Instance.RegisterPlayer(this);
         }
-
         base.OnStartClient();
         Debug.Log($"OnStartClient started for {playerName}, isLocalPlayer: {isLocalPlayer}");
         _nameText = GetComponentInChildren<TextMeshProUGUI>();
@@ -203,7 +200,6 @@ public class PlayerCore : NetworkBehaviour
             _nameText.text = playerName;
         }
         OnTeamChanged(team, team);
-
         // Instantiate HealthBarUI and NameTagUI for all players/monsters
         if (healthBarPrefab != null)
         {
@@ -215,7 +211,6 @@ public class PlayerCore : NetworkBehaviour
                 return;
             }
             Debug.Log($"[PlayerCore] Canvas found: {mainCanvas.gameObject.name}");
-
             // Instantiate healthBarPrefab
             GameObject barInstance = Instantiate(healthBarPrefab, mainCanvas.transform);
             Debug.Log("HP bar instantiated");
@@ -239,7 +234,6 @@ public class PlayerCore : NetworkBehaviour
             {
                 Debug.LogError("[PlayerCore] HealthBarUI component missing on instantiated health bar!");
             }
-
             // Instantiate nameTagPrefab
             if (nameTagPrefab != null)
             {
@@ -267,7 +261,6 @@ public class PlayerCore : NetworkBehaviour
         {
             Debug.LogError("[PlayerCore] healthBarPrefab is null!");
         }
-
         // Disable PlayerUI for non-local players
         PlayerUI ui = GetComponentInChildren<PlayerUI>();
         if (ui != null && !isLocalPlayer)
@@ -454,6 +447,7 @@ public class PlayerCore : NetworkBehaviour
             if (Skills != null) Skills.CancelSkillSelection();
             if (isLocalPlayer) deathScreenUI.ShowDeathScreen();
             if (boxCollider != null) boxCollider.enabled = false;
+            if (healthBarUI != null) healthBarUI.gameObject.SetActive(false); // Деактивируем HealthBar при смерти
         }
         else
         {
@@ -461,6 +455,7 @@ public class PlayerCore : NetworkBehaviour
             if (Skills != null) Skills.enabled = true;
             if (Movement != null) Movement.enabled = true;
             if (boxCollider != null) boxCollider.enabled = true;
+            if (healthBarUI != null && Health != null) healthBarUI.gameObject.SetActive(Health.CurrentHealth > 0); // Активируем при возрождении
         }
         Debug.Log($"[PlayerCore] Death state changed: {oldValue} -> {newValue}, Movement.enabled={Movement != null && Movement.enabled}");
     }
@@ -480,16 +475,13 @@ public class PlayerCore : NetworkBehaviour
             Debug.Log($"[PlayerCore] Cannot apply {effectType} (weight {skillWeight}): {currentControlEffect} (weight {currentEffectWeight}) is active until {controlEffectEndTime}");
             return;
         }
-
         if (currentControlEffect != ControlEffectType.None)
         {
             ClearControlEffect();
         }
-
         currentControlEffect = effectType;
         currentEffectWeight = skillWeight;
         controlEffectEndTime = Time.time + duration;
-
         if (effectType == ControlEffectType.Stun)
         {
             isStunned = true;
@@ -512,12 +504,10 @@ public class PlayerCore : NetworkBehaviour
             Debug.Log($"[PlayerCore] Cannot apply slow (weight {skillWeight}): {currentControlEffect} (weight {currentEffectWeight}) is active until {controlEffectEndTime}");
             return;
         }
-
         if (currentControlEffect != ControlEffectType.None)
         {
             ClearControlEffect();
         }
-
         currentControlEffect = ControlEffectType.Slow;
         currentEffectWeight = skillWeight;
         _slowPercentage = percentage;
@@ -557,20 +547,24 @@ public class PlayerCore : NetworkBehaviour
     {
         isDead = state;
     }
+
     public override void OnStopClient()
-
-
     {
         if (healthBarUI != null) Destroy(healthBarUI.gameObject);
         if (nameTagUI != null) Destroy(nameTagUI.gameObject);
     }
 
     public void OnDestroy()
-
-
     {
         if (healthBarUI != null) Destroy(healthBarUI.gameObject);
         if (nameTagUI != null) Destroy(nameTagUI.gameObject);
     }
 
+    // Публичные методы для доступа
+    public GameObject GetHealthBarPrefab() { return healthBarPrefab; }
+    public void SetHealthBarUI(HealthBarUI ui) { healthBarUI = ui; }
+    public HealthBarUI GetHealthBarUI() { return healthBarUI; }
+    public int GetCurrentHealth() { return Health != null ? Health.CurrentHealth : 0; }
+    public int GetMaxHealth() { return Health != null ? Health.MaxHealth : 0; }
+    public NameTagUI GetNameTagUI() { return nameTagUI; }
 }
