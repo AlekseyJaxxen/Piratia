@@ -28,6 +28,11 @@ public class PlayerSkills : NetworkBehaviour
     public bool IsSkillSelected => _activeSkill != null;
     public ISkill ActiveSkill => _activeSkill;
 
+    
+
+    private Dictionary<string, float> localCooldowns = new Dictionary<string, float>();
+    private float localGlobalCooldownEnd = 0f;
+
     private void Awake()
     {
         _skillLastUseTimes.OnChange += OnCooldownChanged;
@@ -201,6 +206,8 @@ public class PlayerSkills : NetworkBehaviour
             ExecuteSkill(skill, targetPosition, targetObject, weight);
             RpcCancelSkillSelection();
         }
+
+        
     }
 
     private IEnumerator CastSkillCoroutine(SkillBase skill, Vector3? targetPosition, GameObject targetObject, int weight)
@@ -246,6 +253,7 @@ public class PlayerSkills : NetworkBehaviour
         StartSkillCooldown(skill.SkillName);
         if (!skill.ignoreGlobalCooldown) StartGlobalCooldown();
         CancelSkillSelection();
+        
     }
 
     private void HandleBasicAttack(SkillBase skill, GameObject targetObject)
@@ -400,6 +408,12 @@ public class PlayerSkills : NetworkBehaviour
         {
             if (Input.GetKeyDown(skill.Hotkey))
             {
+                if (GetRemainingCooldown(skill.SkillName) > 0 || (!skill.ignoreGlobalCooldown && GetGlobalRemainingCooldown() > 0))
+                {
+                    continue; // или return если один
+                }
+
+                if (localCooldowns.ContainsKey(skill.SkillName) && Time.time < localCooldowns[skill.SkillName]) return;
                 SelectSkill(skill);
                 return; // Чтобы не обрабатывать несколько
             }
@@ -619,5 +633,11 @@ public class PlayerSkills : NetworkBehaviour
     private void RpcCancelSkillSelection()
     {
         CancelSkillSelection();
+    }
+
+    public void StartLocalCooldown(string skillName, float cooldown, bool useGlobal)
+    {
+        localCooldowns[skillName] = (float)NetworkTime.time + cooldown;
+        if (useGlobal) localGlobalCooldownEnd = (float)NetworkTime.time + globalCooldown;
     }
 }

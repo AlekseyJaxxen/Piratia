@@ -46,6 +46,7 @@ public class MonsterBasicAttackSkill : SkillBase
 
         // Вызываем метод в Monster для обработки сетевой атаки
         caster.ExecuteAttack(targetIdentity.netId, _skillName, damage, isCritical);
+
     }
 
     protected override void ExecuteSkillImplementation(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)

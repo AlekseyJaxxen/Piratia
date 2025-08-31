@@ -268,24 +268,21 @@ public class PlayerActionSystem : NetworkBehaviour
                 _core.Movement.RotateTo(target.transform.position - transform.position);
                 Debug.Log($"[PlayerActionSystem] Target in range. Stopping to attack. Distance: {distance}");
 
-                if (Time.time >= _core.Combat._lastAttackTime + attackCooldown)
-                {
-                    Debug.Log($"[PlayerActionSystem] Executing attack with skill: {((SkillBase)skill).SkillName}");
-                    skill.Execute(_core, null, target);
-                    _core.Combat._lastAttackTime = Time.time;
+                Debug.Log($"[PlayerActionSystem] Executing attack with skill: {((SkillBase)skill).SkillName}");
+                skill.Execute(_core, null, target);
+                _core.Combat._lastAttackTime = Time.time;
 
-                    if (!isLooping)
+                if (!isLooping)
+                {
+                    if (((SkillBase)skill).CastTime > 0)
                     {
-                        if (((SkillBase)skill).CastTime > 0)
-                        {
-                            yield return new WaitForSeconds(((SkillBase)skill).CastTime);
-                        }
-                        break; // Для non-basic - разовый каст
+                        yield return new WaitForSeconds(((SkillBase)skill).CastTime);
                     }
-                    else
-                    {
-                        yield return new WaitForSeconds(attackCooldown);
-                    }
+                    break; // Для non-basic - разовый каст
+                }
+                else
+                {
+                    yield return new WaitForSeconds(attackCooldown);
                 }
             }
 

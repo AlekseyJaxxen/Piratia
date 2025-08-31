@@ -39,6 +39,7 @@ public class SlowSkill : SkillBase
         PlayerSkills skills = caster.GetComponent<PlayerSkills>();
         Debug.Log($"[SlowSkill] Attempting to slow target: {targetObject.name}, netId: {targetIdentity.netId}, weight: {Weight}");
         skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName, Weight);
+        caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
     }
 
     public void SpawnProjectile(Vector3 startPos, Vector3 targetPos, PlayerSkills playerSkills)
