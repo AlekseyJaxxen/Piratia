@@ -27,17 +27,19 @@ public class MonsterAI2 : MonoBehaviour
 
     private void Update()
     {
-        if (monster.currentHealth <= 0)
+        if (monster.currentHealth <= 0 || monster.IsDead)
         {
             enabled = false;
             return;
         }
 
-        if (monster.IsDead) { enabled = false; return; }
+        // Проверяем все эффекты контроля
+        if (monster.IsStunned || monster.IsCooldown || !agent.isActiveAndEnabled)
+        {
+            agent.isStopped = true;
+            return;
+        }
 
-        if (monster.IsStunned) return;
-
-        if (monster.IsDead || monster.IsStunned || !agent.isActiveAndEnabled) return;
         switch (currentState)
         {
             case State.Idle:
@@ -83,7 +85,7 @@ public class MonsterAI2 : MonoBehaviour
 
     private void Patrol()
     {
-        if (agent.remainingDistance < 1f)
+        if (agent.remainingDistance < 1f && !monster.IsStunned)
         {
             Vector3 randomPoint = spawnPoint + Random.insideUnitSphere * patrolRadius;
             randomPoint.y = transform.position.y;
@@ -101,7 +103,7 @@ public class MonsterAI2 : MonoBehaviour
         if (target == null || target.isDead) { target = null; SwitchToReturn(); return; }
         if (monster.IsCooldown) { agent.isStopped = true; return; }
         float distance = Vector3.Distance(transform.position, target.transform.position);
-        if (distance <= attackRange)
+        if (distance <= attackRange && !monster.IsStunned)
         {
             agent.isStopped = true;
             transform.LookAt(target.transform);
@@ -109,7 +111,7 @@ public class MonsterAI2 : MonoBehaviour
             if (target.isDead) { target = null; SwitchToReturn(); return; }
             chaseStartTime = Time.time; // Reset timer on attack
         }
-        else
+        else if (!monster.IsStunned)
         {
             agent.isStopped = false;
             agent.SetDestination(target.transform.position);
@@ -118,7 +120,7 @@ public class MonsterAI2 : MonoBehaviour
 
     private void TryAttack()
     {
-        if (Time.time >= lastAttackTime + attackCooldown && monster.basicAttackSkill != null)
+        if (Time.time >= lastAttackTime + attackCooldown && monster.basicAttackSkill != null && !monster.IsStunned)
         {
             lastAttackTime = Time.time;
             monster.basicAttackSkill.Execute(monster, null, target.gameObject);
@@ -137,10 +139,13 @@ public class MonsterAI2 : MonoBehaviour
 
     private void ReturnToSpawn()
     {
-        agent.SetDestination(spawnPoint);
-        if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance)
+        if (!monster.IsStunned)
         {
-            SwitchToPatrol();
+            agent.SetDestination(spawnPoint);
+            if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance)
+            {
+                SwitchToPatrol();
+            }
         }
     }
 

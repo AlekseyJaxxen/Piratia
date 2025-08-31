@@ -62,7 +62,7 @@ MonoBehaviour:
   currentHealth: 0
   IsCooldown: 0
   moveSpeed: 7
-  deathVFXPrefab: {fileID: 0}
+  deathVFXPrefab: {fileID: 167524, guid: fdac75e990da47649b31f10049c400b0, type: 3}
   nameTagPrefab: {fileID: 5459530024614120293, guid: 6c5aa61469403064fb26b99e9d229c34,
     type: 3}
   canMove: 1
@@ -124,7 +124,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Mirror.Components::Mirror.NetworkTransformHybrid
   syncDirection: 1
   syncMode: 0
-  syncInterval: 0.033333335
+  syncInterval: 0.1
   baselineRate: 1
   unreliableRedundancy: 0
   baselineIsDelta: 1
@@ -132,7 +132,7 @@ MonoBehaviour:
   useFixedUpdate: 0
   target: {fileID: 5617032317511274802}
   bufferSizeLimit: 64
-  sendRate: 30
+  sendRate: 10
   positionSensitivity: 0.01
   rotationSensitivity: 0.01
   scaleSensitivity: 0.01

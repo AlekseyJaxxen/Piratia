@@ -11,6 +11,7 @@ public class Monster : NetworkBehaviour
     [SyncVar(hook = nameof(OnHealthChanged))] public int currentHealth;
     [SyncVar] public bool IsCooldown = false;
     [SerializeField] private float moveSpeed = 5f;
+    [SerializeField] private float attackCooldown = 2f; // Добавлено как поле
     [SerializeField] private GameObject deathVFXPrefab;
     [SerializeField] private GameObject nameTagPrefab;
     [SerializeField] private bool canMove = true;
@@ -71,6 +72,7 @@ public class Monster : NetworkBehaviour
     {
         base.OnStartClient();
         StartCoroutine(SetupUIDelayed());
+        StartCoroutine(CheckControlEffectExpiration()); // Проверка истечения эффектов
     }
 
     private IEnumerator SetupUIDelayed()
@@ -95,66 +97,10 @@ public class Monster : NetworkBehaviour
                     {
                         Debug.LogWarning($"[Monster] NameTagUI component missing on nameTagPrefab for {monsterName}");
                     }
+                    break;
                 }
-                yield break;
             }
-            Debug.LogWarning($"[Monster] No TeamSelectionCanvas found or not active for {monsterName}, retrying...");
-            yield return new WaitForSeconds(0.5f);
-        }
-    }
-
-    private void Update()
-    {
-        if (isServer)
-        {
-            if (_currentControlEffect != ControlEffectType.None && Time.time >= _controlEffectEndTime)
-            {
-                ClearControlEffect();
-            }
-        }
-    }
-
-    [Server]
-    public void ExecuteAttack(uint targetNetId, string skillName, int damage, bool isCritical)
-    {
-        if (!NetworkServer.spawned.ContainsKey(targetNetId))
-        {
-            Debug.LogWarning($"[Monster] Target netId {targetNetId} not found for {skillName}");
-            return;
-        }
-        NetworkIdentity targetIdentity = NetworkServer.spawned[targetNetId];
-        Health targetHealth = targetIdentity.GetComponent<Health>();
-        if (targetHealth != null)
-        {
-            targetHealth.TakeDamage(damage, DamageType.Physical, isCritical, GetComponent<NetworkIdentity>());
-            RpcPlayAttackVFX(transform.position, transform.rotation, targetIdentity.transform.position, isCritical, skillName);
-        }
-    }
-
-    [ClientRpc]
-    private void RpcPlayAttackVFX(Vector3 startPos, Quaternion startRotation, Vector3 endPos, bool isCritical, string skillName)
-    {
-        if (basicAttackSkill != null)
-        {
-            basicAttackSkill.PlayVFX(startPos, startRotation, endPos, isCritical, this);
-        }
-    }
-
-    [Server]
-    public void TakeDamage(int damage)
-    {
-        if (IsDead) return;
-        HealthMonster health = GetComponent<HealthMonster>();
-        if (health == null)
-        {
-            Debug.LogError($"[Monster] HealthMonster component missing on {monsterName}");
-            return;
-        }
-        health.TakeDamage(damage, DamageType.Physical, false, null);
-        currentHealth = health.CurrentHealth;
-        if (currentHealth <= 0)
-        {
-            Die();
+            yield return null;
         }
     }
 
@@ -166,21 +112,20 @@ public class Monster : NetworkBehaviour
             Debug.Log($"[Monster] Cannot apply {effectType} (weight {skillWeight}): {_currentControlEffect} (weight {_currentEffectWeight}) is active until {_controlEffectEndTime}");
             return;
         }
+
         if (_currentControlEffect != ControlEffectType.None)
         {
             ClearControlEffect();
         }
+
         _currentControlEffect = effectType;
         _currentEffectWeight = skillWeight;
         _controlEffectEndTime = Time.time + duration;
+
         if (effectType == ControlEffectType.Stun)
         {
             IsStunned = true;
-            if (_agent != null && _agent.isOnNavMesh)
-            {
-                _agent.isStopped = true;
-                Debug.Log($"[Monster] Stun applied, NavMeshAgent stopped: isStopped={_agent.isStopped}, isOnNavMesh={_agent.isOnNavMesh}");
-            }
+            if (_agent != null && _agent.isOnNavMesh) _agent.isStopped = true;
             Debug.Log($"[Monster] Applied stun effect to {monsterName}, weight={skillWeight}, duration={duration}");
         }
         else if (effectType == ControlEffectType.Slow)
@@ -243,11 +188,19 @@ public class Monster : NetworkBehaviour
             _healthBarUI.UpdateHP(newHealth, maxHealth);
             Debug.Log($"[Monster] HealthBarUI updated: {newHealth}/{maxHealth} for {monsterName}");
         }
+        if (newHealth <= 0 && !IsDead)
+        {
+            Die();
+        }
     }
 
     private void OnStunStateChanged(bool oldValue, bool newValue)
     {
         Debug.Log($"[Monster] Stun state changed: {oldValue} -> {newValue}, isClient={isClient}, isServer={isServer}");
+        if (_agent != null && _agent.isOnNavMesh)
+        {
+            _agent.isStopped = newValue;
+        }
     }
 
     [Server]
@@ -303,5 +256,77 @@ public class Monster : NetworkBehaviour
     private void OnDestroy()
     {
         if (_nameTagUI != null) Destroy(_nameTagUI.gameObject);
+    }
+
+    // Новый метод для обработки атаки
+    [Server]
+    public void ExecuteAttack(uint targetNetId, string skillName, int damage, bool isCritical)
+    {
+        if (!canAttack || IsDead || IsStunned) return;
+
+        GameObject targetObject = NetworkServer.spawned.ContainsKey(targetNetId) ? NetworkServer.spawned[targetNetId].gameObject : null;
+        if (targetObject == null)
+        {
+            Debug.LogWarning($"[Monster] Target with netId {targetNetId} not found for attack");
+            return;
+        }
+
+        Health targetHealth = targetObject.GetComponent<Health>();
+        if (targetHealth != null)
+        {
+            targetHealth.TakeDamage(damage, DamageType.Physical, isCritical, netIdentity); // Исправлен порядок аргументов
+            Debug.Log($"[Monster] Attacked {targetObject.name} with {damage} damage, isCritical: {isCritical}");
+
+            // Вызываем VFX на сервере и синхронизируем с клиентами
+            Vector3 startPosition = transform.position + Vector3.up * 1f;
+            Vector3 endPosition = targetObject.transform.position + Vector3.up * 1f;
+            RpcPlayVFX(startPosition, transform.rotation, endPosition, isCritical);
+        }
+        else
+        {
+            Debug.LogWarning($"[Monster] Target {targetObject.name} has no Health component");
+        }
+
+        IsCooldown = true;
+        StartCoroutine(EndCooldown(attackCooldown));
+    }
+
+    [ClientRpc]
+    private void RpcPlayVFX(Vector3 startPosition, Quaternion startRotation, Vector3 endPosition, bool isCritical)
+    {
+        if (basicAttackSkill != null)
+        {
+            basicAttackSkill.PlayVFX(startPosition, startRotation, endPosition, isCritical, this);
+        }
+    }
+
+    private IEnumerator EndCooldown(float cooldown)
+    {
+        yield return new WaitForSeconds(cooldown);
+        IsCooldown = false;
+        if (_agent != null && _agent.isOnNavMesh && !IsStunned)
+        {
+            _agent.isStopped = false;
+        }
+    }
+
+    // Метод для получения эффектов контроля от скиллов
+    [Server]
+    public void ReceiveControlEffect(ControlEffectType effectType, float duration, int skillWeight)
+    {
+        ApplyControlEffect(effectType, duration, skillWeight);
+    }
+
+    // Проверка истечения эффектов контроля
+    private IEnumerator CheckControlEffectExpiration()
+    {
+        while (true)
+        {
+            if (isServer && _currentControlEffect != ControlEffectType.None && Time.time >= _controlEffectEndTime)
+            {
+                ClearControlEffect();
+            }
+            yield return new WaitForSeconds(0.5f); // Проверка каждые 0.5 секунды
+        }
     }
 }

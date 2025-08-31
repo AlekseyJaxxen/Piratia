@@ -27,7 +27,6 @@ public class PlayerSkills : NetworkBehaviour
     [SyncVar(hook = nameof(OnGlobalCooldownChanged))] private float _lastGlobalUseTime;
     public bool IsSkillSelected => _activeSkill != null;
     public ISkill ActiveSkill => _activeSkill;
-
     private Dictionary<string, float> localCooldowns = new Dictionary<string, float>();
     private float localGlobalCooldownEnd = 0f;
 
@@ -188,7 +187,6 @@ public class PlayerSkills : NetworkBehaviour
         {
             targetObject = NetworkServer.spawned[targetNetId].gameObject;
         }
-
         if (skill.Range > 0 && targetObject != null && Vector3.Distance(transform.position, targetObject.transform.position) > skill.Range + 2f)
         {
             Debug.LogWarning($"[PlayerSkills] Target out of range for {skillName}");
@@ -203,6 +201,24 @@ public class PlayerSkills : NetworkBehaviour
         {
             ExecuteSkill(skill, targetPosition, targetObject, weight);
             RpcCancelSkillSelection();
+        }
+    }
+
+    [Command]
+    public void CmdApplyAreaEffect(uint targetNetId, ControlEffectType effectType, float duration, int skillWeight)
+    {
+        GameObject targetObject = NetworkServer.spawned.ContainsKey(targetNetId) ? NetworkServer.spawned[targetNetId].gameObject : null;
+        if (targetObject == null)
+        {
+            Debug.LogWarning("[PlayerSkills] Target with netId " + targetNetId + " not found for AoE effect");
+            return;
+        }
+
+        Monster monster = targetObject.GetComponent<Monster>();
+        if (monster != null)
+        {
+            monster.ReceiveControlEffect(effectType, duration, skillWeight);
+            Debug.Log($"[PlayerSkills] Applied {effectType} to {monster.monsterName} with duration {duration}");
         }
     }
 
@@ -256,32 +272,26 @@ public class PlayerSkills : NetworkBehaviour
         int damage = Random.Range(stats.minAttack, stats.maxAttack + 1);
         bool isCritical = Random.value < stats.criticalHitChance / 100f;
         if (isCritical) damage = Mathf.RoundToInt(damage * stats.criticalHitMultiplier);
-
         Health targetHealth = targetObject.GetComponent<Health>();
         if (targetHealth != null)
         {
-            targetHealth.TakeDamage(damage, skill.SkillDamageType, netIdentity);
+            targetHealth.TakeDamage(damage, skill.SkillDamageType, isCritical, netIdentity);
         }
-
         Vector3 startPos = transform.position + Vector3.up * 1.5f;
         Quaternion startRot = transform.rotation;
         Vector3 targetPos = targetObject.transform.position + Vector3.up * 1.5f;
         RpcPlayBasicAttackVFX(startPos, startRot, targetPos, isCritical, skill.SkillName);
     }
 
-    // Здесь вставьте остальные методы Handle... (они были обрезаны, но для компиляции они нужны; предположим, они есть как в предыдущих сообщениях)
-
     private void HandleProjectileDamage(SkillBase skill, GameObject targetObject)
     {
         ProjectileDamageSkill projectileSkill = skill as ProjectileDamageSkill;
         int damage = projectileSkill.damageAmount;
-
         Health targetHealth = targetObject.GetComponent<Health>();
         if (targetHealth != null)
         {
-            targetHealth.TakeDamage(damage, skill.SkillDamageType, netIdentity);
+            targetHealth.TakeDamage(damage, skill.SkillDamageType, false, netIdentity); // Предполагаем, что критический удар не применяется
         }
-
         Vector3 startPos = transform.position;
         Vector3 targetPos = targetObject.transform.position;
         RpcSpawnProjectile(startPos, targetPos, skill.SkillName);
@@ -291,23 +301,19 @@ public class PlayerSkills : NetworkBehaviour
     {
         SlowSkill slowSkill = skill as SlowSkill;
         int damage = Mathf.RoundToInt(slowSkill.baseDamage * SlowSkill.DAMAGE_MULTIPLIER);
-
         Health targetHealth = targetObject.GetComponent<Health>();
         if (targetHealth != null)
         {
-            targetHealth.TakeDamage(damage, skill.SkillDamageType, netIdentity);
+            targetHealth.TakeDamage(damage, skill.SkillDamageType, false, netIdentity);
         }
-
         PlayerCore targetCore = targetObject.GetComponent<PlayerCore>();
         if (targetCore != null)
         {
             targetCore.ApplySlow(slowSkill.slowPercentage, slowSkill.slowDuration, weight);
         }
-
         Vector3 startPos = transform.position;
         Vector3 targetPos = targetObject.transform.position;
         RpcSpawnProjectile(startPos, targetPos, skill.SkillName);
-
         uint targetNetId = targetObject.GetComponent<NetworkIdentity>().netId;
         RpcApplySlowEffect(targetNetId, slowSkill.slowDuration, skill.SkillName);
     }
@@ -315,13 +321,11 @@ public class PlayerSkills : NetworkBehaviour
     private void HandleTargetedStun(SkillBase skill, GameObject targetObject, int weight)
     {
         TargetedStunSkill stunSkill = skill as TargetedStunSkill;
-
         PlayerCore targetCore = targetObject.GetComponent<PlayerCore>();
         if (targetCore != null)
         {
             targetCore.ApplyControlEffect(ControlEffectType.Stun, stunSkill.stunDuration, weight);
         }
-
         uint targetNetId = targetObject.GetComponent<NetworkIdentity>().netId;
         RpcPlayTargetedStun(targetNetId, skill.SkillName);
     }
@@ -333,9 +337,15 @@ public class PlayerSkills : NetworkBehaviour
         foreach (Collider col in hitColliders)
         {
             PlayerCore targetCore = col.GetComponent<PlayerCore>();
+            Monster targetMonster = col.GetComponent<Monster>();
             if (targetCore != null && targetCore.team != _core.team)
             {
                 targetCore.ApplyControlEffect(ControlEffectType.Stun, aoeStun.stunDuration, weight);
+            }
+            else if (targetMonster != null)
+            {
+                // Отправляем серверную команду для монстра
+                CmdApplyAreaEffect(targetMonster.netId, ControlEffectType.Stun, aoeStun.stunDuration, weight);
             }
         }
         RpcPlayAoeStun(position, skill.SkillName);
@@ -401,7 +411,6 @@ public class PlayerSkills : NetworkBehaviour
     private void HandleSkills()
     {
         if (skills == null || skills.Count == 0) return;
-
         foreach (var skill in skills.Where(s => s.Hotkey != KeyCode.None))
         {
             if (Input.GetKeyDown(skill.Hotkey))
@@ -410,21 +419,17 @@ public class PlayerSkills : NetworkBehaviour
                 {
                     continue;
                 }
-
                 if (localCooldowns.ContainsKey(skill.SkillName) && (float)NetworkTime.time < localCooldowns[skill.SkillName]) continue;
                 if (!skill.ignoreGlobalCooldown && (float)NetworkTime.time < localGlobalCooldownEnd) continue;
                 SelectSkill(skill);
                 return;
             }
         }
-
         if (_isCasting) return;
-
         if (Input.GetMouseButtonDown(1))
         {
             CancelSkillSelection();
         }
-
         if (_activeSkill != null)
         {
             UpdateTargetIndicator();
@@ -637,7 +642,6 @@ public class PlayerSkills : NetworkBehaviour
         PlayerUI.Instance.UpdateGlobalCooldown(progress);
     }
 
-
     [ClientRpc]
     private void RpcCancelSkillSelection()
     {
@@ -655,5 +659,4 @@ public class PlayerSkills : NetworkBehaviour
         base.OnDeserialize(reader, initialState);
         if (skills == null || skills.Count == 0) return; // Избежать NRE до init
     }
-
 }

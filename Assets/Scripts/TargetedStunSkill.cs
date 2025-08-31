@@ -41,6 +41,14 @@ public class TargetedStunSkill : SkillBase
         Debug.Log($"[TargetedStunSkill] Client requesting stun for skill {_skillName} on target: {targetObject.name}, netId: {targetIdentity.netId}, weight: {Weight}");
         skills.CmdExecuteSkill(caster, null, targetIdentity.netId, _skillName, Weight);
         caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
+
+        // Применяем эффект Stun к цели (если это монстр)
+        Monster monster = targetObject.GetComponent<Monster>();
+        if (monster != null)
+        {
+            monster.ReceiveControlEffect(ControlEffectType.Stun, stunDuration, Weight);
+            PlayEffect(targetObject, skills);
+        }
     }
 
     public void PlayEffect(GameObject target, PlayerSkills playerSkills)
