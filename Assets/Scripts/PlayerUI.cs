@@ -232,7 +232,7 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         }
         float fillAmount = maxHealth > 0 ? (float)currentHealth / maxHealth : 0f;
         healthBar.fillAmount = fillAmount;
-        healthBar.color = Color.Lerp(Color.red, Color.green, fillAmount);
+       // healthBar.color = Color.Lerp(Color.red, Color.green, fillAmount);
         Debug.Log($"[PlayerUI] Health bar updated: {currentHealth}/{maxHealth}, fillAmount={fillAmount}");
     }
 
