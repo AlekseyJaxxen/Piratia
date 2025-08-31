@@ -52,31 +52,26 @@ public class PlayerMovement : NetworkBehaviour
             Debug.LogError("[PlayerMovement] HandleMovement failed: _core is null");
             return;
         }
-
         if (_core.isDead || _core.isStunned)
         {
             Debug.Log($"[PlayerMovement] Input ignored: isDead={_core.isDead}, isStunned={_core.isStunned}");
             return;
         }
-
         if (!isLocalPlayer)
         {
             Debug.Log("[PlayerMovement] Input ignored: not local player");
             return;
         }
-
         if (!_core.netIdentity.isOwned)
         {
             Debug.Log("[PlayerMovement] Input ignored: player lacks authority");
             return;
         }
-
         if (_core.Camera == null || _core.Camera.CameraInstance == null)
         {
             Debug.LogError("[PlayerMovement] Camera or CameraInstance is null");
             return;
         }
-
         if (Input.GetMouseButtonDown(0))
         {
             Debug.Log($"[PlayerMovement] Left mouse button clicked at position: {Input.mousePosition}");
@@ -144,6 +139,7 @@ public class PlayerMovement : NetworkBehaviour
                         if (targetCore != null && targetCore.team != _core.team)
                         {
                             Debug.Log($"[PlayerMovement] Starting Attack on target: {hit.collider.name}, netId={targetCore.netId}");
+                            if (_core.Skills.GetGlobalRemainingCooldown() > 0) return;
                             _core.ActionSystem.TryStartAction(PlayerAction.Attack, null, hit.collider.gameObject);
                         }
                         else
@@ -154,6 +150,7 @@ public class PlayerMovement : NetworkBehaviour
                     else if (hit.collider.CompareTag("Enemy"))
                     {
                         Debug.Log($"[PlayerMovement] Starting Attack on enemy: {hit.collider.name}");
+                        if (_core.Skills.GetGlobalRemainingCooldown() > 0) return;
                         _core.ActionSystem.TryStartAction(PlayerAction.Attack, null, hit.collider.gameObject);
                     }
                     else if (hit.collider.CompareTag("Ground"))
