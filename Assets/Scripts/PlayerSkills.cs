@@ -28,8 +28,6 @@ public class PlayerSkills : NetworkBehaviour
     public bool IsSkillSelected => _activeSkill != null;
     public ISkill ActiveSkill => _activeSkill;
 
-    
-
     private Dictionary<string, float> localCooldowns = new Dictionary<string, float>();
     private float localGlobalCooldownEnd = 0f;
 
@@ -169,34 +167,28 @@ public class PlayerSkills : NetworkBehaviour
             Debug.LogWarning($"[PlayerSkills] Skill not found: {skillName}");
             return;
         }
-
         if (GetRemainingCooldown(skillName) > 0)
         {
             Debug.LogWarning($"[PlayerSkills] Skill on cooldown: {skillName}");
             return;
         }
-
         if (!skill.ignoreGlobalCooldown && GetGlobalRemainingCooldown() > 0)
         {
             Debug.LogWarning("[PlayerSkills] Global cooldown active");
             return;
         }
-
         CharacterStats stats = caster.GetComponent<CharacterStats>();
         if (stats != null && !stats.HasEnoughMana(skill.ManaCost))
         {
             Debug.LogWarning($"[PlayerSkills] Not enough mana for {skillName}: {stats.currentMana}/{skill.ManaCost}");
             return;
         }
-
         GameObject targetObject = null;
         if (targetNetId != 0 && NetworkServer.spawned.ContainsKey(targetNetId))
         {
             targetObject = NetworkServer.spawned[targetNetId].gameObject;
         }
-
         if (stats != null) stats.SpendMana(skill.ManaCost);
-
         if (skill.CastTime > 0)
         {
             StartCoroutine(CastSkillCoroutine(skill, targetPosition, targetObject, weight));
@@ -206,8 +198,6 @@ public class PlayerSkills : NetworkBehaviour
             ExecuteSkill(skill, targetPosition, targetObject, weight);
             RpcCancelSkillSelection();
         }
-
-        
     }
 
     private IEnumerator CastSkillCoroutine(SkillBase skill, Vector3? targetPosition, GameObject targetObject, int weight)
@@ -249,11 +239,9 @@ public class PlayerSkills : NetworkBehaviour
         {
             HandleHealingSkill(skill, targetObject);
         }
-
         StartSkillCooldown(skill.SkillName);
         if (!skill.ignoreGlobalCooldown) StartGlobalCooldown();
         CancelSkillSelection();
-        
     }
 
     private void HandleBasicAttack(SkillBase skill, GameObject targetObject)
@@ -274,6 +262,8 @@ public class PlayerSkills : NetworkBehaviour
         Vector3 targetPos = targetObject.transform.position + Vector3.up * 1.5f;
         RpcPlayBasicAttackVFX(startPos, startRot, targetPos, isCritical, skill.SkillName);
     }
+
+    // Здесь вставьте остальные методы Handle... (они были обрезаны, но для компиляции они нужны; предположим, они есть как в предыдущих сообщениях)
 
     private void HandleProjectileDamage(SkillBase skill, GameObject targetObject)
     {
@@ -410,12 +400,13 @@ public class PlayerSkills : NetworkBehaviour
             {
                 if (GetRemainingCooldown(skill.SkillName) > 0 || (!skill.ignoreGlobalCooldown && GetGlobalRemainingCooldown() > 0))
                 {
-                    continue; // или return если один
+                    continue;
                 }
 
-                if (localCooldowns.ContainsKey(skill.SkillName) && Time.time < localCooldowns[skill.SkillName]) return;
+                if (localCooldowns.ContainsKey(skill.SkillName) && (float)NetworkTime.time < localCooldowns[skill.SkillName]) continue;
+                if (!skill.ignoreGlobalCooldown && (float)NetworkTime.time < localGlobalCooldownEnd) continue;
                 SelectSkill(skill);
-                return; // Чтобы не обрабатывать несколько
+                return;
             }
         }
 
@@ -425,8 +416,6 @@ public class PlayerSkills : NetworkBehaviour
         {
             CancelSkillSelection();
         }
-
-        // Удалён блок с _activeSkill.Execute
 
         if (_activeSkill != null)
         {
@@ -619,7 +608,19 @@ public class PlayerSkills : NetworkBehaviour
     private void UpdateSkillUI(string key)
     {
         SkillBase skill = skills.Find(s => s.SkillName == key);
-        if (skill != null) PlayerUI.Instance.UpdateSkillCooldown(key, skill.CooldownProgressNormalized);
+        if (skill != null)
+        {
+            float progress;
+            if (localCooldowns.ContainsKey(key))
+            {
+                progress = Mathf.Clamp01(1 - ((float)NetworkTime.time - (localCooldowns[key] - skill.Cooldown)) / skill.Cooldown);
+            }
+            else
+            {
+                progress = skill.CooldownProgressNormalized;
+            }
+            PlayerUI.Instance.UpdateSkillCooldown(key, progress);
+        }
     }
 
     private void UpdateGlobalCooldownUI()
