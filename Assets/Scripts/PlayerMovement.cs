@@ -82,12 +82,10 @@ public class PlayerMovement : NetworkBehaviour
             Debug.Log($"[PlayerMovement] Left mouse button clicked at position: {Input.mousePosition}");
             Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
             Debug.Log($"[PlayerMovement] Raycast from mouse position: {Input.mousePosition}, camera: {_core.Camera.CameraInstance.name}");
-
             if (_core.Skills.IsSkillSelected)
             {
                 Debug.Log($"[PlayerMovement] Skill selected: {_core.Skills.ActiveSkill?.SkillName ?? "null"}");
                 bool isTargetedSkill = _core.Skills.ActiveSkill is ProjectileDamageSkill || _core.Skills.ActiveSkill is TargetedStunSkill || _core.Skills.ActiveSkill is SlowSkill;
-
                 if (isTargetedSkill)
                 {
                     if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
@@ -98,9 +96,8 @@ public class PlayerMovement : NetworkBehaviour
                             PlayerCore targetCore = hit.collider.GetComponent<PlayerCore>();
                             if (targetCore != null && targetCore.team != _core.team)
                             {
-                                Debug.Log($"[PlayerMovement] Starting SkillCast on target: {hit.collider.name}, netId={targetCore.netId}");
-                                _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, hit.point, hit.collider.gameObject, _core.Skills.ActiveSkill);
-                                _core.Skills.CancelSkillSelection();
+                                Debug.Log($"[PlayerMovement] Starting Attack with skill on target: {hit.collider.name}, netId={targetCore.netId}");
+                                _core.ActionSystem.TryStartAction(PlayerAction.Attack, hit.point, hit.collider.gameObject, _core.Skills.ActiveSkill);
                             }
                             else
                             {
@@ -109,9 +106,8 @@ public class PlayerMovement : NetworkBehaviour
                         }
                         else if (hit.collider.CompareTag("Enemy"))
                         {
-                            Debug.Log($"[PlayerMovement] Starting SkillCast on enemy: {hit.collider.name}");
-                            _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, hit.point, hit.collider.gameObject, _core.Skills.ActiveSkill);
-                            _core.Skills.CancelSkillSelection();
+                            Debug.Log($"[PlayerMovement] Starting Attack with skill on enemy: {hit.collider.name}");
+                            _core.ActionSystem.TryStartAction(PlayerAction.Attack, hit.point, hit.collider.gameObject, _core.Skills.ActiveSkill);
                         }
                         else
                         {

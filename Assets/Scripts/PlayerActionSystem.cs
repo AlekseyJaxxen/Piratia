@@ -129,7 +129,7 @@ public class PlayerActionSystem : NetworkBehaviour
                 _currentAction = StartCoroutine(MoveAction(targetPosition.Value));
                 return true;
             case PlayerAction.Attack:
-                _currentAction = StartCoroutine(AttackAction(targetObject));
+                _currentAction = StartCoroutine(AttackAction(targetObject, skillToCast));
                 return true;
             case PlayerAction.SkillCast:
                 if (targetObject != null)
@@ -178,7 +178,7 @@ public class PlayerActionSystem : NetworkBehaviour
         CompleteAction();
     }
 
-    private IEnumerator AttackAction(GameObject target)
+    private IEnumerator AttackAction(GameObject target, ISkill skill = null)
     {
         if (_core == null || _core.Movement == null || _core.Combat == null || _core.Stats == null || _core.Skills == null)
         {
@@ -229,15 +229,21 @@ public class PlayerActionSystem : NetworkBehaviour
             yield break;
         }
 
-        SkillBase basicAttackSkill = _core.Skills.skills[0];
-        if (basicAttackSkill == null)
+        if (skill == null)
         {
-            Debug.LogError("[PlayerActionSystem] Basic attack skill is null");
-            CompleteAction();
-            yield break;
+            skill = _core.Skills.skills[0];
+            if (skill == null)
+            {
+                Debug.LogError("[PlayerActionSystem] Basic attack skill is null");
+                CompleteAction();
+                yield break;
+            }
         }
 
-        float attackCooldown = 1f / _core.Stats.attackSpeed;
+        float attackRange = skill.Range;
+        float attackCooldown = skill is BasicAttackSkill ? 1f / _core.Stats.attackSpeed : skill.Cooldown; // Для non-basic используем Cooldown как задержку
+
+        bool isLooping = skill is BasicAttackSkill;
 
         while (target != null && targetHealth.CurrentHealth > 0)
         {
@@ -249,9 +255,9 @@ public class PlayerActionSystem : NetworkBehaviour
             }
 
             float distance = Vector3.Distance(transform.position, target.transform.position);
-            Debug.Log($"[PlayerActionSystem] Distance to target {target.name}: {distance}, skill range: {basicAttackSkill.Range}");
+            Debug.Log($"[PlayerActionSystem] Distance to target {target.name}: {distance}, skill range: {attackRange}");
 
-            if (distance > basicAttackSkill.Range)
+            if (distance > attackRange)
             {
                 _core.Movement.MoveTo(target.transform.position);
                 Debug.Log($"[PlayerActionSystem] Target out of range. Moving towards target at {target.transform.position}. Distance: {distance}");
@@ -264,10 +270,22 @@ public class PlayerActionSystem : NetworkBehaviour
 
                 if (Time.time >= _core.Combat._lastAttackTime + attackCooldown)
                 {
-                    Debug.Log($"[PlayerActionSystem] Executing attack with skill: {basicAttackSkill.SkillName}");
-                    basicAttackSkill.Execute(_core, null, target);
+                    Debug.Log($"[PlayerActionSystem] Executing attack with skill: {((SkillBase)skill).SkillName}");
+                    skill.Execute(_core, null, target);
                     _core.Combat._lastAttackTime = Time.time;
-                    yield return new WaitForSeconds(attackCooldown);
+
+                    if (!isLooping)
+                    {
+                        if (((SkillBase)skill).CastTime > 0)
+                        {
+                            yield return new WaitForSeconds(((SkillBase)skill).CastTime);
+                        }
+                        break; // Для non-basic - разовый каст
+                    }
+                    else
+                    {
+                        yield return new WaitForSeconds(attackCooldown);
+                    }
                 }
             }
 

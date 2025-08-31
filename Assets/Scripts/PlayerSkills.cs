@@ -190,12 +190,6 @@ public class PlayerSkills : NetworkBehaviour
             targetObject = NetworkServer.spawned[targetNetId].gameObject;
         }
 
-        if (skill.Range > 0 && targetObject != null && Vector3.Distance(transform.position, targetObject.transform.position) > skill.Range)
-        {
-            Debug.LogWarning($"[PlayerSkills] Target out of range for {skillName}");
-            return;
-        }
-
         if (stats != null) stats.SpendMana(skill.ManaCost);
 
         if (skill.CastTime > 0)
@@ -205,6 +199,7 @@ public class PlayerSkills : NetworkBehaviour
         else
         {
             ExecuteSkill(skill, targetPosition, targetObject, weight);
+            RpcCancelSkillSelection();
         }
     }
 
@@ -214,6 +209,7 @@ public class PlayerSkills : NetworkBehaviour
         yield return new WaitForSeconds(skill.CastTime);
         _isCasting = false;
         ExecuteSkill(skill, targetPosition, targetObject, weight);
+        RpcCancelSkillSelection();
     }
 
     private void ExecuteSkill(SkillBase skill, Vector3? targetPosition, GameObject targetObject, int weight)
@@ -416,32 +412,11 @@ public class PlayerSkills : NetworkBehaviour
             CancelSkillSelection();
         }
 
+        // Удалён блок с _activeSkill.Execute
+
         if (_activeSkill != null)
         {
             UpdateTargetIndicator();
-
-            if (Input.GetMouseButtonDown(0))
-            {
-                Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
-                if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers | _core.groundLayer))
-                {
-                    if ((_activeSkill is AreaOfEffectStunSkill || _activeSkill is AreaOfEffectHealSkill) && ((hit.collider.gameObject.layer & _core.groundLayer.value) != 0))
-                    {
-                        _activeSkill.Execute(_core, hit.point, null);
-                    }
-                    else
-                    {
-                        GameObject hitObject = hit.collider.gameObject;
-                        PlayerCore hitCore = hitObject.GetComponent<PlayerCore>();
-                        Monster hitMonster = hitObject.GetComponent<Monster>();
-                        if ((hitCore != null && hitCore.team != _core.team) || hitMonster != null)
-                        {
-                            _activeSkill.Execute(_core, null, hitObject);
-                        }
-                    }
-                }
-                CancelSkillSelection();
-            }
         }
         else
         {
@@ -637,5 +612,12 @@ public class PlayerSkills : NetworkBehaviour
     {
         float progress = 1f - Mathf.Max(0, globalCooldown - ((float)NetworkTime.time - _lastGlobalUseTime)) / globalCooldown;
         PlayerUI.Instance.UpdateGlobalCooldown(progress);
+    }
+
+
+    [ClientRpc]
+    private void RpcCancelSkillSelection()
+    {
+        CancelSkillSelection();
     }
 }
