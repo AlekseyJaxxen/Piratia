@@ -1,4 +1,6 @@
 using UnityEngine;
+using Mirror;
+using System.Collections;
 
 [CreateAssetMenu(fileName = "NewAreaOfEffectStunSkill", menuName = "Skills/AreaOfEffectStunSkill")]
 public class AreaOfEffectStunSkill : SkillBase
@@ -25,8 +27,7 @@ public class AreaOfEffectStunSkill : SkillBase
 
         Debug.Log($"[AreaOfEffectStunSkill] Attempting to AOE stun at position: {targetPosition.Value}, weight: {Weight}");
 
-        // Отправляем серверную команду с позицией и именем скилла
-        skills.CmdApplyAreaEffect(targetPosition.Value, _skillName, Weight);
+        // Удален CmdApplyAreaEffect - теперь в HandleAreaOfEffectStun на сервере
 
         skills.CmdExecuteSkill(caster, targetPosition, 0, _skillName, Weight);
         caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);

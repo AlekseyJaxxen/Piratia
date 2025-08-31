@@ -42,9 +42,7 @@ public class TargetedStunSkill : SkillBase
 
         skills.CmdExecuteSkill(caster, null, targetIdentity.netId, _skillName, Weight);
         caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
-
-        // ”брана проверка на Monster Ч теперь всегда вызываем дл€ любой valid цели (игрок или монстр)
-        skills.CmdApplyTargetedEffect(targetIdentity.netId, _skillName, Weight);
+        // ”дален вызов CmdApplyTargetedEffect - теперь в HandleTargetedStun на сервере
     }
 
     public void PlayEffect(GameObject target, PlayerSkills playerSkills)
