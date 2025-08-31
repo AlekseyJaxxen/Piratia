@@ -397,7 +397,13 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         var entry = skillCooldownEntries.Find(e => e.skillName == skillName);
         if (entry != null && entry.cooldownImage != null)
         {
-            entry.cooldownImage.fillAmount = 1f - progress;
+            entry.cooldownImage.fillAmount = progress; // Убираем инверсию
+                                                       // Необязательно: можно добавить затемнение иконки
+            Image skillIcon = entry.cooldownImage.GetComponentInParent<Image>(); // Предполагаем, что иконка — родительский Image
+            if (skillIcon != null)
+            {
+                skillIcon.color = progress > 0 ? Color.gray : Color.white; // Затемняем, если на кулдауне
+            }
         }
     }
 
