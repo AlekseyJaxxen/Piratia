@@ -188,6 +188,12 @@ public class PlayerSkills : NetworkBehaviour
         {
             targetObject = NetworkServer.spawned[targetNetId].gameObject;
         }
+
+        if (skill.Range > 0 && targetObject != null && Vector3.Distance(transform.position, targetObject.transform.position) > skill.Range + 2f)
+        {
+            Debug.LogWarning($"[PlayerSkills] Target out of range for {skillName}");
+            return;
+        }
         if (stats != null) stats.SpendMana(skill.ManaCost);
         if (skill.CastTime > 0)
         {
