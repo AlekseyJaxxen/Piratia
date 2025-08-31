@@ -241,7 +241,7 @@ public class PlayerActionSystem : NetworkBehaviour
         }
 
         float attackRange = skill.Range;
-        float attackCooldown = skill is BasicAttackSkill ? 1f / _core.Stats.attackSpeed : skill.Cooldown; // Для non-basic используем Cooldown как задержку
+        float attackCooldown = skill is BasicAttackSkill ? 1f / _core.Stats.attackSpeed : 0f; // Для non-basic - без задержки
 
         bool isLooping = skill is BasicAttackSkill;
 
