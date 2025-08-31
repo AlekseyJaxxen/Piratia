@@ -136,6 +136,10 @@ public class PlayerSkills : NetworkBehaviour
             Destroy(_stunEffectInstance);
         }
         CancelAllSkillSelections();
+        foreach (var skill in skills)
+        {
+            skill.CleanupIndicators();
+        }
         Debug.Log("[PlayerSkills] Cleaned up on client disconnect.");
     }
 
@@ -153,7 +157,8 @@ public class PlayerSkills : NetworkBehaviour
         Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
         if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.groundLayer))
         {
-            ((SkillBase)_activeSkill).effectRadiusIndicator.transform.position = hit.point + Vector3.up * 0.01f;
+            ((SkillBase)_activeSkill).SetEffectRadiusPosition(hit.point + Vector3.up * 0.01f);
+            Debug.Log($"[PlayerSkills] Updated effectRadiusIndicator to {hit.point + Vector3.up * 0.01f}");
         }
     }
 
@@ -380,7 +385,6 @@ public class PlayerSkills : NetworkBehaviour
 
     private void HandleTargetedStun(SkillBase skill, GameObject targetObject, int weight)
     {
-        TargetedStunSkill stunSkill = skill as TargetedStunSkill;
         // Эффект будет обработан на сервере через CmdApplyTargetedEffect
         uint targetNetId = targetObject.GetComponent<NetworkIdentity>().netId;
         RpcPlayTargetedStun(targetNetId, skill.SkillName);
