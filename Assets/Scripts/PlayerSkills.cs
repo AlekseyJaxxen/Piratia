@@ -199,27 +199,69 @@ public class PlayerSkills : NetworkBehaviour
         }
         else
         {
-            ExecuteSkill(skill, targetPosition, targetObject, weight);
+            ExecuteSkillOnServer(skill, targetPosition, targetObject, weight);
             RpcCancelSkillSelection();
         }
     }
 
     [Command]
-    public void CmdApplyAreaEffect(uint targetNetId, ControlEffectType effectType, float duration, int skillWeight)
+    public void CmdApplyAreaEffect(Vector3 targetPosition, string skillName, int weight)
     {
+        SkillBase skill = skills.Find(s => s.SkillName == skillName);
+        if (skill == null)
+        {
+            Debug.LogWarning($"[PlayerSkills] Skill not found: {skillName}");
+            return;
+        }
+
+        // Применяем эффект ко всем монстрам в радиусе на сервере
+        Collider[] colliders = Physics.OverlapSphere(targetPosition, ((AreaOfEffectStunSkill)skill).aoeRadius, LayerMask.GetMask("Monster"));
+        foreach (Collider col in colliders)
+        {
+            Monster monster = col.GetComponent<Monster>();
+            if (monster != null)
+            {
+                monster.ReceiveControlEffect(ControlEffectType.Stun, ((AreaOfEffectStunSkill)skill).stunDuration, weight);
+                Debug.Log($"[PlayerSkills] Applied Stun to {monster.monsterName} at {targetPosition}");
+            }
+        }
+
+        RpcPlayAoeStun(targetPosition, skillName);
+    }
+
+    [Command]
+    public void CmdApplyTargetedEffect(uint targetNetId, string skillName, int weight)
+    {
+        SkillBase skill = skills.Find(s => s.SkillName == skillName);
+        if (skill == null)
+        {
+            Debug.LogWarning($"[PlayerSkills] Skill not found: {skillName}");
+            return;
+        }
+
         GameObject targetObject = NetworkServer.spawned.ContainsKey(targetNetId) ? NetworkServer.spawned[targetNetId].gameObject : null;
         if (targetObject == null)
         {
-            Debug.LogWarning("[PlayerSkills] Target with netId " + targetNetId + " not found for AoE effect");
+            Debug.LogWarning($"[PlayerSkills] Target with netId {targetNetId} not found for targeted effect");
             return;
         }
 
         Monster monster = targetObject.GetComponent<Monster>();
         if (monster != null)
         {
-            monster.ReceiveControlEffect(effectType, duration, skillWeight);
-            Debug.Log($"[PlayerSkills] Applied {effectType} to {monster.monsterName} with duration {duration}");
+            monster.ReceiveControlEffect(ControlEffectType.Stun, ((TargetedStunSkill)skill).stunDuration, weight);
+            Debug.Log($"[PlayerSkills] Applied Stun to {monster.monsterName} via targeted effect");
         }
+        else
+        {
+            PlayerCore playerCore = targetObject.GetComponent<PlayerCore>();
+            if (playerCore != null && playerCore.team != _core.team)
+            {
+                playerCore.ApplyControlEffect(ControlEffectType.Stun, ((TargetedStunSkill)skill).stunDuration, weight);
+            }
+        }
+
+        RpcPlayTargetedStun(targetNetId, skillName);
     }
 
     private IEnumerator CastSkillCoroutine(SkillBase skill, Vector3? targetPosition, GameObject targetObject, int weight)
@@ -227,11 +269,11 @@ public class PlayerSkills : NetworkBehaviour
         _isCasting = true;
         yield return new WaitForSeconds(skill.CastTime);
         _isCasting = false;
-        ExecuteSkill(skill, targetPosition, targetObject, weight);
+        ExecuteSkillOnServer(skill, targetPosition, targetObject, weight);
         RpcCancelSkillSelection();
     }
 
-    private void ExecuteSkill(SkillBase skill, Vector3? targetPosition, GameObject targetObject, int weight)
+    private void ExecuteSkillOnServer(SkillBase skill, Vector3? targetPosition, GameObject targetObject, int weight)
     {
         if (skill is BasicAttackSkill)
         {
@@ -263,7 +305,25 @@ public class PlayerSkills : NetworkBehaviour
         }
         StartSkillCooldown(skill.SkillName);
         if (!skill.ignoreGlobalCooldown) StartGlobalCooldown();
-        CancelSkillSelection();
+    }
+
+    private void ExecuteSkill(SkillBase skill, Vector3? targetPosition, GameObject targetObject, int weight)
+    {
+        if (isServer)
+        {
+            ExecuteSkillOnServer(skill, targetPosition, targetObject, weight);
+        }
+        else
+        {
+            if (skill.CastTime > 0)
+            {
+                _castSkillCoroutine = StartCoroutine(CastSkillCoroutine(skill, targetPosition, targetObject, weight));
+            }
+            else
+            {
+                CmdExecuteSkill(_core, targetPosition, targetObject != null ? targetObject.GetComponent<NetworkIdentity>().netId : 0, skill.SkillName, weight);
+            }
+        }
     }
 
     private void HandleBasicAttack(SkillBase skill, GameObject targetObject)
@@ -321,11 +381,7 @@ public class PlayerSkills : NetworkBehaviour
     private void HandleTargetedStun(SkillBase skill, GameObject targetObject, int weight)
     {
         TargetedStunSkill stunSkill = skill as TargetedStunSkill;
-        PlayerCore targetCore = targetObject.GetComponent<PlayerCore>();
-        if (targetCore != null)
-        {
-            targetCore.ApplyControlEffect(ControlEffectType.Stun, stunSkill.stunDuration, weight);
-        }
+        // Эффект будет обработан на сервере через CmdApplyTargetedEffect
         uint targetNetId = targetObject.GetComponent<NetworkIdentity>().netId;
         RpcPlayTargetedStun(targetNetId, skill.SkillName);
     }
@@ -333,20 +389,26 @@ public class PlayerSkills : NetworkBehaviour
     private void HandleAreaOfEffectStun(SkillBase skill, Vector3 position, int weight)
     {
         AreaOfEffectStunSkill aoeStun = skill as AreaOfEffectStunSkill;
-        Collider[] hitColliders = Physics.OverlapSphere(position, skill.EffectRadius, _core.interactableLayers);
-        foreach (Collider col in hitColliders)
+        if (isServer)
         {
-            PlayerCore targetCore = col.GetComponent<PlayerCore>();
-            Monster targetMonster = col.GetComponent<Monster>();
-            if (targetCore != null && targetCore.team != _core.team)
+            Collider[] hitColliders = Physics.OverlapSphere(position, aoeStun.aoeRadius, _core.interactableLayers);
+            foreach (Collider col in hitColliders)
             {
-                targetCore.ApplyControlEffect(ControlEffectType.Stun, aoeStun.stunDuration, weight);
+                PlayerCore targetCore = col.GetComponent<PlayerCore>();
+                Monster targetMonster = col.GetComponent<Monster>();
+                if (targetCore != null && targetCore.team != _core.team)
+                {
+                    targetCore.ApplyControlEffect(ControlEffectType.Stun, aoeStun.stunDuration, weight);
+                }
+                else if (targetMonster != null)
+                {
+                    targetMonster.ReceiveControlEffect(ControlEffectType.Stun, aoeStun.stunDuration, weight);
+                }
             }
-            else if (targetMonster != null)
-            {
-                // Отправляем серверную команду для монстра
-                CmdApplyAreaEffect(targetMonster.netId, ControlEffectType.Stun, aoeStun.stunDuration, weight);
-            }
+        }
+        else
+        {
+            CmdApplyAreaEffect(position, skill.SkillName, weight);
         }
         RpcPlayAoeStun(position, skill.SkillName);
     }

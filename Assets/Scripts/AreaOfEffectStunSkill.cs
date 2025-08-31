@@ -25,19 +25,9 @@ public class AreaOfEffectStunSkill : SkillBase
 
         Debug.Log($"[AreaOfEffectStunSkill] Attempting to AOE stun at position: {targetPosition.Value}, weight: {Weight}");
 
-        // Находим монстров в радиусе
-        Collider[] colliders = Physics.OverlapSphere(targetPosition.Value, aoeRadius, LayerMask.GetMask("Monster"));
-        foreach (Collider col in colliders)
-        {
-            Monster monster = col.GetComponent<Monster>();
-            if (monster != null && monster != this)
-            {
-                // Отправляем серверную команду для каждого монстра
-                skills.CmdApplyAreaEffect(monster.netId, ControlEffectType.Stun, stunDuration, Weight);
-            }
-        }
+        // Отправляем серверную команду с позицией и именем скилла
+        skills.CmdApplyAreaEffect(targetPosition.Value, _skillName, Weight);
 
-        // Выполняем общую серверную команду для скилла
         skills.CmdExecuteSkill(caster, targetPosition, 0, _skillName, Weight);
         caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
         PlayEffect(targetPosition.Value);

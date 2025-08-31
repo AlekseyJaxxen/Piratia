@@ -42,12 +42,11 @@ public class TargetedStunSkill : SkillBase
         skills.CmdExecuteSkill(caster, null, targetIdentity.netId, _skillName, Weight);
         caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
 
-        // Применяем эффект Stun к цели (если это монстр)
+        // Проверяем, является ли цель монстром, и отправляем серверную команду
         Monster monster = targetObject.GetComponent<Monster>();
         if (monster != null)
         {
-            monster.ReceiveControlEffect(ControlEffectType.Stun, stunDuration, Weight);
-            PlayEffect(targetObject, skills);
+            skills.CmdApplyTargetedEffect(targetIdentity.netId, _skillName, Weight);
         }
     }
 
