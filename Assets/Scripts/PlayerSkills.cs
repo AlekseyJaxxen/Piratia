@@ -400,6 +400,8 @@ public class PlayerSkills : NetworkBehaviour
 
     private void HandleSkills()
     {
+        if (skills == null || skills.Count == 0) return;
+
         foreach (var skill in skills.Where(s => s.Hotkey != KeyCode.None))
         {
             if (Input.GetKeyDown(skill.Hotkey))
@@ -647,4 +649,11 @@ public class PlayerSkills : NetworkBehaviour
         localCooldowns[skillName] = (float)NetworkTime.time + cooldown;
         if (useGlobal) localGlobalCooldownEnd = (float)NetworkTime.time + globalCooldown;
     }
+
+    public override void OnDeserialize(NetworkReader reader, bool initialState)
+    {
+        base.OnDeserialize(reader, initialState);
+        if (skills == null || skills.Count == 0) return; // Избежать NRE до init
+    }
+
 }
