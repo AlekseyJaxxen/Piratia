@@ -39,15 +39,12 @@ public class TargetedStunSkill : SkillBase
         }
 
         Debug.Log($"[TargetedStunSkill] Client requesting stun for skill {_skillName} on target: {targetObject.name}, netId: {targetIdentity.netId}, weight: {Weight}");
+
         skills.CmdExecuteSkill(caster, null, targetIdentity.netId, _skillName, Weight);
         caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
 
-        // Проверяем, является ли цель монстром, и отправляем серверную команду
-        Monster monster = targetObject.GetComponent<Monster>();
-        if (monster != null)
-        {
-            skills.CmdApplyTargetedEffect(targetIdentity.netId, _skillName, Weight);
-        }
+        // Убрана проверка на Monster — теперь всегда вызываем для любой valid цели (игрок или монстр)
+        skills.CmdApplyTargetedEffect(targetIdentity.netId, _skillName, Weight);
     }
 
     public void PlayEffect(GameObject target, PlayerSkills playerSkills)
