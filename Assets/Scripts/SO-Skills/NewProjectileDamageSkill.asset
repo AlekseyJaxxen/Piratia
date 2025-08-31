@@ -24,10 +24,12 @@ MonoBehaviour:
   _damageType: 0
   _weight: 1
   _effectRadius: 0
-  castRangePrefab: {fileID: 0}
+  castRangePrefab: {fileID: 3299273662854126661, guid: ee30310967d98c04fb16bcfa96cfb3c2,
+    type: 3}
   effectRadiusPrefab: {fileID: 0}
   castRangeIndicator: {fileID: 0}
-  effectRadiusIndicator: {fileID: 0}
+  effectRadiusIndicator: {fileID: 8212533921873324154, guid: e6230a171a068cd489eb410abd241717,
+    type: 3}
   damageAmount: 1000
   projectilePrefab: {fileID: 105246, guid: 305722bc3bbbf1f44aa7890efb7f31d9, type: 3}
   impactEffectPrefab: {fileID: 0}

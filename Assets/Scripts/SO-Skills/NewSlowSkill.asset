@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: NewSlowSkill
   m_EditorClassIdentifier: Assembly-CSharp::SlowSkill
   ignoreGlobalCooldown: 0
-  _icon: {fileID: 0}
+  _icon: {fileID: 21300000, guid: 035ad24471fd66e45aabada49b94eb27, type: 3}
   _skillName: WarriorSlowSkill
-  _hotkey: 287
+  _hotkey: 286
   _range: 3
   _cooldown: 5
   _castTime: 0.1
@@ -24,7 +24,8 @@ MonoBehaviour:
   _damageType: 0
   _weight: 1
   _effectRadius: 0
-  castRangePrefab: {fileID: 0}
+  castRangePrefab: {fileID: 3299273662854126661, guid: ee30310967d98c04fb16bcfa96cfb3c2,
+    type: 3}
   effectRadiusPrefab: {fileID: 0}
   castRangeIndicator: {fileID: 0}
   effectRadiusIndicator: {fileID: 0}
