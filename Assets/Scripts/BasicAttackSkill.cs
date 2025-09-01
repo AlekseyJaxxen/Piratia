@@ -45,6 +45,23 @@ public class BasicAttackSkill : SkillBase
         caster.GetComponent<PlayerAnimation>().PlayAttackAnimation();
     }
 
+    public override void ExecuteOnServer(PlayerCore caster, Vector3? targetPosition, GameObject targetObject, int weight)
+    {
+        CharacterStats stats = caster.GetComponent<CharacterStats>();
+        int damage = Random.Range(stats.minAttack, stats.maxAttack + 1);
+        bool isCritical = Random.value < stats.criticalHitChance / 100f;
+        if (isCritical) damage = Mathf.RoundToInt(damage * stats.criticalHitMultiplier);
+        Health targetHealth = targetObject.GetComponent<Health>();
+        if (targetHealth != null)
+        {
+            targetHealth.TakeDamage(damage, SkillDamageType, isCritical, caster.netIdentity);
+        }
+        Vector3 startPos = caster.transform.position + Vector3.up * 1.5f;
+        Quaternion startRot = caster.transform.rotation;
+        Vector3 targetPos = targetObject.transform.position + Vector3.up * 1.5f;
+        caster.GetComponent<PlayerSkills>().RpcPlayBasicAttackVFX(startPos, startRot, targetPos, isCritical, _skillName);
+    }
+
     public void PlayVFX(Vector3 startPosition, Quaternion startRotation, Vector3 endPosition, bool isCritical, PlayerSkills playerSkills)
     {
         if (vfxPrefab != null)

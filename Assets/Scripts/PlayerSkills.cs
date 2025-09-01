@@ -46,7 +46,6 @@ public class PlayerSkills : NetworkBehaviour
             _core = GetComponent<PlayerCore>();
             if (_core == null)
             {
-                Debug.LogError("[PlayerSkills] Init failed: PlayerCore is null");
                 yield break;
             }
         }
@@ -55,45 +54,34 @@ public class PlayerSkills : NetworkBehaviour
             _stunEffectInstance = Instantiate(stunEffectPrefab, transform);
             _stunEffectInstance.SetActive(false);
         }
-        else
-        {
-            Debug.LogWarning("[PlayerSkills] stunEffectPrefab is not assigned");
-        }
         CharacterStats stats = GetComponent<CharacterStats>();
         if (stats == null)
         {
-            Debug.LogError("[PlayerSkills] CharacterStats component missing!");
             yield break;
         }
         int maxWaitFrames = 100;
         int currentFrame = 0;
         while (SkillManager.Instance == null && currentFrame < maxWaitFrames)
         {
-            Debug.Log($"[PlayerSkills] Waiting for SkillManager.Instance (frame {currentFrame}/{maxWaitFrames})");
             yield return null;
             currentFrame++;
         }
         if (SkillManager.Instance == null)
         {
-            Debug.LogError("[PlayerSkills] SkillManager.Instance is still null after waiting!");
             yield break;
         }
         skills = SkillManager.Instance.GetSkillsForClass(stats.characterClass).Select(s => Instantiate(s)).ToList();
-        Debug.Log($"[PlayerSkills] Loaded {skills.Count} skills for class {stats.characterClass}: {string.Join(", ", skills.Select(s => s != null ? s.SkillName : "null"))}");
         foreach (var skill in skills)
         {
             if (skill == null)
             {
-                Debug.LogError("[PlayerSkills] Skill in skills list is null!");
                 continue;
             }
             skill.Init(_core);
             if (isServer)
             {
                 _skillLastUseTimes[skill.SkillName] = 0f;
-                Debug.Log($"[PlayerSkills] Initialized cooldown for {skill.SkillName} to 0 on server");
             }
-            Debug.Log($"[PlayerSkills] Initialized skill: {skill.SkillName}");
         }
         if (isLocalPlayer)
         {
@@ -116,7 +104,6 @@ public class PlayerSkills : NetworkBehaviour
         {
             skill.CleanupIndicators();
         }
-        Debug.Log("[PlayerSkills] Cleaned up on disable.");
     }
     public override void OnStopClient()
     {
@@ -135,7 +122,6 @@ public class PlayerSkills : NetworkBehaviour
         {
             skill.CleanupIndicators();
         }
-        Debug.Log("[PlayerSkills] Cleaned up on client disconnect.");
     }
     public void HandleStunEffect(bool isStunned)
     {
@@ -151,7 +137,6 @@ public class PlayerSkills : NetworkBehaviour
         if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.groundLayer))
         {
             ((SkillBase)_activeSkill).SetEffectRadiusPosition(hit.point + Vector3.up * 0.01f);
-            Debug.Log($"[PlayerSkills] Updated effectRadiusIndicator to {hit.point + Vector3.up * 0.01f}");
         }
     }
     [Command]
@@ -159,29 +144,24 @@ public class PlayerSkills : NetworkBehaviour
     {
         if (!caster.CanCastSkill())
         {
-            Debug.LogWarning($"[PlayerSkills] Caster {caster.name} cannot cast {skillName} due to state");
             return;
         }
         SkillBase skill = skills.Find(s => s.SkillName == skillName);
         if (skill == null)
         {
-            Debug.LogWarning($"[PlayerSkills] Skill not found: {skillName}");
             return;
         }
         if (GetRemainingCooldown(skillName) > 0)
         {
-            Debug.LogWarning($"[PlayerSkills] Skill on cooldown: {skillName}");
             return;
         }
         if (!skill.ignoreGlobalCooldown && GetGlobalRemainingCooldown() > 0)
         {
-            Debug.LogWarning("[PlayerSkills] Global cooldown active");
             return;
         }
         CharacterStats stats = caster.GetComponent<CharacterStats>();
         if (stats != null && !stats.HasEnoughMana(skill.ManaCost))
         {
-            Debug.LogWarning($"[PlayerSkills] Not enough mana for {skillName}: {stats.currentMana}/{skill.ManaCost}");
             return;
         }
         GameObject targetObject = null;
@@ -191,7 +171,6 @@ public class PlayerSkills : NetworkBehaviour
         }
         if (skill.Range > 0 && targetObject != null && Vector3.Distance(transform.position, targetObject.transform.position) > skill.Range + 2f)
         {
-            Debug.LogWarning($"[PlayerSkills] Target out of range for {skillName}");
             return;
         }
         if (stats != null) stats.SpendMana(skill.ManaCost);
@@ -201,187 +180,21 @@ public class PlayerSkills : NetworkBehaviour
         }
         else
         {
-            ExecuteSkillOnServer(skill, targetPosition, targetObject, weight);
+            skill.ExecuteOnServer(caster, targetPosition, targetObject, weight);
+            StartSkillCooldown(skillName);
+            if (!skill.ignoreGlobalCooldown) StartGlobalCooldown();
             RpcCancelSkillSelection();
         }
     }
-    // Удален CmdApplyAreaEffect, т.к. логика в Handle
-    // Удален CmdApplyTargetedEffect, т.к. логика в Handle
     private IEnumerator CastSkillCoroutine(SkillBase skill, Vector3? targetPosition, GameObject targetObject, int weight)
     {
         _isCasting = true;
         yield return new WaitForSeconds(skill.CastTime);
         _isCasting = false;
-        ExecuteSkillOnServer(skill, targetPosition, targetObject, weight);
-        RpcCancelSkillSelection();
-    }
-    private void ExecuteSkillOnServer(SkillBase skill, Vector3? targetPosition, GameObject targetObject, int weight)
-    {
-        if (skill is BasicAttackSkill)
-        {
-            HandleBasicAttack(skill, targetObject);
-        }
-        else if (skill is ProjectileDamageSkill)
-        {
-            HandleProjectileDamage(skill, targetObject);
-        }
-        else if (skill is SlowSkill)
-        {
-            HandleSlowSkill(skill, targetObject, weight);
-        }
-        else if (skill is TargetedStunSkill)
-        {
-            HandleTargetedStun(skill, targetObject, weight);
-        }
-        else if (skill is AreaOfEffectStunSkill)
-        {
-            HandleAreaOfEffectStun(skill, targetPosition.Value, weight);
-        }
-        else if (skill is AreaOfEffectHealSkill)
-        {
-            HandleAreaOfEffectHeal(skill, targetPosition.Value);
-        }
-        else if (skill is HealingSkill)
-        {
-            HandleHealingSkill(skill, targetObject);
-        }
+        skill.ExecuteOnServer(_core, targetPosition, targetObject, weight);
         StartSkillCooldown(skill.SkillName);
         if (!skill.ignoreGlobalCooldown) StartGlobalCooldown();
-    }
-    private void ExecuteSkill(SkillBase skill, Vector3? targetPosition, GameObject targetObject, int weight)
-    {
-        if (isServer)
-        {
-            ExecuteSkillOnServer(skill, targetPosition, targetObject, weight);
-        }
-        else
-        {
-            if (skill.CastTime > 0)
-            {
-                _castSkillCoroutine = StartCoroutine(CastSkillCoroutine(skill, targetPosition, targetObject, weight));
-            }
-            else
-            {
-                CmdExecuteSkill(_core, targetPosition, targetObject != null ? targetObject.GetComponent<NetworkIdentity>().netId : 0, skill.SkillName, weight);
-            }
-        }
-    }
-    private void HandleBasicAttack(SkillBase skill, GameObject targetObject)
-    {
-        CharacterStats stats = GetComponent<CharacterStats>();
-        int damage = Random.Range(stats.minAttack, stats.maxAttack + 1);
-        bool isCritical = Random.value < stats.criticalHitChance / 100f;
-        if (isCritical) damage = Mathf.RoundToInt(damage * stats.criticalHitMultiplier);
-        Health targetHealth = targetObject.GetComponent<Health>();
-        if (targetHealth != null)
-        {
-            targetHealth.TakeDamage(damage, skill.SkillDamageType, isCritical, netIdentity);
-        }
-        Vector3 startPos = transform.position + Vector3.up * 1.5f;
-        Quaternion startRot = transform.rotation;
-        Vector3 targetPos = targetObject.transform.position + Vector3.up * 1.5f;
-        RpcPlayBasicAttackVFX(startPos, startRot, targetPos, isCritical, skill.SkillName);
-    }
-    private void HandleProjectileDamage(SkillBase skill, GameObject targetObject)
-    {
-        ProjectileDamageSkill projectileSkill = skill as ProjectileDamageSkill;
-        int damage = projectileSkill.damageAmount;
-        Health targetHealth = targetObject.GetComponent<Health>();
-        if (targetHealth != null)
-        {
-            targetHealth.TakeDamage(damage, skill.SkillDamageType, false, netIdentity); // Предполагаем, что критический удар не применяется
-        }
-        Vector3 startPos = transform.position;
-        Vector3 targetPos = targetObject.transform.position;
-        RpcSpawnProjectile(startPos, targetPos, skill.SkillName);
-    }
-    private void HandleSlowSkill(SkillBase skill, GameObject targetObject, int weight)
-    {
-        SlowSkill slowSkill = skill as SlowSkill;
-        int damage = Mathf.RoundToInt(slowSkill.baseDamage * SlowSkill.DAMAGE_MULTIPLIER);
-        Health targetHealth = targetObject.GetComponent<Health>();
-        if (targetHealth != null)
-        {
-            targetHealth.TakeDamage(damage, skill.SkillDamageType, false, netIdentity);
-        }
-        PlayerCore targetCore = targetObject.GetComponent<PlayerCore>();
-        if (targetCore != null)
-        {
-            targetCore.ApplySlow(slowSkill.slowPercentage, slowSkill.slowDuration, weight);
-        }
-        Vector3 startPos = transform.position;
-        Vector3 targetPos = targetObject.transform.position;
-        RpcSpawnProjectile(startPos, targetPos, skill.SkillName);
-        uint targetNetId = targetObject.GetComponent<NetworkIdentity>().netId;
-        RpcApplySlowEffect(targetNetId, slowSkill.slowDuration, skill.SkillName);
-    }
-    private void HandleTargetedStun(SkillBase skill, GameObject targetObject, int weight)
-    {
-        TargetedStunSkill stunSkill = skill as TargetedStunSkill;
-        Monster monster = targetObject.GetComponent<Monster>();
-        if (monster != null)
-        {
-            monster.ReceiveControlEffect(ControlEffectType.Stun, stunSkill.stunDuration, weight);
-            Debug.Log($"[PlayerSkills] Applied Stun to {monster.monsterName} via targeted effect");
-        }
-        else
-        {
-            PlayerCore playerCore = targetObject.GetComponent<PlayerCore>();
-            if (playerCore != null && playerCore.team != _core.team)
-            {
-                playerCore.ApplyControlEffect(ControlEffectType.Stun, stunSkill.stunDuration, weight);
-            }
-        }
-        uint targetNetId = targetObject.GetComponent<NetworkIdentity>().netId;
-        RpcPlayTargetedStun(targetNetId, skill.SkillName);
-    }
-    private void HandleAreaOfEffectStun(SkillBase skill, Vector3 position, int weight)
-    {
-        AreaOfEffectStunSkill aoeStun = skill as AreaOfEffectStunSkill;
-        Collider[] hitColliders = Physics.OverlapSphere(position, aoeStun.aoeRadius, _core.interactableLayers);
-        foreach (Collider col in hitColliders)
-        {
-            PlayerCore targetCore = col.GetComponent<PlayerCore>();
-            Monster targetMonster = col.GetComponent<Monster>();
-            if (targetCore != null && targetCore.team != _core.team)
-            {
-                targetCore.ApplyControlEffect(ControlEffectType.Stun, aoeStun.stunDuration, weight);
-            }
-            else if (targetMonster != null)
-            {
-                targetMonster.ReceiveControlEffect(ControlEffectType.Stun, aoeStun.stunDuration, weight);
-            }
-        }
-        RpcPlayAoeStun(position, skill.SkillName);
-    }
-    private void HandleAreaOfEffectHeal(SkillBase skill, Vector3 position)
-    {
-        AreaOfEffectHealSkill aoeHeal = skill as AreaOfEffectHealSkill;
-        Collider[] hitColliders = Physics.OverlapSphere(position, skill.EffectRadius, _core.interactableLayers);
-        foreach (Collider col in hitColliders)
-        {
-            Health targetHealth = col.GetComponent<Health>();
-            if (targetHealth != null)
-            {
-                PlayerCore targetCore = col.GetComponent<PlayerCore>();
-                if (targetCore != null && targetCore.team == _core.team)
-                {
-                    targetHealth.Heal(aoeHeal.healAmount);
-                }
-            }
-        }
-        RpcPlayAoeHeal(position, skill.SkillName);
-    }
-    private void HandleHealingSkill(SkillBase skill, GameObject targetObject)
-    {
-        HealingSkill healingSkill = skill as HealingSkill;
-        Health targetHealth = targetObject.GetComponent<Health>();
-        if (targetHealth != null)
-        {
-            targetHealth.Heal(healingSkill.healAmount);
-        }
-        uint targetNetId = targetObject.GetComponent<NetworkIdentity>().netId;
-        RpcPlayHealingSkill(targetNetId, skill.SkillName);
+        RpcCancelSkillSelection();
     }
     public float GetRemainingCooldown(string skillName)
     {
@@ -447,7 +260,7 @@ public class PlayerSkills : NetworkBehaviour
         SetCursor(castCursor);
     }
     [ClientRpc]
-    private void RpcPlayBasicAttackVFX(Vector3 startPos, Quaternion startRot, Vector3 targetPos, bool isCritical, string skillName)
+    public void RpcPlayBasicAttackVFX(Vector3 startPos, Quaternion startRot, Vector3 targetPos, bool isCritical, string skillName)
     {
         SkillBase skill = skills.Find(s => s.SkillName == skillName);
         if (skill is BasicAttackSkill basicAttackSkill)
@@ -456,7 +269,7 @@ public class PlayerSkills : NetworkBehaviour
         }
     }
     [ClientRpc]
-    private void RpcSpawnProjectile(Vector3 startPos, Vector3 targetPos, string skillName)
+    public void RpcSpawnProjectile(Vector3 startPos, Vector3 targetPos, string skillName)
     {
         SkillBase skill = skills.Find(s => s.SkillName == skillName);
         if (skill is ProjectileDamageSkill projectileSkill)
@@ -469,7 +282,7 @@ public class PlayerSkills : NetworkBehaviour
         }
     }
     [ClientRpc]
-    private void RpcApplySlowEffect(uint targetNetId, float duration, string skillName)
+    public void RpcApplySlowEffect(uint targetNetId, float duration, string skillName)
     {
         if (NetworkClient.spawned.ContainsKey(targetNetId))
         {
@@ -482,7 +295,7 @@ public class PlayerSkills : NetworkBehaviour
         }
     }
     [ClientRpc]
-    private void RpcPlayTargetedStun(uint targetNetId, string skillName)
+    public void RpcPlayTargetedStun(uint targetNetId, string skillName)
     {
         if (NetworkClient.spawned.ContainsKey(targetNetId))
         {
@@ -495,7 +308,7 @@ public class PlayerSkills : NetworkBehaviour
         }
     }
     [ClientRpc]
-    private void RpcPlayHealingSkill(uint targetNetId, string skillName)
+    public void RpcPlayHealingSkill(uint targetNetId, string skillName)
     {
         if (NetworkClient.spawned.ContainsKey(targetNetId))
         {
@@ -508,7 +321,7 @@ public class PlayerSkills : NetworkBehaviour
         }
     }
     [ClientRpc]
-    private void RpcPlayAoeStun(Vector3 position, string skillName)
+    public void RpcPlayAoeStun(Vector3 position, string skillName)
     {
         SkillBase skill = skills.Find(s => s.SkillName == skillName);
         if (skill is AreaOfEffectStunSkill aoeStunSkill)
@@ -517,12 +330,21 @@ public class PlayerSkills : NetworkBehaviour
         }
     }
     [ClientRpc]
-    private void RpcPlayAoeHeal(Vector3 position, string skillName)
+    public void RpcPlayAoeHeal(Vector3 position, string skillName)
     {
         SkillBase skill = skills.Find(s => s.SkillName == skillName);
         if (skill is AreaOfEffectHealSkill aoeHealSkill)
         {
             aoeHealSkill.PlayEffect(position);
+        }
+    }
+    [ClientRpc]
+    public void RpcPlayAoeDamage(Vector3 position, string skillName)
+    {
+        SkillBase skill = skills.Find(s => s.SkillName == skillName);
+        if (skill is AoeDamageSkill aoeDamageSkill)
+        {
+            aoeDamageSkill.PlayEffect(position);
         }
     }
     private void Update()
@@ -547,7 +369,6 @@ public class PlayerSkills : NetworkBehaviour
             _activeSkill.SetIndicatorVisibility(false);
             _activeSkill = null;
             SetCursor(defaultCursor);
-            Debug.Log("[PlayerSkills] All skill selections cancelled");
         }
     }
     public void CancelSkillSelection()
@@ -557,7 +378,6 @@ public class PlayerSkills : NetworkBehaviour
             _activeSkill.SetIndicatorVisibility(false);
             _activeSkill = null;
             SetCursor(defaultCursor);
-            Debug.Log("[PlayerSkills] Skill selection fully cancelled");
         }
     }
     private void UpdateCursor()
@@ -589,7 +409,6 @@ public class PlayerSkills : NetworkBehaviour
     private void SetCursor(Texture2D cursor)
     {
         Cursor.SetCursor(cursor, Vector2.zero, CursorMode.Auto);
-        Debug.Log($"[PlayerSkills] Cursor set to: {cursor?.name ?? "null"}");
     }
     private void OnCooldownChanged(SyncDictionary<string, float>.Operation op, string key, float item)
     {
@@ -609,18 +428,12 @@ public class PlayerSkills : NetworkBehaviour
             {
                 float remainingCooldown = localCooldowns[key] - (float)NetworkTime.time;
                 progress = Mathf.Clamp01(remainingCooldown / skill.Cooldown);
-                Debug.Log($"[PlayerSkills] Local CD for {key}: progress = {progress}, remaining = {remainingCooldown}, cooldown = {skill.Cooldown}");
             }
             else
             {
                 progress = 1f - skill.CooldownProgressNormalized;
-                Debug.Log($"[PlayerSkills] Sync CD for {key}: progress = {progress}, normalized = {skill.CooldownProgressNormalized}");
             }
             PlayerUI.Instance.UpdateSkillCooldown(key, progress);
-        }
-        else
-        {
-            Debug.LogWarning($"[PlayerSkills] Skill not found for key: {key}");
         }
     }
     private void UpdateGlobalCooldownUI()

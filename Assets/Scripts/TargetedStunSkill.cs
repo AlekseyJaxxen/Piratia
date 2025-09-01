@@ -13,36 +13,40 @@ public class TargetedStunSkill : SkillBase
     {
         if (targetObject == null)
         {
-            Debug.LogWarning($"[TargetedStunSkill] Target object is null for skill {_skillName}");
-            return;
-        }
-
-        NetworkIdentity targetIdentity = targetObject.GetComponent<NetworkIdentity>();
-        if (targetIdentity == null)
-        {
-            Debug.LogWarning($"[TargetedStunSkill] Target {targetObject.name} has no NetworkIdentity for skill {_skillName}");
-            return;
-        }
-
-        CharacterStats stats = caster.GetComponent<CharacterStats>();
-        if (stats != null && !stats.HasEnoughMana(ManaCost))
-        {
-            Debug.LogWarning($"[TargetedStunSkill] Not enough mana for skill {_skillName}: {stats.currentMana}/{ManaCost}");
+            Debug.LogWarning("[TargetedStunSkill] Target object is null");
             return;
         }
 
         PlayerSkills skills = caster.GetComponent<PlayerSkills>();
         if (skills == null)
         {
-            Debug.LogWarning($"[TargetedStunSkill] PlayerSkills component missing on caster for skill {_skillName}");
+            Debug.LogWarning("[TargetedStunSkill] PlayerSkills component missing on caster");
             return;
         }
 
-        Debug.Log($"[TargetedStunSkill] Client requesting stun for skill {_skillName} on target: {targetObject.name}, netId: {targetIdentity.netId}, weight: {Weight}");
-
-        skills.CmdExecuteSkill(caster, null, targetIdentity.netId, _skillName, Weight);
+        uint targetNetId = targetObject.GetComponent<NetworkIdentity>().netId;
+        Debug.Log($"[TargetedStunSkill] Attempting to stun target: {targetObject.name}, weight: {Weight}");
+        skills.CmdExecuteSkill(caster, null, targetNetId, _skillName, Weight);
         caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
-        // Удален вызов CmdApplyTargetedEffect - теперь в HandleTargetedStun на сервере
+    }
+
+    public override void ExecuteOnServer(PlayerCore caster, Vector3? targetPosition, GameObject targetObject, int weight)
+    {
+        if (targetObject == null) return;
+
+        PlayerCore targetCore = targetObject.GetComponent<PlayerCore>();
+        Monster targetMonster = targetObject.GetComponent<Monster>();
+
+        if (targetCore != null && targetCore.team != caster.team)
+        {
+            targetCore.ApplyControlEffect(ControlEffectType.Stun, stunDuration, weight);
+        }
+        else if (targetMonster != null)
+        {
+            targetMonster.ReceiveControlEffect(ControlEffectType.Stun, stunDuration, weight);
+        }
+
+        caster.GetComponent<PlayerSkills>().RpcPlayTargetedStun(targetObject.GetComponent<NetworkIdentity>().netId, _skillName);
     }
 
     public void PlayEffect(GameObject target, PlayerSkills playerSkills)

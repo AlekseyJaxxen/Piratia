@@ -1,5 +1,6 @@
 using UnityEngine;
 using Mirror;
+using System.Collections;
 
 public class CharacterStats : NetworkBehaviour
 {
@@ -381,5 +382,42 @@ public class CharacterStats : NetworkBehaviour
     {
         currentMana = Mathf.Max(0, currentMana - amount);
         OnManaChangedEvent?.Invoke(currentMana, maxMana); // Если есть событие
+    }
+
+    [Server]
+    public void ApplyBuff(string stat, float mult, float dur)
+    {
+        int original = GetStatValue(stat);
+        SetStat(stat, Mathf.RoundToInt(original * mult));
+        StartCoroutine(RemoveBuff(stat, original, dur));
+    }
+
+    private IEnumerator RemoveBuff(string stat, int original, float dur)
+    {
+        yield return new WaitForSeconds(dur);
+        SetStat(stat, original);
+        CalculateDerivedStats();
+    }
+
+    [Server]
+    public void ApplyDebuff(string stat, float mult, float dur)
+    {
+        // Аналогично, но mult < 1
+    }
+
+    [Server]
+    public void ToggleBuff(string type, float value)
+    {
+        // Логика toggle
+    }
+
+    [Server]
+    private void SetStat(string stat, int value)
+    {
+        switch (stat.ToLower())
+        {
+            case "strength": strength = value; break;
+                // И т.д. для других
+        }
     }
 }

@@ -35,6 +35,18 @@ public class ProjectileDamageSkill : SkillBase
         caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
     }
 
+    public override void ExecuteOnServer(PlayerCore caster, Vector3? targetPosition, GameObject targetObject, int weight)
+    {
+        Health targetHealth = targetObject.GetComponent<Health>();
+        if (targetHealth != null)
+        {
+            targetHealth.TakeDamage(damageAmount, SkillDamageType, false, caster.netIdentity);
+        }
+        Vector3 startPos = caster.transform.position;
+        Vector3 targetPos = targetObject.transform.position;
+        caster.GetComponent<PlayerSkills>().RpcSpawnProjectile(startPos, targetPos, _skillName);
+    }
+
     public void SpawnProjectile(Vector3 startPos, Vector3 targetPos, PlayerSkills playerSkills)
     {
         if (projectilePrefab != null)

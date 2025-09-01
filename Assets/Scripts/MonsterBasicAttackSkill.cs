@@ -18,37 +18,6 @@ public class MonsterBasicAttackSkill : SkillBase
     public float criticalChance = 0.1f; // 10% chance for critical hit
     public float criticalMultiplier = 1.5f;
 
-    public void Execute(Monster caster, Vector3? targetPosition, GameObject targetObject)
-    {
-        if (caster == null)
-        {
-            Debug.LogWarning($"[MonsterBasicAttackSkill] Monster component missing on caster for skill {_skillName}");
-            return;
-        }
-
-        if (targetObject == null)
-        {
-            Debug.LogWarning($"[MonsterBasicAttackSkill] Target object is null for skill {_skillName}");
-            return;
-        }
-
-        NetworkIdentity targetIdentity = targetObject.GetComponent<NetworkIdentity>();
-        if (targetIdentity == null)
-        {
-            Debug.LogWarning($"[MonsterBasicAttackSkill] Target {targetObject.name} has no NetworkIdentity for skill {_skillName}");
-            return;
-        }
-
-        bool isCritical = Random.value < criticalChance;
-        int damage = isCritical ? Mathf.RoundToInt(baseDamage * criticalMultiplier) : baseDamage;
-
-        Debug.Log($"[MonsterBasicAttackSkill] Monster requesting attack for skill {_skillName} on target: {targetObject.name}, netId: {targetIdentity.netId}, damage: {damage}, isCritical: {isCritical}");
-
-        // Вызываем метод в Monster для обработки сетевой атаки
-        caster.ExecuteAttack(targetIdentity.netId, _skillName, damage, isCritical);
-
-    }
-
     protected override void ExecuteSkillImplementation(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
     {
         // Этот метод оставлен для совместимости с SkillBase, но не используется напрямую
@@ -58,6 +27,31 @@ public class MonsterBasicAttackSkill : SkillBase
         {
             Execute(monster, targetPosition, targetObject);
         }
+    }
+
+    public void Execute(Monster caster, Vector3? targetPosition, GameObject targetObject)
+    {
+        if (caster == null)
+        {
+            Debug.LogWarning($"[MonsterBasicAttackSkill] Monster component missing on caster for skill {_skillName}");
+            return;
+        }
+        if (targetObject == null)
+        {
+            Debug.LogWarning($"[MonsterBasicAttackSkill] Target object is null for skill {_skillName}");
+            return;
+        }
+        NetworkIdentity targetIdentity = targetObject.GetComponent<NetworkIdentity>();
+        if (targetIdentity == null)
+        {
+            Debug.LogWarning($"[MonsterBasicAttackSkill] Target {targetObject.name} has no NetworkIdentity for skill {_skillName}");
+            return;
+        }
+        bool isCritical = Random.value < criticalChance;
+        int damage = isCritical ? Mathf.RoundToInt(baseDamage * criticalMultiplier) : baseDamage;
+        Debug.Log($"[MonsterBasicAttackSkill] Monster requesting attack for skill {_skillName} on target: {targetObject.name}, netId: {targetIdentity.netId}, damage: {damage}, isCritical: {isCritical}");
+        // Вызываем метод в Monster для обработки сетевой атаки
+        caster.ExecuteAttack(targetIdentity.netId, _skillName, damage, isCritical);
     }
 
     public void PlayVFX(Vector3 startPosition, Quaternion startRotation, Vector3 endPosition, bool isCritical, Monster monster)

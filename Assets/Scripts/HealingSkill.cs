@@ -1,11 +1,11 @@
 using UnityEngine;
-using System.Collections;
 using Mirror;
 
+[CreateAssetMenu(fileName = "NewHealingSkill", menuName = "Skills/HealingSkill")]
 public class HealingSkill : SkillBase
 {
-    [Header("Heal Settings")]
-    public int healAmount = 20;
+    [Header("Healing Skill Specifics")]
+    public int healAmount = 50;
     public GameObject effectPrefab;
 
     protected override void ExecuteSkillImplementation(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
@@ -32,15 +32,26 @@ public class HealingSkill : SkillBase
 
         PlayerSkills skills = caster.GetComponent<PlayerSkills>();
         Debug.Log($"[HealingSkill] Attempting to heal target: {targetObject.name}, netId: {targetIdentity.netId}");
-        skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName, 0); // Некотрольный скилл, weight = 0
+        skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName, 0);
+        caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
+    }
+
+    public override void ExecuteOnServer(PlayerCore caster, Vector3? targetPosition, GameObject targetObject, int weight)
+    {
+        Health targetHealth = targetObject.GetComponent<Health>();
+        if (targetHealth != null)
+        {
+            targetHealth.Heal(healAmount);
+        }
+        uint targetNetId = targetObject.GetComponent<NetworkIdentity>().netId;
+        caster.GetComponent<PlayerSkills>().RpcPlayHealingSkill(targetNetId, _skillName);
     }
 
     public void PlayEffect(GameObject target)
     {
         if (effectPrefab != null)
         {
-            GameObject effect = Instantiate(effectPrefab, target.transform.position + Vector3.up * 1f, Quaternion.identity);
-            Destroy(effect, 2f);
+            Object.Instantiate(effectPrefab, target.transform.position + Vector3.up * 1f, Quaternion.identity);
         }
     }
 }

@@ -1,7 +1,6 @@
 using UnityEngine;
 using Mirror;
 
-[CreateAssetMenu(fileName = "NewSkillBase", menuName = "Skills/SkillBase")]
 public abstract class SkillBase : ScriptableObject, ISkill
 {
     public float Cooldown => _cooldown;
@@ -35,8 +34,8 @@ public abstract class SkillBase : ScriptableObject, ISkill
     [Header("Indicator Prefabs")]
     [SerializeField] public GameObject castRangePrefab;
     [SerializeField] public GameObject effectRadiusPrefab;
-    private GameObject castRangeIndicator; // Приватное поле
-    private GameObject effectRadiusIndicator; // Приватное поле
+    private GameObject castRangeIndicator;
+    private GameObject effectRadiusIndicator;
 
     public virtual void Init(PlayerCore core)
     {
@@ -61,6 +60,7 @@ public abstract class SkillBase : ScriptableObject, ISkill
 
     public virtual void SetIndicatorVisibility(bool visible)
     {
+        // Старый код индикаторов
         if (visible)
         {
             if (castRangeIndicator == null && castRangePrefab != null)
@@ -73,7 +73,6 @@ public abstract class SkillBase : ScriptableObject, ISkill
                 Debug.Log($"[SkillBase] Created castRangeIndicator for {SkillName} at {castRangeIndicator.transform.position}");
             }
             if (castRangeIndicator != null) castRangeIndicator.SetActive(true);
-
             if (effectRadiusIndicator == null && effectRadiusPrefab != null && EffectRadius > 0)
             {
                 effectRadiusIndicator = Object.Instantiate(effectRadiusPrefab);
@@ -121,18 +120,17 @@ public abstract class SkillBase : ScriptableObject, ISkill
         if (castRangeIndicator != null && !castRangeIndicator.Equals(null))
         {
             Debug.Log($"[SkillBase] Cleaning up castRangeIndicator for {SkillName}");
-            Destroy(castRangeIndicator); // Удаляем только экземпляры
+            Destroy(castRangeIndicator);
             castRangeIndicator = null;
         }
         if (effectRadiusIndicator != null && !effectRadiusIndicator.Equals(null))
         {
             Debug.Log($"[SkillBase] Cleaning up effectRadiusIndicator for {SkillName}");
-            Destroy(effectRadiusIndicator); // Удаляем только экземпляры
+            Destroy(effectRadiusIndicator);
             effectRadiusIndicator = null;
         }
     }
 
-    // Новый метод для доступа к effectRadiusIndicator
     public void SetEffectRadiusPosition(Vector3 position)
     {
         if (effectRadiusIndicator != null)
@@ -142,4 +140,14 @@ public abstract class SkillBase : ScriptableObject, ISkill
     }
 
     protected abstract void ExecuteSkillImplementation(PlayerCore player, Vector3? targetPosition, GameObject targetObject);
+
+    public virtual void ExecuteOnServer(PlayerCore caster, Vector3? targetPosition, GameObject targetObject, int weight)
+    {
+        // Базовая реализация - пусто
+    }
+
+    public virtual void ExecuteOnClient(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
+    {
+        // Базовая реализация - пусто
+    }
 }

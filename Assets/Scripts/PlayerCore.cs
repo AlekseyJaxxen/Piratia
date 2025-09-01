@@ -72,13 +72,6 @@ public class PlayerCore : NetworkBehaviour
         Camera = GetComponent<PlayerCameraController>();
         Health = GetComponent<Health>();
         Stats = GetComponent<CharacterStats>();
-        if (Movement == null) Debug.LogError("[PlayerCore] PlayerMovement component missing!");
-        if (Combat == null) Debug.LogError("[PlayerCore] PlayerCombat component missing!");
-        if (Skills == null) Debug.LogError("[PlayerCore] PlayerSkills component missing!");
-        if (ActionSystem == null) Debug.LogError("[PlayerCore] PlayerActionSystem component missing!");
-        if (Camera == null) Debug.LogError("[PlayerCore] PlayerCameraController component missing!");
-        if (Health == null) Debug.LogError("[PlayerCore] Health component missing!");
-        if (Stats == null) Debug.LogError("[PlayerCore] CharacterStats component missing!");
         if (Movement != null) Movement.Init(this);
         if (Combat != null) Combat.Init(this);
         if (ActionSystem != null) ActionSystem.Init(this);
@@ -86,20 +79,13 @@ public class PlayerCore : NetworkBehaviour
         if (modelTransform != null)
         {
             initialModelRotation = modelTransform.localRotation;
-            Debug.Log($"[PlayerCore] Initial model rotation saved: {initialModelRotation.eulerAngles}, for {playerName}");
-        }
-        else
-        {
-            Debug.LogError("[PlayerCore] modelTransform is null!");
         }
         boxCollider = GetComponent<BoxCollider>();
-        if (boxCollider == null) Debug.LogError("[PlayerCore] BoxCollider component missing!");
     }
     private void Update()
     {
         if (isLocalPlayer)
         {
-            Debug.Log($"[PlayerCore] Update: isDead={isDead}, isStunned={isStunned}, Movement.enabled={Movement != null && Movement.enabled}, team={team}, name={playerName}");
         }
         if (NetworkServer.active) ServerUpdate();
     }
@@ -118,25 +104,15 @@ public class PlayerCore : NetworkBehaviour
     }
     public override void OnStartLocalPlayer()
     {
-        Debug.Log($"[PlayerCore] OnStartLocalPlayer invoked. isOwned: {netIdentity.isOwned}, isDead: {isDead}, isStunned: {isStunned}, team: {team}, name: {playerName}");
         localPlayerCoreInstance = this;
         PlayerUI ui = GetComponentInChildren<PlayerUI>();
-        if (ui == null)
-        {
-            Debug.LogWarning("[PlayerCore] PlayerUI not found in player prefab!");
-        }
-        else if (!ui.gameObject.activeSelf)
+        if (ui != null && !ui.gameObject.activeSelf)
         {
             ui.gameObject.SetActive(true);
-            Debug.Log("[PlayerCore] Enabled PlayerUI for local player.");
         }
         if (Camera != null)
         {
             Camera.Init(this);
-        }
-        else
-        {
-            Debug.LogError("[PlayerCore] Camera component is null!");
         }
         base.OnStartLocalPlayer();
         int localPlayerLayer = LayerMask.NameToLayer("Player");
@@ -148,13 +124,8 @@ public class PlayerCore : NetworkBehaviour
                 child.gameObject.layer = localPlayerLayer;
             }
         }
-        else
-        {
-            Debug.LogError("[PlayerCore] Layer 'Player' not found!");
-        }
         if (team == PlayerTeam.None)
         {
-            Debug.LogWarning($"[PlayerCore] Team is None for player {playerName}. Requesting team assignment.");
             CmdRequestTeamAssignment();
         }
         Cursor.visible = true;
@@ -167,7 +138,6 @@ public class PlayerCore : NetworkBehaviour
             NameManager.Instance.RegisterPlayer(this);
         }
         base.OnStartClient();
-        Debug.Log($"OnStartClient started for {playerName}, isLocalPlayer: {isLocalPlayer}");
         _nameText = GetComponentInChildren<TextMeshProUGUI>();
         _teamIndicator = transform.Find("TeamIndicator")?.gameObject;
         _playerUI_Team = GetComponentInChildren<PlayerUI_Team>();
@@ -176,73 +146,39 @@ public class PlayerCore : NetworkBehaviour
             _nameText.text = playerName;
         }
         OnTeamChanged(team, team);
-        // Instantiate HealthBarUI and NameTagUI for all players/monsters
         if (healthBarPrefab != null)
         {
-            Debug.Log("Checking healthBarPrefab");
             Canvas mainCanvas = mainCanvasReference != null ? mainCanvasReference : MainCanvas.Instance ?? FindFirstObjectByType<Canvas>();
             if (mainCanvas == null)
             {
-                Debug.LogError("[PlayerCore] No Canvas found for health bar or name tag!");
                 return;
             }
-            Debug.Log($"[PlayerCore] Canvas found: {mainCanvas.gameObject.name}");
-            // Instantiate healthBarPrefab
             GameObject barInstance = Instantiate(healthBarPrefab, mainCanvas.transform);
-            Debug.Log("HP bar instantiated");
             healthBarUI = barInstance.GetComponent<HealthBarUI>();
             if (healthBarUI != null)
             {
-                Debug.Log("healthBarUI assigned");
                 healthBarUI.target = transform;
                 if (Health != null)
                 {
-                    Debug.Log("Health found");
                     Health.OnHealthUpdated += healthBarUI.UpdateHP;
                     StartCoroutine(InitializeHealthBarWithRetry());
                 }
-                else
-                {
-                    Debug.LogError("[PlayerCore] Health component is null!");
-                }
             }
-            else
-            {
-                Debug.LogError("[PlayerCore] HealthBarUI component missing on instantiated health bar!");
-            }
-            // Instantiate nameTagPrefab
             if (nameTagPrefab != null)
             {
                 GameObject nameTagInstance = Instantiate(nameTagPrefab, mainCanvas.transform);
-                Debug.Log("Name tag instantiated");
                 nameTagUI = nameTagInstance.GetComponent<NameTagUI>();
                 if (nameTagUI != null)
                 {
-                    Debug.Log("nameTagUI assigned");
                     nameTagUI.target = transform;
                     nameTagUI.UpdateNameAndTeam(playerName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
-                    Debug.Log($"[PlayerCore] Name tag initialized: {playerName}, team: {team}");
-                }
-                else
-                {
-                    Debug.LogError("[PlayerCore] NameTagUI component missing on instantiated name tag!");
                 }
             }
-            else
-            {
-                Debug.LogError("[PlayerCore] nameTagPrefab is null!");
-            }
         }
-        else
-        {
-            Debug.LogError("[PlayerCore] healthBarPrefab is null!");
-        }
-        // Disable PlayerUI for non-local players
         PlayerUI ui = GetComponentInChildren<PlayerUI>();
         if (ui != null && !isLocalPlayer)
         {
             ui.gameObject.SetActive(false);
-            Debug.Log("[PlayerCore] Disabled PlayerUI for non-local player.");
         }
     }
     private IEnumerator InitializeHealthBarWithRetry()
@@ -254,14 +190,11 @@ public class PlayerCore : NetworkBehaviour
             if (Health != null && Health.CurrentHealth > 0)
             {
                 healthBarUI.UpdateHP(Health.CurrentHealth, Health.MaxHealth);
-                Debug.Log($"[PlayerCore] Health bar initialized: {Health.CurrentHealth}/{Health.MaxHealth}");
                 yield break;
             }
             retryCount++;
-            Debug.LogWarning($"[PlayerCore] Health not ready (CurrentHealth={Health?.CurrentHealth}), retrying {retryCount}/{maxRetries}");
             yield return new WaitForSeconds(1.5f);
         }
-        Debug.LogError("[PlayerCore] Failed to initialize health bar after retries!");
     }
     [Server]
     public void ServerRespawnPlayer(Vector3 newPosition)
@@ -290,7 +223,6 @@ public class PlayerCore : NetworkBehaviour
             if (Skills != null) Skills.enabled = true;
             if (ActionSystem != null) ActionSystem.enabled = true;
             deathScreenUI.HideDeathScreen();
-            Debug.Log("[PlayerCore] Respawned, components re-enabled.");
         }
     }
     [Command]
@@ -300,29 +232,24 @@ public class PlayerCore : NetworkBehaviour
         PlayerTeam newTeam = uiInfo.team != PlayerTeam.None ? uiInfo.team : PlayerTeam.Red;
         team = newTeam;
         playerName = uiInfo.name;
-        Debug.Log($"[PlayerCore] Server: Assigned team {newTeam} and name {playerName} for player via CmdRequestTeamAssignment");
     }
     [Command]
     public void CmdChangeName(string newName)
     {
         if (string.IsNullOrWhiteSpace(newName) || newName.Length > 20)
         {
-            Debug.LogWarning($"[PlayerCore] Server: Invalid name '{newName}' received from client.");
             return;
         }
         playerName = newName;
-        Debug.Log($"[PlayerCore] Server: Player name changed to: {newName}");
     }
     [Command]
     public void CmdChangeTeam(PlayerTeam newTeam)
     {
         if (isDead)
         {
-            Debug.LogWarning($"[PlayerCore] Server: Cannot change team while dead.");
             return;
         }
         team = newTeam;
-        Debug.Log($"[PlayerCore] Server: Player team changed to: {newTeam}");
     }
     [Command]
     public void CmdAddExperience(int amount)
@@ -346,13 +273,11 @@ public class PlayerCore : NetworkBehaviour
         if (isDead)
         {
             ServerRespawnPlayer(_initialSpawnPosition);
-            Debug.Log($"[PlayerCore] Server: Respawn requested for {playerName}");
         }
     }
     private void OnTeamChanged(PlayerTeam oldTeam, PlayerTeam newTeam)
     {
         UpdateTeamIndicatorColor();
-        Debug.Log($"[PlayerCore] Team changed: {oldTeam} -> {newTeam}");
         if (NameManager.Instance != null)
         {
             NameManager.Instance.UpdateAllNameTags();
@@ -368,7 +293,6 @@ public class PlayerCore : NetworkBehaviour
         {
             _nameText.text = newName;
         }
-        Debug.Log($"[PlayerCore] Name changed: {oldName} -> {newName}");
         if (NameManager.Instance != null)
         {
             NameManager.Instance.UpdateAllNameTags();
@@ -420,20 +344,17 @@ public class PlayerCore : NetworkBehaviour
             if (boxCollider != null) boxCollider.enabled = true;
             if (healthBarUI != null && Health != null) healthBarUI.gameObject.SetActive(Health.CurrentHealth > 0); // Активируем при возрождении
         }
-        Debug.Log($"[PlayerCore] Death state changed: {oldValue} -> {newValue}, Movement.enabled={Movement != null && Movement.enabled}");
     }
     private void OnStunStateChanged(bool oldValue, bool newValue)
     {
         if (Skills != null) Skills.HandleStunEffect(newValue);
         if (newValue && ActionSystem != null) ActionSystem.CompleteAction();
-        Debug.Log($"[PlayerCore] Stun state changed: {oldValue} -> {newValue}");
     }
     [Server]
     public void ApplyControlEffect(ControlEffectType effectType, float duration, int skillWeight)
     {
         if (currentControlEffect != ControlEffectType.None && Time.time < controlEffectEndTime && skillWeight <= currentEffectWeight)
         {
-            Debug.Log($"[PlayerCore] Cannot apply {effectType} (weight {skillWeight}): {currentControlEffect} (weight {currentEffectWeight}) is active until {controlEffectEndTime}");
             return;
         }
         if (currentControlEffect != ControlEffectType.None)
@@ -446,14 +367,12 @@ public class PlayerCore : NetworkBehaviour
         if (effectType == ControlEffectType.Stun)
         {
             isStunned = true;
-            Debug.Log($"[PlayerCore] Applied stun effect, weight={skillWeight}, duration={duration}");
         }
         else if (effectType == ControlEffectType.Slow)
         {
             _slowPercentage = duration;
             _originalSpeed = Stats.movementSpeed;
             if (Movement != null) Movement.SetMovementSpeed(Stats.movementSpeed * (1f - _slowPercentage));
-            Debug.Log($"[PlayerCore] Applied slow effect, weight={skillWeight}, percentage={_slowPercentage}, duration={duration}");
         }
     }
     [Server]
@@ -461,7 +380,6 @@ public class PlayerCore : NetworkBehaviour
     {
         if (currentControlEffect != ControlEffectType.None && Time.time < controlEffectEndTime && skillWeight <= currentEffectWeight)
         {
-            Debug.Log($"[PlayerCore] Cannot apply slow (weight {skillWeight}): {currentControlEffect} (weight {currentEffectWeight}) is active until {controlEffectEndTime}");
             return;
         }
         if (currentControlEffect != ControlEffectType.None)
@@ -474,7 +392,6 @@ public class PlayerCore : NetworkBehaviour
         _originalSpeed = Stats.movementSpeed;
         if (Movement != null) Movement.SetMovementSpeed(Stats.movementSpeed * (1f - _slowPercentage));
         controlEffectEndTime = Time.time + duration;
-        Debug.Log($"[PlayerCore] Applied slow: percentage={percentage}, duration={duration}, weight={skillWeight}");
     }
     [Server]
     private void ClearControlEffect()
@@ -492,7 +409,6 @@ public class PlayerCore : NetworkBehaviour
         currentControlEffect = ControlEffectType.None;
         currentEffectWeight = 0;
         controlEffectEndTime = 0f;
-        Debug.Log("[PlayerCore] Cleared control effect");
     }
     [Command]
     private void CmdDie()
