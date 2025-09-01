@@ -17,7 +17,7 @@ public class Monster : NetworkBehaviour
     [SerializeField] private bool canAttack = true;
     private NavMeshAgent _agent;
     private MonsterUI _monsterUI;
-    private Rigidbody _rigidbody; // Добавлено для управления Rigidbody
+    private Rigidbody _rigidbody;
     public bool IsDead;
     [SyncVar] private float _slowPercentage = 0f;
     [SyncVar] private float _originalSpeed = 0f;
@@ -27,6 +27,11 @@ public class Monster : NetworkBehaviour
     [SyncVar] private int _currentEffectWeight = 0;
     [SerializeField] public float stoppingDistance = 1f;
     [SerializeField] public MonsterBasicAttackSkill basicAttackSkill;
+
+    [Header("Physics Settings")]
+    [SerializeField] public GameObject physicsModel; // Модель для физики
+    [SerializeField] public Vector3 minForce = new Vector3(-5f, 2f, -5f); // Минимальная сила удара
+    [SerializeField] public Vector3 maxForce = new Vector3(5f, 5f, 0f); // Максимальная сила удара
 
     private void Awake()
     {
@@ -54,7 +59,11 @@ public class Monster : NetworkBehaviour
         _rigidbody = GetComponent<Rigidbody>();
         if (_rigidbody != null)
         {
-            _rigidbody.isKinematic = true; // Устанавливаем kinematic по умолчанию
+            _rigidbody.isKinematic = true;
+        }
+        if (physicsModel == null)
+        {
+            Debug.LogWarning($"[Monster] PhysicsModel not assigned for {monsterName}, using default GameObject");
         }
         currentHealth = maxHealth;
         if (canAttack)
@@ -197,21 +206,33 @@ public class Monster : NetworkBehaviour
             _agent.isStopped = true;
             _agent.enabled = false;
         }
-        if (_rigidbody != null)
+        Rigidbody physicsRigidbody = (physicsModel != null ? physicsModel : gameObject).GetComponent<Rigidbody>();
+        if (physicsRigidbody != null)
         {
-            _rigidbody.isKinematic = true; // Отключаем физику
-            Debug.Log($"[Monster] Rigidbody set to kinematic for {monsterName}");
+            physicsRigidbody.isKinematic = false;
+            Vector3 randomForce = new Vector3(
+                Random.Range(minForce.x, maxForce.x),
+                Random.Range(minForce.y, maxForce.y),
+                Random.Range(minForce.z, maxForce.z)
+            );
+            physicsRigidbody.AddForce(randomForce, ForceMode.Impulse);
+            Debug.Log($"[Monster] Applied random force {randomForce} to {monsterName}");
+        }
+        else
+        {
+            Debug.LogWarning($"[Monster] No Rigidbody found on {(physicsModel != null ? physicsModel.name : "default GameObject")} for {monsterName}");
         }
         BoxCollider boxCollider = GetComponent<BoxCollider>();
         if (boxCollider != null)
         {
-            boxCollider.enabled = false;
-            Debug.Log($"[Monster] BoxCollider disabled for {monsterName}");
+            boxCollider.enabled = true;
+            gameObject.layer = LayerMask.NameToLayer("Ignore Raycast");
+            Debug.Log($"[Monster] Set {monsterName} to Ignore Raycast layer");
         }
         canMove = false;
         canAttack = false;
         RpcDie();
-        StartCoroutine(DespawnAfterDelay(1f));
+        StartCoroutine(DespawnAfterDelay(2f));
     }
 
     [ClientRpc]
@@ -226,11 +247,23 @@ public class Monster : NetworkBehaviour
         {
             _monsterUI.gameObject.SetActive(false);
         }
+        Rigidbody physicsRigidbody = (physicsModel != null ? physicsModel : gameObject).GetComponent<Rigidbody>();
+        if (physicsRigidbody != null)
+        {
+            physicsRigidbody.isKinematic = false;
+            Vector3 randomForce = new Vector3(
+                Random.Range(minForce.x, maxForce.x),
+                Random.Range(minForce.y, maxForce.y),
+                Random.Range(minForce.z, maxForce.z)
+            );
+            physicsRigidbody.AddForce(randomForce, ForceMode.Impulse);
+        }
+        gameObject.layer = LayerMask.NameToLayer("Ignore Raycast");
     }
 
     private IEnumerator DespawnAfterDelay(float delay)
     {
-        yield return new WaitForSeconds(1f);
+        yield return new WaitForSeconds(delay);
         if (gameObject != null)
         {
             NetworkServer.Destroy(gameObject);

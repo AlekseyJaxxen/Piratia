@@ -70,6 +70,9 @@ MonoBehaviour:
   IsStunned: 0
   stoppingDistance: 1.8
   basicAttackSkill: {fileID: 11400000, guid: 7bbed8c6ef038aa418d85853fbc14319, type: 2}
+  physicsModel: {fileID: 7651286584265580614}
+  minForce: {x: -5, y: 2, z: -5}
+  maxForce: {x: 5, y: 5, z: 0}
 --- !u!114 &7657699711342853803
 MonoBehaviour:
   m_ObjectHideFlags: 0
