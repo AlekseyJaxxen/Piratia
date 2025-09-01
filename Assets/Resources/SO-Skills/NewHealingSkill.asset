@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ba797585bd9758440bbe92376991fd4a, type: 3}
+  m_Name: NewHealingSkill
+  m_EditorClassIdentifier: Assembly-CSharp::HealingSkill
+  castType: 1
+  ignoreGlobalCooldown: 0
+  _icon: {fileID: 21300000, guid: 14db28742327e5849b88e57389800cb8, type: 3}
+  _skillName: Heal
+  _hotkey: 288
+  _range: 3
+  _cooldown: 5
+  _castTime: 0
+  _castCursor: {fileID: 0}
+  _manaCost: 0
+  _damageType: 1
+  _weight: 1
+  _effectRadius: 0
+  castRangePrefab: {fileID: 0}
+  effectRadiusPrefab: {fileID: 0}
+  healAmount: 1111
+  effectPrefab: {fileID: 105942, guid: ff672eaca96d32c419d7a1f1b0346e8d, type: 3}
