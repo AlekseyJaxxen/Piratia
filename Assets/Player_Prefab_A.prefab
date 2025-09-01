@@ -2921,10 +2921,10 @@ MonoBehaviour:
   totalExperience: 0
   skillPoints: 0
   characteristicPoints: 0
-  strength: 100
-  agility: 5
+  strength: 200
+  agility: 50
   spirit: 5
-  constitution: 5
+  constitution: 100
   accuracy: 5
   intelligence: 5
   movementSpeed: 8

@@ -8,6 +8,7 @@ public class PlayerActionSystem : NetworkBehaviour
     private Coroutine _currentAction;
     private bool _isPerformingAction;
     private PlayerAction _currentActionType;
+    private ISkill _currentSkill; // Добавлено для хранения текущего скилла
     public bool IsPerformingAction => _isPerformingAction;
     public PlayerAction CurrentAction => _currentActionType;
 
@@ -96,12 +97,15 @@ public class PlayerActionSystem : NetworkBehaviour
             int currentPriority = GetPriority(_currentActionType);
             if (actionType == PlayerAction.Move && _currentActionType == PlayerAction.SkillCast)
             {
-                var skillBase = (SkillBase)skillToCast;
-                bool isTargeted = skillBase.SkillCastType == SkillBase.CastType.TargetedEnemy || skillBase.SkillCastType == SkillBase.CastType.TargetedAlly;
-                if (isTargeted)
+                if (_currentSkill != null)
                 {
-                    Debug.Log($"[PlayerActionSystem] Ignoring Move: current action is targeted SkillCast");
-                    return false;
+                    var skillBase = (SkillBase)_currentSkill;
+                    bool isTargeted = skillBase.SkillCastType == SkillBase.CastType.TargetedEnemy || skillBase.SkillCastType == SkillBase.CastType.TargetedAlly;
+                    if (isTargeted)
+                    {
+                        Debug.Log($"[PlayerActionSystem] Ignoring Move: current action is targeted SkillCast");
+                        return false;
+                    }
                 }
             }
             if (newPriority >= currentPriority || actionType == PlayerAction.Move)
@@ -126,6 +130,7 @@ public class PlayerActionSystem : NetworkBehaviour
                 _currentAction = StartCoroutine(AttackAction(targetObject, skillToCast));
                 return true;
             case PlayerAction.SkillCast:
+                _currentSkill = skillToCast; // Добавлено
                 if (targetObject != null)
                 {
                     _currentAction = StartCoroutine(CastSkillAction(targetObject, skillToCast));
@@ -359,6 +364,7 @@ public class PlayerActionSystem : NetworkBehaviour
         Debug.Log($"[PlayerActionSystem] Completing action {_currentActionType}");
         _isPerformingAction = false;
         _currentActionType = PlayerAction.None;
+        _currentSkill = null; // Добавлено
         if (_currentAction != null)
         {
             StopCoroutine(_currentAction);
