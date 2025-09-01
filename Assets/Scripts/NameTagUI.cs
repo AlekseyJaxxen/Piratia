@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.UI;
 using TMPro;
 
 public class NameTagUI : MonoBehaviour
@@ -13,23 +12,16 @@ public class NameTagUI : MonoBehaviour
     void Start()
     {
         mainCamera = Camera.main;
+       // UpdateNameAndTeam("", PlayerTeam.None, PlayerTeam.None); // Инициализация при старте
     }
 
     void LateUpdate()
     {
         if (target != null && mainCamera != null)
         {
-            Vector3 worldPos = target.position + offset;
-            Vector3 screenPos = mainCamera.WorldToScreenPoint(worldPos);
-            if (screenPos.z > 0)
-            {
-                transform.position = screenPos;
-                gameObject.SetActive(true);
-            }
-            else
-            {
-                gameObject.SetActive(false);
-            }
+            transform.position = target.position + offset;
+            transform.LookAt(mainCamera.transform);
+            transform.rotation = Quaternion.Euler(0f, transform.rotation.eulerAngles.y, 0f); // Billboard
         }
     }
 

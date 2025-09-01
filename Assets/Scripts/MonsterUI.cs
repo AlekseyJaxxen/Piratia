@@ -3,20 +3,22 @@ using UnityEngine.UI;
 using TMPro;
 using System.Collections;
 
-public class HealthBarUI : MonoBehaviour
+public class MonsterUI : MonoBehaviour
 {
-    public Image fillImage;
-    public TextMeshProUGUI hpText; // Для HP "{current}/{max}"
-    // Если нужно имя, добавь: public TextMeshProUGUI nameText; и обновляй в UpdateHP или отдельно
+    [SerializeField] private Image fillImage; // Перетащи "Fill"
+    [SerializeField] private TextMeshProUGUI hpText; // "HPText"
+    [SerializeField] private TextMeshProUGUI nameText; // "NameText"
     public Transform target;
     private Camera mainCamera;
     public Vector3 offset = new Vector3(0, 2f, 0);
     private int previousHealth = int.MaxValue;
+    [SerializeField] private float flashDuration = 0.3f;
 
     void Start()
     {
         mainCamera = Camera.main;
-        // UpdateHP(0, 100); // Инициализация при старте (default values)
+        //UpdateHP(100, 100); // Init HP
+        //UpdateName("Monster"); // Init name
     }
 
     void LateUpdate()
@@ -25,7 +27,7 @@ public class HealthBarUI : MonoBehaviour
         {
             transform.position = target.position + offset;
             transform.LookAt(mainCamera.transform);
-            transform.rotation = Quaternion.Euler(0f, transform.rotation.eulerAngles.y, 0f); // Billboard
+            transform.rotation = Quaternion.Euler(0f, transform.rotation.eulerAngles.y, 0f);
         }
     }
 
@@ -40,12 +42,17 @@ public class HealthBarUI : MonoBehaviour
         previousHealth = current;
     }
 
+    public void UpdateName(string monsterName)
+    {
+        if (nameText != null) nameText.text = monsterName;
+    }
+
     private IEnumerator FlashHealthBar()
     {
         if (fillImage == null) yield break;
         Color originalColor = fillImage.color;
         fillImage.color = Color.red;
-        yield return new WaitForSeconds(0.3f);
+        yield return new WaitForSeconds(flashDuration);
         fillImage.color = originalColor;
     }
 }

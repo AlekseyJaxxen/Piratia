@@ -131,6 +131,7 @@ public class PlayerCore : NetworkBehaviour
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
     }
+
     public override void OnStartClient()
     {
         base.OnStartClient();
@@ -142,51 +143,31 @@ public class PlayerCore : NetworkBehaviour
             _nameText.text = playerName;
         }
         OnTeamChanged(team, team);
-        if (healthBarPrefab != null)
+        healthBarUI = GetComponentInChildren<HealthBarUI>();
+        if (healthBarUI != null)
         {
-            GameObject barInstance = Instantiate(healthBarPrefab, transform);
-            healthBarUI = barInstance.GetComponent<HealthBarUI>();
-            if (healthBarUI != null)
+            healthBarUI.target = transform;
+            if (Health != null)
             {
-                healthBarUI.target = transform;
-                if (Health != null)
-                {
-                    Health.OnHealthUpdated += healthBarUI.UpdateHP;
-                    StartCoroutine(InitializeHealthBarWithRetry());
-                }
+                Health.OnHealthUpdated += healthBarUI.UpdateHP;
+                healthBarUI.UpdateHP(Health.CurrentHealth, Health.MaxHealth);
             }
         }
-        if (nameTagPrefab != null)
+        nameTagUI = GetComponentInChildren<NameTagUI>();
+        if (nameTagUI != null)
         {
-            GameObject nameTagInstance = Instantiate(nameTagPrefab, transform);
-            nameTagUI = nameTagInstance.GetComponent<NameTagUI>();
-            if (nameTagUI != null)
-            {
-                nameTagUI.target = transform;
-                nameTagUI.UpdateNameAndTeam(playerName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
-            }
+            nameTagUI.target = transform;
+            nameTagUI.UpdateNameAndTeam(playerName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
         }
+        StartCoroutine(InitializeHealthBarWithRetry());
         PlayerUI ui = GetComponentInChildren<PlayerUI>();
         if (ui != null && !isLocalPlayer)
         {
             ui.gameObject.SetActive(false);
         }
     }
-    private IEnumerator InitializeHealthBarWithRetry()
-    {
-        int maxRetries = 5;
-        int retryCount = 0;
-        while (retryCount < maxRetries)
-        {
-            if (Health != null && Health.CurrentHealth > 0)
-            {
-                healthBarUI.UpdateHP(Health.CurrentHealth, Health.MaxHealth);
-                yield break;
-            }
-            retryCount++;
-            yield return new WaitForSeconds(1.5f);
-        }
-    }
+
+
     [Server]
     public void ServerRespawnPlayer(Vector3 newPosition)
     {
@@ -427,5 +408,34 @@ public class PlayerCore : NetworkBehaviour
     public bool CanCastSkill()
     {
         return !isDead && !isStunned; // Добавь !IsSilenced или другие, если реализуешь
+    }
+
+    private IEnumerator UpdateUIAfterFrame()
+    {
+        yield return new WaitForEndOfFrame();
+        if (nameTagUI != null)
+        {
+            nameTagUI.UpdateNameAndTeam(playerName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
+        }
+        if (healthBarUI != null && Health != null)
+        {
+            healthBarUI.UpdateHP(Health.CurrentHealth, Health.MaxHealth);
+        }
+    }
+
+    private IEnumerator InitializeHealthBarWithRetry()
+    {
+        int maxRetries = 5;
+        int retryCount = 0;
+        while (retryCount < maxRetries)
+        {
+            if (Health != null && Health.CurrentHealth > 0)
+            {
+                healthBarUI.UpdateHP(Health.CurrentHealth, Health.MaxHealth);
+                yield break;
+            }
+            retryCount++;
+            yield return new WaitForSeconds(0.5f);
+        }
     }
 }

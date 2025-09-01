@@ -11,14 +11,13 @@ public class Monster : NetworkBehaviour
     [SyncVar(hook = nameof(OnHealthChanged))] public int currentHealth;
     [SyncVar] public bool IsCooldown = false;
     [SerializeField] private float moveSpeed = 5f;
-    [SerializeField] private float attackCooldown = 2f; // Добавлено как поле
+    [SerializeField] private float attackCooldown = 2f;
     [SerializeField] private GameObject deathVFXPrefab;
-    [SerializeField] private GameObject nameTagPrefab;
+    [SerializeField] private GameObject monsterUIPrefab; // Новый префаб для UI (HP + Name)
     [SerializeField] private bool canMove = true;
     [SerializeField] private bool canAttack = true;
     private NavMeshAgent _agent;
-    private MonsterHealthBarUI _healthBarUI;
-    private NameTagUI _nameTagUI;
+    private MonsterUI _monsterUI; // Новый компонент UI
     public bool IsDead;
     [SyncVar] private float _slowPercentage = 0f;
     [SyncVar] private float _originalSpeed = 0f;
@@ -61,61 +60,23 @@ public class Monster : NetworkBehaviour
                 canAttack = false;
             }
         }
-        _healthBarUI = GetComponentInChildren<MonsterHealthBarUI>();
-        if (_healthBarUI == null)
-        {
-            Debug.LogWarning($"[Monster] MonsterHealthBarUI component missing for {monsterName}");
-        }
     }
 
     public override void OnStartClient()
     {
         base.OnStartClient();
-        _healthBarUI = GetComponentInChildren<MonsterHealthBarUI>();
-        if (_healthBarUI != null)
+        if (monsterUIPrefab != null)
         {
-            _healthBarUI.UpdateHP(currentHealth, maxHealth);
-        }
-        if (nameTagPrefab != null)
-        {
-            GameObject nameTagInstance = Instantiate(nameTagPrefab, transform);
-            _nameTagUI = nameTagInstance.GetComponent<NameTagUI>();
-            if (_nameTagUI != null)
+            GameObject uiInstance = Instantiate(monsterUIPrefab, transform);
+            _monsterUI = uiInstance.GetComponent<MonsterUI>();
+            if (_monsterUI != null)
             {
-                _nameTagUI.target = transform;
-                _nameTagUI.UpdateNameAndTeam(monsterName, PlayerTeam.None, PlayerCore.localPlayerCoreInstance != null ? PlayerCore.localPlayerCoreInstance.team : PlayerTeam.None);
+                _monsterUI.target = transform;
+                _monsterUI.UpdateName(monsterName);
+                _monsterUI.UpdateHP(currentHealth, maxHealth);
             }
         }
         StartCoroutine(CheckControlEffectExpiration());
-    }
-
-    private IEnumerator SetupUIDelayed()
-    {
-        while (true)
-        {
-            GameObject canvasObject = GameObject.Find("TeamSelectionCanvas");
-            Canvas mainCanvas = canvasObject != null ? canvasObject.GetComponent<Canvas>() : null;
-            if (mainCanvas != null && mainCanvas.gameObject.activeInHierarchy)
-            {
-                if (nameTagPrefab != null)
-                {
-                    GameObject nameTagInstance = Instantiate(nameTagPrefab, mainCanvas.transform);
-                    _nameTagUI = nameTagInstance.GetComponent<NameTagUI>();
-                    if (_nameTagUI != null)
-                    {
-                        _nameTagUI.target = transform;
-                        _nameTagUI.UpdateNameAndTeam(monsterName, PlayerTeam.None, PlayerCore.localPlayerCoreInstance != null ? PlayerCore.localPlayerCoreInstance.team : PlayerTeam.None);
-                        Debug.Log($"[Monster] NameTagUI initialized for {monsterName}");
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"[Monster] NameTagUI component missing on nameTagPrefab for {monsterName}");
-                    }
-                    break;
-                }
-            }
-            yield return null;
-        }
     }
 
     [Server]
@@ -126,16 +87,13 @@ public class Monster : NetworkBehaviour
             Debug.Log($"[Monster] Cannot apply {effectType} (weight {skillWeight}): {_currentControlEffect} (weight {_currentEffectWeight}) is active until {_controlEffectEndTime}");
             return;
         }
-
         if (_currentControlEffect != ControlEffectType.None)
         {
             ClearControlEffect();
         }
-
         _currentControlEffect = effectType;
         _currentEffectWeight = skillWeight;
         _controlEffectEndTime = Time.time + duration;
-
         if (effectType == ControlEffectType.Stun)
         {
             IsStunned = true;
@@ -197,10 +155,10 @@ public class Monster : NetworkBehaviour
 
     private void OnHealthChanged(int oldHealth, int newHealth)
     {
-        if (_healthBarUI != null)
+        if (_monsterUI != null)
         {
-            _healthBarUI.UpdateHP(newHealth, maxHealth);
-            Debug.Log($"[Monster] HealthBarUI updated: {newHealth}/{maxHealth} for {monsterName}");
+            _monsterUI.UpdateHP(newHealth, maxHealth);
+            Debug.Log($"[Monster] UI updated: {newHealth}/{maxHealth} for {monsterName}");
         }
         if (newHealth <= 0 && !IsDead)
         {
@@ -221,7 +179,6 @@ public class Monster : NetworkBehaviour
     public void Die()
     {
         if (IsDead) return;
-
         IsDead = true;
         Debug.Log($"[Monster] Die called for {monsterName}, Health: {currentHealth}");
         if (_agent != null && _agent.isOnNavMesh)
@@ -246,8 +203,8 @@ public class Monster : NetworkBehaviour
     {
         if (deathVFXPrefab != null)
         {
-            GameObject vfx = Instantiate(deathVFXPrefab, transform.position, Quaternion.identity);
-            Destroy(vfx, 1f);
+            GameObject vfx = Object.Instantiate(deathVFXPrefab, transform.position, Quaternion.identity);
+            Object.Destroy(vfx, 1f);
         }
     }
 
@@ -264,12 +221,12 @@ public class Monster : NetworkBehaviour
     public override void OnStopClient()
     {
         base.OnStopClient();
-        if (_nameTagUI != null) Destroy(_nameTagUI.gameObject);
+        if (_monsterUI != null) Object.Destroy(_monsterUI.gameObject);
     }
 
     private void OnDestroy()
     {
-        if (_nameTagUI != null) Destroy(_nameTagUI.gameObject);
+        if (_monsterUI != null) Object.Destroy(_monsterUI.gameObject);
     }
 
     // Новый метод для обработки атаки
@@ -277,21 +234,17 @@ public class Monster : NetworkBehaviour
     public void ExecuteAttack(uint targetNetId, string skillName, int damage, bool isCritical)
     {
         if (!canAttack || IsDead || IsStunned) return;
-
         GameObject targetObject = NetworkServer.spawned.ContainsKey(targetNetId) ? NetworkServer.spawned[targetNetId].gameObject : null;
         if (targetObject == null)
         {
             Debug.LogWarning($"[Monster] Target with netId {targetNetId} not found for attack");
             return;
         }
-
         Health targetHealth = targetObject.GetComponent<Health>();
         if (targetHealth != null)
         {
-            targetHealth.TakeDamage(damage, DamageType.Physical, isCritical, netIdentity); // Исправлен порядок аргументов
+            targetHealth.TakeDamage(damage, DamageType.Physical, isCritical, netIdentity);
             Debug.Log($"[Monster] Attacked {targetObject.name} with {damage} damage, isCritical: {isCritical}");
-
-            // Вызываем VFX на сервере и синхронизируем с клиентами
             Vector3 startPosition = transform.position + Vector3.up * 1f;
             Vector3 endPosition = targetObject.transform.position + Vector3.up * 1f;
             RpcPlayVFX(startPosition, transform.rotation, endPosition, isCritical);
@@ -300,7 +253,6 @@ public class Monster : NetworkBehaviour
         {
             Debug.LogWarning($"[Monster] Target {targetObject.name} has no Health component");
         }
-
         IsCooldown = true;
         StartCoroutine(EndCooldown(attackCooldown));
     }
@@ -340,7 +292,7 @@ public class Monster : NetworkBehaviour
             {
                 ClearControlEffect();
             }
-            yield return new WaitForSeconds(0.5f); // Проверка каждые 0.5 секунды
+            yield return new WaitForSeconds(0.5f);
         }
     }
 }
