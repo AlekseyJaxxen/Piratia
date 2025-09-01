@@ -27,6 +27,11 @@ public class Monster : NetworkBehaviour
     [SyncVar] private int _currentEffectWeight = 0;
     [SerializeField] public float stoppingDistance = 1f;
     [SerializeField] public MonsterBasicAttackSkill basicAttackSkill;
+    // Ссылка на компонент Rigidbody и Collider на дочернем объекте-модели
+    [SerializeField] private Rigidbody modelRigidbody;
+    [SerializeField] private Collider modelCollider;
+    // Новая переменная для силы толчка при смерти
+    [SerializeField] private float pushForce = 500f;
 
     private void Awake()
     {
@@ -74,6 +79,8 @@ public class Monster : NetworkBehaviour
                 _monsterUI.target = transform;
                 _monsterUI.UpdateName(monsterName);
                 _monsterUI.UpdateHP(currentHealth, maxHealth);
+                // Устанавливаем цвет имени монстра на красный.
+                _monsterUI.SetNameColor(Color.red);
             }
         }
         StartCoroutine(CheckControlEffectExpiration());
@@ -181,17 +188,36 @@ public class Monster : NetworkBehaviour
         if (IsDead) return;
         IsDead = true;
         Debug.Log($"[Monster] Die called for {monsterName}, Health: {currentHealth}");
+
+        // Отключаем навигационный агент и коллайдер на родительском объекте
         if (_agent != null && _agent.isOnNavMesh)
         {
             _agent.isStopped = true;
             _agent.enabled = false;
         }
-        BoxCollider boxCollider = GetComponent<BoxCollider>();
-        if (boxCollider != null)
+
+        BoxCollider parentCollider = GetComponent<BoxCollider>();
+        if (parentCollider != null)
         {
-            boxCollider.enabled = false;
+            parentCollider.enabled = false;
             Debug.Log($"[Monster] BoxCollider disabled for {monsterName}");
         }
+
+        // Включаем физику на дочерней модели
+        if (modelRigidbody != null)
+        {
+            modelRigidbody.isKinematic = false; // Отключаем кинематику
+            modelRigidbody.useGravity = true;    // Включаем гравитацию
+
+            // Применяем толчок, чтобы модель отлетела назад
+            modelRigidbody.AddForce(-transform.forward * pushForce, ForceMode.Impulse);
+        }
+
+        if (modelCollider != null)
+        {
+            modelCollider.enabled = true; // Включаем коллайдер, чтобы модель могла упасть и соприкасаться с полом
+        }
+
         canMove = false;
         canAttack = false;
         RpcDie();

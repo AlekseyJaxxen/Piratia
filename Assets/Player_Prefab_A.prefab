@@ -416,6 +416,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3232908542492878084}
+  - component: {fileID: 5263236657799858691}
   m_Layer: 0
   m_Name: HpBarHolder
   m_TagString: Untagged
@@ -433,13 +434,26 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 2, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.5, y: 1.5, z: 1.5}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2802542067321688900}
   - {fileID: 6231755629654633067}
   m_Father: {fileID: 8988732741915685909}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &5263236657799858691
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 678705323509422255}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 70e64c43e14f556429a63edf4d39eebf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BillBoard
+  targetCamera: {fileID: 0}
 --- !u!1 &829713454158879333
 GameObject:
   m_ObjectHideFlags: 0
@@ -3018,8 +3032,6 @@ MonoBehaviour:
   Camera: {fileID: 0}
   Health: {fileID: 6067296820680782066}
   Stats: {fileID: 3920754116015596352}
-  healthBarPrefab: {fileID: 0}
-  nameTagPrefab: {fileID: 0}
   nameTagUI: {fileID: 0}
   respawnTime: 5
   deathScreenUI: {fileID: 2573483568006832762}
@@ -3617,6 +3629,16 @@ PrefabInstance:
       propertyPath: target
       value: 
       objectReference: {fileID: 8988732741915685909}
+    - target: {fileID: 7380265843032378932, guid: 0107e61ccce31a946bd4334d79695768,
+        type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 200
+      objectReference: {fileID: 0}
+    - target: {fileID: 7380265843032378932, guid: 0107e61ccce31a946bd4334d79695768,
+        type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 20
+      objectReference: {fileID: 0}
     - target: {fileID: 7380265843032378932, guid: 0107e61ccce31a946bd4334d79695768,
         type: 3}
       propertyPath: m_LocalPosition.z
@@ -5229,10 +5251,40 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 3232908542492878084}
     m_Modifications:
+    - target: {fileID: 1812053146173118647, guid: ce27e742a735a13409989b17bed6c0db,
+        type: 3}
+      propertyPath: m_text
+      value: EBANAT
+      objectReference: {fileID: 0}
+    - target: {fileID: 1812053146173118647, guid: ce27e742a735a13409989b17bed6c0db,
+        type: 3}
+      propertyPath: m_fontSize
+      value: 36
+      objectReference: {fileID: 0}
+    - target: {fileID: 1812053146173118647, guid: ce27e742a735a13409989b17bed6c0db,
+        type: 3}
+      propertyPath: m_fontSizeBase
+      value: 36
+      objectReference: {fileID: 0}
     - target: {fileID: 2897239049169566932, guid: ce27e742a735a13409989b17bed6c0db,
         type: 3}
       propertyPath: m_Name
       value: NameTagUI
+      objectReference: {fileID: 0}
+    - target: {fileID: 5902334142044535135, guid: ce27e742a735a13409989b17bed6c0db,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5979584581302020442, guid: ce27e742a735a13409989b17bed6c0db,
+        type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 200
+      objectReference: {fileID: 0}
+    - target: {fileID: 5979584581302020442, guid: ce27e742a735a13409989b17bed6c0db,
+        type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 50
       objectReference: {fileID: 0}
     - target: {fileID: 5979584581302020442, guid: ce27e742a735a13409989b17bed6c0db,
         type: 3}
@@ -5254,6 +5306,11 @@ PrefabInstance:
       propertyPath: target
       value: 
       objectReference: {fileID: 8988732741915685909}
+    - target: {fileID: 6289741630904443473, guid: ce27e742a735a13409989b17bed6c0db,
+        type: 3}
+      propertyPath: offset.y
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 9171180033828481631, guid: ce27e742a735a13409989b17bed6c0db,
         type: 3}
       propertyPath: m_LocalPosition.x

@@ -26,8 +26,7 @@ public class MonsterUI : MonoBehaviour
         if (target != null && mainCamera != null)
         {
             transform.position = target.position + offset;
-            transform.LookAt(mainCamera.transform);
-            transform.rotation = Quaternion.Euler(0f, transform.rotation.eulerAngles.y, 0f);
+
         }
     }
 
@@ -45,6 +44,15 @@ public class MonsterUI : MonoBehaviour
     public void UpdateName(string monsterName)
     {
         if (nameText != null) nameText.text = monsterName;
+    }
+
+    // Добавлен публичный метод для установки цвета текста имени.
+    public void SetNameColor(Color color)
+    {
+        if (nameText != null)
+        {
+            nameText.color = color;
+        }
     }
 
     private IEnumerator FlashHealthBar()

@@ -24,8 +24,8 @@ public class HealthBarUI : MonoBehaviour
         if (target != null && mainCamera != null)
         {
             transform.position = target.position + offset;
-            transform.LookAt(mainCamera.transform);
-            transform.rotation = Quaternion.Euler(0f, transform.rotation.eulerAngles.y, 0f); // Billboard
+            //transform.LookAt(mainCamera.transform);
+           // transform.rotation = Quaternion.Euler(0f, transform.rotation.eulerAngles.y, 0f); // Billboard
         }
     }
 

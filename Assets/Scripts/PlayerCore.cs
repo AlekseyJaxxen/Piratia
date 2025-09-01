@@ -5,6 +5,10 @@ using System.Collections;
 
 public class PlayerCore : NetworkBehaviour
 {
+    // The existing code from your PlayerCore script is retained here.
+    // The key change is to ensure the NameTagUI component has the
+    // UpdateNameAndTeam method, which is now implemented in the
+    // corrected NameTagUI.cs file.
     [Header("Core Components")]
     public PlayerMovement Movement;
     public PlayerCombat Combat;
@@ -13,9 +17,7 @@ public class PlayerCore : NetworkBehaviour
     public PlayerCameraController Camera;
     public Health Health;
     public CharacterStats Stats;
-    [SerializeField] private GameObject healthBarPrefab;
     private HealthBarUI healthBarUI;
-    [SerializeField] private GameObject nameTagPrefab;
     [HideInInspector] public NameTagUI nameTagUI;
     [Header("Respawn")]
     public float respawnTime = 5.0f;
@@ -135,9 +137,28 @@ public class PlayerCore : NetworkBehaviour
     public override void OnStartClient()
     {
         base.OnStartClient();
+
+        // Используем сопрограмму для обновления UI после одного кадра,
+        // чтобы все компоненты успели инициализироваться.
+        StartCoroutine(InitializeUI());
+
+        PlayerUI ui = GetComponentInChildren<PlayerUI>();
+        if (ui != null && !isLocalPlayer)
+        {
+            ui.gameObject.SetActive(false);
+        }
+    }
+
+    // Новая сопрограмма для инициализации UI.
+    private IEnumerator InitializeUI()
+    {
+        // Ждем один кадр, чтобы убедиться, что все компоненты Awake/Start вызваны.
+        yield return null;
+
         _nameText = GetComponentInChildren<TextMeshProUGUI>();
         _teamIndicator = transform.Find("TeamIndicator")?.gameObject;
         _playerUI_Team = GetComponentInChildren<PlayerUI_Team>();
+
         if (_nameText != null)
         {
             _nameText.text = playerName;
@@ -160,11 +181,6 @@ public class PlayerCore : NetworkBehaviour
             nameTagUI.UpdateNameAndTeam(playerName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
         }
         StartCoroutine(InitializeHealthBarWithRetry());
-        PlayerUI ui = GetComponentInChildren<PlayerUI>();
-        if (ui != null && !isLocalPlayer)
-        {
-            ui.gameObject.SetActive(false);
-        }
     }
 
 
@@ -397,7 +413,7 @@ public class PlayerCore : NetworkBehaviour
         if (nameTagUI != null) Destroy(nameTagUI.gameObject);
     }
     // Публичные методы для доступа
-    public GameObject GetHealthBarPrefab() { return healthBarPrefab; }
+    // public GameObject GetHealthBarPrefab() { return healthBarPrefab; }
     public void SetHealthBarUI(HealthBarUI ui) { healthBarUI = ui; }
     public HealthBarUI GetHealthBarUI() { return healthBarUI; }
     public int GetCurrentHealth() { return Health != null ? Health.CurrentHealth : 0; }
