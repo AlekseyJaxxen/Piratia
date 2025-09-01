@@ -16,17 +16,32 @@ public class HealingSkill : SkillBase
             return;
         }
 
+        PlayerCore targetCore = targetObject.GetComponent<PlayerCore>();
+        Monster targetMonster = targetObject.GetComponent<Monster>();
+
+        if (targetCore == null || targetCore.team != caster.team)
+        {
+            Debug.LogWarning("[HealingSkill] Invalid target: not ally or self");
+            return;
+        }
+
+        if (targetMonster != null)
+        {
+            Debug.LogWarning("[HealingSkill] Cannot heal monsters");
+            return;
+        }
+
+        float distance = Vector3.Distance(caster.transform.position, targetObject.transform.position);
+        if (distance > Range)
+        {
+            Debug.LogWarning($"[HealingSkill] Target {targetObject.name} is out of range: {distance} > {Range}");
+            return;
+        }
+
         NetworkIdentity targetIdentity = targetObject.GetComponent<NetworkIdentity>();
         if (targetIdentity == null)
         {
             Debug.LogWarning($"[HealingSkill] Target {targetObject.name} has no NetworkIdentity");
-            return;
-        }
-
-        CharacterStats stats = caster.GetComponent<CharacterStats>();
-        if (stats != null && !stats.HasEnoughMana(ManaCost))
-        {
-            Debug.LogWarning($"[HealingSkill] Not enough mana: {stats.currentMana}/{ManaCost}");
             return;
         }
 
@@ -38,11 +53,14 @@ public class HealingSkill : SkillBase
 
     public override void ExecuteOnServer(PlayerCore caster, Vector3? targetPosition, GameObject targetObject, int weight)
     {
+        if (targetObject == null) return;
+
         Health targetHealth = targetObject.GetComponent<Health>();
         if (targetHealth != null)
         {
             targetHealth.Heal(healAmount);
         }
+
         uint targetNetId = targetObject.GetComponent<NetworkIdentity>().netId;
         caster.GetComponent<PlayerSkills>().RpcPlayHealingSkill(targetNetId, _skillName);
     }

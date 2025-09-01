@@ -16,16 +16,13 @@ public class AoeDamageSkill : SkillBase
             Debug.LogWarning("[AoeDamageSkill] Target position is null");
             return;
         }
-
         PlayerSkills skills = caster.GetComponent<PlayerSkills>();
         if (skills == null)
         {
             Debug.LogWarning("[AoeDamageSkill] PlayerSkills component missing on caster");
             return;
         }
-
         Debug.Log($"[AoeDamageSkill] Attempting to AOE damage at position: {targetPosition.Value}");
-
         skills.CmdExecuteSkill(caster, targetPosition, 0, _skillName, Weight);
         caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
     }
@@ -39,7 +36,13 @@ public class AoeDamageSkill : SkillBase
             if (targetHealth != null)
             {
                 PlayerCore targetCore = col.GetComponent<PlayerCore>();
+                Monster targetMonster = col.GetComponent<Monster>();
+
                 if (targetCore != null && targetCore.team != caster.team)
+                {
+                    targetHealth.TakeDamage(damage, SkillDamageType, false, caster.netIdentity);
+                }
+                else if (targetMonster != null)
                 {
                     targetHealth.TakeDamage(damage, SkillDamageType, false, caster.netIdentity);
                 }

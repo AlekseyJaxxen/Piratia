@@ -56918,6 +56918,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 701db164e762e8d4eb55ee37444ee209, type: 2}
   - {fileID: 11400000, guid: 46951b2916ba0c54cb9297c9c2ed2dd6, type: 2}
   - {fileID: 11400000, guid: 1324d2a5c901fe74aa3984de01c176bd, type: 2}
+  - {fileID: 11400000, guid: 6868d31a6d0b8224cb68c823c502008b, type: 2}
+  - {fileID: 11400000, guid: 2abb550a499b761488787e541a19b41a, type: 2}
   mageSkills:
   - {fileID: 0}
   archerSkills:
