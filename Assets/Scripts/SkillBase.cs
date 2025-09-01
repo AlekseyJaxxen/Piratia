@@ -1,8 +1,26 @@
 using UnityEngine;
 using Mirror;
 
+
 public abstract class SkillBase : ScriptableObject, ISkill
 {
+
+
+
+    public enum CastType
+    {
+        TargetedEnemy,  // На врага/монстра (projectile dmg, debuff)
+        TargetedAlly,   // На союзника/себя (heal, buff)
+        GroundAoEInstant, // АоЕ на землю мгновенное (урон/лечение)
+        GroundAoEPersistent, // АоЕ на землю persistent (замедление, reveal)
+        SelfBuff,       // Самобафф мгновенный
+        ToggleBuff      // Поддерживаемое (toggle on/off)
+    }
+
+    [SerializeField] protected CastType castType;
+    public CastType SkillCastType => castType;
+
+
     public float Cooldown => _cooldown;
     public float Range => _range;
     public float CastTime => _castTime;

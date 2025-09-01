@@ -77,8 +77,18 @@ public class PlayerMovement : NetworkBehaviour
             if (_core.Skills.IsSkillSelected)
             {
                 Debug.Log($"[PlayerMovement] Skill selected: {_core.Skills.ActiveSkill?.SkillName ?? "null"}");
-                bool isTargetedSkill = _core.Skills.ActiveSkill is ProjectileDamageSkill || _core.Skills.ActiveSkill is TargetedStunSkill || _core.Skills.ActiveSkill is SlowSkill || _core.Skills.ActiveSkill is HealingSkill;
-                if (isTargetedSkill)
+                var skill = (SkillBase)_core.Skills.ActiveSkill;
+                bool isTargeted = skill.SkillCastType == SkillBase.CastType.TargetedEnemy || skill.SkillCastType == SkillBase.CastType.TargetedAlly;
+                bool isSelf = skill.SkillCastType == SkillBase.CastType.SelfBuff || skill.SkillCastType == SkillBase.CastType.ToggleBuff;
+
+                if (isSelf)
+                {
+                    skill.Execute(_core, null, _core.gameObject);
+                    _core.Skills.CancelSkillSelection();
+                    return;
+                }
+
+                if (isTargeted)
                 {
                     if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
                     {
@@ -87,24 +97,20 @@ public class PlayerMovement : NetworkBehaviour
                         bool validTarget = false;
                         PlayerCore targetCore = target.GetComponent<PlayerCore>();
                         Monster targetMonster = target.GetComponent<Monster>();
-                        if (_core.Skills.ActiveSkill is HealingSkill)
+
+                        if (skill.SkillCastType == SkillBase.CastType.TargetedAlly)
                         {
-                            if (targetCore != null && targetCore.team == _core.team)
-                            {
+                            if (targetCore != null && (targetCore.team == _core.team || target == _core.gameObject))
                                 validTarget = true;
-                            }
                         }
-                        else
+                        else if (skill.SkillCastType == SkillBase.CastType.TargetedEnemy)
                         {
                             if (targetCore != null && targetCore.team != _core.team)
-                            {
                                 validTarget = true;
-                            }
                             else if (targetMonster != null)
-                            {
                                 validTarget = true;
-                            }
                         }
+
                         if (validTarget)
                         {
                             Debug.Log($"[PlayerMovement] Starting SkillCast on target: {target.name}");
@@ -120,13 +126,14 @@ public class PlayerMovement : NetworkBehaviour
                         Debug.Log("[PlayerMovement] Raycast missed for targeted skill");
                     }
                 }
-                else
+                else // GroundAoE*
                 {
                     if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.groundLayer))
                     {
                         Debug.Log($"[PlayerMovement] Starting SkillCast at ground position: {hit.point}, layer={LayerMask.LayerToName(hit.collider.gameObject.layer)}");
                         _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, hit.point, null, _core.Skills.ActiveSkill);
-                        _core.Skills.CancelSkillSelection();
+                        if (skill.SkillCastType != SkillBase.CastType.GroundAoEPersistent)
+                            _core.Skills.CancelSkillSelection();
                     }
                     else
                     {

@@ -13,6 +13,14 @@ public class SlowSkill : SkillBase
 
     protected override void ExecuteSkillImplementation(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
     {
+        PlayerCore targetCore = targetObject.GetComponent<PlayerCore>();
+        Monster targetMonster = targetObject.GetComponent<Monster>();
+        if ((targetCore == null || targetCore.team == caster.team) && targetMonster == null)
+        {
+            Debug.LogWarning("[SlowSkill] Invalid target: not enemy");
+            return;
+        }
+
         if (targetObject == null)
         {
             Debug.LogWarning("[SlowSkill] Target object is null");
@@ -37,6 +45,7 @@ public class SlowSkill : SkillBase
         Debug.Log($"[SlowSkill] Attempting to slow target: {targetObject.name}, netId: {targetIdentity.netId}");
         skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName, Weight);
         caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
+
     }
 
     public override void ExecuteOnServer(PlayerCore caster, Vector3? targetPosition, GameObject targetObject, int weight)

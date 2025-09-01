@@ -8,7 +8,6 @@ public class PlayerActionSystem : NetworkBehaviour
     private Coroutine _currentAction;
     private bool _isPerformingAction;
     private PlayerAction _currentActionType;
-
     public bool IsPerformingAction => _isPerformingAction;
     public PlayerAction CurrentAction => _currentActionType;
 
@@ -47,15 +46,12 @@ public class PlayerActionSystem : NetworkBehaviour
     public bool TryStartAction(PlayerAction actionType, Vector3? targetPosition = null, GameObject targetObject = null, ISkill skillToCast = null)
     {
         Debug.Log($"[PlayerActionSystem] Trying to start new action: {actionType}, isOwned: {isOwned}");
-
         if (_core == null)
         {
             Debug.LogError("[PlayerActionSystem] _core is null!");
             return false;
         }
-
         bool canInterruptAndStart = true;
-
         if (actionType == PlayerAction.SkillCast)
         {
             if (skillToCast == null)
@@ -64,18 +60,19 @@ public class PlayerActionSystem : NetworkBehaviour
             }
             else
             {
-                bool isAoESkill = !(skillToCast is ProjectileDamageSkill || skillToCast is TargetedStunSkill || skillToCast is SlowSkill || skillToCast is HealingSkill);
-                if (isAoESkill && targetPosition.HasValue)
+                var skillBase = (SkillBase)skillToCast;
+                bool isTargeted = skillBase.SkillCastType == SkillBase.CastType.TargetedEnemy || skillBase.SkillCastType == SkillBase.CastType.TargetedAlly;
+                if (!isTargeted && targetPosition.HasValue)
                 {
                     canInterruptAndStart = true;
                 }
-                else if (!isAoESkill && targetObject != null)
+                else if (isTargeted && targetObject != null)
                 {
                     canInterruptAndStart = true;
                 }
                 else
                 {
-                    Debug.LogWarning($"[PlayerActionSystem] Invalid SkillCast parameters: AoE needs targetPosition, targeted needs targetObject");
+                    Debug.LogWarning($"[PlayerActionSystem] Invalid SkillCast parameters for {skillBase.SkillName}: AoE needs targetPosition, targeted needs targetObject");
                     canInterruptAndStart = false;
                 }
             }
@@ -88,21 +85,20 @@ public class PlayerActionSystem : NetworkBehaviour
         {
             canInterruptAndStart = false;
         }
-
         if (!canInterruptAndStart)
         {
             Debug.LogWarning($"[PlayerActionSystem] Cannot start action {actionType}: invalid parameters or configuration");
             return false;
         }
-
         if (_isPerformingAction)
         {
             int newPriority = GetPriority(actionType);
             int currentPriority = GetPriority(_currentActionType);
             if (actionType == PlayerAction.Move && _currentActionType == PlayerAction.SkillCast)
             {
-                bool isAoESkill = !(skillToCast is ProjectileDamageSkill || skillToCast is TargetedStunSkill || skillToCast is SlowSkill);
-                if (!isAoESkill)
+                var skillBase = (SkillBase)skillToCast;
+                bool isTargeted = skillBase.SkillCastType == SkillBase.CastType.TargetedEnemy || skillBase.SkillCastType == SkillBase.CastType.TargetedAlly;
+                if (isTargeted)
                 {
                     Debug.Log($"[PlayerActionSystem] Ignoring Move: current action is targeted SkillCast");
                     return false;
@@ -119,10 +115,8 @@ public class PlayerActionSystem : NetworkBehaviour
                 return false;
             }
         }
-
         _isPerformingAction = true;
         _currentActionType = actionType;
-
         switch (actionType)
         {
             case PlayerAction.Move:
@@ -142,7 +136,6 @@ public class PlayerActionSystem : NetworkBehaviour
                 }
                 return true;
         }
-
         _isPerformingAction = false;
         _currentActionType = PlayerAction.None;
         return false;
@@ -156,13 +149,10 @@ public class PlayerActionSystem : NetworkBehaviour
             CompleteAction();
             yield break;
         }
-
         _core.Combat.ClearTarget();
         _core.Movement.MoveTo(destination);
         Debug.Log($"[PlayerActionSystem] Moving to destination: {destination}");
-
         yield return new WaitUntil(() => !_core.Movement.Agent.pathPending);
-
         while (_core.Movement.Agent.remainingDistance > _core.Movement.Agent.stoppingDistance)
         {
             if (_core.isDead || _core.isStunned)
@@ -186,16 +176,13 @@ public class PlayerActionSystem : NetworkBehaviour
             CompleteAction();
             yield break;
         }
-
         if (target == null)
         {
             Debug.LogError("[PlayerActionSystem] Target is null in AttackAction");
             CompleteAction();
             yield break;
         }
-
         Debug.Log($"[PlayerActionSystem] Starting AttackAction on target: {target.name}, has NetworkIdentity: {target.GetComponent<NetworkIdentity>() != null}");
-
         // Check for PlayerCore or Monster component
         PlayerCore targetPlayerCore = target.GetComponent<PlayerCore>();
         Monster targetMonster = target.GetComponent<Monster>();
@@ -205,7 +192,6 @@ public class PlayerActionSystem : NetworkBehaviour
             CompleteAction();
             yield break;
         }
-
         // Validate team for PlayerCore targets
         if (targetPlayerCore != null && targetPlayerCore.team == _core.team)
         {
@@ -213,7 +199,6 @@ public class PlayerActionSystem : NetworkBehaviour
             CompleteAction();
             yield break;
         }
-
         Health targetHealth = target.GetComponent<Health>();
         if (targetHealth == null)
         {
@@ -221,14 +206,12 @@ public class PlayerActionSystem : NetworkBehaviour
             CompleteAction();
             yield break;
         }
-
         if (_core.Skills.skills.Count == 0)
         {
             Debug.LogWarning($"[PlayerActionSystem] No basic attack skill available. Stopping attack.");
             CompleteAction();
             yield break;
         }
-
         if (skill == null)
         {
             skill = _core.Skills.skills[0];
@@ -239,12 +222,9 @@ public class PlayerActionSystem : NetworkBehaviour
                 yield break;
             }
         }
-
         float attackRange = skill.Range;
         float attackCooldown = skill is BasicAttackSkill ? 1f / _core.Stats.attackSpeed : 0f; // Для non-basic - без задержки
-
         bool isLooping = skill is BasicAttackSkill;
-
         while (target != null && targetHealth.CurrentHealth > 0)
         {
             if (_core.isDead || _core.isStunned)
@@ -253,10 +233,8 @@ public class PlayerActionSystem : NetworkBehaviour
                 CompleteAction();
                 yield break;
             }
-
             float distance = Vector3.Distance(transform.position, target.transform.position);
             Debug.Log($"[PlayerActionSystem] Distance to target {target.name}: {distance}, skill range: {attackRange}");
-
             if (distance > attackRange)
             {
                 _core.Movement.MoveTo(target.transform.position);
@@ -267,17 +245,14 @@ public class PlayerActionSystem : NetworkBehaviour
                 _core.Movement.StopMovement();
                 _core.Movement.RotateTo(target.transform.position - transform.position);
                 Debug.Log($"[PlayerActionSystem] Target in range. Stopping to attack. Distance: {distance}");
-
                 if (Time.time < _core.Combat._lastAttackTime + attackCooldown)
                 {
                     yield return null;
                     continue;
                 }
-
                 Debug.Log($"[PlayerActionSystem] Executing attack with skill: {((SkillBase)skill).SkillName}");
                 skill.Execute(_core, null, target);
                 _core.Combat._lastAttackTime = Time.time;
-
                 if (!isLooping)
                 {
                     if (((SkillBase)skill).CastTime > 0)
@@ -291,10 +266,8 @@ public class PlayerActionSystem : NetworkBehaviour
                     yield return new WaitForSeconds(attackCooldown);
                 }
             }
-
             yield return null;
         }
-
         Debug.Log($"[PlayerActionSystem] Attack action completed: target is null or dead");
         CompleteAction();
     }
@@ -307,10 +280,8 @@ public class PlayerActionSystem : NetworkBehaviour
             CompleteAction();
             yield break;
         }
-
         float originalStoppingDistance = _core.Movement.Agent.stoppingDistance;
         _core.Movement.Agent.stoppingDistance = 0f;
-
         while (true)
         {
             if (_core.isDead || _core.isStunned)
@@ -320,7 +291,6 @@ public class PlayerActionSystem : NetworkBehaviour
                 CompleteAction();
                 yield break;
             }
-
             float distance = Vector3.Distance(transform.position, targetPosition);
             if (distance <= skillToCast.Range)
             {
@@ -348,17 +318,14 @@ public class PlayerActionSystem : NetworkBehaviour
             CompleteAction();
             yield break;
         }
-
         if (targetObject == null)
         {
             Debug.LogError("[PlayerActionSystem] Target object is null in CastSkillAction");
             CompleteAction();
             yield break;
         }
-
         float originalStoppingDistance = _core.Movement.Agent.stoppingDistance;
         _core.Movement.Agent.stoppingDistance = 0f;
-
         while (true)
         {
             if (_core.isDead || _core.isStunned)
@@ -368,7 +335,6 @@ public class PlayerActionSystem : NetworkBehaviour
                 CompleteAction();
                 yield break;
             }
-
             float distance = Vector3.Distance(transform.position, targetObject.transform.position);
             if (distance <= skillToCast.Range)
             {
