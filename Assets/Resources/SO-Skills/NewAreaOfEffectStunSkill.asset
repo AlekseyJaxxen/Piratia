@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5f566b4e89617e6469eda4f012325d89, type: 3}
   m_Name: NewAreaOfEffectStunSkill
   m_EditorClassIdentifier: Assembly-CSharp::AreaOfEffectStunSkill
+  castType: 2
   ignoreGlobalCooldown: 0
   _icon: {fileID: 21300000, guid: 9e368a4a52e3b3e41bf2c3bd7ed697b5, type: 3}
   _skillName: WarriorFB

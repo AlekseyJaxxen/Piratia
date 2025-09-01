@@ -9,10 +9,12 @@ public class MonsterBasicAttackSkill : SkillBase
     public GameObject vfxPrefab;
     public GameObject projectilePrefab;
     public float projectileSpeed = 20f;
+
     [Header("Critical Hit Settings")]
     public GameObject criticalHitVfxPrefab;
     public GameObject impactEffectPrefab;
     public Color criticalHitColor = Color.yellow;
+
     [Header("Monster Attack Settings")]
     public int baseDamage = 10;
     public float criticalChance = 0.1f; // 10% chance for critical hit
@@ -36,20 +38,25 @@ public class MonsterBasicAttackSkill : SkillBase
             Debug.LogWarning($"[MonsterBasicAttackSkill] Monster component missing on caster for skill {_skillName}");
             return;
         }
+
         if (targetObject == null)
         {
             Debug.LogWarning($"[MonsterBasicAttackSkill] Target object is null for skill {_skillName}");
             return;
         }
+
         NetworkIdentity targetIdentity = targetObject.GetComponent<NetworkIdentity>();
         if (targetIdentity == null)
         {
             Debug.LogWarning($"[MonsterBasicAttackSkill] Target {targetObject.name} has no NetworkIdentity for skill {_skillName}");
             return;
         }
+
         bool isCritical = Random.value < criticalChance;
         int damage = isCritical ? Mathf.RoundToInt(baseDamage * criticalMultiplier) : baseDamage;
+
         Debug.Log($"[MonsterBasicAttackSkill] Monster requesting attack for skill {_skillName} on target: {targetObject.name}, netId: {targetIdentity.netId}, damage: {damage}, isCritical: {isCritical}");
+
         // Вызываем метод в Monster для обработки сетевой атаки
         caster.ExecuteAttack(targetIdentity.netId, _skillName, damage, isCritical);
     }
@@ -67,11 +74,13 @@ public class MonsterBasicAttackSkill : SkillBase
             }
             Object.Destroy(vfxInstance, 0.2f);
         }
+
         if (isCritical && criticalHitVfxPrefab != null)
         {
             GameObject critVfx = Object.Instantiate(criticalHitVfxPrefab, startPosition, startRotation);
             Object.Destroy(critVfx, 1f);
         }
+
         if (projectilePrefab != null)
         {
             GameObject projectileInstance = Object.Instantiate(projectilePrefab, startPosition, Quaternion.LookRotation(endPosition - startPosition));
@@ -96,6 +105,7 @@ public class MonsterBasicAttackSkill : SkillBase
             );
             yield return null;
         }
+
         if (projectile != null)
         {
             if (impactEffectPrefab != null)

@@ -13,6 +13,12 @@ public class SlowSkill : SkillBase
 
     protected override void ExecuteSkillImplementation(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
     {
+        if (targetObject == null)
+        {
+            Debug.LogWarning("[SlowSkill] Target object is null");
+            return;
+        }
+
         PlayerCore targetCore = targetObject.GetComponent<PlayerCore>();
         Monster targetMonster = targetObject.GetComponent<Monster>();
         if ((targetCore == null || targetCore.team == caster.team) && targetMonster == null)
@@ -21,9 +27,10 @@ public class SlowSkill : SkillBase
             return;
         }
 
-        if (targetObject == null)
+        float distance = Vector3.Distance(caster.transform.position, targetObject.transform.position);
+        if (distance > Range)
         {
-            Debug.LogWarning("[SlowSkill] Target object is null");
+            Debug.LogWarning($"[SlowSkill] Target {targetObject.name} is out of range: {distance} > {Range}");
             return;
         }
 
@@ -45,7 +52,6 @@ public class SlowSkill : SkillBase
         Debug.Log($"[SlowSkill] Attempting to slow target: {targetObject.name}, netId: {targetIdentity.netId}");
         skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName, Weight);
         caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
-
     }
 
     public override void ExecuteOnServer(PlayerCore caster, Vector3? targetPosition, GameObject targetObject, int weight)
@@ -56,11 +62,13 @@ public class SlowSkill : SkillBase
         {
             targetHealth.TakeDamage(damage, SkillDamageType, false, caster.netIdentity);
         }
+
         PlayerCore targetCore = targetObject.GetComponent<PlayerCore>();
         if (targetCore != null)
         {
             targetCore.ApplySlow(slowPercentage, slowDuration, weight);
         }
+
         uint targetNetId = targetObject.GetComponent<NetworkIdentity>().netId;
         caster.GetComponent<PlayerSkills>().RpcApplySlowEffect(targetNetId, slowDuration, _skillName);
     }

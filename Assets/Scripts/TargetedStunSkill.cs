@@ -17,22 +17,38 @@ public class TargetedStunSkill : SkillBase
             return;
         }
 
-        if (Vector3.Distance(caster.transform.position, targetObject.transform.position) > Range)
+        PlayerCore targetCore = targetObject.GetComponent<PlayerCore>();
+        Monster targetMonster = targetObject.GetComponent<Monster>();
+        if ((targetCore == null || targetCore.team == caster.team) && targetMonster == null)
+        {
+            Debug.LogWarning("[TargetedStunSkill] Invalid target: not enemy");
+            return;
+        }
+
+        float distance = Vector3.Distance(caster.transform.position, targetObject.transform.position);
+        if (distance > Range)
         {
             Debug.LogWarning("[TargetedStunSkill] Target out of range");
             return;
         }
 
-        PlayerSkills skills = caster.GetComponent<PlayerSkills>();
-        if (skills == null)
+        NetworkIdentity targetIdentity = targetObject.GetComponent<NetworkIdentity>();
+        if (targetIdentity == null)
         {
-            Debug.LogWarning("[TargetedStunSkill] PlayerSkills component missing on caster");
+            Debug.LogWarning($"[TargetedStunSkill] Target {targetObject.name} has no NetworkIdentity");
             return;
         }
 
-        uint targetNetId = targetObject.GetComponent<NetworkIdentity>().netId;
+        CharacterStats stats = caster.GetComponent<CharacterStats>();
+        if (stats != null && !stats.HasEnoughMana(ManaCost))
+        {
+            Debug.LogWarning($"[TargetedStunSkill] Not enough mana: {stats.currentMana}/{ManaCost}");
+            return;
+        }
+
+        PlayerSkills skills = caster.GetComponent<PlayerSkills>();
         Debug.Log($"[TargetedStunSkill] Attempting to stun target: {targetObject.name}, weight: {Weight}");
-        skills.CmdExecuteSkill(caster, null, targetNetId, _skillName, Weight);
+        skills.CmdExecuteSkill(caster, null, targetIdentity.netId, _skillName, Weight);
         caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
     }
 

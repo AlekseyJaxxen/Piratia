@@ -46,6 +46,7 @@ public class AreaOfEffectStunSkill : SkillBase
                 targetMonster.ReceiveControlEffect(ControlEffectType.Stun, stunDuration, weight);
             }
         }
+
         caster.GetComponent<PlayerSkills>().RpcPlayAoeStun(targetPosition.Value, _skillName);
     }
 

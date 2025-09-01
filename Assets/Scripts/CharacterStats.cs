@@ -402,7 +402,7 @@ public class CharacterStats : NetworkBehaviour
     [Server]
     public void ApplyDebuff(string stat, float mult, float dur)
     {
-        // Аналогично, но mult < 1
+        // Аналогично, но mult < 1                                                                                                                         с
     }
 
     [Server]

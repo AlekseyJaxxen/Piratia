@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6725be40aa7610240985629a311d2bc7, type: 3}
   m_Name: NewAreaOfEffectHealSkill
   m_EditorClassIdentifier: Assembly-CSharp::AreaOfEffectHealSkill
+  castType: 2
   ignoreGlobalCooldown: 0
   _icon: {fileID: 21300000, guid: 8709f8a7c51e74043934a4c53703cf09, type: 3}
   _skillName: WarriorHeal

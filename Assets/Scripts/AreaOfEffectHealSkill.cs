@@ -44,6 +44,7 @@ public class AreaOfEffectHealSkill : SkillBase
                 }
             }
         }
+
         caster.GetComponent<PlayerSkills>().RpcPlayAoeHeal(targetPosition.Value, _skillName);
     }
 
