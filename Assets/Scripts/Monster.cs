@@ -71,8 +71,22 @@ public class Monster : NetworkBehaviour
     public override void OnStartClient()
     {
         base.OnStartClient();
-        StartCoroutine(SetupUIDelayed());
-        StartCoroutine(CheckControlEffectExpiration()); // Проверка истечения эффектов
+        _healthBarUI = GetComponentInChildren<MonsterHealthBarUI>();
+        if (_healthBarUI != null)
+        {
+            _healthBarUI.UpdateHP(currentHealth, maxHealth);
+        }
+        if (nameTagPrefab != null)
+        {
+            GameObject nameTagInstance = Instantiate(nameTagPrefab, transform);
+            _nameTagUI = nameTagInstance.GetComponent<NameTagUI>();
+            if (_nameTagUI != null)
+            {
+                _nameTagUI.target = transform;
+                _nameTagUI.UpdateNameAndTeam(monsterName, PlayerTeam.None, PlayerCore.localPlayerCoreInstance != null ? PlayerCore.localPlayerCoreInstance.team : PlayerTeam.None);
+            }
+        }
+        StartCoroutine(CheckControlEffectExpiration());
     }
 
     private IEnumerator SetupUIDelayed()

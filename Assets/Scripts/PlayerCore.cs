@@ -133,10 +133,6 @@ public class PlayerCore : NetworkBehaviour
     }
     public override void OnStartClient()
     {
-        if (NameManager.Instance != null)
-        {
-            NameManager.Instance.RegisterPlayer(this);
-        }
         base.OnStartClient();
         _nameText = GetComponentInChildren<TextMeshProUGUI>();
         _teamIndicator = transform.Find("TeamIndicator")?.gameObject;
@@ -148,12 +144,7 @@ public class PlayerCore : NetworkBehaviour
         OnTeamChanged(team, team);
         if (healthBarPrefab != null)
         {
-            Canvas mainCanvas = mainCanvasReference != null ? mainCanvasReference : MainCanvas.Instance ?? FindFirstObjectByType<Canvas>();
-            if (mainCanvas == null)
-            {
-                return;
-            }
-            GameObject barInstance = Instantiate(healthBarPrefab, mainCanvas.transform);
+            GameObject barInstance = Instantiate(healthBarPrefab, transform);
             healthBarUI = barInstance.GetComponent<HealthBarUI>();
             if (healthBarUI != null)
             {
@@ -164,15 +155,15 @@ public class PlayerCore : NetworkBehaviour
                     StartCoroutine(InitializeHealthBarWithRetry());
                 }
             }
-            if (nameTagPrefab != null)
+        }
+        if (nameTagPrefab != null)
+        {
+            GameObject nameTagInstance = Instantiate(nameTagPrefab, transform);
+            nameTagUI = nameTagInstance.GetComponent<NameTagUI>();
+            if (nameTagUI != null)
             {
-                GameObject nameTagInstance = Instantiate(nameTagPrefab, mainCanvas.transform);
-                nameTagUI = nameTagInstance.GetComponent<NameTagUI>();
-                if (nameTagUI != null)
-                {
-                    nameTagUI.target = transform;
-                    nameTagUI.UpdateNameAndTeam(playerName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
-                }
+                nameTagUI.target = transform;
+                nameTagUI.UpdateNameAndTeam(playerName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
             }
         }
         PlayerUI ui = GetComponentInChildren<PlayerUI>();
@@ -278,10 +269,7 @@ public class PlayerCore : NetworkBehaviour
     private void OnTeamChanged(PlayerTeam oldTeam, PlayerTeam newTeam)
     {
         UpdateTeamIndicatorColor();
-        if (NameManager.Instance != null)
-        {
-            NameManager.Instance.UpdateAllNameTags();
-        }
+
         if (nameTagUI != null)
         {
             nameTagUI.UpdateNameAndTeam(playerName, newTeam, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
@@ -293,10 +281,7 @@ public class PlayerCore : NetworkBehaviour
         {
             _nameText.text = newName;
         }
-        if (NameManager.Instance != null)
-        {
-            NameManager.Instance.UpdateAllNameTags();
-        }
+
         if (nameTagUI != null)
         {
             nameTagUI.UpdateNameAndTeam(newName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);

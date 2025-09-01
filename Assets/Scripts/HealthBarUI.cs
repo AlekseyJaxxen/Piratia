@@ -6,10 +6,10 @@ using System.Collections;
 public class HealthBarUI : MonoBehaviour
 {
     public Image fillImage;
-    public TextMeshProUGUI hpText; // Опционально
+    public TextMeshProUGUI hpText;
     public Transform target;
     private Camera mainCamera;
-    public Vector3 offset = new Vector3(0, 2f, 0); // Высота над головой
+    public Vector3 offset = new Vector3(0, 2f, 0);
     private int previousHealth = int.MaxValue;
 
     void Start()
@@ -17,13 +17,13 @@ public class HealthBarUI : MonoBehaviour
         mainCamera = Camera.main;
     }
 
-    void LateUpdate() // Используем LateUpdate для точной позиции после движения
+    void LateUpdate()
     {
         if (target != null && mainCamera != null && gameObject.activeInHierarchy)
         {
             Vector3 worldPos = target.position + offset;
             Vector3 screenPos = mainCamera.WorldToScreenPoint(worldPos);
-            if (screenPos.z > 0) // Видим только если перед камерой
+            if (screenPos.z > 0)
             {
                 transform.position = screenPos;
                 gameObject.SetActive(true);
@@ -33,11 +33,6 @@ public class HealthBarUI : MonoBehaviour
                 gameObject.SetActive(false);
             }
         }
-    }
-
-    public void Initialize(PlayerCore player)
-    {
-        target = player.transform;
     }
 
     public void UpdateHP(int current, int max)
@@ -70,10 +65,5 @@ public class HealthBarUI : MonoBehaviour
                 yield return new WaitForSeconds(0.1f);
             }
         }
-    }
-
-    void OnDestroy()
-    {
-        // Отписка, если нужно
     }
 }
