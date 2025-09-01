@@ -9,12 +9,9 @@ public class PlayerMovement : NetworkBehaviour
     public float moveSpeed = 8f;
     public float rotationSpeed = 10f;
     public float stoppingDistance = 0.5f;
-
     private NavMeshAgent _agent;
     public NavMeshAgent Agent => _agent;
-
     private PlayerCore _core;
-
     public bool IsMoving => _agent != null && _agent.velocity.magnitude > 0.1f;
 
     public void Init(PlayerCore core)
@@ -80,33 +77,42 @@ public class PlayerMovement : NetworkBehaviour
             if (_core.Skills.IsSkillSelected)
             {
                 Debug.Log($"[PlayerMovement] Skill selected: {_core.Skills.ActiveSkill?.SkillName ?? "null"}");
-                bool isTargetedSkill = _core.Skills.ActiveSkill is ProjectileDamageSkill || _core.Skills.ActiveSkill is TargetedStunSkill || _core.Skills.ActiveSkill is SlowSkill;
+                bool isTargetedSkill = _core.Skills.ActiveSkill is ProjectileDamageSkill || _core.Skills.ActiveSkill is TargetedStunSkill || _core.Skills.ActiveSkill is SlowSkill || _core.Skills.ActiveSkill is HealingSkill;
                 if (isTargetedSkill)
                 {
                     if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
                     {
                         Debug.Log($"[PlayerMovement] Raycast hit: {hit.collider.name}, tag={hit.collider.tag}, layer={LayerMask.LayerToName(hit.collider.gameObject.layer)}");
-                        if (hit.collider.CompareTag("Player"))
+                        GameObject target = hit.collider.gameObject;
+                        bool validTarget = false;
+                        PlayerCore targetCore = target.GetComponent<PlayerCore>();
+                        Monster targetMonster = target.GetComponent<Monster>();
+                        if (_core.Skills.ActiveSkill is HealingSkill)
                         {
-                            PlayerCore targetCore = hit.collider.GetComponent<PlayerCore>();
-                            if (targetCore != null && targetCore.team != _core.team)
+                            if (targetCore != null && targetCore.team == _core.team)
                             {
-                                Debug.Log($"[PlayerMovement] Starting Attack with skill on target: {hit.collider.name}, netId={targetCore.netId}");
-                                _core.ActionSystem.TryStartAction(PlayerAction.Attack, hit.point, hit.collider.gameObject, _core.Skills.ActiveSkill);
+                                validTarget = true;
                             }
-                            else
-                            {
-                                Debug.Log("[PlayerMovement] SkillCast ignored: invalid target or same team");
-                            }
-                        }
-                        else if (hit.collider.CompareTag("Enemy"))
-                        {
-                            Debug.Log($"[PlayerMovement] Starting Attack with skill on enemy: {hit.collider.name}");
-                            _core.ActionSystem.TryStartAction(PlayerAction.Attack, hit.point, hit.collider.gameObject, _core.Skills.ActiveSkill);
                         }
                         else
                         {
-                            Debug.Log($"[PlayerMovement] Raycast hit ignored for targeted skill: invalid tag {hit.collider.tag}");
+                            if (targetCore != null && targetCore.team != _core.team)
+                            {
+                                validTarget = true;
+                            }
+                            else if (targetMonster != null)
+                            {
+                                validTarget = true;
+                            }
+                        }
+                        if (validTarget)
+                        {
+                            Debug.Log($"[PlayerMovement] Starting SkillCast on target: {target.name}");
+                            _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, null, target, _core.Skills.ActiveSkill);
+                        }
+                        else
+                        {
+                            Debug.Log("[PlayerMovement] Ignored: invalid target for skill");
                         }
                     }
                     else

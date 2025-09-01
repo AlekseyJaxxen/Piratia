@@ -64,7 +64,7 @@ public class PlayerActionSystem : NetworkBehaviour
             }
             else
             {
-                bool isAoESkill = !(skillToCast is ProjectileDamageSkill || skillToCast is TargetedStunSkill || skillToCast is SlowSkill);
+                bool isAoESkill = !(skillToCast is ProjectileDamageSkill || skillToCast is TargetedStunSkill || skillToCast is SlowSkill || skillToCast is HealingSkill);
                 if (isAoESkill && targetPosition.HasValue)
                 {
                     canInterruptAndStart = true;

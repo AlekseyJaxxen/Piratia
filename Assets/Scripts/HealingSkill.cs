@@ -17,17 +17,9 @@ public class HealingSkill : SkillBase
         }
 
         PlayerCore targetCore = targetObject.GetComponent<PlayerCore>();
-        Monster targetMonster = targetObject.GetComponent<Monster>();
-
         if (targetCore == null || targetCore.team != caster.team)
         {
             Debug.LogWarning("[HealingSkill] Invalid target: not ally or self");
-            return;
-        }
-
-        if (targetMonster != null)
-        {
-            Debug.LogWarning("[HealingSkill] Cannot heal monsters");
             return;
         }
 
@@ -42,6 +34,13 @@ public class HealingSkill : SkillBase
         if (targetIdentity == null)
         {
             Debug.LogWarning($"[HealingSkill] Target {targetObject.name} has no NetworkIdentity");
+            return;
+        }
+
+        CharacterStats stats = caster.GetComponent<CharacterStats>();
+        if (stats != null && !stats.HasEnoughMana(ManaCost))
+        {
+            Debug.LogWarning($"[HealingSkill] Not enough mana: {stats.currentMana}/{ManaCost}");
             return;
         }
 
