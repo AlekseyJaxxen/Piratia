@@ -6,18 +6,18 @@ using UnityEngine.AI;
 public class Monster : NetworkBehaviour
 {
     [Header("Monster Settings")]
-    [SyncVar] public string monsterName = "Monster";
-    [SyncVar] public int maxHealth = 1000;
+    [SyncVar(hook = nameof(OnNameChanged))] public string monsterName = "Monster";
+    [SyncVar(hook = nameof(OnHealthChanged))] public int maxHealth = 1000;
     [SyncVar(hook = nameof(OnHealthChanged))] public int currentHealth;
     [SyncVar] public bool IsCooldown = false;
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float attackCooldown = 2f;
     [SerializeField] private GameObject deathVFXPrefab;
-    [SerializeField] private GameObject monsterUIPrefab; // Новый префаб для UI (HP + Name)
     [SerializeField] private bool canMove = true;
     [SerializeField] private bool canAttack = true;
     private NavMeshAgent _agent;
-    private MonsterUI _monsterUI; // Новый компонент UI
+    private MonsterUI _monsterUI;
+    private Rigidbody _rigidbody; // Добавлено для управления Rigidbody
     public bool IsDead;
     [SyncVar] private float _slowPercentage = 0f;
     [SyncVar] private float _originalSpeed = 0f;
@@ -27,11 +27,6 @@ public class Monster : NetworkBehaviour
     [SyncVar] private int _currentEffectWeight = 0;
     [SerializeField] public float stoppingDistance = 1f;
     [SerializeField] public MonsterBasicAttackSkill basicAttackSkill;
-    // Ссылка на компонент Rigidbody и Collider на дочернем объекте-модели
-    [SerializeField] private Rigidbody modelRigidbody;
-    [SerializeField] private Collider modelCollider;
-    // Новая переменная для силы толчка при смерти
-    [SerializeField] private float pushForce = 500f;
 
     private void Awake()
     {
@@ -56,6 +51,11 @@ public class Monster : NetworkBehaviour
                 }
             }
         }
+        _rigidbody = GetComponent<Rigidbody>();
+        if (_rigidbody != null)
+        {
+            _rigidbody.isKinematic = true; // Устанавливаем kinematic по умолчанию
+        }
         currentHealth = maxHealth;
         if (canAttack)
         {
@@ -70,20 +70,46 @@ public class Monster : NetworkBehaviour
     public override void OnStartClient()
     {
         base.OnStartClient();
-        if (monsterUIPrefab != null)
+        _monsterUI = GetComponentInChildren<MonsterUI>();
+        if (_monsterUI != null)
         {
-            GameObject uiInstance = Instantiate(monsterUIPrefab, transform);
-            _monsterUI = uiInstance.GetComponent<MonsterUI>();
-            if (_monsterUI != null)
-            {
-                _monsterUI.target = transform;
-                _monsterUI.UpdateName(monsterName);
-                _monsterUI.UpdateHP(currentHealth, maxHealth);
-                // Устанавливаем цвет имени монстра на красный.
-                _monsterUI.SetNameColor(Color.red);
-            }
+            _monsterUI.target = transform;
+            _monsterUI.UpdateName(monsterName);
+            _monsterUI.UpdateHP(currentHealth, maxHealth);
         }
         StartCoroutine(CheckControlEffectExpiration());
+    }
+
+    private void OnNameChanged(string oldName, string newName)
+    {
+        if (_monsterUI != null)
+        {
+            _monsterUI.UpdateName(newName);
+            Debug.Log($"[Monster] Name updated to: {newName}");
+        }
+    }
+
+    private void OnHealthChanged(int oldValue, int newValue)
+    {
+        if (_monsterUI != null)
+        {
+            _monsterUI.gameObject.SetActive(newValue > 0);
+            _monsterUI.UpdateHP(newValue, maxHealth);
+            Debug.Log($"[Monster] UI updated: {newValue}/{maxHealth} for {monsterName}");
+        }
+        if (newValue <= 0 && !IsDead)
+        {
+            Die();
+        }
+    }
+
+    private void OnStunStateChanged(bool oldValue, bool newValue)
+    {
+        Debug.Log($"[Monster] Stun state changed: {oldValue} -> {newValue}, isClient={isClient}, isServer={isServer}");
+        if (_agent != null && _agent.isOnNavMesh)
+        {
+            _agent.isStopped = newValue;
+        }
     }
 
     [Server]
@@ -160,64 +186,28 @@ public class Monster : NetworkBehaviour
         Debug.Log($"[Monster] Cleared control effect for {monsterName}");
     }
 
-    private void OnHealthChanged(int oldHealth, int newHealth)
-    {
-        if (_monsterUI != null)
-        {
-            _monsterUI.UpdateHP(newHealth, maxHealth);
-            Debug.Log($"[Monster] UI updated: {newHealth}/{maxHealth} for {monsterName}");
-        }
-        if (newHealth <= 0 && !IsDead)
-        {
-            Die();
-        }
-    }
-
-    private void OnStunStateChanged(bool oldValue, bool newValue)
-    {
-        Debug.Log($"[Monster] Stun state changed: {oldValue} -> {newValue}, isClient={isClient}, isServer={isServer}");
-        if (_agent != null && _agent.isOnNavMesh)
-        {
-            _agent.isStopped = newValue;
-        }
-    }
-
     [Server]
     public void Die()
     {
         if (IsDead) return;
         IsDead = true;
         Debug.Log($"[Monster] Die called for {monsterName}, Health: {currentHealth}");
-
-        // Отключаем навигационный агент и коллайдер на родительском объекте
         if (_agent != null && _agent.isOnNavMesh)
         {
             _agent.isStopped = true;
             _agent.enabled = false;
         }
-
-        BoxCollider parentCollider = GetComponent<BoxCollider>();
-        if (parentCollider != null)
+        if (_rigidbody != null)
         {
-            parentCollider.enabled = false;
+            _rigidbody.isKinematic = true; // Отключаем физику
+            Debug.Log($"[Monster] Rigidbody set to kinematic for {monsterName}");
+        }
+        BoxCollider boxCollider = GetComponent<BoxCollider>();
+        if (boxCollider != null)
+        {
+            boxCollider.enabled = false;
             Debug.Log($"[Monster] BoxCollider disabled for {monsterName}");
         }
-
-        // Включаем физику на дочерней модели
-        if (modelRigidbody != null)
-        {
-            modelRigidbody.isKinematic = false; // Отключаем кинематику
-            modelRigidbody.useGravity = true;    // Включаем гравитацию
-
-            // Применяем толчок, чтобы модель отлетела назад
-            modelRigidbody.AddForce(-transform.forward * pushForce, ForceMode.Impulse);
-        }
-
-        if (modelCollider != null)
-        {
-            modelCollider.enabled = true; // Включаем коллайдер, чтобы модель могла упасть и соприкасаться с полом
-        }
-
         canMove = false;
         canAttack = false;
         RpcDie();
@@ -231,6 +221,10 @@ public class Monster : NetworkBehaviour
         {
             GameObject vfx = Object.Instantiate(deathVFXPrefab, transform.position, Quaternion.identity);
             Object.Destroy(vfx, 1f);
+        }
+        if (_monsterUI != null)
+        {
+            _monsterUI.gameObject.SetActive(false);
         }
     }
 
@@ -255,7 +249,6 @@ public class Monster : NetworkBehaviour
         if (_monsterUI != null) Object.Destroy(_monsterUI.gameObject);
     }
 
-    // Новый метод для обработки атаки
     [Server]
     public void ExecuteAttack(uint targetNetId, string skillName, int damage, bool isCritical)
     {
@@ -302,14 +295,12 @@ public class Monster : NetworkBehaviour
         }
     }
 
-    // Метод для получения эффектов контроля от скиллов
     [Server]
     public void ReceiveControlEffect(ControlEffectType effectType, float duration, int skillWeight)
     {
         ApplyControlEffect(effectType, duration, skillWeight);
     }
 
-    // Проверка истечения эффектов контроля
     private IEnumerator CheckControlEffectExpiration()
     {
         while (true)

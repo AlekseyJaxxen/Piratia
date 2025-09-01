@@ -5,18 +5,18 @@ using System.Collections;
 
 public class HealthBarUI : MonoBehaviour
 {
-    public Image fillImage;
-    public TextMeshProUGUI hpText; // Для HP "{current}/{max}"
-    // Если нужно имя, добавь: public TextMeshProUGUI nameText; и обновляй в UpdateHP или отдельно
+    [SerializeField] private Image fillImage;
+    [SerializeField] private TextMeshProUGUI hpText;
+    [SerializeField] private Vector3 offset = new Vector3(0, 2f, 0);
+    [SerializeField] private float flashDuration = 0.3f;
     public Transform target;
     private Camera mainCamera;
-    public Vector3 offset = new Vector3(0, 2f, 0);
     private int previousHealth = int.MaxValue;
 
     void Start()
     {
         mainCamera = Camera.main;
-        // UpdateHP(0, 100); // Инициализация при старте (default values)
+        UpdateHP(100, 100); // Инициализация по умолчанию
     }
 
     void LateUpdate()
@@ -24,16 +24,25 @@ public class HealthBarUI : MonoBehaviour
         if (target != null && mainCamera != null)
         {
             transform.position = target.position + offset;
-            //transform.LookAt(mainCamera.transform);
-           // transform.rotation = Quaternion.Euler(0f, transform.rotation.eulerAngles.y, 0f); // Billboard
+            transform.LookAt(mainCamera.transform);
+            transform.rotation = Quaternion.Euler(0f, transform.rotation.eulerAngles.y, 0f);
         }
+    }
+
+    public void SetTarget(Transform newTarget)
+    {
+        target = newTarget;
     }
 
     public void UpdateHP(int current, int max)
     {
+        if (!gameObject.activeSelf && current > 0)
+        {
+            gameObject.SetActive(true); // Активируем UI, если здоровье > 0
+        }
         if (fillImage != null) fillImage.fillAmount = (float)current / max;
         if (hpText != null) hpText.text = $"{current}/{max}";
-        if (current < previousHealth)
+        if (current < previousHealth && gameObject.activeSelf)
         {
             StartCoroutine(FlashHealthBar());
         }
@@ -42,10 +51,10 @@ public class HealthBarUI : MonoBehaviour
 
     private IEnumerator FlashHealthBar()
     {
-        if (fillImage == null) yield break;
+        if (fillImage == null || !gameObject.activeSelf) yield break;
         Color originalColor = fillImage.color;
         fillImage.color = Color.red;
-        yield return new WaitForSeconds(0.3f);
+        yield return new WaitForSeconds(flashDuration);
         fillImage.color = originalColor;
     }
 }

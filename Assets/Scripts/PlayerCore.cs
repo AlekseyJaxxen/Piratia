@@ -5,10 +5,6 @@ using System.Collections;
 
 public class PlayerCore : NetworkBehaviour
 {
-    // The existing code from your PlayerCore script is retained here.
-    // The key change is to ensure the NameTagUI component has the
-    // UpdateNameAndTeam method, which is now implemented in the
-    // corrected NameTagUI.cs file.
     [Header("Core Components")]
     public PlayerMovement Movement;
     public PlayerCombat Combat;
@@ -65,6 +61,7 @@ public class PlayerCore : NetworkBehaviour
     private TextMeshProUGUI _nameText;
     private PlayerUI_Team _playerUI_Team;
     public static PlayerCore localPlayerCoreInstance;
+
     protected virtual void Awake()
     {
         Movement = GetComponent<PlayerMovement>();
@@ -84,6 +81,7 @@ public class PlayerCore : NetworkBehaviour
         }
         boxCollider = GetComponent<BoxCollider>();
     }
+
     private void Update()
     {
         if (isLocalPlayer)
@@ -91,6 +89,7 @@ public class PlayerCore : NetworkBehaviour
         }
         if (NetworkServer.active) ServerUpdate();
     }
+
     [Server]
     protected virtual void ServerUpdate()
     {
@@ -104,6 +103,7 @@ public class PlayerCore : NetworkBehaviour
             _lastManaRegenTime = Time.time;
         }
     }
+
     public override void OnStartLocalPlayer()
     {
         localPlayerCoreInstance = this;
@@ -137,33 +137,13 @@ public class PlayerCore : NetworkBehaviour
     public override void OnStartClient()
     {
         base.OnStartClient();
-
-        // Используем сопрограмму для обновления UI после одного кадра,
-        // чтобы все компоненты успели инициализироваться.
-        StartCoroutine(InitializeUI());
-
-        PlayerUI ui = GetComponentInChildren<PlayerUI>();
-        if (ui != null && !isLocalPlayer)
-        {
-            ui.gameObject.SetActive(false);
-        }
-    }
-
-    // Новая сопрограмма для инициализации UI.
-    private IEnumerator InitializeUI()
-    {
-        // Ждем один кадр, чтобы убедиться, что все компоненты Awake/Start вызваны.
-        yield return null;
-
         _nameText = GetComponentInChildren<TextMeshProUGUI>();
         _teamIndicator = transform.Find("TeamIndicator")?.gameObject;
         _playerUI_Team = GetComponentInChildren<PlayerUI_Team>();
-
         if (_nameText != null)
         {
             _nameText.text = playerName;
         }
-        OnTeamChanged(team, team);
         healthBarUI = GetComponentInChildren<HealthBarUI>();
         if (healthBarUI != null)
         {
@@ -180,9 +160,31 @@ public class PlayerCore : NetworkBehaviour
             nameTagUI.target = transform;
             nameTagUI.UpdateNameAndTeam(playerName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
         }
-        StartCoroutine(InitializeHealthBarWithRetry());
+        StartCoroutine(InitializeUIWithRetry());
+        PlayerUI ui = GetComponentInChildren<PlayerUI>();
+        if (ui != null && !isLocalPlayer)
+        {
+            ui.gameObject.SetActive(false);
+        }
     }
 
+    private IEnumerator InitializeUIWithRetry()
+    {
+        int maxRetries = 5;
+        int retryCount = 0;
+        while (retryCount < maxRetries)
+        {
+            if (nameTagUI != null && healthBarUI != null && playerName != "Player" && team != PlayerTeam.None && Health != null && Health.CurrentHealth > 0)
+            {
+                nameTagUI.UpdateNameAndTeam(playerName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
+                healthBarUI.UpdateHP(Health.CurrentHealth, Health.MaxHealth);
+                yield break;
+            }
+            retryCount++;
+            yield return new WaitForSeconds(0.5f);
+        }
+        Debug.LogWarning($"[PlayerCore] UI initialization failed after {maxRetries} retries");
+    }
 
     [Server]
     public void ServerRespawnPlayer(Vector3 newPosition)
@@ -200,6 +202,7 @@ public class PlayerCore : NetworkBehaviour
         transform.position = newPosition;
         RpcOnRespawned(newPosition);
     }
+
     [ClientRpc]
     private void RpcOnRespawned(Vector3 newPosition)
     {
@@ -211,8 +214,14 @@ public class PlayerCore : NetworkBehaviour
             if (Skills != null) Skills.enabled = true;
             if (ActionSystem != null) ActionSystem.enabled = true;
             deathScreenUI.HideDeathScreen();
+            if (healthBarUI != null && Health != null)
+            {
+                healthBarUI.gameObject.SetActive(Health.CurrentHealth > 0);
+                healthBarUI.UpdateHP(Health.CurrentHealth, Health.MaxHealth);
+            }
         }
     }
+
     [Command]
     private void CmdRequestTeamAssignment()
     {
@@ -221,6 +230,7 @@ public class PlayerCore : NetworkBehaviour
         team = newTeam;
         playerName = uiInfo.name;
     }
+
     [Command]
     public void CmdChangeName(string newName)
     {
@@ -230,6 +240,7 @@ public class PlayerCore : NetworkBehaviour
         }
         playerName = newName;
     }
+
     [Command]
     public void CmdChangeTeam(PlayerTeam newTeam)
     {
@@ -239,6 +250,7 @@ public class PlayerCore : NetworkBehaviour
         }
         team = newTeam;
     }
+
     [Command]
     public void CmdAddExperience(int amount)
     {
@@ -247,6 +259,7 @@ public class PlayerCore : NetworkBehaviour
             Stats.AddExperience(amount);
         }
     }
+
     [Command]
     public void CmdIncreaseStat(string statName)
     {
@@ -255,6 +268,7 @@ public class PlayerCore : NetworkBehaviour
             Stats.IncreaseStat(statName);
         }
     }
+
     [Command]
     public void CmdRequestRespawn()
     {
@@ -263,27 +277,28 @@ public class PlayerCore : NetworkBehaviour
             ServerRespawnPlayer(_initialSpawnPosition);
         }
     }
+
     private void OnTeamChanged(PlayerTeam oldTeam, PlayerTeam newTeam)
     {
         UpdateTeamIndicatorColor();
-
         if (nameTagUI != null)
         {
             nameTagUI.UpdateNameAndTeam(playerName, newTeam, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
         }
     }
+
     private void OnNameChanged(string oldName, string newName)
     {
         if (_nameText != null)
         {
             _nameText.text = newName;
         }
-
         if (nameTagUI != null)
         {
             nameTagUI.UpdateNameAndTeam(newName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
         }
     }
+
     private void UpdateTeamIndicatorColor()
     {
         if (_teamIndicator == null) return;
@@ -305,6 +320,7 @@ public class PlayerCore : NetworkBehaviour
             }
         }
     }
+
     private void OnDeathStateChanged(bool oldValue, bool newValue)
     {
         if (newValue)
@@ -316,7 +332,7 @@ public class PlayerCore : NetworkBehaviour
             if (Skills != null) Skills.CancelSkillSelection();
             if (isLocalPlayer) deathScreenUI.ShowDeathScreen();
             if (boxCollider != null) boxCollider.enabled = false;
-            if (healthBarUI != null) healthBarUI.gameObject.SetActive(false); // Деактивируем HealthBar при смерти
+            if (healthBarUI != null) healthBarUI.gameObject.SetActive(false);
         }
         else
         {
@@ -324,14 +340,20 @@ public class PlayerCore : NetworkBehaviour
             if (Skills != null) Skills.enabled = true;
             if (Movement != null) Movement.enabled = true;
             if (boxCollider != null) boxCollider.enabled = true;
-            if (healthBarUI != null && Health != null) healthBarUI.gameObject.SetActive(Health.CurrentHealth > 0); // Активируем при возрождении
+            if (healthBarUI != null && Health != null)
+            {
+                healthBarUI.gameObject.SetActive(Health.CurrentHealth > 0);
+                healthBarUI.UpdateHP(Health.CurrentHealth, Health.MaxHealth);
+            }
         }
     }
+
     private void OnStunStateChanged(bool oldValue, bool newValue)
     {
         if (Skills != null) Skills.HandleStunEffect(newValue);
         if (newValue && ActionSystem != null) ActionSystem.CompleteAction();
     }
+
     [Server]
     public void ApplyControlEffect(ControlEffectType effectType, float duration, int skillWeight)
     {
@@ -357,6 +379,7 @@ public class PlayerCore : NetworkBehaviour
             if (Movement != null) Movement.SetMovementSpeed(Stats.movementSpeed * (1f - _slowPercentage));
         }
     }
+
     [Server]
     public void ApplySlow(float percentage, float duration, int skillWeight)
     {
@@ -375,6 +398,7 @@ public class PlayerCore : NetworkBehaviour
         if (Movement != null) Movement.SetMovementSpeed(Stats.movementSpeed * (1f - _slowPercentage));
         controlEffectEndTime = Time.time + duration;
     }
+
     [Server]
     private void ClearControlEffect()
     {
@@ -392,66 +416,40 @@ public class PlayerCore : NetworkBehaviour
         currentEffectWeight = 0;
         controlEffectEndTime = 0f;
     }
+
     [Command]
     private void CmdDie()
     {
         SetDeathState(true);
     }
+
     [Server]
     public void SetDeathState(bool state)
     {
         isDead = state;
     }
+
     public override void OnStopClient()
     {
         if (healthBarUI != null) Destroy(healthBarUI.gameObject);
         if (nameTagUI != null) Destroy(nameTagUI.gameObject);
     }
+
     public void OnDestroy()
     {
         if (healthBarUI != null) Destroy(healthBarUI.gameObject);
         if (nameTagUI != null) Destroy(nameTagUI.gameObject);
     }
-    // Публичные методы для доступа
-    // public GameObject GetHealthBarPrefab() { return healthBarPrefab; }
+
+    public GameObject GetHealthBarPrefab() { return null; }
     public void SetHealthBarUI(HealthBarUI ui) { healthBarUI = ui; }
     public HealthBarUI GetHealthBarUI() { return healthBarUI; }
     public int GetCurrentHealth() { return Health != null ? Health.CurrentHealth : 0; }
     public int GetMaxHealth() { return Health != null ? Health.MaxHealth : 0; }
     public NameTagUI GetNameTagUI() { return nameTagUI; }
 
-    // Новый метод для проверки возможности каста
     public bool CanCastSkill()
     {
-        return !isDead && !isStunned; // Добавь !IsSilenced или другие, если реализуешь
-    }
-
-    private IEnumerator UpdateUIAfterFrame()
-    {
-        yield return new WaitForEndOfFrame();
-        if (nameTagUI != null)
-        {
-            nameTagUI.UpdateNameAndTeam(playerName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
-        }
-        if (healthBarUI != null && Health != null)
-        {
-            healthBarUI.UpdateHP(Health.CurrentHealth, Health.MaxHealth);
-        }
-    }
-
-    private IEnumerator InitializeHealthBarWithRetry()
-    {
-        int maxRetries = 5;
-        int retryCount = 0;
-        while (retryCount < maxRetries)
-        {
-            if (Health != null && Health.CurrentHealth > 0)
-            {
-                healthBarUI.UpdateHP(Health.CurrentHealth, Health.MaxHealth);
-                yield break;
-            }
-            retryCount++;
-            yield return new WaitForSeconds(0.5f);
-        }
+        return !isDead && !isStunned;
     }
 }
