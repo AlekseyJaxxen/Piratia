@@ -17,6 +17,12 @@ public class TargetedStunSkill : SkillBase
             return;
         }
 
+        if (Vector3.Distance(caster.transform.position, targetObject.transform.position) > Range)
+        {
+            Debug.LogWarning("[TargetedStunSkill] Target out of range");
+            return;
+        }
+
         PlayerSkills skills = caster.GetComponent<PlayerSkills>();
         if (skills == null)
         {
