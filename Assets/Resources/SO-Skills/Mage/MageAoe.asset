@@ -24,10 +24,12 @@ MonoBehaviour:
   _manaCost: 0
   _damageType: 1
   _weight: 1
-  _effectRadius: 0
-  castRangePrefab: {fileID: 0}
-  effectRadiusPrefab: {fileID: 0}
+  _effectRadius: 2
+  castRangePrefab: {fileID: 3299273662854126661, guid: ee30310967d98c04fb16bcfa96cfb3c2,
+    type: 3}
+  effectRadiusPrefab: {fileID: 8212533921873324154, guid: e6230a171a068cd489eb410abd241717,
+    type: 3}
   damage: 1000
-  aoeRadius: 5
-  effectPrefab: {fileID: 1308696705675058, guid: 92f1a4b7c0101cb4f84455289ac65548,
+  aoeRadius: 2
+  effectPrefab: {fileID: 1308696705675058, guid: 606f8867fc59c8f429e84dbab0409696,
     type: 3}

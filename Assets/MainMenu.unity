@@ -654,7 +654,7 @@ MonoBehaviour:
   onlineScene: Assets/Game.unity
   offlineSceneLoadDelay: 2
   transport: {fileID: 387040017}
-  networkAddress: localhost
+  networkAddress: 188.243.142.215
   maxConnections: 100
   disconnectInactiveConnections: 0
   disconnectInactiveTimeout: 60
@@ -692,7 +692,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 387040013}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6442dc8070ceb41f094e44de0bf87274, type: 3}
   m_Name: 
@@ -2010,10 +2010,20 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1128253979471543983, guid: faba03d41d0c7764684d6d56384d4be3,
+        type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -51.98
+      objectReference: {fileID: 0}
     - target: {fileID: 1128253979482553412, guid: faba03d41d0c7764684d6d56384d4be3,
         type: 3}
       propertyPath: 'm_ActiveFontFeatures.Array.data[0]'
       value: 1801810542
+      objectReference: {fileID: 0}
+    - target: {fileID: 1128253979724807159, guid: faba03d41d0c7764684d6d56384d4be3,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1128253979813116358, guid: faba03d41d0c7764684d6d56384d4be3,
         type: 3}
