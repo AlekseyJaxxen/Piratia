@@ -144,7 +144,9 @@ public class PlayerCore : NetworkBehaviour
         {
             _nameText.text = playerName;
         }
+        // Поиск префабов в детях
         healthBarUI = GetComponentInChildren<HealthBarUI>();
+        nameTagUI = GetComponentInChildren<NameTagUI>();
         if (healthBarUI != null)
         {
             healthBarUI.target = transform;
@@ -154,17 +156,35 @@ public class PlayerCore : NetworkBehaviour
                 healthBarUI.UpdateHP(Health.CurrentHealth, Health.MaxHealth);
             }
         }
-        nameTagUI = GetComponentInChildren<NameTagUI>();
         if (nameTagUI != null)
         {
             nameTagUI.target = transform;
             nameTagUI.UpdateNameAndTeam(playerName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
         }
         StartCoroutine(InitializeUIWithRetry());
+        StartCoroutine(DelayedUIUpdate()); // Добавляем отложенное обновление UI
         PlayerUI ui = GetComponentInChildren<PlayerUI>();
         if (ui != null && !isLocalPlayer)
         {
             ui.gameObject.SetActive(false);
+        }
+    }
+
+    private void UpdateUI()
+    {
+        if (nameTagUI != null)
+        {
+            nameTagUI.UpdateNameAndTeam(playerName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
+        }
+    }
+
+    private IEnumerator DelayedUIUpdate()
+    {
+        float delay = Random.Range(2f, 3f); // Случайная задержка 2-3 секунды
+        yield return new WaitForSeconds(delay);
+        if (!isServer) // Обновление только на клиентах
+        {
+            UpdateUI();
         }
     }
 
@@ -447,7 +467,6 @@ public class PlayerCore : NetworkBehaviour
     public int GetCurrentHealth() { return Health != null ? Health.CurrentHealth : 0; }
     public int GetMaxHealth() { return Health != null ? Health.MaxHealth : 0; }
     public NameTagUI GetNameTagUI() { return nameTagUI; }
-
     public bool CanCastSkill()
     {
         return !isDead && !isStunned;

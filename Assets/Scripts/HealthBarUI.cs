@@ -16,7 +16,7 @@ public class HealthBarUI : MonoBehaviour
     void Start()
     {
         mainCamera = Camera.main;
-        UpdateHP(100, 100); // Инициализация по умолчанию
+        // Убрали UpdateHP(100, 100), так как здоровье будет инициализировано в PlayerCore
     }
 
     void LateUpdate()

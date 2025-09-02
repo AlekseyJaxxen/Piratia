@@ -28,7 +28,8 @@ public class NameTagUI : MonoBehaviour
     {
         if (nameText != null) nameText.text = name;
         if (teamText != null) teamText.text = team.ToString();
-        Color color = (localTeam != PlayerTeam.None && team == localTeam) ? Color.green : Color.red;
+        // Ћокальный игрок и союзники Ч зеленые, враги Ч красные
+        Color color = (localTeam != PlayerTeam.None && team == localTeam) || localTeam == PlayerTeam.None ? Color.green : Color.red;
         if (nameText != null) nameText.color = color;
         if (teamText != null) teamText.color = color;
     }
