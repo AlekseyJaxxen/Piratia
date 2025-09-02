@@ -64,7 +64,6 @@ public class Monster : NetworkBehaviour
         {
             Debug.LogWarning($"[Monster] PhysicsModel not assigned for {monsterName}, using default GameObject");
         }
-        currentHealth = maxHealth;
         if (canAttack)
         {
             if (basicAttackSkill == null)
@@ -78,12 +77,8 @@ public class Monster : NetworkBehaviour
     public override void OnStartServer()
     {
         base.OnStartServer();
-        _monsterUI = GetComponentInChildren<MonsterUI>();
-        if (_monsterUI != null)
-        {
-            _monsterUI.target = transform;
-            _monsterUI.SetData(monsterName, currentHealth, maxHealth);
-        }
+        currentHealth = maxHealth;
+        Debug.Log($"[Monster] Initialized health on server to: {currentHealth}/{maxHealth}");
         StartCoroutine(CheckControlEffectExpiration());
     }
 
@@ -94,26 +89,36 @@ public class Monster : NetworkBehaviour
         if (_monsterUI != null)
         {
             _monsterUI.target = transform;
+            _monsterUI.SetData(monsterName, currentHealth, maxHealth);
+            Debug.Log($"[Monster] OnStartClient called. UI initialized with currentHealth: {currentHealth}. IsHost={isServer}");
+        }
+        else
+        {
+            Debug.LogError($"[Monster] MonsterUI component not found on {gameObject.name}. Check if it's a child object and has the component.");
         }
     }
 
     private void OnNameChanged(string _, string newName)
     {
-        if (isServer && _monsterUI != null)
+        if (_monsterUI != null)
         {
             _monsterUI.SetData(newName, currentHealth, maxHealth);
-            Debug.Log($"[Monster] Name updated to: {newName}");
         }
     }
 
-    private void OnHealthChanged(int _, int newValue)
+    private void OnHealthChanged(int _, int newHP)
     {
-        if (isServer && _monsterUI != null)
+        if (_monsterUI != null)
         {
-            _monsterUI.SetData(monsterName, newValue, maxHealth);
-            Debug.Log($"[Monster] UI updated: {newValue}/{maxHealth} for {monsterName}");
+            _monsterUI.SetData(monsterName, newHP, maxHealth);
+            Debug.Log($"[Monster] OnHealthChanged hook called. UI updated. New HP: {newHP}, IsClient={isClient}");
         }
-        if (newValue <= 0 && !IsDead)
+        else
+        {
+            Debug.LogWarning($"[Monster] _monsterUI is null in OnHealthChanged hook! This may happen on the server side at start.");
+        }
+
+        if (newHP <= 0 && !IsDead)
         {
             Die();
         }

@@ -2964,7 +2964,7 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   classData: {fileID: 0}
-  characterClass: 0
+  characterClass: 3
   level: 1
   currentExperience: 0
   totalExperience: 0
@@ -3578,6 +3578,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: HealthBarUI
+      objectReference: {fileID: 0}
+    - target: {fileID: 3370900829275244233, guid: 0107e61ccce31a946bd4334d79695768,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5077449151181105782, guid: 0107e61ccce31a946bd4334d79695768,
         type: 3}
@@ -5271,6 +5276,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: NameTagUI
+      objectReference: {fileID: 0}
+    - target: {fileID: 2897239049169566932, guid: ce27e742a735a13409989b17bed6c0db,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5902334142044535135, guid: ce27e742a735a13409989b17bed6c0db,
         type: 3}

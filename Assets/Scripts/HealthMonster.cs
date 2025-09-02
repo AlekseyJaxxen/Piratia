@@ -17,7 +17,8 @@ public class HealthMonster : Health
             return;
         }
         SetHealth(_monster.maxHealth);
-        _monster.currentHealth = MaxHealth; // Синхронизируем начальное здоровье
+        _monster.currentHealth = MaxHealth;
+        _monster.maxHealth = MaxHealth;
         Debug.Log($"[HealthMonster] Initialized health for {gameObject.name}: {_monster.maxHealth}");
     }
 
@@ -28,7 +29,8 @@ public class HealthMonster : Health
         base.TakeDamage(damage, damageType, isCritical, attacker);
         if (_monster != null)
         {
-            _monster.currentHealth = CurrentHealth; // Обновляем здоровье в Monster
+            _monster.currentHealth = CurrentHealth;
+            _monster.maxHealth = MaxHealth;
             Debug.Log($"[HealthMonster] Damage taken: {damage}, Current health: {CurrentHealth}, Monster health: {_monster.currentHealth}/{_monster.maxHealth}");
         }
         RpcShowDamageNumber(damage, isCritical);
@@ -89,9 +91,7 @@ public class HealthMonster : Health
     {
         if (_monster != null)
         {
-            _monster.currentHealth = newHealth;
-            _monster.maxHealth = maxHealth; // Синхронизируем maxHealth
-            Debug.Log($"[HealthMonster] Health updated: {newHealth}/{maxHealth} for {gameObject.name}");
+            Debug.Log($"[HealthMonster] Health updated via event, newHealth: {newHealth}, maxHealth: {maxHealth}");
         }
     }
 }

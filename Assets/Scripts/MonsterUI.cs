@@ -2,9 +2,8 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections;
-using Mirror;
 
-public class MonsterUI : NetworkBehaviour
+public class MonsterUI : MonoBehaviour
 {
     [SerializeField] private TextMeshProUGUI nameText;
     [SerializeField] private Image fillImage;
@@ -14,13 +13,6 @@ public class MonsterUI : NetworkBehaviour
     public Transform target;
     private Camera mainCamera;
     private int previousHealth = int.MaxValue;
-
-    [SyncVar(hook = nameof(OnNameChanged))]
-    private string monsterName;
-    [SyncVar(hook = nameof(OnHPChanged))]
-    private int currentHealth;
-    [SyncVar(hook = nameof(OnMaxHealthChanged))]
-    private int maxHealth;
 
     void Start()
     {
@@ -37,36 +29,30 @@ public class MonsterUI : NetworkBehaviour
         }
     }
 
-    private void OnNameChanged(string _, string newName)
+    public void SetData(string name, int currentHP, int maxHP)
     {
         if (nameText != null)
         {
-            nameText.text = newName;
+            nameText.text = name;
             nameText.color = Color.red;
-            Debug.Log($"[MonsterUI] Name updated: {newName}, isClient={isClient}");
         }
-    }
 
-    private void OnHPChanged(int _, int newHP)
-    {
-        UpdateUI(newHP, maxHealth);
-    }
+        if (currentHP > 0)
+        {
+            if (!gameObject.activeSelf) gameObject.SetActive(true);
+        }
+        else
+        {
+            gameObject.SetActive(false);
+        }
 
-    private void OnMaxHealthChanged(int _, int newMaxHP)
-    {
-        UpdateUI(currentHealth, newMaxHP);
+        UpdateUI(currentHP, maxHP);
+
+        Debug.Log($"[MonsterUI] UI updated with data: {currentHP}/{maxHP}. Active status: {gameObject.activeSelf}");
     }
 
     private void UpdateUI(int hp, int maxHP)
     {
-        if (!gameObject.activeSelf && hp > 0)
-        {
-            gameObject.SetActive(true);
-        }
-        else if (hp <= 0)
-        {
-            gameObject.SetActive(false);
-        }
         if (fillImage != null) fillImage.fillAmount = maxHP > 0 ? (float)hp / maxHP : 0f;
         if (hpText != null) hpText.text = $"{hp}/{maxHP}";
         if (hp < previousHealth && gameObject.activeSelf)
@@ -74,15 +60,6 @@ public class MonsterUI : NetworkBehaviour
             StartCoroutine(FlashHealthBar());
         }
         previousHealth = hp;
-        Debug.Log($"[MonsterUI] UI updated: {hp}/{maxHP}, isClient={isClient}");
-    }
-
-    [Server]
-    public void SetData(string name, int currentHP, int maxHP)
-    {
-        monsterName = name;
-        currentHealth = currentHP;
-        maxHealth = maxHP;
     }
 
     private IEnumerator FlashHealthBar()
@@ -93,4 +70,4 @@ public class MonsterUI : NetworkBehaviour
         yield return new WaitForSeconds(flashDuration);
         fillImage.color = originalColor;
     }
-}   
+}

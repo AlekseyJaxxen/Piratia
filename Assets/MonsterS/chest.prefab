@@ -302,17 +302,17 @@ PrefabInstance:
     - target: {fileID: 445113959433954602, guid: c53b323b75c29944eb8357f087f2fe32,
         type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0.00054
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 445113959433954602, guid: c53b323b75c29944eb8357f087f2fe32,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.5588
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 445113959433954602, guid: c53b323b75c29944eb8357f087f2fe32,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 445113959433954602, guid: c53b323b75c29944eb8357f087f2fe32,
         type: 3}
@@ -353,6 +353,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: MonsterUI
+      objectReference: {fileID: 0}
+    - target: {fileID: 3924781570281729340, guid: c53b323b75c29944eb8357f087f2fe32,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8414062373661576275, guid: c53b323b75c29944eb8357f087f2fe32,
+        type: 3}
+      propertyPath: _assetId
+      value: 1775039329
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
