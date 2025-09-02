@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SlowSkill
   castType: 0
   ignoreGlobalCooldown: 0
-  _icon: {fileID: 0}
+  _icon: {fileID: 21300000, guid: 20c40268481bbdd4f814289e5ee636a2, type: 3}
   _skillName: Cripple
   _hotkey: 282
   _range: 11

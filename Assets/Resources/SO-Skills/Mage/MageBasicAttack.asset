@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BasicAttackSkill
   castType: 0
   ignoreGlobalCooldown: 1
-  _icon: {fileID: 21300000, guid: c3f6d1d9e749c304fbed322ba33b225b, type: 3}
+  _icon: {fileID: 21300000, guid: 833e5ae9ca773684ebc737c3770c94ff, type: 3}
   _skillName: MageBasicAttack
   _hotkey: 0
   _range: 7

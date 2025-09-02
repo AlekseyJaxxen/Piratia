@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ProjectileDamageSkill
   castType: 0
   ignoreGlobalCooldown: 0
-  _icon: {fileID: 21300000, guid: b6dff2a3895b38441ae4e419a1f153b0, type: 3}
+  _icon: {fileID: 21300000, guid: 59d3180e5da177d4d874889aa55f2ef3, type: 3}
   _skillName: bolt
   _hotkey: 282
   _range: 7

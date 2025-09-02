@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BasicAttackSkill
   castType: 0
   ignoreGlobalCooldown: 1
-  _icon: {fileID: 0}
+  _icon: {fileID: 21300000, guid: 173a13fe1c4af854a872fcd40b7982b6, type: 3}
   _skillName: RangerMelee
   _hotkey: 0
   _range: 7

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ProjectileDamageSkill
   castType: 0
   ignoreGlobalCooldown: 0
-  _icon: {fileID: 0}
+  _icon: {fileID: 21300000, guid: d4b497f7c582bdd4c8ec6d5970eeb559, type: 3}
   _skillName: DualShot
   _hotkey: 283
   _range: 6
@@ -25,8 +25,10 @@ MonoBehaviour:
   _damageType: 0
   _weight: 1
   _effectRadius: 0
-  castRangePrefab: {fileID: 0}
+  castRangePrefab: {fileID: 3299273662854126661, guid: ee30310967d98c04fb16bcfa96cfb3c2,
+    type: 3}
   effectRadiusPrefab: {fileID: 0}
   damageAmount: 2000
-  projectilePrefab: {fileID: 121798, guid: 672a9f8d9b8441b47a4cc0a5c3d60b7c, type: 3}
+  projectilePrefab: {fileID: 1664354186237286, guid: d24d32ae7abae424080a26044bf04ea0,
+    type: 3}
   impactEffectPrefab: {fileID: 0}
