@@ -27,7 +27,7 @@ public class MonsterAI2 : MonoBehaviour
 
     private void Update()
     {
-        if (monster.currentHealth <= 0 || monster.IsDead)
+        if (monster.GetComponent<Health>().CurrentHealth <= 0 || monster.IsDead)
         {
             enabled = false;
             return;

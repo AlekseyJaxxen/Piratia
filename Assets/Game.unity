@@ -56875,6 +56875,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 99c8eac67305e384f974c7ef9b54607c, type: 2}
   - {fileID: 11400000, guid: 5897ded6612d9e34c922e82c57b6dd1f, type: 2}
   - {fileID: 11400000, guid: 701db164e762e8d4eb55ee37444ee209, type: 2}
+  - {fileID: 11400000, guid: 416c0a404f8283143b92925216e31ace, type: 2}
   mageSkills:
   - {fileID: 11400000, guid: 3eb9b1d80c8fde844a94600c814cc491, type: 2}
   - {fileID: 11400000, guid: 9a1d78afb8732344b98a8f8244a0e5da, type: 2}
@@ -56887,6 +56888,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ebbf47ecd1d49094dac17c306e5f32af, type: 2}
   - {fileID: 11400000, guid: 235db1e1237d22a418a8965a049314f7, type: 2}
   - {fileID: 11400000, guid: 701db164e762e8d4eb55ee37444ee209, type: 2}
+  - {fileID: 11400000, guid: 416c0a404f8283143b92925216e31ace, type: 2}
 --- !u!4 &1855098298
 Transform:
   m_ObjectHideFlags: 0

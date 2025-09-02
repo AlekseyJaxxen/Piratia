@@ -17,7 +17,7 @@ MonoBehaviour:
   _icon: {fileID: 0}
   _skillName: Cripple
   _hotkey: 282
-  _range: 8
+  _range: 11
   _cooldown: 5
   _castTime: 0.1
   _castCursor: {fileID: 0}
@@ -25,7 +25,8 @@ MonoBehaviour:
   _damageType: 0
   _weight: 1
   _effectRadius: 0
-  castRangePrefab: {fileID: 0}
+  castRangePrefab: {fileID: 3299273662854126661, guid: ee30310967d98c04fb16bcfa96cfb3c2,
+    type: 3}
   effectRadiusPrefab: {fileID: 0}
   baseDamage: 1000
   slowPercentage: 0.5

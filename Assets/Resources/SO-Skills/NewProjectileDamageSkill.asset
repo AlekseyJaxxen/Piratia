@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: da6862f7b7b560544b2ac82929229ae9, type: 3}
   m_Name: NewProjectileDamageSkill
   m_EditorClassIdentifier: Assembly-CSharp::ProjectileDamageSkill
+  castType: 0
   ignoreGlobalCooldown: 0
   _icon: {fileID: 21300000, guid: 4f242f6091714734e8d2f2002b45498d, type: 3}
   _skillName: WarriorSLash
@@ -27,9 +28,6 @@ MonoBehaviour:
   castRangePrefab: {fileID: 3299273662854126661, guid: ee30310967d98c04fb16bcfa96cfb3c2,
     type: 3}
   effectRadiusPrefab: {fileID: 0}
-  castRangeIndicator: {fileID: 0}
-  effectRadiusIndicator: {fileID: 8212533921873324154, guid: e6230a171a068cd489eb410abd241717,
-    type: 3}
-  damageAmount: 1000
+  damageAmount: 2100
   projectilePrefab: {fileID: 105246, guid: 305722bc3bbbf1f44aa7890efb7f31d9, type: 3}
   impactEffectPrefab: {fileID: 0}

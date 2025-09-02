@@ -3117,7 +3117,7 @@ MonoBehaviour:
   castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
   attackCursor: {fileID: 2800000, guid: 8f25a92609cc5a748a87869de53d5614, type: 3}
   cursorUpdateInterval: 0.1
-  globalCooldown: 0.3
+  globalCooldown: 0.1
 --- !u!114 &9141868853825329552
 MonoBehaviour:
   m_ObjectHideFlags: 0

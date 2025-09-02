@@ -13,12 +13,13 @@ public class MonsterUI : MonoBehaviour
     public Transform target;
     private Camera mainCamera;
     private int previousHealth = int.MaxValue;
-
     void Start()
     {
         mainCamera = Camera.main;
+        if (nameText == null) Debug.LogWarning("[MonsterUI] nameText not assigned");
+        if (fillImage == null) Debug.LogWarning("[MonsterUI] fillImage not assigned");
+        if (hpText == null) Debug.LogWarning("[MonsterUI] hpText not assigned");
     }
-
     void LateUpdate()
     {
         if (target != null && mainCamera != null)
@@ -28,7 +29,6 @@ public class MonsterUI : MonoBehaviour
             transform.rotation = Quaternion.Euler(0f, transform.rotation.eulerAngles.y, 0f);
         }
     }
-
     public void SetData(string name, int currentHP, int maxHP)
     {
         if (nameText != null)
@@ -36,7 +36,6 @@ public class MonsterUI : MonoBehaviour
             nameText.text = name;
             nameText.color = Color.red;
         }
-
         if (currentHP > 0)
         {
             if (!gameObject.activeSelf) gameObject.SetActive(true);
@@ -44,13 +43,11 @@ public class MonsterUI : MonoBehaviour
         else
         {
             gameObject.SetActive(false);
+            Debug.Log($"[MonsterUI] Deactivating UI as currentHP <= 0");
         }
-
         UpdateUI(currentHP, maxHP);
-
         Debug.Log($"[MonsterUI] UI updated with data: {currentHP}/{maxHP}. Active status: {gameObject.activeSelf}");
     }
-
     private void UpdateUI(int hp, int maxHP)
     {
         if (fillImage != null) fillImage.fillAmount = maxHP > 0 ? (float)hp / maxHP : 0f;
@@ -60,8 +57,8 @@ public class MonsterUI : MonoBehaviour
             StartCoroutine(FlashHealthBar());
         }
         previousHealth = hp;
+        Debug.Log($"[MonsterUI] UI updated: fillAmount={fillImage.fillAmount}, hpText={hpText.text}");
     }
-
     private IEnumerator FlashHealthBar()
     {
         if (fillImage == null || !gameObject.activeSelf) yield break;

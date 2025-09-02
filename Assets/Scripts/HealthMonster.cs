@@ -16,23 +16,25 @@ public class HealthMonster : Health
             Debug.LogError($"[HealthMonster] Monster component missing on {gameObject.name}");
             return;
         }
-        SetHealth(_monster.maxHealth);
-        _monster.currentHealth = MaxHealth;
-        _monster.maxHealth = MaxHealth;
-        Debug.Log($"[HealthMonster] Initialized health for {gameObject.name}: {_monster.maxHealth}");
+        SetHealth(1000);
+        Debug.Log($"[HealthMonster] Initialized health for {gameObject.name}: {CurrentHealth}");
     }
-
     [Server]
     public new void TakeDamage(int damage, DamageType damageType, bool isCritical, NetworkIdentity attacker)
     {
         if (CurrentHealth <= 0) return;
         base.TakeDamage(damage, damageType, isCritical, attacker);
-        if (_monster != null)
+        if (_monster == null)
         {
-            _monster.currentHealth = CurrentHealth;
-            _monster.maxHealth = MaxHealth;
-            Debug.Log($"[HealthMonster] Damage taken: {damage}, Current health: {CurrentHealth}, Monster health: {_monster.currentHealth}/{_monster.maxHealth}");
+            _monster = GetComponent<Monster>();
+            if (_monster == null)
+            {
+                Debug.LogError($"[HealthMonster] Monster component missing on {gameObject.name}");
+                return;
+            }
         }
+        Debug.Log($"[HealthMonster] Damage taken: {damage}, Current health: {CurrentHealth}, Monster health: {CurrentHealth}/{MaxHealth}");
+        _monster.RpcUpdateMonsterUI(CurrentHealth, MaxHealth);
         RpcShowDamageNumber(damage, isCritical);
         RpcPlayDamageFlash();
         if (CurrentHealth <= 0)
@@ -40,7 +42,6 @@ public class HealthMonster : Health
             _monster.Die();
         }
     }
-
     [ClientRpc]
     private void RpcShowDamageNumber(int damage, bool isCritical)
     {
@@ -65,7 +66,6 @@ public class HealthMonster : Health
             Debug.LogWarning("[HealthMonster] floatingTextPrefab is null");
         }
     }
-
     [ClientRpc]
     private void RpcPlayDamageFlash()
     {
@@ -76,22 +76,19 @@ public class HealthMonster : Health
             Debug.Log($"[HealthMonster] Triggered damage flash for {gameObject.name}");
         }
     }
-
-    private void OnEnable()
-    {
-        OnHealthUpdated += UpdateMonsterHealth;
-    }
-
-    private void OnDisable()
-    {
-        OnHealthUpdated -= UpdateMonsterHealth;
-    }
-
     private void UpdateMonsterHealth(int newHealth, int maxHealth)
     {
         if (_monster != null)
         {
             Debug.Log($"[HealthMonster] Health updated via event, newHealth: {newHealth}, maxHealth: {maxHealth}");
         }
+    }
+    private void OnEnable()
+    {
+        OnHealthUpdated += UpdateMonsterHealth;
+    }
+    private void OnDisable()
+    {
+        OnHealthUpdated -= UpdateMonsterHealth;
     }
 }

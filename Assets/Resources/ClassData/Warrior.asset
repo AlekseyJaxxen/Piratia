@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Warrior
   m_EditorClassIdentifier: Assembly-CSharp::ClassData
   characterClass: 0
-  strength: 100
+  strength: 200
   agility: 50
   constitution: 30
   spirit: 5

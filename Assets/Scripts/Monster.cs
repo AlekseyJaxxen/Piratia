@@ -7,9 +7,6 @@ public class Monster : NetworkBehaviour
 {
     [Header("Monster Settings")]
     [SyncVar(hook = nameof(OnNameChanged))] public string monsterName = "Monster";
-    [SyncVar(hook = nameof(OnHealthChanged))] public int maxHealth = 1000;
-    [SyncVar(hook = nameof(OnHealthChanged))] public int currentHealth;
-    [SyncVar] public bool IsCooldown = false;
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float attackCooldown = 2f;
     [SerializeField] private GameObject deathVFXPrefab;
@@ -31,6 +28,8 @@ public class Monster : NetworkBehaviour
     [SerializeField] public GameObject physicsModel;
     [SerializeField] public Vector3 minForce = new Vector3(-5f, 2f, -5f);
     [SerializeField] public Vector3 maxForce = new Vector3(5f, 5f, 0f);
+    [SyncVar] public bool IsCooldown = false;
+    private Health _health;
 
     private void Awake()
     {
@@ -72,58 +71,45 @@ public class Monster : NetworkBehaviour
                 canAttack = false;
             }
         }
+        _health = GetComponent<Health>();
+        if (_health == null)
+        {
+            Debug.LogError("[Monster] Health component missing!");
+        }
     }
-
     public override void OnStartServer()
     {
         base.OnStartServer();
-        currentHealth = maxHealth;
-        Debug.Log($"[Monster] Initialized health on server to: {currentHealth}/{maxHealth}");
+        Debug.Log($"[Monster] Initialized health on server to: {_health.CurrentHealth}/{_health.MaxHealth}");
         StartCoroutine(CheckControlEffectExpiration());
     }
-
     public override void OnStartClient()
     {
         base.OnStartClient();
         _monsterUI = GetComponentInChildren<MonsterUI>();
-        if (_monsterUI != null)
-        {
-            _monsterUI.target = transform;
-            _monsterUI.SetData(monsterName, currentHealth, maxHealth);
-            Debug.Log($"[Monster] OnStartClient called. UI initialized with currentHealth: {currentHealth}. IsHost={isServer}");
-        }
-        else
+        if (_monsterUI == null)
         {
             Debug.LogError($"[Monster] MonsterUI component not found on {gameObject.name}. Check if it's a child object and has the component.");
+            return;
         }
+        _monsterUI.target = transform;
+        _monsterUI.SetData(monsterName, _health.CurrentHealth, _health.MaxHealth);
+        Debug.Log($"[Monster] OnStartClient called. UI initialized with currentHealth: {_health.CurrentHealth}. IsHost={isServer}");
+        _health.OnHealthUpdated += OnHealthUpdatedHandler;
     }
-
+    public override void OnStopClient()
+    {
+        base.OnStopClient();
+        _health.OnHealthUpdated -= OnHealthUpdatedHandler;
+        if (_monsterUI != null) Destroy(_monsterUI.gameObject);
+    }
     private void OnNameChanged(string _, string newName)
     {
         if (_monsterUI != null)
         {
-            _monsterUI.SetData(newName, currentHealth, maxHealth);
+            _monsterUI.SetData(newName, _health.CurrentHealth, _health.MaxHealth);
         }
     }
-
-    private void OnHealthChanged(int _, int newHP)
-    {
-        if (_monsterUI != null)
-        {
-            _monsterUI.SetData(monsterName, newHP, maxHealth);
-            Debug.Log($"[Monster] OnHealthChanged hook called. UI updated. New HP: {newHP}, IsClient={isClient}");
-        }
-        else
-        {
-            Debug.LogWarning($"[Monster] _monsterUI is null in OnHealthChanged hook! This may happen on the server side at start.");
-        }
-
-        if (newHP <= 0 && !IsDead)
-        {
-            Die();
-        }
-    }
-
     private void OnStunStateChanged(bool _, bool newValue)
     {
         Debug.Log($"[Monster] Stun state changed: {newValue}, isClient={isClient}, isServer={isServer}");
@@ -132,7 +118,31 @@ public class Monster : NetworkBehaviour
             _agent.isStopped = newValue;
         }
     }
-
+    private void OnHealthUpdatedHandler(int currentHP, int maxHP)
+    {
+        if (_monsterUI != null)
+        {
+            _monsterUI.SetData(monsterName, currentHP, maxHP);
+            Debug.Log($"[Monster] OnHealthUpdatedHandler called. UI updated. New HP: {currentHP}, IsClient={isClient}");
+        }
+        else
+        {
+            Debug.LogWarning($"[Monster] _monsterUI is null in OnHealthUpdatedHandler! This may happen on the server side at start.");
+        }
+        if (currentHP <= 0 && !IsDead && isServer)
+        {
+            Die();
+        }
+    }
+    [ClientRpc]
+    public void RpcUpdateMonsterUI(int currentHealth, int maxHealth)
+    {
+        if (_monsterUI != null)
+        {
+            _monsterUI.SetData(monsterName, currentHealth, maxHealth);
+            Debug.Log($"[Monster] RpcUpdateMonsterUI called: {currentHealth}/{maxHealth}");
+        }
+    }
     [Server]
     public void ApplyControlEffect(ControlEffectType effectType, float duration, int skillWeight)
     {
@@ -162,7 +172,6 @@ public class Monster : NetworkBehaviour
             Debug.Log($"[Monster] Applied slow effect to {monsterName}, weight={skillWeight}, percentage={_slowPercentage}, duration={duration}");
         }
     }
-
     [Server]
     public void ApplySlow(float percentage, float duration, int skillWeight)
     {
@@ -183,7 +192,6 @@ public class Monster : NetworkBehaviour
         _controlEffectEndTime = Time.time + duration;
         Debug.Log($"[Monster] Applied slow to {monsterName}: percentage={percentage}, duration={duration}, weight={skillWeight}");
     }
-
     [Server]
     private void ClearControlEffect()
     {
@@ -206,13 +214,12 @@ public class Monster : NetworkBehaviour
         _controlEffectEndTime = 0f;
         Debug.Log($"[Monster] Cleared control effect for {monsterName}");
     }
-
     [Server]
     public void Die()
     {
         if (IsDead) return;
         IsDead = true;
-        Debug.Log($"[Monster] Die called for {monsterName}, Health: {currentHealth}");
+        Debug.Log($"[Monster] Die called for {monsterName}, Health: {_health.CurrentHealth}");
         if (_agent != null && _agent.isOnNavMesh)
         {
             _agent.isStopped = true;
@@ -237,23 +244,23 @@ public class Monster : NetworkBehaviour
         BoxCollider boxCollider = GetComponent<BoxCollider>();
         if (boxCollider != null)
         {
-            boxCollider.enabled = true;
+            boxCollider.enabled = false;
             gameObject.layer = LayerMask.NameToLayer("Ignore Raycast");
             Debug.Log($"[Monster] Set {monsterName} to Ignore Raycast layer");
         }
         canMove = false;
         canAttack = false;
         RpcDie();
+        RpcHideMonsterUI();
         StartCoroutine(DespawnAfterDelay(2f));
     }
-
     [ClientRpc]
     private void RpcDie()
     {
         if (deathVFXPrefab != null)
         {
-            GameObject vfx = Object.Instantiate(deathVFXPrefab, transform.position, Quaternion.identity);
-            Object.Destroy(vfx, 1f);
+            GameObject vfx = Instantiate(deathVFXPrefab, transform.position, Quaternion.identity);
+            Destroy(vfx, 1f);
         }
         Rigidbody physicsRigidbody = (physicsModel != null ? physicsModel : gameObject).GetComponent<Rigidbody>();
         if (physicsRigidbody != null)
@@ -268,7 +275,15 @@ public class Monster : NetworkBehaviour
         }
         gameObject.layer = LayerMask.NameToLayer("Ignore Raycast");
     }
-
+    [ClientRpc]
+    private void RpcHideMonsterUI()
+    {
+        if (_monsterUI != null)
+        {
+            _monsterUI.gameObject.SetActive(false);
+            Debug.Log($"[Monster] RpcHideMonsterUI called for {gameObject.name}");
+        }
+    }
     private IEnumerator DespawnAfterDelay(float delay)
     {
         yield return new WaitForSeconds(delay);
@@ -278,18 +293,10 @@ public class Monster : NetworkBehaviour
             Debug.Log($"[Monster] Destroyed {monsterName}");
         }
     }
-
-    public override void OnStopClient()
-    {
-        base.OnStopClient();
-        if (_monsterUI != null) Object.Destroy(_monsterUI.gameObject);
-    }
-
     private void OnDestroy()
     {
-        if (_monsterUI != null) Object.Destroy(_monsterUI.gameObject);
+        if (_monsterUI != null) Destroy(_monsterUI.gameObject);
     }
-
     [Server]
     public void ExecuteAttack(uint targetNetId, string skillName, int damage, bool isCritical)
     {
@@ -316,7 +323,6 @@ public class Monster : NetworkBehaviour
         IsCooldown = true;
         StartCoroutine(EndCooldown(attackCooldown));
     }
-
     [ClientRpc]
     private void RpcPlayVFX(Vector3 startPosition, Quaternion startRotation, Vector3 endPosition, bool isCritical)
     {
@@ -325,7 +331,6 @@ public class Monster : NetworkBehaviour
             basicAttackSkill.PlayVFX(startPosition, startRotation, endPosition, isCritical, this);
         }
     }
-
     private IEnumerator EndCooldown(float cooldown)
     {
         yield return new WaitForSeconds(cooldown);
@@ -335,13 +340,11 @@ public class Monster : NetworkBehaviour
             _agent.isStopped = false;
         }
     }
-
     [Server]
     public void ReceiveControlEffect(ControlEffectType effectType, float duration, int skillWeight)
     {
         ApplyControlEffect(effectType, duration, skillWeight);
     }
-
     private IEnumerator CheckControlEffectExpiration()
     {
         while (true)
