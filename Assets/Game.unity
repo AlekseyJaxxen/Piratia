@@ -56875,14 +56875,13 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 99c8eac67305e384f974c7ef9b54607c, type: 2}
   - {fileID: 11400000, guid: 5897ded6612d9e34c922e82c57b6dd1f, type: 2}
   - {fileID: 11400000, guid: 701db164e762e8d4eb55ee37444ee209, type: 2}
-  - {fileID: 11400000, guid: 46951b2916ba0c54cb9297c9c2ed2dd6, type: 2}
-  - {fileID: 11400000, guid: 1324d2a5c901fe74aa3984de01c176bd, type: 2}
-  - {fileID: 11400000, guid: 6868d31a6d0b8224cb68c823c502008b, type: 2}
-  - {fileID: 11400000, guid: 2abb550a499b761488787e541a19b41a, type: 2}
   mageSkills:
-  - {fileID: 11400000, guid: b6306e214bb395b4192626b3912fc0c6, type: 2}
-  - {fileID: 11400000, guid: ebbf47ecd1d49094dac17c306e5f32af, type: 2}
-  - {fileID: 11400000, guid: 235db1e1237d22a418a8965a049314f7, type: 2}
+  - {fileID: 11400000, guid: 3eb9b1d80c8fde844a94600c814cc491, type: 2}
+  - {fileID: 11400000, guid: 9a1d78afb8732344b98a8f8244a0e5da, type: 2}
+  - {fileID: 11400000, guid: 69ae834b2f559844bbe868389e4b0f3c, type: 2}
+  - {fileID: 11400000, guid: 701db164e762e8d4eb55ee37444ee209, type: 2}
+  - {fileID: 11400000, guid: 9e8d1813736c9b148a875c8721bf145f, type: 2}
+  - {fileID: 11400000, guid: 02408deef8f92f744bbba53454f74b78, type: 2}
   archerSkills:
   - {fileID: 11400000, guid: b6306e214bb395b4192626b3912fc0c6, type: 2}
   - {fileID: 11400000, guid: ebbf47ecd1d49094dac17c306e5f32af, type: 2}
