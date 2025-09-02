@@ -14,10 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ClassData
   characterClass: 0
   strength: 100
-  agility: 20
-  constitution: 50
+  agility: 50
+  constitution: 30
   spirit: 5
   accuracy: 5
-  maxHealth: 1000
+  maxHealth: 2200
   maxMana: 100
   movementSpeed: 8

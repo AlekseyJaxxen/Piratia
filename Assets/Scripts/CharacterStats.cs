@@ -88,7 +88,7 @@ public class CharacterStats : NetworkBehaviour
         base.OnStartServer();
         InitializeExperienceTable();
         // Откладываем инициализацию до вызова CmdSetClass
-        StartCoroutine(WaitForClassInitialization());
+        //StartCoroutine(WaitForClassInitialization());
     }
 
     private IEnumerator WaitForClassInitialization()
@@ -112,20 +112,21 @@ public class CharacterStats : NetworkBehaviour
     public override void OnStartClient()
     {
         base.OnStartClient();
-        if (classData == null)
-        {
-            classData = Resources.Load<ClassData>($"ClassData/{characterClass}");
-            if (classData == null)
-            {
-                Debug.LogError($"[CharacterStats] Failed to load ClassData for {characterClass} on client");
-            }
-        }
-        LoadClassData();
-        StartCoroutine(InitializeSkills());
-        Debug.Log($"[Client] Character initialized: class={characterClass}, strength={strength}, minAttack={minAttack}, maxAttack={maxAttack}");
+       // if (classData == null)
+      //  {
+      //      classData = Resources.Load<ClassData>($"ClassData/{characterClass}");
+       //     if (classData == null)
+        //    {
+        //        Debug.LogError($"[CharacterStats] Failed to load ClassData for {characterClass} on client");
+        //    }
+     //   }
+      //  LoadClassData();
+      //  StartCoroutine(InitializeSkills());
+      //  Debug.Log($"[Client] Character initialized: class={characterClass}, strength={strength}, minAttack={minAttack}, maxAttack={maxAttack}");
     }
 
-    private void LoadClassData()
+    [Server]
+    public void LoadClassData()
     {
         if (classData == null)
         {
@@ -175,18 +176,13 @@ public class CharacterStats : NetworkBehaviour
 
     private void OnCharacterClassChanged(CharacterClass oldClass, CharacterClass newClass)
     {
+        // Этот метод теперь является единственной точкой входа для настройки класса на клиентах.
+        // Mirror вызывает его, когда SyncVar изменяется на сервере.
+        Debug.Log($"[CharacterStats] Class changed via SyncVar: {oldClass} -> {newClass}");
         characterClass = newClass;
-        if (!isServer)
-        {
-            classData = Resources.Load<ClassData>($"ClassData/{characterClass}");
-            if (classData == null)
-            {
-                Debug.LogError($"[CharacterStats] Failed to load ClassData for {characterClass} on client");
-            }
-            LoadClassData();
-            StartCoroutine(InitializeSkills());
-        }
-        Debug.Log($"[CharacterStats] Class changed: {oldClass} -> {newClass}");
+        LoadClassData();
+        CalculateDerivedStats();
+        StartCoroutine(InitializeSkills());
     }
 
     [Command]

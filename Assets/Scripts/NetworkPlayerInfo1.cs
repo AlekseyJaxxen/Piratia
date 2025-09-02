@@ -1,6 +1,6 @@
 using Mirror;
 
-public struct NetworkPlayerInfo : NetworkMessage
+public struct NetworkPlayerInfo1 : NetworkMessage
 {
     public string playerName;
     public PlayerTeam playerTeam;
