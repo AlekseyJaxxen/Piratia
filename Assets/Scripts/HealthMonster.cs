@@ -6,6 +6,7 @@ public class HealthMonster : Health
 {
     private Monster _monster;
     [SerializeField] private MonsterAnimation monsterAnimation;
+
     public override void OnStartServer()
     {
         base.OnStartServer();
@@ -16,8 +17,10 @@ public class HealthMonster : Health
             return;
         }
         SetHealth(_monster.maxHealth);
+        _monster.currentHealth = MaxHealth; // Синхронизируем начальное здоровье
         Debug.Log($"[HealthMonster] Initialized health for {gameObject.name}: {_monster.maxHealth}");
     }
+
     [Server]
     public new void TakeDamage(int damage, DamageType damageType, bool isCritical, NetworkIdentity attacker)
     {
@@ -25,8 +28,8 @@ public class HealthMonster : Health
         base.TakeDamage(damage, damageType, isCritical, attacker);
         if (_monster != null)
         {
-            _monster.currentHealth = CurrentHealth;
-            Debug.Log($"[HealthMonster] Damage taken: {damage}, Current health: {CurrentHealth}, Calling RpcShowDamageNumber");
+            _monster.currentHealth = CurrentHealth; // Обновляем здоровье в Monster
+            Debug.Log($"[HealthMonster] Damage taken: {damage}, Current health: {CurrentHealth}, Monster health: {_monster.currentHealth}/{_monster.maxHealth}");
         }
         RpcShowDamageNumber(damage, isCritical);
         RpcPlayDamageFlash();
@@ -35,6 +38,7 @@ public class HealthMonster : Health
             _monster.Die();
         }
     }
+
     [ClientRpc]
     private void RpcShowDamageNumber(int damage, bool isCritical)
     {
@@ -59,38 +63,34 @@ public class HealthMonster : Health
             Debug.LogWarning("[HealthMonster] floatingTextPrefab is null");
         }
     }
+
     [ClientRpc]
     private void RpcPlayDamageFlash()
     {
-        MonsterAnimation animation = GetComponent<MonsterAnimation>();
-        if (animation != null)
+        if (monsterAnimation != null)
         {
-            animation.PlayDamageFlash();
-            animation.PlayShake();
+            monsterAnimation.PlayDamageFlash();
+            monsterAnimation.PlayShake();
             Debug.Log($"[HealthMonster] Triggered damage flash for {gameObject.name}");
         }
     }
-    public void SetHealthBarUI(MonsterHealthBarUI healthBarUI)
-    {
-        if (healthBarUI != null)
-        {
-            healthBarUI.UpdateHP(CurrentHealth, MaxHealth); // Используем свойства CurrentHealth и MaxHealth
-            Debug.Log($"[HealthMonster] MonsterHealthBarUI set for {gameObject.name}");
-        }
-    }
+
     private void OnEnable()
     {
         OnHealthUpdated += UpdateMonsterHealth;
     }
+
     private void OnDisable()
     {
         OnHealthUpdated -= UpdateMonsterHealth;
     }
+
     private void UpdateMonsterHealth(int newHealth, int maxHealth)
     {
         if (_monster != null)
         {
             _monster.currentHealth = newHealth;
+            _monster.maxHealth = maxHealth; // Синхронизируем maxHealth
             Debug.Log($"[HealthMonster] Health updated: {newHealth}/{maxHealth} for {gameObject.name}");
         }
     }

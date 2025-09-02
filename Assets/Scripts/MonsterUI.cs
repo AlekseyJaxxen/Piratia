@@ -19,7 +19,7 @@ public class MonsterUI : NetworkBehaviour
     private string monsterName;
     [SyncVar(hook = nameof(OnHPChanged))]
     private int currentHealth;
-    [SyncVar]
+    [SyncVar(hook = nameof(OnMaxHealthChanged))]
     private int maxHealth;
 
     void Start()
@@ -43,26 +43,38 @@ public class MonsterUI : NetworkBehaviour
         {
             nameText.text = newName;
             nameText.color = Color.red;
+            Debug.Log($"[MonsterUI] Name updated: {newName}, isClient={isClient}");
         }
     }
 
     private void OnHPChanged(int _, int newHP)
     {
-        if (!gameObject.activeSelf && newHP > 0)
+        UpdateUI(newHP, maxHealth);
+    }
+
+    private void OnMaxHealthChanged(int _, int newMaxHP)
+    {
+        UpdateUI(currentHealth, newMaxHP);
+    }
+
+    private void UpdateUI(int hp, int maxHP)
+    {
+        if (!gameObject.activeSelf && hp > 0)
         {
             gameObject.SetActive(true);
         }
-        else if (newHP <= 0)
+        else if (hp <= 0)
         {
             gameObject.SetActive(false);
         }
-        if (fillImage != null) fillImage.fillAmount = (float)newHP / maxHealth;
-        if (hpText != null) hpText.text = $"{newHP}/{maxHealth}";
-        if (newHP < previousHealth && gameObject.activeSelf)
+        if (fillImage != null) fillImage.fillAmount = maxHP > 0 ? (float)hp / maxHP : 0f;
+        if (hpText != null) hpText.text = $"{hp}/{maxHP}";
+        if (hp < previousHealth && gameObject.activeSelf)
         {
             StartCoroutine(FlashHealthBar());
         }
-        previousHealth = newHP;
+        previousHealth = hp;
+        Debug.Log($"[MonsterUI] UI updated: {hp}/{maxHP}, isClient={isClient}");
     }
 
     [Server]
@@ -81,4 +93,4 @@ public class MonsterUI : NetworkBehaviour
         yield return new WaitForSeconds(flashDuration);
         fillImage.color = originalColor;
     }
-}
+}   
