@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69fec8161d307cd45bd70937d9dd480e, type: 3}
+  m_Name: Cripple
+  m_EditorClassIdentifier: Assembly-CSharp::SlowSkill
+  castType: 0
+  ignoreGlobalCooldown: 0
+  _icon: {fileID: 0}
+  _skillName: Cripple
+  _hotkey: 282
+  _range: 8
+  _cooldown: 5
+  _castTime: 0.1
+  _castCursor: {fileID: 0}
+  _manaCost: 0
+  _damageType: 0
+  _weight: 1
+  _effectRadius: 0
+  castRangePrefab: {fileID: 0}
+  effectRadiusPrefab: {fileID: 0}
+  baseDamage: 1000
+  slowPercentage: 0.5
+  slowDuration: 5
+  projectilePrefab: {fileID: 1298760279671756, guid: 6990d204950bbe342a79c51322ee6373,
+    type: 3}

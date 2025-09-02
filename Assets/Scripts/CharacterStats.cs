@@ -1,16 +1,14 @@
 using UnityEngine;
 using Mirror;
 using System.Collections;
+using System.Linq;
 
 public class CharacterStats : NetworkBehaviour
 {
     [Header("Character Class")]
-    [SyncVar]
-    public CharacterClass characterClass = CharacterClass.Warrior; // Ссылка на Enums.cs
-
-    [Header("Monster Attributes")]
-    //[SyncVar] public MonsterRace race = MonsterRace.None;
-    //[SyncVar] public MonsterElement element = MonsterElement.Neutral;
+    [SerializeField] private ClassData classData;
+    [SyncVar(hook = nameof(OnCharacterClassChanged))]
+    public CharacterClass characterClass = CharacterClass.Warrior;
 
     [Header("Level and Experience")]
     [SyncVar(hook = nameof(OnLevelChanged))]
@@ -71,7 +69,6 @@ public class CharacterStats : NetworkBehaviour
     [Header("Current Stats")]
     [SyncVar(hook = nameof(OnManaChanged))]
     public int currentMana;
-
     public event System.Action<int, int> OnManaChangedEvent;
     public event System.Action<int, int> OnLevelChangedEvent;
     public event System.Action<int, int> OnCharacteristicPointsChangedEvent;
@@ -84,23 +81,148 @@ public class CharacterStats : NetworkBehaviour
     public event System.Action<int, int> OnMaxAttackChangedEvent;
 
     private static readonly int[] ExperiencePerLevel = new int[100];
+    private bool isClassSet = false;
 
     public override void OnStartServer()
     {
         base.OnStartServer();
         InitializeExperienceTable();
+        // Откладываем инициализацию до вызова CmdSetClass
+        StartCoroutine(WaitForClassInitialization());
+    }
+
+    private IEnumerator WaitForClassInitialization()
+    {
+        float timeout = 10f;
+        yield return new WaitUntil(() => isClassSet || (float)NetworkTime.time > timeout);
+        if (!isClassSet)
+        {
+            Debug.LogWarning($"[CharacterStats] Class not set within {timeout} seconds, using default class: {characterClass}");
+            LoadClassData();
+        }
         CalculateDerivedStats();
         currentMana = maxMana;
         totalExperience = CalculateTotalExperience();
         skillPoints = level - 1;
         characteristicPoints = CalculateCharacteristicPoints();
+        StartCoroutine(InitializeSkills());
         Debug.Log($"[Server] Character initialized: class={characterClass}, strength={strength}, minAttack={minAttack}, maxAttack={maxAttack}");
     }
 
     public override void OnStartClient()
     {
         base.OnStartClient();
+        if (classData == null)
+        {
+            classData = Resources.Load<ClassData>($"ClassData/{characterClass}");
+            if (classData == null)
+            {
+                Debug.LogError($"[CharacterStats] Failed to load ClassData for {characterClass} on client");
+            }
+        }
+        LoadClassData();
+        StartCoroutine(InitializeSkills());
         Debug.Log($"[Client] Character initialized: class={characterClass}, strength={strength}, minAttack={minAttack}, maxAttack={maxAttack}");
+    }
+
+    private void LoadClassData()
+    {
+        if (classData == null)
+        {
+            classData = Resources.Load<ClassData>($"ClassData/{characterClass}");
+            if (classData == null)
+            {
+                Debug.LogWarning($"[CharacterStats] ClassData is null for {characterClass}");
+                return;
+            }
+        }
+        characterClass = classData.characterClass;
+        strength = classData.strength;
+        agility = classData.agility;
+        constitution = classData.constitution;
+        spirit = classData.spirit;
+        accuracy = classData.accuracy;
+        maxHealth = classData.maxHealth;
+        maxMana = classData.maxMana;
+        movementSpeed = classData.movementSpeed;
+        // Синхронизация с компонентами
+        Health healthComponent = GetComponent<Health>();
+        if (healthComponent != null)
+        {
+            healthComponent.SetMaxHealth(maxHealth);
+        }
+        PlayerMovement movementComponent = GetComponent<PlayerMovement>();
+        if (movementComponent != null)
+        {
+            movementComponent.SetMovementSpeed(movementSpeed);
+        }
+        Debug.Log($"[CharacterStats] Loaded ClassData: class={characterClass}, strength={strength}, maxHealth={maxHealth}, maxMana={maxMana}");
+    }
+
+    private IEnumerator InitializeSkills()
+    {
+        PlayerSkills skills = GetComponent<PlayerSkills>();
+        if (skills != null)
+        {
+            yield return skills.StartCoroutine("InitializeSkills");
+            Debug.Log($"[CharacterStats] Skills initialized for class={characterClass}");
+        }
+        else
+        {
+            Debug.LogWarning("[CharacterStats] PlayerSkills component not found");
+        }
+    }
+
+    private void OnCharacterClassChanged(CharacterClass oldClass, CharacterClass newClass)
+    {
+        characterClass = newClass;
+        if (!isServer)
+        {
+            classData = Resources.Load<ClassData>($"ClassData/{characterClass}");
+            if (classData == null)
+            {
+                Debug.LogError($"[CharacterStats] Failed to load ClassData for {characterClass} on client");
+            }
+            LoadClassData();
+            StartCoroutine(InitializeSkills());
+        }
+        Debug.Log($"[CharacterStats] Class changed: {oldClass} -> {newClass}");
+    }
+
+    [Command]
+    public void CmdSetClass(CharacterClass newClass)
+    {
+        Debug.Log($"[CharacterStats] Attempting to load ClassData for {newClass} from Resources/ClassData/{newClass}");
+        var resources = Resources.LoadAll("ClassData", typeof(ClassData));
+        Debug.Log($"[CharacterStats] Available ClassData files: {string.Join(", ", resources.Select(r => r.name))}");
+        ClassData newClassData = Resources.Load<ClassData>($"ClassData/{newClass}");
+        if (newClassData == null)
+        {
+            Debug.LogError($"[CharacterStats] Failed to load ClassData for {newClass}. Path: Resources/ClassData/{newClass}");
+            return;
+        }
+        classData = newClassData;
+        characterClass = newClass;
+        isClassSet = true;
+        strength = 5;
+        agility = 5;
+        constitution = 5;
+        spirit = 5;
+        accuracy = 5;
+        maxHealth = 1000;
+        maxMana = 100;
+        movementSpeed = 8f;
+        LoadClassData();
+        CalculateDerivedStats();
+        StartCoroutine(InitializeSkills());
+        RpcSyncSkills(newClass);
+        Debug.Log($"[CharacterStats] Server set class: {newClass}, strength={strength}, maxHealth={maxHealth}, maxMana={maxMana}");
+    }
+
+    [ClientRpc]
+    private void RpcSyncSkills(CharacterClass newClass)
+    {
+        StartCoroutine(InitializeSkills());
     }
 
     private void InitializeExperienceTable()
@@ -160,12 +282,6 @@ public class CharacterStats : NetworkBehaviour
         {
             healthComponent.SetMaxHealth(newMaxHealth);
         }
-       // movementSpeed = 8f + (agility * 0.2f);
-        //PlayerMovement movementComponent = GetComponent<PlayerMovement>();
-       // if (movementComponent != null)
-      //  {
-      //     movementComponent.moveSpeed = movementSpeed;
-       // }
         attackSpeed = 1.0f + (agility * 0.05f);
         dodgeChance = 5.0f + (agility * 0.5f);
         hitChance = 80.0f + (accuracy * 1.0f);
@@ -187,8 +303,8 @@ public class CharacterStats : NetworkBehaviour
         }
         else
         {
-            minAttack = 5;
-            maxAttack = 10;
+            minAttack = 5 + (intelligence * 2); // Для Mage
+            maxAttack = 10 + (intelligence * 2);
         }
         Debug.Log($"[Server] CalculateDerivedStats: class={characterClass}, strength={strength}, minAttack={minAttack}, maxAttack={maxAttack}, attackSpeed={attackSpeed}, dodgeChance={dodgeChance}, hitChance={hitChance}");
     }
@@ -381,7 +497,7 @@ public class CharacterStats : NetworkBehaviour
     public void SpendMana(int amount)
     {
         currentMana = Mathf.Max(0, currentMana - amount);
-        OnManaChangedEvent?.Invoke(currentMana, maxMana); // Если есть событие
+        OnManaChangedEvent?.Invoke(currentMana, maxMana);
     }
 
     [Server]
@@ -402,7 +518,7 @@ public class CharacterStats : NetworkBehaviour
     [Server]
     public void ApplyDebuff(string stat, float mult, float dur)
     {
-        // Аналогично, но mult < 1                                                                                                                         с
+        // Аналогично, но mult < 1
     }
 
     [Server]
@@ -417,7 +533,10 @@ public class CharacterStats : NetworkBehaviour
         switch (stat.ToLower())
         {
             case "strength": strength = value; break;
-                // И т.д. для других
+            case "agility": agility = value; break;
+            case "spirit": spirit = value; break;
+            case "constitution": constitution = value; break;
+            case "accuracy": accuracy = value; break;
         }
     }
 }

@@ -1,5 +1,6 @@
 using UnityEngine;
 using Mirror;
+using System.Collections;
 
 public class MyNetworkManager : NetworkManager
 {
@@ -20,6 +21,13 @@ public class MyNetworkManager : NetworkManager
         Debug.Log("[MyNetworkManager] Server stopped, handler unregistered");
     }
 
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+        NetworkClient.RegisterHandler<SetClassMessage>(OnSetClassMessage);
+        Debug.Log("[MyNetworkManager] Client registered handler for SetClassMessage");
+    }
+
     public override void OnClientConnect()
     {
         base.OnClientConnect();
@@ -29,14 +37,24 @@ public class MyNetworkManager : NetworkManager
         {
             playerName = uiInfo.name,
             playerTeam = uiInfo.team,
-            playerPrefabIndex = uiInfo.prefabIndex
+            playerPrefabIndex = uiInfo.prefabIndex,
+            characterClass = uiInfo.characterClass
         });
+        if (!NetworkClient.ready)
+        {
+            NetworkClient.Ready();
+            Debug.Log("[MyNetworkManager] Client set to Ready");
+        }
+        else
+        {
+            Debug.Log("[MyNetworkManager] Client already ready");
+        }
     }
 
     [Server]
     private void OnReceivePlayerInfo(NetworkConnectionToClient conn, NetworkPlayerInfo info)
     {
-        Debug.Log($"[MyNetworkManager] Server received player info: Name: {info.playerName}, Team: {info.playerTeam}, Prefab: {info.playerPrefabIndex}, ConnectionId: {conn.connectionId}");
+        Debug.Log($"[MyNetworkManager] Server received player info: Name: {info.playerName}, Team: {info.playerTeam}, Prefab: {info.playerPrefabIndex}, Class: {info.characterClass}, ConnectionId: {conn.connectionId}");
         if (conn.identity != null)
         {
             Debug.LogWarning($"[MyNetworkManager] Player already exists for connection {conn.connectionId}. Replacing player.");
@@ -68,7 +86,7 @@ public class MyNetworkManager : NetworkManager
         {
             playerCore.playerName = info.playerName;
             playerCore.team = info.playerTeam;
-            Debug.Log($"[MyNetworkManager] Set player info: Name={info.playerName}, Team={info.playerTeam}");
+            Debug.Log($"[MyNetworkManager] Set player info: Name={info.playerName}, Team={info.playerTeam}, Class={info.characterClass}");
         }
         else
         {
@@ -86,7 +104,23 @@ public class MyNetworkManager : NetworkManager
         {
             Debug.LogError("[MyNetworkManager] NetworkIdentity component missing on spawned player!");
         }
+        // Отправляем сообщение клиенту для установки класса
+        conn.Send(new SetClassMessage { characterClass = info.characterClass });
+        Debug.Log($"[MyNetworkManager] Sent SetClassMessage to client for class: {info.characterClass}");
         Debug.Log($"[MyNetworkManager] Player {info.playerName} successfully spawned with prefab {playerInstance.name}. isOwned={identity.isOwned}");
+    }
+
+    private void OnSetClassMessage(SetClassMessage msg)
+    {
+        if (PlayerCore.localPlayerCoreInstance != null)
+        {
+            PlayerCore.localPlayerCoreInstance.CmdSetClass(msg.characterClass);
+            Debug.Log($"[MyNetworkManager] Client received SetClassMessage and sent CmdSetClass: {msg.characterClass}");
+        }
+        else
+        {
+            Debug.LogWarning("[MyNetworkManager] PlayerCore.localPlayerCoreInstance is null, cannot send CmdSetClass");
+        }
     }
 
     public override void OnServerAddPlayer(NetworkConnectionToClient conn)
@@ -112,4 +146,9 @@ public class MyNetworkManager : NetworkManager
         Debug.LogWarning("[MyNetworkManager] No spawn points found for team " + team);
         return transform;
     }
+}
+
+public struct SetClassMessage : NetworkMessage
+{
+    public CharacterClass characterClass;
 }

@@ -144,7 +144,6 @@ public class PlayerCore : NetworkBehaviour
         {
             _nameText.text = playerName;
         }
-        // Поиск префабов в детях
         healthBarUI = GetComponentInChildren<HealthBarUI>();
         nameTagUI = GetComponentInChildren<NameTagUI>();
         if (healthBarUI != null)
@@ -162,7 +161,7 @@ public class PlayerCore : NetworkBehaviour
             nameTagUI.UpdateNameAndTeam(playerName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
         }
         StartCoroutine(InitializeUIWithRetry());
-        StartCoroutine(DelayedUIUpdate()); // Добавляем отложенное обновление UI
+        StartCoroutine(DelayedUIUpdate());
         PlayerUI ui = GetComponentInChildren<PlayerUI>();
         if (ui != null && !isLocalPlayer)
         {
@@ -180,9 +179,9 @@ public class PlayerCore : NetworkBehaviour
 
     private IEnumerator DelayedUIUpdate()
     {
-        float delay = Random.Range(2f, 3f); // Случайная задержка 2-3 секунды
+        float delay = Random.Range(2f, 3f);
         yield return new WaitForSeconds(delay);
-        if (!isServer) // Обновление только на клиентах
+        if (!isServer)
         {
             UpdateUI();
         }
@@ -217,7 +216,7 @@ public class PlayerCore : NetworkBehaviour
         if (Movement != null) Movement.SetMovementSpeed(Stats.movementSpeed);
         if (Health != null)
         {
-            Health.SetHealth(Health.MaxHealth);
+            Health.SetHealth(Stats.maxHealth);
         }
         transform.position = newPosition;
         RpcOnRespawned(newPosition);
@@ -295,6 +294,15 @@ public class PlayerCore : NetworkBehaviour
         if (isDead)
         {
             ServerRespawnPlayer(_initialSpawnPosition);
+        }
+    }
+
+    [Command]
+    public void CmdSetClass(CharacterClass newClass)
+    {
+        if (Stats != null)
+        {
+            Stats.CmdSetClass(newClass);
         }
     }
 

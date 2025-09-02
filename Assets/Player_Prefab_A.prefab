@@ -2963,6 +2963,7 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
+  classData: {fileID: 0}
   characterClass: 0
   level: 1
   currentExperience: 0
