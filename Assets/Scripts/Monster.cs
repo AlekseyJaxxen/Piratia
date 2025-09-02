@@ -27,11 +27,10 @@ public class Monster : NetworkBehaviour
     [SyncVar] private int _currentEffectWeight = 0;
     [SerializeField] public float stoppingDistance = 1f;
     [SerializeField] public MonsterBasicAttackSkill basicAttackSkill;
-
     [Header("Physics Settings")]
-    [SerializeField] public GameObject physicsModel; // Модель для физики
-    [SerializeField] public Vector3 minForce = new Vector3(-5f, 2f, -5f); // Минимальная сила удара
-    [SerializeField] public Vector3 maxForce = new Vector3(5f, 5f, 0f); // Максимальная сила удара
+    [SerializeField] public GameObject physicsModel;
+    [SerializeField] public Vector3 minForce = new Vector3(-5f, 2f, -5f);
+    [SerializeField] public Vector3 maxForce = new Vector3(5f, 5f, 0f);
 
     private void Awake()
     {
@@ -76,6 +75,18 @@ public class Monster : NetworkBehaviour
         }
     }
 
+    public override void OnStartServer()
+    {
+        base.OnStartServer();
+        _monsterUI = GetComponentInChildren<MonsterUI>();
+        if (_monsterUI != null)
+        {
+            _monsterUI.target = transform;
+            _monsterUI.SetData(monsterName, currentHealth, maxHealth);
+        }
+        StartCoroutine(CheckControlEffectExpiration());
+    }
+
     public override void OnStartClient()
     {
         base.OnStartClient();
@@ -83,27 +94,23 @@ public class Monster : NetworkBehaviour
         if (_monsterUI != null)
         {
             _monsterUI.target = transform;
-            _monsterUI.UpdateName(monsterName);
-            _monsterUI.UpdateHP(currentHealth, maxHealth);
         }
-        StartCoroutine(CheckControlEffectExpiration());
     }
 
-    private void OnNameChanged(string oldName, string newName)
+    private void OnNameChanged(string _, string newName)
     {
-        if (_monsterUI != null)
+        if (isServer && _monsterUI != null)
         {
-            _monsterUI.UpdateName(newName);
+            _monsterUI.SetData(newName, currentHealth, maxHealth);
             Debug.Log($"[Monster] Name updated to: {newName}");
         }
     }
 
-    private void OnHealthChanged(int oldValue, int newValue)
+    private void OnHealthChanged(int _, int newValue)
     {
-        if (_monsterUI != null)
+        if (isServer && _monsterUI != null)
         {
-            _monsterUI.gameObject.SetActive(newValue > 0);
-            _monsterUI.UpdateHP(newValue, maxHealth);
+            _monsterUI.SetData(monsterName, newValue, maxHealth);
             Debug.Log($"[Monster] UI updated: {newValue}/{maxHealth} for {monsterName}");
         }
         if (newValue <= 0 && !IsDead)
@@ -112,9 +119,9 @@ public class Monster : NetworkBehaviour
         }
     }
 
-    private void OnStunStateChanged(bool oldValue, bool newValue)
+    private void OnStunStateChanged(bool _, bool newValue)
     {
-        Debug.Log($"[Monster] Stun state changed: {oldValue} -> {newValue}, isClient={isClient}, isServer={isServer}");
+        Debug.Log($"[Monster] Stun state changed: {newValue}, isClient={isClient}, isServer={isServer}");
         if (_agent != null && _agent.isOnNavMesh)
         {
             _agent.isStopped = newValue;
@@ -242,10 +249,6 @@ public class Monster : NetworkBehaviour
         {
             GameObject vfx = Object.Instantiate(deathVFXPrefab, transform.position, Quaternion.identity);
             Object.Destroy(vfx, 1f);
-        }
-        if (_monsterUI != null)
-        {
-            _monsterUI.gameObject.SetActive(false);
         }
         Rigidbody physicsRigidbody = (physicsModel != null ? physicsModel : gameObject).GetComponent<Rigidbody>();
         if (physicsRigidbody != null)

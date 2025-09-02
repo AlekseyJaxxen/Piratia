@@ -2,8 +2,9 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections;
+using Mirror;
 
-public class MonsterUI : MonoBehaviour
+public class MonsterUI : NetworkBehaviour
 {
     [SerializeField] private TextMeshProUGUI nameText;
     [SerializeField] private Image fillImage;
@@ -13,6 +14,13 @@ public class MonsterUI : MonoBehaviour
     public Transform target;
     private Camera mainCamera;
     private int previousHealth = int.MaxValue;
+
+    [SyncVar(hook = nameof(OnNameChanged))]
+    private string monsterName;
+    [SyncVar(hook = nameof(OnHPChanged))]
+    private int currentHealth;
+    [SyncVar]
+    private int maxHealth;
 
     void Start()
     {
@@ -29,28 +37,40 @@ public class MonsterUI : MonoBehaviour
         }
     }
 
-    public void UpdateName(string monsterName)
+    private void OnNameChanged(string _, string newName)
     {
         if (nameText != null)
         {
-            nameText.text = monsterName;
-            nameText.color = Color.red; // Всегда красный для монстра
+            nameText.text = newName;
+            nameText.color = Color.red;
         }
     }
 
-    public void UpdateHP(int current, int max)
+    private void OnHPChanged(int _, int newHP)
     {
-        if (!gameObject.activeSelf && current > 0)
+        if (!gameObject.activeSelf && newHP > 0)
         {
-            gameObject.SetActive(true); // Активируем UI, если здоровье > 0
+            gameObject.SetActive(true);
         }
-        if (fillImage != null) fillImage.fillAmount = (float)current / max;
-        if (hpText != null) hpText.text = $"{current}/{max}";
-        if (current < previousHealth && gameObject.activeSelf)
+        else if (newHP <= 0)
+        {
+            gameObject.SetActive(false);
+        }
+        if (fillImage != null) fillImage.fillAmount = (float)newHP / maxHealth;
+        if (hpText != null) hpText.text = $"{newHP}/{maxHealth}";
+        if (newHP < previousHealth && gameObject.activeSelf)
         {
             StartCoroutine(FlashHealthBar());
         }
-        previousHealth = current;
+        previousHealth = newHP;
+    }
+
+    [Server]
+    public void SetData(string name, int currentHP, int maxHP)
+    {
+        monsterName = name;
+        currentHealth = currentHP;
+        maxHealth = maxHP;
     }
 
     private IEnumerator FlashHealthBar()
