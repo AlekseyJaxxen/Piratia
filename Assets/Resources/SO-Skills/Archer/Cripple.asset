@@ -31,5 +31,5 @@ MonoBehaviour:
   baseDamage: 1000
   slowPercentage: 0.5
   slowDuration: 5
-  projectilePrefab: {fileID: 1118406348270084, guid: 25b36656d9f3af643ba8ed966c054dd4,
+  projectilePrefab: {fileID: 1664354186237286, guid: d24d32ae7abae424080a26044bf04ea0,
     type: 3}
