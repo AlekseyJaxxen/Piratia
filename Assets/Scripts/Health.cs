@@ -35,12 +35,13 @@ public class Health : NetworkBehaviour
     }
     private void Start()
     {
-        if (isLocalPlayer)
+        if (isLocalPlayer && !gameObject.CompareTag("Enemy") )
         {
             playerUI = GetComponentInChildren<PlayerUI>();
         }
         healthBarUI = GetComponentInChildren<HealthBarUI>();
-        if (healthBarUI == null)
+
+        if (healthBarUI == null && !gameObject.CompareTag("Enemy"))
         {
             Debug.LogWarning($"[Health] HealthBarUI not found for {gameObject.name}, waiting for instantiation...");
         }

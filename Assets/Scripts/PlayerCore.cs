@@ -200,7 +200,7 @@ public class PlayerCore : NetworkBehaviour
                 yield break;
             }
             retryCount++;
-            yield return new WaitForSeconds(0.5f);
+            yield return new WaitForSeconds(2f);
         }
         Debug.LogWarning($"[PlayerCore] UI initialization failed after {maxRetries} retries");
     }
