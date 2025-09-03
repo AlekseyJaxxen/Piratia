@@ -8,9 +8,13 @@ public class PlayerActionSystem : NetworkBehaviour
     private Coroutine _currentAction;
     private bool _isPerformingAction;
     private PlayerAction _currentActionType;
-    private ISkill _currentSkill; // Добавлено для хранения текущего скилла
+    private ISkill _currentSkill;
+    private bool _isCasting;
     public bool IsPerformingAction => _isPerformingAction;
     public PlayerAction CurrentAction => _currentActionType;
+    public ISkill CurrentSkill => _currentSkill;
+    public GameObject CurrentTarget => _core?.Combat?.Target;
+    public Vector3? CurrentTargetPosition { get; private set; }
 
     public void Init(PlayerCore core)
     {
@@ -95,6 +99,11 @@ public class PlayerActionSystem : NetworkBehaviour
         {
             int newPriority = GetPriority(actionType);
             int currentPriority = GetPriority(_currentActionType);
+            if (actionType == PlayerAction.Move && _isCasting)
+            {
+                Debug.Log($"[PlayerActionSystem] Ignoring Move: player is casting a skill");
+                return false;
+            }
             if (actionType == PlayerAction.Move && _currentActionType == PlayerAction.SkillCast)
             {
                 if (_currentSkill != null)
@@ -130,13 +139,14 @@ public class PlayerActionSystem : NetworkBehaviour
                 _currentAction = StartCoroutine(AttackAction(targetObject, skillToCast));
                 return true;
             case PlayerAction.SkillCast:
-                _currentSkill = skillToCast; // Добавлено
+                _currentSkill = skillToCast;
                 if (targetObject != null)
                 {
                     _currentAction = StartCoroutine(CastSkillAction(targetObject, skillToCast));
                 }
                 else
                 {
+                    CurrentTargetPosition = targetPosition.Value;
                     _currentAction = StartCoroutine(CastSkillAction(targetPosition.Value, skillToCast));
                 }
                 return true;
@@ -187,8 +197,8 @@ public class PlayerActionSystem : NetworkBehaviour
             CompleteAction();
             yield break;
         }
+        _core.Combat.SetCurrentTarget(target);
         Debug.Log($"[PlayerActionSystem] Starting AttackAction on target: {target.name}, has NetworkIdentity: {target.GetComponent<NetworkIdentity>() != null}");
-        // Check for PlayerCore or Monster component
         PlayerCore targetPlayerCore = target.GetComponent<PlayerCore>();
         Monster targetMonster = target.GetComponent<Monster>();
         if (targetPlayerCore == null && targetMonster == null)
@@ -197,7 +207,6 @@ public class PlayerActionSystem : NetworkBehaviour
             CompleteAction();
             yield break;
         }
-        // Validate team for PlayerCore targets
         if (targetPlayerCore != null && targetPlayerCore.team == _core.team)
         {
             Debug.Log($"[PlayerActionSystem] Attack ignored: target {target.name} is on the same team");
@@ -227,8 +236,9 @@ public class PlayerActionSystem : NetworkBehaviour
                 yield break;
             }
         }
+        _currentSkill = skill; // Добавлено для установки _currentSkill
         float attackRange = skill.Range;
-        float attackCooldown = skill is BasicAttackSkill ? 1f / _core.Stats.attackSpeed : 0f; // Для non-basic - без задержки
+        float attackCooldown = skill is BasicAttackSkill ? 1f / _core.Stats.attackSpeed : 0f;
         bool isLooping = skill is BasicAttackSkill;
         while (target != null && targetHealth.CurrentHealth > 0)
         {
@@ -262,9 +272,11 @@ public class PlayerActionSystem : NetworkBehaviour
                 {
                     if (((SkillBase)skill).CastTime > 0)
                     {
+                        _isCasting = true;
                         yield return new WaitForSeconds(((SkillBase)skill).CastTime);
+                        _isCasting = false;
                     }
-                    break; // Для non-basic - разовый каст
+                    break;
                 }
                 else
                 {
@@ -302,6 +314,12 @@ public class PlayerActionSystem : NetworkBehaviour
                 _core.Movement.StopMovement();
                 _core.Movement.RotateTo(targetPosition - transform.position);
                 skillToCast.Execute(_core, targetPosition, null);
+                if (((SkillBase)skillToCast).CastTime > 0)
+                {
+                    _isCasting = true;
+                    yield return new WaitForSeconds(((SkillBase)skillToCast).CastTime);
+                    _isCasting = false;
+                }
                 _core.Skills.CancelSkillSelection();
                 _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
                 CompleteAction();
@@ -329,6 +347,7 @@ public class PlayerActionSystem : NetworkBehaviour
             CompleteAction();
             yield break;
         }
+        _core.Combat.SetCurrentTarget(targetObject);
         float originalStoppingDistance = _core.Movement.Agent.stoppingDistance;
         _core.Movement.Agent.stoppingDistance = 0f;
         while (true)
@@ -346,6 +365,12 @@ public class PlayerActionSystem : NetworkBehaviour
                 _core.Movement.StopMovement();
                 _core.Movement.RotateTo(targetObject.transform.position - transform.position);
                 skillToCast.Execute(_core, targetObject.transform.position, targetObject);
+                if (((SkillBase)skillToCast).CastTime > 0)
+                {
+                    _isCasting = true;
+                    yield return new WaitForSeconds(((SkillBase)skillToCast).CastTime);
+                    _isCasting = false;
+                }
                 _core.Skills.CancelSkillSelection();
                 _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
                 CompleteAction();
@@ -364,7 +389,9 @@ public class PlayerActionSystem : NetworkBehaviour
         Debug.Log($"[PlayerActionSystem] Completing action {_currentActionType}");
         _isPerformingAction = false;
         _currentActionType = PlayerAction.None;
-        _currentSkill = null; // Добавлено
+        _currentSkill = null;
+        _isCasting = false;
+        CurrentTargetPosition = null;
         if (_currentAction != null)
         {
             StopCoroutine(_currentAction);
@@ -378,5 +405,6 @@ public class PlayerActionSystem : NetworkBehaviour
         {
             _core.Movement.StopMovement();
         }
+        GetComponent<PlayerAnimationSystem>()?.ResetAnimations();
     }
 }

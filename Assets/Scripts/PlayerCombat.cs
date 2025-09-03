@@ -1,6 +1,5 @@
 ﻿using UnityEngine;
 using Mirror;
-using System.Collections;
 
 public class PlayerCombat : NetworkBehaviour
 {
@@ -8,6 +7,8 @@ public class PlayerCombat : NetworkBehaviour
     private GameObject _target;
     [HideInInspector]
     public float _lastAttackTime = -Mathf.Infinity;
+
+    public GameObject Target => _target; // Добавлено публичное свойство для доступа к _target
 
     public void Init(PlayerCore core)
     {

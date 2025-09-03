@@ -58,9 +58,6 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   monsterName: Reons
-  maxHealth: 1000
-  currentHealth: 0
-  IsCooldown: 0
   moveSpeed: 7
   attackCooldown: 2
   deathVFXPrefab: {fileID: 192166, guid: c6de9c3e430816d40aedcaaf84000975, type: 3}
@@ -73,6 +70,7 @@ MonoBehaviour:
   physicsModel: {fileID: 7651286584265580614}
   minForce: {x: -5, y: 2, z: -5}
   maxForce: {x: 5, y: 5, z: 0}
+  IsCooldown: 0
 --- !u!114 &7657699711342853803
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -251,7 +249,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: -0.1, z: 0}
-  m_LocalScale: {x: 2, y: 0.01, z: 2}
+  m_LocalScale: {x: 1, y: 0.01, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5617032317511274802}
@@ -537,6 +535,31 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 565980736579346709, guid: c53b323b75c29944eb8357f087f2fe32,
+        type: 3}
+      propertyPath: m_Layer
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 1033327638660878247, guid: c53b323b75c29944eb8357f087f2fe32,
+        type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 200
+      objectReference: {fileID: 0}
+    - target: {fileID: 1033327638660878247, guid: c53b323b75c29944eb8357f087f2fe32,
+        type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 2872310634014780167, guid: c53b323b75c29944eb8357f087f2fe32,
+        type: 3}
+      propertyPath: m_Layer
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3915597209832435431, guid: c53b323b75c29944eb8357f087f2fe32,
+        type: 3}
+      propertyPath: m_Layer
+      value: 5
+      objectReference: {fileID: 0}
     - target: {fileID: 3924781570281729340, guid: c53b323b75c29944eb8357f087f2fe32,
         type: 3}
       propertyPath: m_Name
@@ -544,13 +567,43 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3924781570281729340, guid: c53b323b75c29944eb8357f087f2fe32,
         type: 3}
+      propertyPath: m_Layer
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3924781570281729340, guid: c53b323b75c29944eb8357f087f2fe32,
+        type: 3}
       propertyPath: m_IsActive
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3983952511710487429, guid: c53b323b75c29944eb8357f087f2fe32,
+        type: 3}
+      propertyPath: offset.y
+      value: -2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4857487630280003816, guid: c53b323b75c29944eb8357f087f2fe32,
+        type: 3}
+      propertyPath: m_Layer
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 7578489421117950829, guid: c53b323b75c29944eb8357f087f2fe32,
+        type: 3}
+      propertyPath: m_Layer
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 8414062373661576275, guid: c53b323b75c29944eb8357f087f2fe32,
         type: 3}
       propertyPath: _assetId
       value: 2625166510
+      objectReference: {fileID: 0}
+    - target: {fileID: 8694466792200458947, guid: c53b323b75c29944eb8357f087f2fe32,
+        type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 200
+      objectReference: {fileID: 0}
+    - target: {fileID: 8694466792200458947, guid: c53b323b75c29944eb8357f087f2fe32,
+        type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 10
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
