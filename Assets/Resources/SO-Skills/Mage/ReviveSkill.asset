@@ -28,3 +28,5 @@ MonoBehaviour:
   castRangePrefab: {fileID: 3299273662854126661, guid: ee30310967d98c04fb16bcfa96cfb3c2,
     type: 3}
   effectRadiusPrefab: {fileID: 0}
+  reviveVFXPrefab: {fileID: 0}
+  reviveHpFraction: 0.1

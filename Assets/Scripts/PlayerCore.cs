@@ -67,6 +67,8 @@ public class PlayerCore : NetworkBehaviour
 
     [SerializeField] private ReviveRequestUI reviveRequestUI;
 
+    [SyncVar] public float pendingReviveHpFraction = 0f;
+
     protected virtual void Awake()
     {
         Movement = GetComponent<PlayerMovement>();
@@ -222,7 +224,7 @@ public class PlayerCore : NetworkBehaviour
     }
 
     [Server]
-    public void ServerRespawnPlayer(Vector3 newPosition)
+    public void ServerRespawnPlayer(Vector3 newPosition, float hpFraction = 1f)
     {
         SetDeathState(false);
         isStunned = false;
@@ -232,7 +234,7 @@ public class PlayerCore : NetworkBehaviour
         if (Movement != null) Movement.SetMovementSpeed(Stats.movementSpeed);
         if (Health != null)
         {
-            Health.SetHealth(Stats.maxHealth);
+            Health.SetHealth(Mathf.RoundToInt(Stats.maxHealth * hpFraction));
         }
         transform.position = newPosition;
         RpcOnRespawned(newPosition);
@@ -531,6 +533,7 @@ public class PlayerCore : NetworkBehaviour
     public void CmdAcceptRevive()
     {
         if (!isDead) return;
-        ServerRespawnPlayer(deathPosition);
+        ServerRespawnPlayer(deathPosition, pendingReviveHpFraction);
+        pendingReviveHpFraction = 0f;
     }
 }

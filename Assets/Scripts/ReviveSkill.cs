@@ -5,6 +5,7 @@ using Mirror;
 public class ReviveSkill : SkillBase
 {
     [SerializeField] private GameObject reviveVFXPrefab;
+    [SerializeField] private float reviveHpFraction = 0.5f;
 
     protected override void ExecuteSkillImplementation(PlayerCore player, Vector3? targetPosition, GameObject targetObject)
     {
@@ -19,6 +20,7 @@ public class ReviveSkill : SkillBase
         if (targetObject == null) return;
         PlayerCore targetPlayer = targetObject.GetComponent<PlayerCore>();
         if (targetPlayer == null || !targetPlayer.isDead || targetPlayer.team != caster.team) return;
+        targetPlayer.pendingReviveHpFraction = reviveHpFraction;
         targetPlayer.RpcShowReviveRequest(caster.netId);
         caster.Skills.RpcPlayReviveVFX(targetPlayer.netId, SkillName);
     }
