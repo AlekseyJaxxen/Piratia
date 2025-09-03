@@ -535,4 +535,6 @@ public class CharacterStats : NetworkBehaviour
             case "accuracy": accuracy = value; break;
         }
     }
+
+
 }

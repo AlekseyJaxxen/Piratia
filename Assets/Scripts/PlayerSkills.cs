@@ -456,4 +456,18 @@ public class PlayerSkills : NetworkBehaviour
         base.OnDeserialize(reader, initialState);
         if (skills == null || skills.Count == 0) return; // Избежать NRE до init
     }
+
+    [ClientRpc]
+    public void RpcPlayReviveVFX(uint targetNetId, string skillName)
+    {
+        if (NetworkClient.spawned.ContainsKey(targetNetId))
+        {
+            NetworkIdentity targetIdentity = NetworkClient.spawned[targetNetId];
+            SkillBase skill = skills.Find(s => s.SkillName == skillName);
+            if (skill is ReviveSkill reviveSkill)
+            {
+                reviveSkill.PlayEffect(targetIdentity.gameObject);
+            }
+        }
+    }
 }

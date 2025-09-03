@@ -24,13 +24,13 @@ MonoBehaviour:
   _manaCost: 0
   _damageType: 0
   _weight: 1
-  _effectRadius: 5
+  _effectRadius: 3
   castRangePrefab: {fileID: 3299273662854126661, guid: ee30310967d98c04fb16bcfa96cfb3c2,
     type: 3}
   effectRadiusPrefab: {fileID: 8212533921873324154, guid: e6230a171a068cd489eb410abd241717,
     type: 3}
-  slowPercentage: 0.9
+  slowPercentage: 0.3
   duration: 15
-  aoeRadius: 5
+  aoeRadius: 3
   groundEffectPrefab: {fileID: 8212533921873324154, guid: e8cf485eba34fcc47a7720bb457ba067,
     type: 3}

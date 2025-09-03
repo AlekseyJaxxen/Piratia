@@ -80,14 +80,12 @@ public class PlayerMovement : NetworkBehaviour
                 var skill = (SkillBase)_core.Skills.ActiveSkill;
                 bool isTargeted = skill.SkillCastType == SkillBase.CastType.TargetedEnemy || skill.SkillCastType == SkillBase.CastType.TargetedAlly;
                 bool isSelf = skill.SkillCastType == SkillBase.CastType.SelfBuff || skill.SkillCastType == SkillBase.CastType.ToggleBuff;
-
                 if (isSelf)
                 {
                     skill.Execute(_core, null, _core.gameObject);
                     _core.Skills.CancelSkillSelection();
                     return;
                 }
-
                 if (isTargeted)
                 {
                     if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
@@ -95,9 +93,8 @@ public class PlayerMovement : NetworkBehaviour
                         Debug.Log($"[PlayerMovement] Raycast hit: {hit.collider.name}, tag={hit.collider.tag}, layer={LayerMask.LayerToName(hit.collider.gameObject.layer)}");
                         GameObject target = hit.collider.gameObject;
                         bool validTarget = false;
-                        PlayerCore targetCore = target.GetComponent<PlayerCore>();
-                        Monster targetMonster = target.GetComponent<Monster>();
-
+                        PlayerCore targetCore = target.GetComponentInParent<PlayerCore>();
+                        Monster targetMonster = target.GetComponentInParent<Monster>();
                         if (skill.SkillCastType == SkillBase.CastType.TargetedAlly)
                         {
                             if (targetCore != null && (targetCore.team == _core.team || target == _core.gameObject))
@@ -110,7 +107,6 @@ public class PlayerMovement : NetworkBehaviour
                             else if (targetMonster != null)
                                 validTarget = true;
                         }
-
                         if (validTarget)
                         {
                             Debug.Log($"[PlayerMovement] Starting SkillCast on target: {target.name}");
@@ -148,7 +144,7 @@ public class PlayerMovement : NetworkBehaviour
                     Debug.Log($"[PlayerMovement] Raycast hit: {hit.collider.name}, tag={hit.collider.tag}, layer={LayerMask.LayerToName(hit.collider.gameObject.layer)}");
                     if (hit.collider.CompareTag("Player"))
                     {
-                        PlayerCore targetCore = hit.collider.GetComponent<PlayerCore>();
+                        PlayerCore targetCore = hit.collider.GetComponentInParent<PlayerCore>();
                         if (targetCore != null && targetCore.team != _core.team)
                         {
                             Debug.Log($"[PlayerMovement] Starting Attack on target: {hit.collider.name}, netId={targetCore.netId}");

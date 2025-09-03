@@ -43,6 +43,7 @@ public class DeathScreenUI : NetworkBehaviour
         deathScreenPanel.SetActive(false);
         respawnButton.onClick.AddListener(OnRespawnButtonClicked);
         respawnButton.interactable = false;
+
     }
 
     private void Update()

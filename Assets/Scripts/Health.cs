@@ -223,4 +223,6 @@ public class Health : NetworkBehaviour
             healthBarUI.UpdateHP(CurrentHealth, newMaxHealth);
         }
     }
+
+
 }

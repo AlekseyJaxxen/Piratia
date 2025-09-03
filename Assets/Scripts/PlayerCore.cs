@@ -61,6 +61,11 @@ public class PlayerCore : NetworkBehaviour
     private TextMeshProUGUI _nameText;
     private PlayerUI_Team _playerUI_Team;
     public static PlayerCore localPlayerCoreInstance;
+    [SerializeField] private BoxCollider reviveCollider;
+
+    [SyncVar] public Vector3 deathPosition;
+
+    [SerializeField] private ReviveRequestUI reviveRequestUI;
 
     protected virtual void Awake()
     {
@@ -80,6 +85,10 @@ public class PlayerCore : NetworkBehaviour
             initialModelRotation = modelTransform.localRotation;
         }
         boxCollider = GetComponent<BoxCollider>();
+        reviveCollider = transform.Find("ReviveCollider")?.GetComponent<BoxCollider>();
+        if (reviveCollider != null) reviveCollider.enabled = false;
+        reviveCollider.enabled = false;
+        reviveRequestUI = GetComponentInChildren<ReviveRequestUI>();
     }
 
     private void Update()
@@ -124,6 +133,7 @@ public class PlayerCore : NetworkBehaviour
             foreach (Transform child in transform)
             {
                 child.gameObject.layer = localPlayerLayer;
+                if (reviveCollider != null) reviveCollider.gameObject.layer = LayerMask.NameToLayer("ReviveLayer");
             }
         }
         if (team == PlayerTeam.None)
@@ -132,6 +142,9 @@ public class PlayerCore : NetworkBehaviour
         }
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
+
+        reviveRequestUI = GetComponentInChildren<ReviveRequestUI>();
+
     }
 
     public override void OnStartClient()
@@ -155,6 +168,9 @@ public class PlayerCore : NetworkBehaviour
                 healthBarUI.UpdateHP(Health.CurrentHealth, Health.MaxHealth);
             }
         }
+
+        reviveRequestUI = GetComponentInChildren<ReviveRequestUI>(true);
+
         if (nameTagUI != null)
         {
             nameTagUI.target = transform;
@@ -233,6 +249,7 @@ public class PlayerCore : NetworkBehaviour
             if (Skills != null) Skills.enabled = true;
             if (ActionSystem != null) ActionSystem.enabled = true;
             deathScreenUI.HideDeathScreen();
+            if (reviveRequestUI != null) reviveRequestUI.Hide();
             if (healthBarUI != null && Health != null)
             {
                 healthBarUI.gameObject.SetActive(Health.CurrentHealth > 0);
@@ -360,6 +377,7 @@ public class PlayerCore : NetworkBehaviour
             if (Skills != null) Skills.CancelSkillSelection();
             if (isLocalPlayer) deathScreenUI.ShowDeathScreen();
             if (boxCollider != null) boxCollider.enabled = false;
+            if (reviveCollider != null) reviveCollider.enabled = true;
             if (healthBarUI != null) healthBarUI.gameObject.SetActive(false);
         }
         else
@@ -368,6 +386,7 @@ public class PlayerCore : NetworkBehaviour
             if (Skills != null) Skills.enabled = true;
             if (Movement != null) Movement.enabled = true;
             if (boxCollider != null) boxCollider.enabled = true;
+            if (reviveCollider != null) reviveCollider.enabled = false;
             if (healthBarUI != null && Health != null)
             {
                 healthBarUI.gameObject.SetActive(Health.CurrentHealth > 0);
@@ -455,6 +474,7 @@ public class PlayerCore : NetworkBehaviour
     public void SetDeathState(bool state)
     {
         isDead = state;
+        if (state) deathPosition = transform.position;
     }
 
     public override void OnStopClient()
@@ -478,5 +498,39 @@ public class PlayerCore : NetworkBehaviour
     public bool CanCastSkill()
     {
         return !isDead && !isStunned;
+    }
+
+    [Command]
+    public void CmdRequestRevive(uint targetNetId)
+    {
+        NetworkIdentity targetIdentity;
+        if (!NetworkServer.spawned.TryGetValue(targetNetId, out targetIdentity)) return;
+        PlayerCore target = targetIdentity.GetComponent<PlayerCore>();
+        if (target == null || !target.isDead || target.team != team) return;
+        target.RpcShowReviveRequest(netId);
+    }
+
+    [ClientRpc]
+    public void RpcShowReviveRequest(uint casterNetId)
+    {
+        if (!isLocalPlayer || reviveRequestUI == null) return;
+        NetworkIdentity casterIdentity;
+        string casterName = "";
+        if (NetworkClient.spawned.TryGetValue(casterNetId, out casterIdentity))
+        {
+            PlayerCore caster = casterIdentity.GetComponent<PlayerCore>();
+            if (caster != null)
+            {
+                casterName = caster.playerName;
+            }
+        }
+        reviveRequestUI.Show(casterName);
+    }
+
+    [Command]
+    public void CmdAcceptRevive()
+    {
+        if (!isDead) return;
+        ServerRespawnPlayer(deathPosition);
     }
 }
