@@ -12,13 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f371d8bf95d7ea4ab18be386db285d9, type: 3}
   m_Name: NewTargetedStunSkill
   m_EditorClassIdentifier: Assembly-CSharp::TargetedStunSkill
+  castType: 0
   ignoreGlobalCooldown: 0
   _icon: {fileID: 21300000, guid: 3fd7b69dc0926dc488791212aa0d21c9, type: 3}
   _skillName: WarriorStun
   _hotkey: 283
   _range: 3
   _cooldown: 15
-  _castTime: 0
+  _castTime: 0.1
   _castCursor: {fileID: 0}
   _manaCost: 0
   _damageType: 0
@@ -27,8 +28,5 @@ MonoBehaviour:
   castRangePrefab: {fileID: 3299273662854126661, guid: ee30310967d98c04fb16bcfa96cfb3c2,
     type: 3}
   effectRadiusPrefab: {fileID: 0}
-  castRangeIndicator: {fileID: 0}
-  effectRadiusIndicator: {fileID: 8212533921873324154, guid: e6230a171a068cd489eb410abd241717,
-    type: 3}
   stunDuration: 10
   effectPrefab: {fileID: 109542, guid: 2ed06ab528b7c474eb9246421cd7c791, type: 3}

@@ -236,7 +236,7 @@ public class PlayerActionSystem : NetworkBehaviour
                 yield break;
             }
         }
-        _currentSkill = skill; // Добавлено для установки _currentSkill
+        _currentSkill = skill;
         float attackRange = skill.Range;
         float attackCooldown = skill is BasicAttackSkill ? 1f / _core.Stats.attackSpeed : 0f;
         bool isLooping = skill is BasicAttackSkill;
@@ -253,6 +253,7 @@ public class PlayerActionSystem : NetworkBehaviour
             if (distance > attackRange)
             {
                 _core.Movement.MoveTo(target.transform.position);
+                _core.Movement.UpdateRotation(); // Добавлено для поворота во время движения
                 Debug.Log($"[PlayerActionSystem] Target out of range. Moving towards target at {target.transform.position}. Distance: {distance}");
             }
             else
@@ -328,6 +329,7 @@ public class PlayerActionSystem : NetworkBehaviour
             else
             {
                 _core.Movement.MoveTo(targetPosition);
+                _core.Movement.UpdateRotation(); // Добавлено для поворота во время движения
             }
             yield return null;
         }
@@ -379,6 +381,7 @@ public class PlayerActionSystem : NetworkBehaviour
             else
             {
                 _core.Movement.MoveTo(targetObject.transform.position);
+                _core.Movement.UpdateRotation(); // Добавлено для поворота во время движения
             }
             yield return null;
         }
