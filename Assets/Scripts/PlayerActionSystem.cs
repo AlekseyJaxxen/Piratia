@@ -240,6 +240,7 @@ public class PlayerActionSystem : NetworkBehaviour
         float attackRange = skill.Range;
         float attackCooldown = skill is BasicAttackSkill ? 1f / _core.Stats.attackSpeed : 0f;
         bool isLooping = skill is BasicAttackSkill;
+        PlayerAnimationSystem animationSystem = GetComponent<PlayerAnimationSystem>();
         while (target != null && targetHealth.CurrentHealth > 0)
         {
             if (_core.isDead || _core.isStunned)
@@ -253,7 +254,7 @@ public class PlayerActionSystem : NetworkBehaviour
             if (distance > attackRange)
             {
                 _core.Movement.MoveTo(target.transform.position);
-                _core.Movement.UpdateRotation(); // Добавлено для поворота во время движения
+                _core.Movement.UpdateRotation();
                 Debug.Log($"[PlayerActionSystem] Target out of range. Moving towards target at {target.transform.position}. Distance: {distance}");
             }
             else
@@ -269,6 +270,10 @@ public class PlayerActionSystem : NetworkBehaviour
                 Debug.Log($"[PlayerActionSystem] Executing attack with skill: {((SkillBase)skill).SkillName}");
                 skill.Execute(_core, null, target);
                 _core.Combat._lastAttackTime = Time.time;
+                if (animationSystem != null)
+                {
+                    animationSystem.ResetAnimations();
+                }
                 if (!isLooping)
                 {
                     if (((SkillBase)skill).CastTime > 0)
@@ -281,6 +286,10 @@ public class PlayerActionSystem : NetworkBehaviour
                 }
                 else
                 {
+                    if (animationSystem != null)
+                    {
+                        animationSystem.TriggerAttackAnimation();
+                    }
                     yield return new WaitForSeconds(attackCooldown);
                 }
             }
@@ -310,7 +319,8 @@ public class PlayerActionSystem : NetworkBehaviour
                 yield break;
             }
             float distance = Vector3.Distance(transform.position, targetPosition);
-            if (distance <= skillToCast.Range)
+            float effectiveRange = skillToCast is ProjectileDamageSkill ? skillToCast.Range - 1f : skillToCast.Range;
+            if (distance <= effectiveRange)
             {
                 _core.Movement.StopMovement();
                 _core.Movement.RotateTo(targetPosition - transform.position);
@@ -329,7 +339,7 @@ public class PlayerActionSystem : NetworkBehaviour
             else
             {
                 _core.Movement.MoveTo(targetPosition);
-                _core.Movement.UpdateRotation(); // Добавлено для поворота во время движения
+                _core.Movement.UpdateRotation();
             }
             yield return null;
         }
@@ -362,7 +372,8 @@ public class PlayerActionSystem : NetworkBehaviour
                 yield break;
             }
             float distance = Vector3.Distance(transform.position, targetObject.transform.position);
-            if (distance <= skillToCast.Range)
+            float effectiveRange = skillToCast is ProjectileDamageSkill ? skillToCast.Range - 1f : skillToCast.Range;
+            if (distance <= effectiveRange)
             {
                 _core.Movement.StopMovement();
                 _core.Movement.RotateTo(targetObject.transform.position - transform.position);
@@ -381,7 +392,7 @@ public class PlayerActionSystem : NetworkBehaviour
             else
             {
                 _core.Movement.MoveTo(targetObject.transform.position);
-                _core.Movement.UpdateRotation(); // Добавлено для поворота во время движения
+                _core.Movement.UpdateRotation();
             }
             yield return null;
         }

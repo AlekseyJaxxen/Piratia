@@ -179,12 +179,13 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  MaxHealth: 1000
+  MaxHealth: 10000
   LastAttacker: {fileID: 0}
   floatingTextPrefab: {fileID: 4564945269438271224, guid: 75c435b9f0af2d140828612da10a5496,
     type: 3}
   damageTextSpawnHeight: 2.5
   damageTextRandomness: 0.5
+  _health: 10000
   monsterAnimation: {fileID: 4449773428208079747}
 --- !u!114 &4449773428208079747
 MonoBehaviour:

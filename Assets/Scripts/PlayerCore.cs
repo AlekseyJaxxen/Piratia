@@ -249,7 +249,11 @@ public class PlayerCore : NetworkBehaviour
             if (Movement != null) Movement.enabled = true;
             if (Combat != null) Combat.enabled = true;
             if (Skills != null) Skills.enabled = true;
-            if (ActionSystem != null) ActionSystem.enabled = true;
+            if (ActionSystem != null)
+            {
+                ActionSystem.enabled = true;
+                ActionSystem.Init(this);  // Повторный Init для сброса состояний
+            }
             deathScreenUI.HideDeathScreen();
             if (reviveRequestUI != null) reviveRequestUI.Hide();
             if (healthBarUI != null && Health != null)
@@ -257,6 +261,7 @@ public class PlayerCore : NetworkBehaviour
                 healthBarUI.gameObject.SetActive(Health.CurrentHealth > 0);
                 healthBarUI.UpdateHP(Health.CurrentHealth, Health.MaxHealth);
             }
+            GetComponent<PlayerAnimationSystem>()?.ResetAnimations();  // Сброс анимаций
         }
     }
 

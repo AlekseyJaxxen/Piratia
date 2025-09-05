@@ -5,6 +5,7 @@ using TMPro;
 public class HealthMonster : Health
 {
     private Monster _monster;
+    [SerializeField] int _health;
     [SerializeField] private MonsterAnimation monsterAnimation;
 
     public override void OnStartServer()
@@ -16,7 +17,7 @@ public class HealthMonster : Health
             Debug.LogError($"[HealthMonster] Monster component missing on {gameObject.name}");
             return;
         }
-        SetHealth(1000);
+        SetHealth(_health);
         Debug.Log($"[HealthMonster] Initialized health for {gameObject.name}: {CurrentHealth}");
     }
     [Server]

@@ -8,7 +8,6 @@ public class PlayerAnimation : NetworkBehaviour
     private Sequence walkSequence;
     private Tween idleTween;
     private Tween stunTween;
-    private Sequence deathSequence;
     private Sequence damageFlashSequence;
     private Sequence attackSequence;
     private Vector3 originalLocalPos;
@@ -46,13 +45,6 @@ public class PlayerAnimation : NetworkBehaviour
         stunTween = modelTransform.DOLocalRotate(new Vector3(0, 10, 0), 0.5f).SetLoops(-1, LoopType.Yoyo).From(new Vector3(0, -10, 0));
         stunTween.SetAutoKill(false);
         stunTween.Pause();
-        // Pre-create death sequence (plays once)
-        deathSequence = DOTween.Sequence();
-        deathSequence.Append(modelTransform.DOLocalMoveY(originalLocalPos.y - 1f, 1f).SetEase(Ease.InOutSine));
-        deathSequence.Join(modelTransform.DOLocalRotate(new Vector3(90, 0, 0), 1f).SetEase(Ease.InOutSine));
-        deathSequence.SetAutoKill(false);
-        deathSequence.SetLoops(1);
-        deathSequence.Pause();
         // Pre-create damage flash sequence
         damageFlashSequence = DOTween.Sequence();
         damageFlashSequence.Append(modelRenderer.material.DOColor(Color.red, 0.1f));
@@ -74,28 +66,12 @@ public class PlayerAnimation : NetworkBehaviour
         Vector3 velocity = (currentPosition - previousPosition) / Time.deltaTime;
         velocityMagnitude = velocity.magnitude;
         previousPosition = currentPosition;
-        if (_core.isDead)
+        if (_core.isStunned)
         {
             walkSequence.Pause();
             walkSequence.Rewind();
             idleTween.Pause();
             idleTween.Rewind();
-            stunTween.Pause();
-            stunTween.Rewind();
-            damageFlashSequence.Pause();
-            damageFlashSequence.Rewind();
-            attackSequence.Pause();
-            attackSequence.Rewind();
-            deathSequence.Play();
-        }
-        else if (_core.isStunned)
-        {
-            walkSequence.Pause();
-            walkSequence.Rewind();
-            idleTween.Pause();
-            idleTween.Rewind();
-            deathSequence.Pause();
-            deathSequence.Rewind();
             damageFlashSequence.Pause();
             damageFlashSequence.Rewind();
             attackSequence.Pause();
@@ -106,8 +82,6 @@ public class PlayerAnimation : NetworkBehaviour
         {
             stunTween.Pause();
             stunTween.Rewind();
-            deathSequence.Pause();
-            deathSequence.Rewind();
             if (velocityMagnitude > 0.1f)
             {
                 idleTween.Pause();
@@ -146,7 +120,6 @@ public class PlayerAnimation : NetworkBehaviour
         walkSequence.Kill();
         idleTween.Kill();
         stunTween.Kill();
-        deathSequence.Kill();
         damageFlashSequence.Kill();
         attackSequence.Kill();
     }

@@ -72,7 +72,14 @@ public class Health : NetworkBehaviour
         MaxHealth = newMaxHealth;
         CurrentHealth = Mathf.Min(CurrentHealth, MaxHealth);
         Debug.Log($"[Server] {gameObject.name} max health set to: {MaxHealth}");
-        RpcUpdateHealthUI(CurrentHealth, MaxHealth);
+        if (NetworkServer.spawned.ContainsKey(netId)) // Проверяем, заспавнен ли объект
+        {
+            RpcUpdateHealthUI(CurrentHealth, MaxHealth);
+        }
+        else
+        {
+            Debug.LogWarning($"[Health] Object {gameObject.name} not spawned yet, delaying RpcUpdateHealthUI");
+        }
     }
     [Server]
     public void TakeDamage(int baseDamage, DamageType damageType, bool isCritical = false, NetworkIdentity attacker = null)

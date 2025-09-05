@@ -28,7 +28,8 @@ MonoBehaviour:
   castRangePrefab: {fileID: 0}
   effectRadiusPrefab: {fileID: 0}
   vfxPrefab: {fileID: 0}
-  projectilePrefab: {fileID: 147436, guid: 3b671081e44be1c4aa4355e8ba6e8a5e, type: 3}
+  projectilePrefab: {fileID: 6019109055774185331, guid: 9eeebc29afbec8e47bd1a0eb50ee4be1,
+    type: 3}
   projectileSpeed: 20
   criticalHitVfxPrefab: {fileID: 0}
   impactEffectPrefab: {fileID: 0}

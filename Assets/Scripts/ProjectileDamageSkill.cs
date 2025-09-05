@@ -17,7 +17,6 @@ public class ProjectileDamageSkill : SkillBase
             Debug.LogWarning("[ProjectileDamageSkill] Target object is null");
             return;
         }
-
         PlayerCore targetCore = targetObject.GetComponent<PlayerCore>();
         Monster targetMonster = targetObject.GetComponent<Monster>();
         if ((targetCore == null || targetCore.team == caster.team) && targetMonster == null)
@@ -25,42 +24,50 @@ public class ProjectileDamageSkill : SkillBase
             Debug.LogWarning("[ProjectileDamageSkill] Invalid target: not enemy");
             return;
         }
-
         float distance = Vector3.Distance(caster.transform.position, targetObject.transform.position);
-        if (distance > Range)
+        float effectiveRange = Range - 1f + 1f; // Добавляем tolerance +1
+        if (distance > effectiveRange)
         {
-            Debug.LogWarning($"[ProjectileDamageSkill] Target {targetObject.name} is out of range: {distance} > {Range}");
+            Debug.LogWarning($"[ProjectileDamageSkill] Target {targetObject.name} is out of range: {distance} > {effectiveRange}");
             return;
         }
-
         NetworkIdentity targetIdentity = targetObject.GetComponent<NetworkIdentity>();
         if (targetIdentity == null)
         {
             Debug.LogWarning($"[ProjectileDamageSkill] Target {targetObject.name} has no NetworkIdentity");
             return;
         }
-
         CharacterStats stats = caster.GetComponent<CharacterStats>();
         if (stats != null && !stats.HasEnoughMana(ManaCost))
         {
             Debug.LogWarning($"[ProjectileDamageSkill] Not enough mana: {stats.currentMana}/{ManaCost}");
             return;
         }
-
         PlayerSkills skills = caster.GetComponent<PlayerSkills>();
         Debug.Log($"[ProjectileDamageSkill] Attempting to projectile attack target: {targetObject.name}, netId: {targetIdentity.netId}");
-        skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName, 0); // Некотрольный скилл, weight = 0
+        skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName, 0); // Неконтрольный скилл, weight = 0
         caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
     }
 
     public override void ExecuteOnServer(PlayerCore caster, Vector3? targetPosition, GameObject targetObject, int weight)
     {
+        if (targetObject == null)
+        {
+            Debug.LogWarning("[ProjectileDamageSkill] Target object is null on server");
+            return;
+        }
+        float distance = Vector3.Distance(caster.transform.position, targetObject.transform.position);
+        float effectiveRange = Range - 1f + 1f; // Добавляем tolerance +1
+        if (distance > effectiveRange)
+        {
+            Debug.LogWarning($"[ProjectileDamageSkill] Target {targetObject.name} is out of range on server: {distance} > {effectiveRange}");
+            return;
+        }
         Health targetHealth = targetObject.GetComponent<Health>();
         if (targetHealth != null)
         {
             targetHealth.TakeDamage(damageAmount, SkillDamageType, false, caster.netIdentity);
         }
-
         Vector3 startPos = caster.transform.position;
         Vector3 targetPos = targetObject.transform.position;
         caster.GetComponent<PlayerSkills>().RpcSpawnProjectile(startPos, targetPos, _skillName);
@@ -71,7 +78,7 @@ public class ProjectileDamageSkill : SkillBase
         if (projectilePrefab != null)
         {
             GameObject projectile = Object.Instantiate(projectilePrefab, startPos + Vector3.up * 1f, Quaternion.identity);
-            playerSkills.StartCoroutine(MoveProjectile(projectile, targetPos + Vector3.up * 1f));
+            playerSkills.StartCoroutine(MoveProjectile(projectile, targetPos));
         }
     }
 
@@ -87,13 +94,11 @@ public class ProjectileDamageSkill : SkillBase
             projectile.transform.position = Vector3.Lerp(startPos, targetPos, t);
             yield return null;
         }
-
         if (impactEffectPrefab != null)
         {
             GameObject impact = Object.Instantiate(impactEffectPrefab, projectile.transform.position, Quaternion.identity);
             Object.Destroy(impact, 2f);
         }
-
         Object.Destroy(projectile);
     }
 }

@@ -69,6 +69,7 @@ public class HealingSkill : SkillBase
         if (effectPrefab != null)
         {
             Object.Instantiate(effectPrefab, target.transform.position + Vector3.up * 1f, Quaternion.identity);
+           // Object.Destroy(effectPrefab, 2f);
         }
     }
 }

@@ -318,7 +318,7 @@ AnimatorController:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Lance_Animation_Controller
+  m_Name: Lance_Animation_Controller_bow
   serializedVersion: 5
   m_AnimatorParameters:
   - m_Name: IsMoving
@@ -410,7 +410,7 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: 3094330708855449807, guid: 48fa84abc2c3a744e8561044d83beb93,
+  m_Motion: {fileID: -1169289577551834828, guid: 9cbb2a4d135c31e4cbeadac255ba4ecb,
     type: 3}
   m_Tag: 
   m_SpeedParameter: 
@@ -428,13 +428,13 @@ AnimatorStateMachine:
   m_ChildStates:
   - serializedVersion: 1
     m_State: {fileID: -5506298147645762806}
-    m_Position: {x: 250, y: 90, z: 0}
+    m_Position: {x: 270, y: 140, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -7331622686043545699}
     m_Position: {x: 190, y: 440, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 3556723993270860216}
-    m_Position: {x: 550, y: 70, z: 0}
+    m_Position: {x: 530, y: 70, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -2235463504150976683}
     m_Position: {x: 90, y: -70, z: 0}
