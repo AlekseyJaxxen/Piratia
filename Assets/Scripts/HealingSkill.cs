@@ -10,6 +10,24 @@ public class HealingSkill : SkillBase
 
     protected override void ExecuteSkillImplementation(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
     {
+        // Проверка, если тип каста SelfBuff
+        if (SkillCastType == CastType.SelfBuff)
+        {
+            CharacterStats casterStats = caster.GetComponent<CharacterStats>();
+            if (casterStats != null && !casterStats.HasEnoughMana(ManaCost))
+            {
+                Debug.LogWarning($"[HealingSkill] Not enough mana: {casterStats.currentMana}/{ManaCost}");
+                return;
+            }
+
+            PlayerSkills casterSkills = caster.GetComponent<PlayerSkills>();
+            Debug.Log($"[HealingSkill] Healing self: {caster.name}, netId: {caster.netId}");
+            casterSkills.CmdExecuteSkill(caster, null, caster.netId, _skillName, 0);
+            casterSkills.StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
+            return;
+        }
+
+        // Существующая логика для других типов каста
         if (targetObject == null)
         {
             Debug.LogWarning("[HealingSkill] Target object is null");
@@ -47,7 +65,7 @@ public class HealingSkill : SkillBase
         PlayerSkills skills = caster.GetComponent<PlayerSkills>();
         Debug.Log($"[HealingSkill] Attempting to heal target: {targetObject.name}, netId: {targetIdentity.netId}");
         skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName, 0);
-        caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
+        skills.StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
     }
 
     public override void ExecuteOnServer(PlayerCore caster, Vector3? targetPosition, GameObject targetObject, int weight)
@@ -69,7 +87,6 @@ public class HealingSkill : SkillBase
         if (effectPrefab != null)
         {
             Object.Instantiate(effectPrefab, target.transform.position + Vector3.up * 1f, Quaternion.identity);
-           // Object.Destroy(effectPrefab, 2f);
         }
     }
 }
