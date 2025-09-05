@@ -21,3 +21,6 @@ MonoBehaviour:
   maxHealth: 1000
   maxMana: 100
   movementSpeed: 11
+  modelPrefab: {fileID: 8571246296574977236, guid: a912daf36d9a2c4469303b7802c8e045,
+    type: 3}
+  animatorController: {fileID: 9100000, guid: 9dbaf61c1b1e78e45b6487b8cd5cc745, type: 2}

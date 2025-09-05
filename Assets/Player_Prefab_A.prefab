@@ -859,6 +859,7 @@ Transform:
   - {fileID: 4445904821307639597}
   - {fileID: 8399158573749875608}
   - {fileID: 160222465342644445}
+  - {fileID: 7990298985654900335}
   m_Father: {fileID: 8988732741915685909}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1322722944445186126
@@ -3267,6 +3268,7 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   _animator: {fileID: 5355086934211218694}
+  characterModels: []
 --- !u!114 &999623721480514163
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3836,6 +3838,127 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 17160862522393253}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &769642611905005571
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 477888844998024055}
+    m_Modifications:
+    - target: {fileID: 1013054974617844693, guid: 9da7a134b8cf96a40a177848091c544c,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7227555535628131948, guid: 9da7a134b8cf96a40a177848091c544c,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7227555535628131948, guid: 9da7a134b8cf96a40a177848091c544c,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7227555535628131948, guid: 9da7a134b8cf96a40a177848091c544c,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7227555535628131948, guid: 9da7a134b8cf96a40a177848091c544c,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7227555535628131948, guid: 9da7a134b8cf96a40a177848091c544c,
+        type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7227555535628131948, guid: 9da7a134b8cf96a40a177848091c544c,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7227555535628131948, guid: 9da7a134b8cf96a40a177848091c544c,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7227555535628131948, guid: 9da7a134b8cf96a40a177848091c544c,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7227555535628131948, guid: 9da7a134b8cf96a40a177848091c544c,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7227555535628131948, guid: 9da7a134b8cf96a40a177848091c544c,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8571246296574977236, guid: 9da7a134b8cf96a40a177848091c544c,
+        type: 3}
+      propertyPath: m_Name
+      value: lance2_mage
+      objectReference: {fileID: 0}
+    - target: {fileID: 8571246296574977236, guid: 9da7a134b8cf96a40a177848091c544c,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8571246296574977236, guid: 9da7a134b8cf96a40a177848091c544c,
+        type: 3}
+      propertyPath: m_TagString
+      value: CharacterModel
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8571246296574977236, guid: 9da7a134b8cf96a40a177848091c544c,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4159898435736690601}
+  m_SourcePrefab: {fileID: 100100000, guid: 9da7a134b8cf96a40a177848091c544c, type: 3}
+--- !u!4 &7990298985654900335 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7227555535628131948, guid: 9da7a134b8cf96a40a177848091c544c,
+    type: 3}
+  m_PrefabInstance: {fileID: 769642611905005571}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &8961458439622618327 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8571246296574977236, guid: 9da7a134b8cf96a40a177848091c544c,
+    type: 3}
+  m_PrefabInstance: {fileID: 769642611905005571}
+  m_PrefabAsset: {fileID: 0}
+--- !u!95 &4159898435736690601
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8961458439622618327}
+  m_Enabled: 1
+  m_Avatar: {fileID: 9000000, guid: 1e91f8489598f794785ed432c51c1777, type: 3}
+  m_Controller: {fileID: 9100000, guid: d21ea63c615a7514199f7445c37e0a0f, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1001 &1207705013028941300
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3903,6 +4026,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_IsActive
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8571246296574977236, guid: aa95e770f43bf25479d227b03395b94a,
+        type: 3}
+      propertyPath: m_TagString
+      value: CharacterModel
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -6354,6 +6482,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: lance2_bow
+      objectReference: {fileID: 0}
+    - target: {fileID: 8571246296574977236, guid: a912daf36d9a2c4469303b7802c8e045,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8571246296574977236, guid: a912daf36d9a2c4469303b7802c8e045,
+        type: 3}
+      propertyPath: m_TagString
+      value: CharacterModel
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 6408399022875484591, guid: a912daf36d9a2c4469303b7802c8e045, type: 3}

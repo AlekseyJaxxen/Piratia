@@ -1,5 +1,6 @@
 using UnityEngine;
 using Mirror;
+using System.Linq;
 
 public class PlayerAnimationSystem : NetworkBehaviour
 {
@@ -7,46 +8,105 @@ public class PlayerAnimationSystem : NetworkBehaviour
     [SerializeField] private Animator _animator;
     private NetworkAnimator _networkAnimator;
     private bool _wasPerformingAction;
-    private PlayerCore _core; // Добавляем ссылку на PlayerCore
+    private PlayerCore _core;
+    private CharacterStats _stats;
+    [SerializeField] private GameObject[] characterModels;
+    private GameObject _activeModel;
 
     private void Awake()
     {
         _actionSystem = GetComponent<PlayerActionSystem>();
-        _core = GetComponent<PlayerCore>(); // Получаем PlayerCore
+        _core = GetComponent<PlayerCore>();
+        _stats = GetComponent<CharacterStats>();
         _networkAnimator = GetComponent<NetworkAnimator>();
-        if (_actionSystem == null)
+
+        if (_actionSystem == null) Debug.LogError("[PlayerAnimationSystem] PlayerActionSystem is null!");
+        if (_core == null) Debug.LogError("[PlayerAnimationSystem] PlayerCore is null!");
+        if (_stats == null) Debug.LogError("[PlayerAnimationSystem] CharacterStats is null!");
+        if (_networkAnimator == null) Debug.LogError("[PlayerAnimationSystem] NetworkAnimator is null!");
+
+        characterModels = GetComponentsInChildren<Transform>(true)
+            .Where(t => t.CompareTag("CharacterModel"))
+            .Select(t => t.gameObject)
+            .ToArray();
+
+        foreach (var model in characterModels)
         {
-            Debug.LogError("[PlayerAnimationSystem] PlayerActionSystem is null!");
+            model.SetActive(false);
         }
-        if (_core == null)
+    }
+
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+        UpdateCharacterModelAndAnimator();
+        _stats.OnCharacterClassChangedEvent += OnCharacterClassChanged; // Подписываемся на публичное событие
+    }
+
+    private void OnCharacterClassChanged(CharacterClass oldClass, CharacterClass newClass)
+    {
+        UpdateCharacterModelAndAnimator();
+    }
+
+    [Client]
+    private void UpdateCharacterModelAndAnimator()
+    {
+        if (_stats == null || characterModels == null || characterModels.Length == 0) return;
+
+        ClassData classData = Resources.Load<ClassData>($"ClassData/{_stats.characterClass}");
+        if (classData == null)
         {
-            Debug.LogError("[PlayerAnimationSystem] PlayerCore is null!");
+            Debug.LogError($"[PlayerAnimationSystem] Failed to load ClassData for {_stats.characterClass}");
+            return;
         }
+
+        if (_activeModel != null)
+        {
+            _activeModel.SetActive(false);
+        }
+
+        _activeModel = characterModels.FirstOrDefault(model => model.name == classData.modelPrefab.name);
+        if (_activeModel == null)
+        {
+            Debug.LogError($"[PlayerAnimationSystem] Model for {_stats.characterClass} not found!");
+            return;
+        }
+
+        _activeModel.SetActive(true);
+
+        _animator = _activeModel.GetComponent<Animator>();
         if (_animator == null)
         {
-            Debug.LogError("[PlayerAnimationSystem] Animator is null! Please assign the Animator component in the Inspector.");
+            Debug.LogError($"[PlayerAnimationSystem] Animator not found on model for {_stats.characterClass}");
+            return;
         }
-        if (_networkAnimator == null)
+
+        if (classData.animatorController != null)
         {
-            Debug.LogError("[PlayerAnimationSystem] NetworkAnimator is null! Add NetworkAnimator to the root GameObject.");
+            _animator.runtimeAnimatorController = classData.animatorController;
         }
-        _wasPerformingAction = false;
+        else
+        {
+            Debug.LogWarning($"[PlayerAnimationSystem] AnimatorController not set in ClassData for {_stats.characterClass}");
+        }
+
+        _networkAnimator.animator = _animator;
+        Debug.Log($"[PlayerAnimationSystem] Set model {_activeModel.name} and animator for {_stats.characterClass}");
     }
 
     private void Update()
     {
         if (_actionSystem == null || _animator == null || _core == null || !isOwned) return;
 
-        // Проверяем состояние смерти
         if (_core.isDead && !_animator.GetBool("IsDead"))
         {
             _networkAnimator.SetTrigger("Death");
-            _animator.SetBool("IsDead", true); // Устанавливаем флаг смерти
+            _animator.SetBool("IsDead", true);
             Debug.Log("[PlayerAnimationSystem] Triggered Death animation");
         }
         else if (!_core.isDead && _animator.GetBool("IsDead"))
         {
-            _animator.SetBool("IsDead", false); // Сбрасываем флаг смерти при возрождении
+            _animator.SetBool("IsDead", false);
             ResetAnimations();
         }
 
@@ -61,7 +121,7 @@ public class PlayerAnimationSystem : NetworkBehaviour
     [Client]
     private void UpdateAnimations()
     {
-        if (_core.isDead) return; // Пропускаем обновление анимаций, если персонаж мёртв
+        if (_core.isDead) return;
 
         bool isMoving = _core.Movement.IsMoving;
         if (_actionSystem.CurrentAction == PlayerAction.Move)
@@ -84,7 +144,7 @@ public class PlayerAnimationSystem : NetworkBehaviour
             {
                 if (_actionSystem.CurrentSkill is BasicAttackSkill)
                 {
-                    float attackSpeed = _actionSystem.GetComponent<PlayerCore>().Stats.attackSpeed;
+                    float attackSpeed = _stats.attackSpeed;
                     _animator.speed = attackSpeed;
                     _networkAnimator.SetTrigger("Attack");
                 }
@@ -134,8 +194,8 @@ public class PlayerAnimationSystem : NetworkBehaviour
             _animator.SetBool("IsMoving", false);
             _animator.ResetTrigger("Attack");
             _animator.ResetTrigger("SkillCast");
-            _animator.ResetTrigger("Death"); // Сбрасываем триггер смерти
-            _animator.SetBool("IsDead", false); // Сбрасываем флаг смерти
+            _animator.ResetTrigger("Death");
+            _animator.SetBool("IsDead", false);
             _animator.speed = 1f;
             _animator.Play("Idle", 0, 0f);
             Debug.Log("[PlayerAnimationSystem] Animations reset to Idle");

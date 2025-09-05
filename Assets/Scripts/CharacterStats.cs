@@ -9,7 +9,6 @@ public class CharacterStats : NetworkBehaviour
     [SerializeField] private ClassData classData;
     [SyncVar(hook = nameof(OnCharacterClassChanged))]
     public CharacterClass characterClass = CharacterClass.Warrior;
-
     [Header("Level and Experience")]
     [SyncVar(hook = nameof(OnLevelChanged))]
     public int level = 1;
@@ -21,7 +20,6 @@ public class CharacterStats : NetworkBehaviour
     public int skillPoints = 0;
     [SyncVar(hook = nameof(OnCharacteristicPointsChanged))]
     public int characteristicPoints = 0;
-
     [Header("Base Attributes")]
     [SyncVar(hook = nameof(OnStrengthChanged))]
     public int strength = 5;
@@ -35,7 +33,6 @@ public class CharacterStats : NetworkBehaviour
     public int accuracy = 5;
     [SyncVar]
     public int intelligence = 5;
-
     [Header("Combat Stats")]
     [SyncVar]
     public float movementSpeed = 8f;
@@ -55,7 +52,6 @@ public class CharacterStats : NetworkBehaviour
     public float criticalHitChance = 15.0f;
     [SyncVar]
     public float criticalHitMultiplier = 2.0f;
-
     [Header("New Attributes")]
     [SyncVar]
     public int maxMana = 100;
@@ -65,7 +61,6 @@ public class CharacterStats : NetworkBehaviour
     public float physicalResistance = 0f;
     [SyncVar]
     public float magicDamageMultiplier = 1.0f;
-
     [Header("Current Stats")]
     [SyncVar(hook = nameof(OnManaChanged))]
     public int currentMana;
@@ -79,6 +74,7 @@ public class CharacterStats : NetworkBehaviour
     public event System.Action<int, int> OnAccuracyChangedEvent;
     public event System.Action<int, int> OnMinAttackChangedEvent;
     public event System.Action<int, int> OnMaxAttackChangedEvent;
+    public event System.Action<CharacterClass, CharacterClass> OnCharacterClassChangedEvent; // Добавлено публичное событие
 
     private static readonly int[] ExperiencePerLevel = new int[100];
     private bool isClassSet = false;
@@ -88,7 +84,7 @@ public class CharacterStats : NetworkBehaviour
         base.OnStartServer();
         InitializeExperienceTable();
         // Откладываем инициализацию до вызова CmdSetClass
-        //StartCoroutine(WaitForClassInitialization());
+        StartCoroutine(WaitForClassInitialization());
     }
 
     private IEnumerator WaitForClassInitialization()
@@ -112,17 +108,6 @@ public class CharacterStats : NetworkBehaviour
     public override void OnStartClient()
     {
         base.OnStartClient();
-       // if (classData == null)
-      //  {
-      //      classData = Resources.Load<ClassData>($"ClassData/{characterClass}");
-       //     if (classData == null)
-        //    {
-        //        Debug.LogError($"[CharacterStats] Failed to load ClassData for {characterClass} on client");
-        //    }
-     //   }
-      //  LoadClassData();
-      //  StartCoroutine(InitializeSkills());
-      //  Debug.Log($"[Client] Character initialized: class={characterClass}, strength={strength}, minAttack={minAttack}, maxAttack={maxAttack}");
     }
 
     [Server]
@@ -176,13 +161,12 @@ public class CharacterStats : NetworkBehaviour
 
     private void OnCharacterClassChanged(CharacterClass oldClass, CharacterClass newClass)
     {
-        // Этот метод теперь является единственной точкой входа для настройки класса на клиентах.
-        // Mirror вызывает его, когда SyncVar изменяется на сервере.
         Debug.Log($"[CharacterStats] Class changed via SyncVar: {oldClass} -> {newClass}");
         characterClass = newClass;
         LoadClassData();
         CalculateDerivedStats();
         StartCoroutine(InitializeSkills());
+        OnCharacterClassChangedEvent?.Invoke(oldClass, newClass); // Вызываем публичное событие
     }
 
     [Command]
@@ -299,7 +283,7 @@ public class CharacterStats : NetworkBehaviour
         }
         else
         {
-            minAttack = 5 + (intelligence * 2); // Для Mage
+            minAttack = 5 + (intelligence * 2);
             maxAttack = 10 + (intelligence * 2);
         }
         Debug.Log($"[Server] CalculateDerivedStats: class={characterClass}, strength={strength}, minAttack={minAttack}, maxAttack={maxAttack}, attackSpeed={attackSpeed}, dodgeChance={dodgeChance}, hitChance={hitChance}");
@@ -535,6 +519,4 @@ public class CharacterStats : NetworkBehaviour
             case "accuracy": accuracy = value; break;
         }
     }
-
-
 }

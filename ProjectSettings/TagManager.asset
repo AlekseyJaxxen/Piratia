@@ -8,6 +8,7 @@ TagManager:
   - Enemy
   - Missile
   - SpawnPoint
+  - CharacterModel
   layers:
   - Default
   - TransparentFX
