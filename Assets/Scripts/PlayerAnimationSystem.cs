@@ -6,41 +6,40 @@ public class PlayerAnimationSystem : NetworkBehaviour
 {
     private PlayerActionSystem _actionSystem;
     [SerializeField] private Animator _animator;
-    private NetworkAnimator _networkAnimator;
     private bool _wasPerformingAction;
     private PlayerCore _core;
     private CharacterStats _stats;
     [SerializeField] private GameObject[] characterModels;
     private GameObject _activeModel;
 
+    [SyncVar(hook = nameof(OnIsMovingChanged))]
+    private bool syncIsMoving;
+    [SyncVar(hook = nameof(OnIsDeadChanged))]
+    private bool syncIsDead;
+
     private void Awake()
     {
         _actionSystem = GetComponent<PlayerActionSystem>();
         _core = GetComponent<PlayerCore>();
         _stats = GetComponent<CharacterStats>();
-        _networkAnimator = GetComponent<NetworkAnimator>();
-
         if (_actionSystem == null) Debug.LogError("[PlayerAnimationSystem] PlayerActionSystem is null!");
         if (_core == null) Debug.LogError("[PlayerAnimationSystem] PlayerCore is null!");
         if (_stats == null) Debug.LogError("[PlayerAnimationSystem] CharacterStats is null!");
-        if (_networkAnimator == null) Debug.LogError("[PlayerAnimationSystem] NetworkAnimator is null!");
-
         characterModels = GetComponentsInChildren<Transform>(true)
             .Where(t => t.CompareTag("CharacterModel"))
             .Select(t => t.gameObject)
             .ToArray();
-
         foreach (var model in characterModels)
         {
             model.SetActive(false);
         }
+        _stats.OnCharacterClassChangedEvent += OnCharacterClassChanged; // Подписка в Awake для сервера и клиента
     }
 
     public override void OnStartClient()
     {
         base.OnStartClient();
-        UpdateCharacterModelAndAnimator();
-        _stats.OnCharacterClassChangedEvent += OnCharacterClassChanged; // Подписываемся на публичное событие
+        UpdateCharacterModelAndAnimator(); // Оставляем для начальной инициализации на клиенте
     }
 
     private void OnCharacterClassChanged(CharacterClass oldClass, CharacterClass newClass)
@@ -48,39 +47,32 @@ public class PlayerAnimationSystem : NetworkBehaviour
         UpdateCharacterModelAndAnimator();
     }
 
-    [Client]
-    private void UpdateCharacterModelAndAnimator()
+    private void UpdateCharacterModelAndAnimator() // Убрали [Client], чтобы работало на сервере
     {
         if (_stats == null || characterModels == null || characterModels.Length == 0) return;
-
         ClassData classData = Resources.Load<ClassData>($"ClassData/{_stats.characterClass}");
         if (classData == null)
         {
             Debug.LogError($"[PlayerAnimationSystem] Failed to load ClassData for {_stats.characterClass}");
             return;
         }
-
         if (_activeModel != null)
         {
             _activeModel.SetActive(false);
         }
-
         _activeModel = characterModels.FirstOrDefault(model => model.name == classData.modelPrefab.name);
         if (_activeModel == null)
         {
             Debug.LogError($"[PlayerAnimationSystem] Model for {_stats.characterClass} not found!");
             return;
         }
-
         _activeModel.SetActive(true);
-
         _animator = _activeModel.GetComponent<Animator>();
         if (_animator == null)
         {
             Debug.LogError($"[PlayerAnimationSystem] Animator not found on model for {_stats.characterClass}");
             return;
         }
-
         if (classData.animatorController != null)
         {
             _animator.runtimeAnimatorController = classData.animatorController;
@@ -89,27 +81,23 @@ public class PlayerAnimationSystem : NetworkBehaviour
         {
             Debug.LogWarning($"[PlayerAnimationSystem] AnimatorController not set in ClassData for {_stats.characterClass}");
         }
-
-        _networkAnimator.animator = _animator;
         Debug.Log($"[PlayerAnimationSystem] Set model {_activeModel.name} and animator for {_stats.characterClass}");
     }
 
     private void Update()
     {
         if (_actionSystem == null || _animator == null || _core == null || !isOwned) return;
-
-        if (_core.isDead && !_animator.GetBool("IsDead"))
+        if (_core.isDead && !syncIsDead)
         {
-            _networkAnimator.SetTrigger("Death");
-            _animator.SetBool("IsDead", true);
+            CmdSetTrigger("Death");
+            CmdSetIsDead(true);
             Debug.Log("[PlayerAnimationSystem] Triggered Death animation");
         }
-        else if (!_core.isDead && _animator.GetBool("IsDead"))
+        else if (!_core.isDead && syncIsDead)
         {
-            _animator.SetBool("IsDead", false);
+            CmdSetIsDead(false);
             ResetAnimations();
         }
-
         if (_wasPerformingAction && !_actionSystem.IsPerformingAction)
         {
             ResetAnimations();
@@ -122,12 +110,11 @@ public class PlayerAnimationSystem : NetworkBehaviour
     private void UpdateAnimations()
     {
         if (_core.isDead) return;
-
         bool isMoving = _core.Movement.IsMoving;
         if (_actionSystem.CurrentAction == PlayerAction.Move)
         {
-            _animator.ResetTrigger("Attack");
-            _animator.ResetTrigger("SkillCast");
+            CmdResetTrigger("Attack");
+            CmdResetTrigger("SkillCast");
             _animator.speed = 1f;
             isMoving = true;
         }
@@ -146,7 +133,7 @@ public class PlayerAnimationSystem : NetworkBehaviour
                 {
                     float attackSpeed = _stats.attackSpeed;
                     _animator.speed = attackSpeed;
-                    _networkAnimator.SetTrigger("Attack");
+                    CmdSetTrigger("Attack");
                 }
             }
         }
@@ -164,7 +151,7 @@ public class PlayerAnimationSystem : NetworkBehaviour
             }
             else
             {
-                _animator.SetBool("IsMoving", false);
+                CmdSetIsMoving(false);
                 _animator.speed = 1f;
                 return;
             }
@@ -175,15 +162,64 @@ public class PlayerAnimationSystem : NetworkBehaviour
             }
             else if (!isMoving && distance <= castRange)
             {
-                _networkAnimator.SetTrigger("SkillCast");
+                CmdSetTrigger("SkillCast");
             }
         }
-
-        if (_animator.GetBool("IsMoving") != isMoving)
+        if (syncIsMoving != isMoving)
         {
-            _animator.SetBool("IsMoving", isMoving);
+            CmdSetIsMoving(isMoving);
             Debug.Log($"[PlayerAnimationSystem] Set IsMoving to {isMoving}, CurrentAction: {_actionSystem.CurrentAction}");
         }
+    }
+
+    [Command]
+    private void CmdSetIsMoving(bool value)
+    {
+        syncIsMoving = value;
+    }
+
+    [Command]
+    private void CmdSetIsDead(bool value)
+    {
+        syncIsDead = value;
+    }
+
+    [Command]
+    private void CmdSetTrigger(string trigger)
+    {
+        RpcSetTrigger(trigger);
+    }
+
+    [Command]
+    private void CmdResetTrigger(string trigger)
+    {
+        RpcResetTrigger(trigger);
+    }
+
+    [ClientRpc]
+    private void RpcSetTrigger(string trigger)
+    {
+        if (_animator != null)
+            _animator.SetTrigger(trigger);
+    }
+
+    [ClientRpc]
+    private void RpcResetTrigger(string trigger)
+    {
+        if (_animator != null)
+            _animator.ResetTrigger(trigger);
+    }
+
+    private void OnIsMovingChanged(bool oldValue, bool newValue)
+    {
+        if (_animator != null)
+            _animator.SetBool("IsMoving", newValue);
+    }
+
+    private void OnIsDeadChanged(bool oldValue, bool newValue)
+    {
+        if (_animator != null)
+            _animator.SetBool("IsDead", newValue);
     }
 
     [Client]
@@ -191,11 +227,11 @@ public class PlayerAnimationSystem : NetworkBehaviour
     {
         if (_animator != null)
         {
-            _animator.SetBool("IsMoving", false);
-            _animator.ResetTrigger("Attack");
-            _animator.ResetTrigger("SkillCast");
-            _animator.ResetTrigger("Death");
-            _animator.SetBool("IsDead", false);
+            CmdSetIsMoving(false);
+            CmdResetTrigger("Attack");
+            CmdResetTrigger("SkillCast");
+            CmdResetTrigger("Death");
+            CmdSetIsDead(false);
             _animator.speed = 1f;
             _animator.Play("Idle", 0, 0f);
             Debug.Log("[PlayerAnimationSystem] Animations reset to Idle");
@@ -205,9 +241,6 @@ public class PlayerAnimationSystem : NetworkBehaviour
     [Client]
     public void TriggerAttackAnimation()
     {
-        if (_networkAnimator != null)
-        {
-            _networkAnimator.SetTrigger("Attack");
-        }
+        CmdSetTrigger("Attack");
     }
 }
