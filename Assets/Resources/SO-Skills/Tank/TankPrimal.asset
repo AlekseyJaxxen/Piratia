@@ -28,5 +28,7 @@ MonoBehaviour:
   castRangePrefab: {fileID: 3299273662854126661, guid: ee30310967d98c04fb16bcfa96cfb3c2,
     type: 3}
   effectRadiusPrefab: {fileID: 0}
+  baseDamage: 0
+  damageMultiplier: 7
   stunDuration: 2
   effectPrefab: {fileID: 194666, guid: 268f984e175944440bf68fb3d316673d, type: 3}

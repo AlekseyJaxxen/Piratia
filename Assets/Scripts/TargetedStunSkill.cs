@@ -6,6 +6,8 @@ using System.Collections;
 public class TargetedStunSkill : SkillBase
 {
     [Header("Stun Skill Specifics")]
+    public int baseDamage = 0; // Если нужно добавить урон, иначе 0
+    public float damageMultiplier = 1f;
     public float stunDuration = 2f;
     public GameObject effectPrefab;
 
@@ -16,7 +18,6 @@ public class TargetedStunSkill : SkillBase
             Debug.LogWarning("[TargetedStunSkill] Target object is null");
             return;
         }
-
         PlayerCore targetCore = targetObject.GetComponent<PlayerCore>();
         Monster targetMonster = targetObject.GetComponent<Monster>();
         if ((targetCore == null || targetCore.team == caster.team) && targetMonster == null)
@@ -24,28 +25,18 @@ public class TargetedStunSkill : SkillBase
             Debug.LogWarning("[TargetedStunSkill] Invalid target: not enemy");
             return;
         }
-
-        float distance = Vector3.Distance(caster.transform.position, targetObject.transform.position);
-        if (distance > Range)
-        {
-            Debug.LogWarning("[TargetedStunSkill] Target out of range");
-            return;
-        }
-
         NetworkIdentity targetIdentity = targetObject.GetComponent<NetworkIdentity>();
         if (targetIdentity == null)
         {
             Debug.LogWarning($"[TargetedStunSkill] Target {targetObject.name} has no NetworkIdentity");
             return;
         }
-
         CharacterStats stats = caster.GetComponent<CharacterStats>();
         if (stats != null && !stats.HasEnoughMana(ManaCost))
         {
             Debug.LogWarning($"[TargetedStunSkill] Not enough mana: {stats.currentMana}/{ManaCost}");
             return;
         }
-
         PlayerSkills skills = caster.GetComponent<PlayerSkills>();
         Debug.Log($"[TargetedStunSkill] Attempting to stun target: {targetObject.name}, weight: {Weight}");
         skills.CmdExecuteSkill(caster, null, targetIdentity.netId, _skillName, Weight);
@@ -55,10 +46,31 @@ public class TargetedStunSkill : SkillBase
     public override void ExecuteOnServer(PlayerCore caster, Vector3? targetPosition, GameObject targetObject, int weight)
     {
         if (targetObject == null) return;
+        CharacterStats stats = caster.GetComponent<CharacterStats>();
+        if (stats == null) return;
+
+        int finalDamage = 0;
+        if (baseDamage > 0)
+        {
+            if (SkillDamageType == DamageType.Physical)
+            {
+                int randomAttack = Random.Range(stats.minAttack, stats.maxAttack + 1);
+                finalDamage = Mathf.RoundToInt((baseDamage + randomAttack) * damageMultiplier);
+            }
+            else
+            {
+                finalDamage = baseDamage + Mathf.RoundToInt(stats.spirit * damageMultiplier);
+            }
+        }
+
+        Health targetHealth = targetObject.GetComponent<Health>();
+        if (targetHealth != null && finalDamage > 0)
+        {
+            targetHealth.TakeDamage(finalDamage, SkillDamageType, false, caster.netIdentity);
+        }
 
         PlayerCore targetCore = targetObject.GetComponent<PlayerCore>();
         Monster targetMonster = targetObject.GetComponent<Monster>();
-
         if (targetCore != null && targetCore.team != caster.team)
         {
             targetCore.ApplyControlEffect(ControlEffectType.Stun, stunDuration, weight);
@@ -67,7 +79,6 @@ public class TargetedStunSkill : SkillBase
         {
             targetMonster.ReceiveControlEffect(ControlEffectType.Stun, stunDuration, weight);
         }
-
         caster.GetComponent<PlayerSkills>().RpcPlayTargetedStun(targetObject.GetComponent<NetworkIdentity>().netId, _skillName);
     }
 

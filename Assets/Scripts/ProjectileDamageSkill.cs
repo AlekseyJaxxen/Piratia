@@ -6,7 +6,8 @@ using System.Collections;
 public class ProjectileDamageSkill : SkillBase
 {
     [Header("Projectile Damage Skill Specifics")]
-    public int damageAmount = 15;
+    public int baseDamage = 15;
+    public float damageMultiplier = 1f;
     public GameObject projectilePrefab;
     public GameObject impactEffectPrefab;
 
@@ -24,7 +25,6 @@ public class ProjectileDamageSkill : SkillBase
             Debug.LogWarning("[ProjectileDamageSkill] Invalid target: not enemy");
             return;
         }
-        // Удаляем проверку дистанции, так как она уже выполнена в CmdExecuteSkill
         NetworkIdentity targetIdentity = targetObject.GetComponent<NetworkIdentity>();
         if (targetIdentity == null)
         {
@@ -50,11 +50,24 @@ public class ProjectileDamageSkill : SkillBase
             Debug.LogWarning("[ProjectileDamageSkill] Target object is null on server");
             return;
         }
-        // Удаляем проверку дистанции, так как она уже выполнена в CmdExecuteSkill
+        CharacterStats stats = caster.GetComponent<CharacterStats>();
+        if (stats == null) return;
+
+        int finalDamage;
+        if (SkillDamageType == DamageType.Physical)
+        {
+            int randomAttack = Random.Range(stats.minAttack, stats.maxAttack + 1);
+            finalDamage = Mathf.RoundToInt((baseDamage + randomAttack) * damageMultiplier);
+        }
+        else
+        {
+            finalDamage = baseDamage + Mathf.RoundToInt(stats.spirit * damageMultiplier);
+        }
+
         Health targetHealth = targetObject.GetComponent<Health>();
         if (targetHealth != null)
         {
-            targetHealth.TakeDamage(damageAmount, SkillDamageType, false, caster.netIdentity);
+            targetHealth.TakeDamage(finalDamage, SkillDamageType, false, caster.netIdentity);
         }
         Vector3 startPos = caster.transform.position;
         Vector3 targetPos = targetObject.transform.position;

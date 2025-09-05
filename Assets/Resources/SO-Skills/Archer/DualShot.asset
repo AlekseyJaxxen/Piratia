@@ -28,7 +28,8 @@ MonoBehaviour:
   castRangePrefab: {fileID: 3299273662854126661, guid: ee30310967d98c04fb16bcfa96cfb3c2,
     type: 3}
   effectRadiusPrefab: {fileID: 0}
-  damageAmount: 2000
+  baseDamage: 15
+  damageMultiplier: 4
   projectilePrefab: {fileID: 6019109055774185331, guid: 9eeebc29afbec8e47bd1a0eb50ee4be1,
     type: 3}
   impactEffectPrefab: {fileID: 0}

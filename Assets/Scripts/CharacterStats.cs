@@ -263,7 +263,7 @@ public class CharacterStats : NetworkBehaviour
         dodgeChance = 5.0f + (agility * 0.5f * classData.agilityMultiplier);
         hitChance = 80.0f + (accuracy * 1.0f * classData.accuracyMultiplier);
         criticalHitChance = 15.0f + (agility * 0.2f * classData.agilityMultiplier);
-        physicalResistance = constitution * 0.1f * classData.constitutionMultiplier;
+        physicalResistance = classData.basePhysicalResistance;
         magicDamageMultiplier = 1.0f + (spirit * 0.05f * classData.spiritMultiplier);
 
         // Ограничиваем текущую ману

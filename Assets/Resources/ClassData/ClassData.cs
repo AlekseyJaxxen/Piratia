@@ -25,6 +25,8 @@ public class ClassData : ScriptableObject
     public float spiritMultiplier = 1f; // Множитель для spirit
     public float accuracyMultiplier = 1f; // Множитель для accuracy
     public float intelligenceMultiplier = 1f; // Множитель для intelligence
+    public float basePhysicalResistance = 0f;
+    
     [Header("Visuals")]
     public GameObject modelPrefab; // Префаб модели для данного класса
     public RuntimeAnimatorController animatorController; // Контроллер анимации для данного класса

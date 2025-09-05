@@ -29,7 +29,9 @@ MonoBehaviour:
     type: 3}
   effectRadiusPrefab: {fileID: 8212533921873324154, guid: e6230a171a068cd489eb410abd241717,
     type: 3}
-  damage: 1000
+  baseDamage: 1000
+  damageMultiplier: 1
   aoeRadius: 2
   effectPrefab: {fileID: 1308696705675058, guid: 606f8867fc59c8f429e84dbab0409696,
     type: 3}
+  forwardOffset: 1

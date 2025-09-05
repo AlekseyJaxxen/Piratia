@@ -29,6 +29,7 @@ MonoBehaviour:
     type: 3}
   effectRadiusPrefab: {fileID: 0}
   baseDamage: 750
-  slowPercentage: 0.2
+  damageMultiplier: 1.5
+  slowPercentage: 0.5
   slowDuration: 3
   projectilePrefab: {fileID: 0}
