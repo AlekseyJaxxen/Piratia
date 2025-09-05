@@ -110,13 +110,15 @@ public class PlayerAnimationSystem : NetworkBehaviour
     private void UpdateAnimations()
     {
         if (_core.isDead) return;
+
         bool isMoving = _core.Movement.IsMoving;
+
         if (_actionSystem.CurrentAction == PlayerAction.Move)
         {
             CmdResetTrigger("Attack");
             CmdResetTrigger("SkillCast");
             _animator.speed = 1f;
-            isMoving = true;
+            isMoving = true; // Движение явно активно
         }
         else if (_actionSystem.CurrentAction == PlayerAction.Attack && _actionSystem.CurrentTarget != null && _actionSystem.CurrentSkill != null)
         {
@@ -153,6 +155,7 @@ public class PlayerAnimationSystem : NetworkBehaviour
             {
                 CmdSetIsMoving(false);
                 _animator.speed = 1f;
+                CmdSetTrigger("Idle"); // Устанавливаем Idle только если нет цели
                 return;
             }
             isMoving = distance > castRange;
@@ -165,6 +168,15 @@ public class PlayerAnimationSystem : NetworkBehaviour
                 CmdSetTrigger("SkillCast");
             }
         }
+        else
+        {
+            // Если нет активного действия, но персонаж движется, не сбрасываем в Idle
+            if (!isMoving)
+            {
+                CmdSetTrigger("Idle");
+            }
+        }
+
         if (syncIsMoving != isMoving)
         {
             CmdSetIsMoving(isMoving);
@@ -225,7 +237,7 @@ public class PlayerAnimationSystem : NetworkBehaviour
     [Client]
     public void ResetAnimations()
     {
-        if (_animator != null)
+        if (_animator != null && !_core.Movement.IsMoving) // Проверяем, что персонаж НЕ движется
         {
             CmdSetIsMoving(false);
             CmdResetTrigger("Attack");
@@ -233,7 +245,7 @@ public class PlayerAnimationSystem : NetworkBehaviour
             CmdResetTrigger("Death");
             CmdSetIsDead(false);
             _animator.speed = 1f;
-            _animator.Play("Idle", 0, 0f);
+            _animator.SetTrigger("Idle");
             Debug.Log("[PlayerAnimationSystem] Animations reset to Idle");
         }
     }
