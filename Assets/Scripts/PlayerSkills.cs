@@ -401,6 +401,20 @@ public class PlayerSkills : NetworkBehaviour
     }
 
     [ClientRpc]
+    public void RpcPlayTargetedRecovery(uint targetNetId, string skillName)
+    {
+        if (NetworkClient.spawned.ContainsKey(targetNetId))
+        {
+            NetworkIdentity targetIdentity = NetworkClient.spawned[targetNetId];
+            SkillBase skill = skills.Find(s => s.SkillName == skillName);
+            if (skill is TargetedRecoverySkill targetedRecoverySkill)
+            {
+                targetedRecoverySkill.PlayEffect(targetIdentity.gameObject, this);
+            }
+        }
+    }
+
+    [ClientRpc]
     public void RpcPlayHealingSkill(uint targetNetId, string skillName)
     {
         if (NetworkClient.spawned.ContainsKey(targetNetId))

@@ -513,6 +513,14 @@ public class PlayerCore : NetworkBehaviour
     }
 
     [Server]
+    public void ClearNegativeEffectsExceptStun()
+    {
+        ClearSlowEffect();
+        ClearSilenceEffect();
+        // Добавьте здесь очистку других негативных эффектов, если они будут введены (например, FbStun)
+    }
+
+    [Server]
     private void ClearControlEffect()
     {
         ClearStunEffect();
