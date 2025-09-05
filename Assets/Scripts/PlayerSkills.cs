@@ -175,7 +175,7 @@ public class PlayerSkills : NetworkBehaviour
     [Command]
     public void CmdExecuteSkill(PlayerCore caster, Vector3? targetPosition, uint targetNetId, string skillName, int weight)
     {
-        if (!caster.CanCastSkill())
+        if (!caster.CanCastSkill(caster.Skills.skills.Find(s => s.SkillName == skillName)))
         {
             return;
         }
@@ -282,9 +282,9 @@ public class PlayerSkills : NetworkBehaviour
         {
             if (Input.GetKeyDown(skill.Hotkey))
             {
-                if (_core.isSilenced)
+                if (!_core.CanCastSkill(skill))
                 {
-                    Debug.LogWarning($"[PlayerSkills] Cannot select skill {skill.SkillName}: player is silenced");
+                    Debug.LogWarning($"[PlayerSkills] Cannot select skill {skill.SkillName}: player is dead, stunned, or silenced (and not BasicAttackSkill)");
                     continue;
                 }
                 if (GetRemainingCooldown(skill.SkillName) > 0 || (!skill.ignoreGlobalCooldown && GetGlobalRemainingCooldown() > 0))
@@ -320,9 +320,9 @@ public class PlayerSkills : NetworkBehaviour
 
     public void SelectSkill(ISkill skill)
     {
-        if (_core.isSilenced)
+        if (!_core.CanCastSkill(skill))
         {
-            Debug.LogWarning("[PlayerSkills] Cannot select skill: player is silenced");
+            Debug.LogWarning($"[PlayerSkills] Cannot select skill {((SkillBase)skill).SkillName}: player is dead, stunned, or silenced (and not BasicAttackSkill)");
             return;
         }
         if (_activeSkill != null)

@@ -341,7 +341,7 @@ public class PlayerCore : NetworkBehaviour
 
     private void OnTeamChanged(PlayerTeam oldTeam, PlayerTeam newTeam)
     {
-       // UpdateTeamIndicatorColor();
+        UpdateTeamIndicatorColor();
         if (nameTagUI != null)
         {
             nameTagUI.UpdateNameAndTeam(playerName, newTeam, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
@@ -357,6 +357,28 @@ public class PlayerCore : NetworkBehaviour
         if (nameTagUI != null)
         {
             nameTagUI.UpdateNameAndTeam(newName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
+        }
+    }
+
+    private void UpdateTeamIndicatorColor()
+    {
+        if (_teamIndicator == null) return;
+        Renderer rend = _teamIndicator.GetComponent<Renderer>();
+        if (rend == null) return;
+        if (isLocalPlayer)
+        {
+            rend.material = localPlayerMaterial;
+        }
+        else
+        {
+            if (localPlayerCoreInstance != null && localPlayerCoreInstance.team == team)
+            {
+                rend.material = allyMaterial;
+            }
+            else
+            {
+                rend.material = enemyMaterial;
+            }
         }
     }
 
@@ -529,8 +551,12 @@ public class PlayerCore : NetworkBehaviour
     public int GetCurrentHealth() { return Health != null ? Health.CurrentHealth : 0; }
     public int GetMaxHealth() { return Health != null ? Health.MaxHealth : 0; }
     public NameTagUI GetNameTagUI() { return nameTagUI; }
-    public bool CanCastSkill()
+    public bool CanCastSkill(ISkill skill = null)
     {
+        if (skill != null && skill is BasicAttackSkill)
+        {
+            return !isDead && !isStunned;
+        }
         return !isDead && !isStunned && !isSilenced;
     }
 

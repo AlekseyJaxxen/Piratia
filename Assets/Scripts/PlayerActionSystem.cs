@@ -59,9 +59,9 @@ public class PlayerActionSystem : NetworkBehaviour
         bool canInterruptAndStart = true;
         if (actionType == PlayerAction.SkillCast)
         {
-            if (_core.isSilenced)
+            if (!_core.CanCastSkill(skillToCast))
             {
-                Debug.LogWarning("[PlayerActionSystem] Cannot cast skill: player is silenced");
+                Debug.LogWarning("[Playerros] PlayerActionSystem: Cannot cast skill: player is dead, stunned, or silenced");
                 return false;
             }
             if (skillToCast == null)
@@ -272,6 +272,12 @@ public class PlayerActionSystem : NetworkBehaviour
                     yield return null;
                     continue;
                 }
+                if (!_core.CanCastSkill(skill))
+                {
+                    Debug.Log($"[PlayerActionSystem] Cannot execute skill {((SkillBase)skill).SkillName}: player is dead, stunned, or silenced");
+                    CompleteAction();
+                    yield break;
+                }
                 Debug.Log($"[PlayerActionSystem] Executing attack with skill: {((SkillBase)skill).SkillName}");
                 skill.Execute(_core, null, target);
                 _core.Combat._lastAttackTime = Time.time;
@@ -324,9 +330,9 @@ public class PlayerActionSystem : NetworkBehaviour
         const float castRangeOffset = 0.2f;
         while (true)
         {
-            if (_core.isDead || _core.isStunned || _core.isSilenced)
+            if (_core.isDead || _core.isStunned || (_core.isSilenced && !(skillToCast is BasicAttackSkill)))
             {
-                Debug.Log("[PlayerActionSystem] Skill cast stopped: player is dead, stunned, or silenced");
+                Debug.Log("[PlayerActionSystem] Skill cast stopped: player is dead, stunned, or silenced (and not using BasicAttackSkill)");
                 _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
                 CompleteAction();
                 yield break;
@@ -371,9 +377,9 @@ public class PlayerActionSystem : NetworkBehaviour
         const float castRangeOffset = 0.2f;
         while (true)
         {
-            if (_core.isDead || _core.isStunned || _core.isSilenced)
+            if (_core.isDead || _core.isStunned || (_core.isSilenced && !(skillToCast is BasicAttackSkill)))
             {
-                Debug.Log("[PlayerActionSystem] Skill cast stopped: player is dead, stunned, or silenced");
+                Debug.Log("[PlayerActionSystem] Skill cast stopped: player is dead, stunned, or silenced (and not using BasicAttackSkill)");
                 _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
                 CompleteAction();
                 yield break;
