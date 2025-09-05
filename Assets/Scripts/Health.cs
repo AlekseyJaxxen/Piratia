@@ -18,6 +18,7 @@ public class Health : NetworkBehaviour
     public GameObject floatingTextPrefab;
     public float damageTextSpawnHeight = 2.5f;
     public float damageTextRandomness = 0.5f;
+
     public int CurrentHealth
     {
         get => _currentHealth;
@@ -28,24 +29,26 @@ public class Health : NetworkBehaviour
             RpcUpdateHealthUI(_currentHealth, MaxHealth);
         }
     }
+
     public override void OnStartServer()
     {
         base.OnStartServer();
         Init();
     }
+
     private void Start()
     {
-        if (isLocalPlayer && !gameObject.CompareTag("Enemy") )
+        if (isLocalPlayer && !gameObject.CompareTag("Enemy"))
         {
             playerUI = GetComponentInChildren<PlayerUI>();
         }
         healthBarUI = GetComponentInChildren<HealthBarUI>();
-
         if (healthBarUI == null && !gameObject.CompareTag("Enemy"))
         {
             Debug.LogWarning($"[Health] HealthBarUI not found for {gameObject.name}, waiting for instantiation...");
         }
     }
+
     [Server]
     public void Init()
     {
@@ -53,6 +56,7 @@ public class Health : NetworkBehaviour
         Debug.Log($"[Server] {gameObject.name} health initialized: {CurrentHealth}/{MaxHealth}");
         RpcUpdateHealthUI(CurrentHealth, MaxHealth);
     }
+
     [Server]
     public void Heal(int amount)
     {
@@ -60,19 +64,21 @@ public class Health : NetworkBehaviour
         Debug.Log($"[Server] {gameObject.name} healed for {amount}. Current health: {CurrentHealth}");
         RpcShowHealNumber(amount);
     }
+
     [Server]
     public void SetHealth(int amount)
     {
         CurrentHealth = amount;
         Debug.Log($"[Server] {gameObject.name} health set to: {CurrentHealth}");
     }
+
     [Server]
     public void SetMaxHealth(int newMaxHealth)
     {
         MaxHealth = newMaxHealth;
         CurrentHealth = Mathf.Min(CurrentHealth, MaxHealth);
         Debug.Log($"[Server] {gameObject.name} max health set to: {MaxHealth}");
-        if (NetworkServer.spawned.ContainsKey(netId)) // Проверяем, заспавнен ли объект
+        if (NetworkServer.spawned.ContainsKey(netId))
         {
             RpcUpdateHealthUI(CurrentHealth, MaxHealth);
         }
@@ -81,8 +87,9 @@ public class Health : NetworkBehaviour
             Debug.LogWarning($"[Health] Object {gameObject.name} not spawned yet, delaying RpcUpdateHealthUI");
         }
     }
+
     [Server]
-    public void TakeDamage(int baseDamage, DamageType damageType, bool isCritical = false, NetworkIdentity attacker = null)
+    public void TakeDamage(int baseDamage, DamageType damageType, bool isCritical, NetworkIdentity attacker = null)
     {
         PlayerCore attackerCore = attacker?.GetComponent<PlayerCore>();
         if (attackerCore != null && attackerCore.isDead)
@@ -92,10 +99,19 @@ public class Health : NetworkBehaviour
         }
 
         int finalDamage = CalculateFinalDamage(baseDamage, damageType);
+        if (isCritical)
+        {
+            CharacterStats attackerStats = attacker?.GetComponent<CharacterStats>();
+            float critMultiplier = attackerStats != null ? attackerStats.criticalHitMultiplier : 2.0f;
+            finalDamage = Mathf.RoundToInt(finalDamage * critMultiplier);
+            Debug.Log($"[Health] Applying critical hit multiplier {critMultiplier}, finalDamage={finalDamage}");
+        }
+
         CurrentHealth -= finalDamage;
         LastAttacker = attacker;
         Debug.Log($"[Server] {gameObject.name} took {finalDamage} damage from {attacker?.gameObject.name}. Current health: {CurrentHealth}");
         RpcShowDamageNumber(finalDamage, isCritical, damageType);
+
         if (CurrentHealth <= 0)
         {
             Debug.Log($"[Server] {gameObject.name} has died. Setting death state.");
@@ -111,11 +127,13 @@ public class Health : NetworkBehaviour
             }
         }
     }
+
     [Server]
     private int CalculateFinalDamage(int baseDamage, DamageType damageType)
     {
         CharacterStats stats = GetComponent<CharacterStats>();
         if (stats == null) return baseDamage;
+
         switch (damageType)
         {
             case DamageType.Physical:
@@ -128,6 +146,7 @@ public class Health : NetworkBehaviour
                 return baseDamage;
         }
     }
+
     public void SetHealthBarUI(HealthBarUI healthBarUI)
     {
         this.healthBarUI = healthBarUI;
@@ -137,6 +156,7 @@ public class Health : NetworkBehaviour
             Debug.Log($"[Health] HealthBarUI set for {gameObject.name}, initial health: {_currentHealth}/{MaxHealth}");
         }
     }
+
     [ClientRpc]
     private void RpcShowDamageNumber(int damage, bool isCritical, DamageType damageType)
     {
@@ -161,6 +181,7 @@ public class Health : NetworkBehaviour
             Debug.LogWarning($"[Health] floatingTextPrefab is null for {gameObject.name}");
         }
     }
+
     [ClientRpc]
     private void RpcShowHealNumber(int healAmount)
     {
@@ -185,6 +206,7 @@ public class Health : NetworkBehaviour
             Debug.LogWarning($"[Health] floatingTextPrefab is null for {gameObject.name}");
         }
     }
+
     [ClientRpc]
     private void RpcUpdateHealthUI(int currentHealth, int maxHealth)
     {
@@ -199,6 +221,7 @@ public class Health : NetworkBehaviour
         OnHealthUpdated?.Invoke(currentHealth, maxHealth);
         Debug.Log($"[Client] RpcUpdateHealthUI: {currentHealth}/{maxHealth} for {gameObject.name}");
     }
+
     private void OnHealthChanged(int oldHealth, int newHealth)
     {
         Debug.Log($"[Client] Health changed from {oldHealth} to {newHealth} for {gameObject.name}");
@@ -217,6 +240,7 @@ public class Health : NetworkBehaviour
             if (anim != null) anim.PlayDamageFlash();
         }
     }
+
     private void OnMaxHealthChanged(int oldMaxHealth, int newMaxHealth)
     {
         Debug.Log($"[Client] Max Health changed from {oldMaxHealth} to {newMaxHealth} for {gameObject.name}");
@@ -230,6 +254,4 @@ public class Health : NetworkBehaviour
             healthBarUI.UpdateHP(CurrentHealth, newMaxHealth);
         }
     }
-
-
 }

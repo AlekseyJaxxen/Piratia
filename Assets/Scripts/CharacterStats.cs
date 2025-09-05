@@ -78,11 +78,11 @@ public class CharacterStats : NetworkBehaviour
 
     private static readonly int[] ExperiencePerLevel = new int[100];
     private bool isClassSet = false;
-    private Health healthComponent; // Переменная для компонента Health
+    private Health healthComponent;
 
     private void Awake()
     {
-        healthComponent = GetComponent<Health>(); // Исправление: получаем компонент Health
+        healthComponent = GetComponent<Health>();
     }
 
     public override void OnStartServer()
@@ -173,7 +173,6 @@ public class CharacterStats : NetworkBehaviour
         characterClass = newClass;
         isClassSet = true;
 
-        // Загружаем начальные атрибуты из ClassData
         strength = classData.strength;
         agility = classData.agility;
         constitution = classData.constitution;
@@ -181,7 +180,6 @@ public class CharacterStats : NetworkBehaviour
         accuracy = classData.accuracy;
         intelligence = classData.intelligence;
 
-        // Рассчитываем производные характеристики
         CalculateDerivedStats();
         StartCoroutine(InitializeSkills());
         RpcSyncSkills(newClass);
@@ -255,8 +253,13 @@ public class CharacterStats : NetworkBehaviour
         // Расчет характеристик с использованием базовых значений и множителей из ClassData
         maxHealth = classData.baseHealth + Mathf.RoundToInt(constitution * 20 * classData.constitutionMultiplier);
         maxMana = classData.baseMana + Mathf.RoundToInt(spirit * 10 * classData.spiritMultiplier + intelligence * 5 * classData.intelligenceMultiplier);
-        minAttack = Mathf.RoundToInt(classData.baseMinAttack + strength * 2 * classData.strengthMultiplier);
-        maxAttack = Mathf.RoundToInt(classData.baseMaxAttack + strength * 3 * classData.strengthMultiplier);
+
+        // Расчет атаки в зависимости от attackAttribute
+        float attackValue = classData.attackAttribute == AttackAttributeType.Strength ? strength : accuracy;
+        float attackMultiplier = classData.attackAttribute == AttackAttributeType.Strength ? classData.strengthMultiplier : classData.accuracyMultiplier;
+        minAttack = Mathf.RoundToInt(classData.baseMinAttack + attackValue * 2 * attackMultiplier);
+        maxAttack = Mathf.RoundToInt(classData.baseMaxAttack + attackValue * 3 * attackMultiplier);
+
         armor = Mathf.RoundToInt(classData.baseDef + strength * 1 * classData.strengthMultiplier);
         movementSpeed = classData.baseMovementSpeed * classData.agilityMultiplier;
         attackSpeed = 1.0f + (agility * 0.05f * classData.agilityMultiplier);
@@ -266,10 +269,8 @@ public class CharacterStats : NetworkBehaviour
         physicalResistance = classData.basePhysicalResistance;
         magicDamageMultiplier = 1.0f + (spirit * 0.05f * classData.spiritMultiplier);
 
-        // Ограничиваем текущую ману
         currentMana = Mathf.Min(currentMana, maxMana);
 
-        // Синхронизация с компонентами
         if (healthComponent != null)
         {
             healthComponent.SetMaxHealth(maxHealth);

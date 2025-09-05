@@ -23,7 +23,7 @@ MonoBehaviour:
   baseMana: 100
   baseMinAttack: 100
   baseMaxAttack: 200
-  baseDef: 10
+  baseDef: 200
   baseMovementSpeed: 8
   strengthMultiplier: 2
   agilityMultiplier: 1
@@ -31,6 +31,7 @@ MonoBehaviour:
   spiritMultiplier: 1
   accuracyMultiplier: 1
   intelligenceMultiplier: 1
+  basePhysicalResistance: 35
   modelPrefab: {fileID: 919132149155446097, guid: 6a001614733561744867b7e1d68f6314,
     type: 3}
   animatorController: {fileID: 9100000, guid: f96bd487256e1b643877be8834333d99, type: 2}
