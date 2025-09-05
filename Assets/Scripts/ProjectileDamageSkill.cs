@@ -24,13 +24,7 @@ public class ProjectileDamageSkill : SkillBase
             Debug.LogWarning("[ProjectileDamageSkill] Invalid target: not enemy");
             return;
         }
-        float distance = Vector3.Distance(caster.transform.position, targetObject.transform.position);
-        float effectiveRange = Range - 1f + 1f; // Добавляем tolerance +1
-        if (distance > effectiveRange)
-        {
-            Debug.LogWarning($"[ProjectileDamageSkill] Target {targetObject.name} is out of range: {distance} > {effectiveRange}");
-            return;
-        }
+        // Удаляем проверку дистанции, так как она уже выполнена в CmdExecuteSkill
         NetworkIdentity targetIdentity = targetObject.GetComponent<NetworkIdentity>();
         if (targetIdentity == null)
         {
@@ -45,7 +39,7 @@ public class ProjectileDamageSkill : SkillBase
         }
         PlayerSkills skills = caster.GetComponent<PlayerSkills>();
         Debug.Log($"[ProjectileDamageSkill] Attempting to projectile attack target: {targetObject.name}, netId: {targetIdentity.netId}");
-        skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName, 0); // Неконтрольный скилл, weight = 0
+        skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName, 0);
         caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
     }
 
@@ -56,13 +50,7 @@ public class ProjectileDamageSkill : SkillBase
             Debug.LogWarning("[ProjectileDamageSkill] Target object is null on server");
             return;
         }
-        float distance = Vector3.Distance(caster.transform.position, targetObject.transform.position);
-        float effectiveRange = Range - 1f + 1f; // Добавляем tolerance +1
-        if (distance > effectiveRange)
-        {
-            Debug.LogWarning($"[ProjectileDamageSkill] Target {targetObject.name} is out of range on server: {distance} > {effectiveRange}");
-            return;
-        }
+        // Удаляем проверку дистанции, так как она уже выполнена в CmdExecuteSkill
         Health targetHealth = targetObject.GetComponent<Health>();
         if (targetHealth != null)
         {
@@ -77,7 +65,7 @@ public class ProjectileDamageSkill : SkillBase
     {
         if (projectilePrefab != null)
         {
-            GameObject projectile = Object.Instantiate(projectilePrefab, startPos + Vector3.up * 1f, Quaternion.identity);
+            GameObject projectile = Object.Instantiate(projectilePrefab, startPos, Quaternion.identity);
             playerSkills.StartCoroutine(MoveProjectile(projectile, targetPos));
         }
     }

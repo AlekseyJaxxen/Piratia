@@ -178,10 +178,37 @@ public class PlayerSkills : NetworkBehaviour
         {
             targetObject = NetworkServer.spawned[targetNetId].gameObject;
         }
-        if (skill.Range > 0 && targetObject != null && Vector3.Distance(transform.position, targetObject.transform.position) > skill.Range + 2f)
+
+        // Проверка дистанции с учетом tolerance
+        const float tolerance = 3f; // Допустимое отклонение
+        const float warningThreshold = 1.5f; // Порог для предупреждения
+        if (skill.Range > 0)
         {
-            return;
+            float distance = 0f;
+            if (targetObject != null)
+            {
+                // Расчет дистанции до объекта
+                distance = Vector3.Distance(transform.position, targetObject.transform.position);
+            }
+            else if (targetPosition.HasValue)
+            {
+                // Расчет дистанции до позиции
+                distance = Vector3.Distance(transform.position, targetPosition.Value);
+            }
+
+            // Проверка дистанции с учетом tolerance
+            if (distance > skill.Range + tolerance)
+            {
+                return; // Отклоняем, если дистанция превышает допуск
+            }
+
+            // Выдача предупреждения, если tolerance превышает порог
+            if (distance > skill.Range + warningThreshold)
+            {
+                Debug.LogWarning($"Skill {skillName} used with high tolerance: Distance = {distance}, Range = {skill.Range}, Tolerance = {tolerance}");
+            }
         }
+
         if (stats != null) stats.SpendMana(skill.ManaCost);
         if (skill.CastTime > 0)
         {
@@ -246,15 +273,12 @@ public class PlayerSkills : NetworkBehaviour
                 }
                 if (localCooldowns.ContainsKey(skill.SkillName) && (float)NetworkTime.time < localCooldowns[skill.SkillName]) continue;
                 if (!skill.ignoreGlobalCooldown && (float)NetworkTime.time < localGlobalCooldownEnd) continue;
-
-                // Для SelfBuff кастуем сразу без выбора цели
                 if (skill.SkillCastType == CastType.SelfBuff)
                 {
                     skill.Execute(_core, null, _core.gameObject);
                     CancelSkillSelection();
                     return;
                 }
-
                 SelectSkill(skill);
                 return;
             }
@@ -377,10 +401,9 @@ public class PlayerSkills : NetworkBehaviour
         SkillBase skill = skills.Find(s => s.SkillName == skillName);
         if (skill is AoeDamageSkill aoeDamageSkill)
         {
-            aoeDamageSkill.PlayEffect(position);
+            aoeDamageSkill.PlayEffect(position, GetComponent<PlayerCore>());
         }
     }
-
     private void Update()
     {
         if (isLocalPlayer) HandleSkills();

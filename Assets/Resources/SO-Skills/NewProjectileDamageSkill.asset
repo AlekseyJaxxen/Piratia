@@ -29,5 +29,6 @@ MonoBehaviour:
     type: 3}
   effectRadiusPrefab: {fileID: 0}
   damageAmount: 2100
-  projectilePrefab: {fileID: 105246, guid: 305722bc3bbbf1f44aa7890efb7f31d9, type: 3}
+  projectilePrefab: {fileID: 3990349598840729365, guid: 6eb4cabc9ef4e984cbc851661b6969ff,
+    type: 3}
   impactEffectPrefab: {fileID: 0}

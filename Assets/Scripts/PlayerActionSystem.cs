@@ -299,52 +299,6 @@ public class PlayerActionSystem : NetworkBehaviour
         CompleteAction();
     }
 
-    private IEnumerator CastSkillAction(Vector3 targetPosition, ISkill skillToCast)
-    {
-        if (_core == null || _core.Movement == null)
-        {
-            Debug.LogError("[PlayerActionSystem] Cannot perform CastSkillAction: _core or Movement is null");
-            CompleteAction();
-            yield break;
-        }
-        float originalStoppingDistance = _core.Movement.Agent.stoppingDistance;
-        _core.Movement.Agent.stoppingDistance = 0f;
-        while (true)
-        {
-            if (_core.isDead || _core.isStunned)
-            {
-                Debug.Log("[PlayerActionSystem] Skill cast stopped: player is dead or stunned");
-                _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
-                CompleteAction();
-                yield break;
-            }
-            float distance = Vector3.Distance(transform.position, targetPosition);
-            float effectiveRange = skillToCast is ProjectileDamageSkill ? skillToCast.Range - 1f : skillToCast.Range;
-            if (distance <= effectiveRange)
-            {
-                _core.Movement.StopMovement();
-                _core.Movement.RotateTo(targetPosition - transform.position);
-                skillToCast.Execute(_core, targetPosition, null);
-                if (((SkillBase)skillToCast).CastTime > 0)
-                {
-                    _isCasting = true;
-                    yield return new WaitForSeconds(((SkillBase)skillToCast).CastTime);
-                    _isCasting = false;
-                }
-                _core.Skills.CancelSkillSelection();
-                _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
-                CompleteAction();
-                yield break;
-            }
-            else
-            {
-                _core.Movement.MoveTo(targetPosition);
-                _core.Movement.UpdateRotation();
-            }
-            yield return null;
-        }
-    }
-
     private IEnumerator CastSkillAction(GameObject targetObject, ISkill skillToCast)
     {
         if (_core == null || _core.Movement == null)
@@ -362,6 +316,7 @@ public class PlayerActionSystem : NetworkBehaviour
         _core.Combat.SetCurrentTarget(targetObject);
         float originalStoppingDistance = _core.Movement.Agent.stoppingDistance;
         _core.Movement.Agent.stoppingDistance = 0f;
+        const float castRangeOffset = 0.2f; // Уменьшение радиуса для начала каста
         while (true)
         {
             if (_core.isDead || _core.isStunned)
@@ -372,7 +327,7 @@ public class PlayerActionSystem : NetworkBehaviour
                 yield break;
             }
             float distance = Vector3.Distance(transform.position, targetObject.transform.position);
-            float effectiveRange = skillToCast is ProjectileDamageSkill ? skillToCast.Range - 1f : skillToCast.Range;
+            float effectiveRange = skillToCast.Range - castRangeOffset; // Уменьшаем радиус на 0.2
             if (distance <= effectiveRange)
             {
                 _core.Movement.StopMovement();
@@ -392,6 +347,53 @@ public class PlayerActionSystem : NetworkBehaviour
             else
             {
                 _core.Movement.MoveTo(targetObject.transform.position);
+                _core.Movement.UpdateRotation();
+            }
+            yield return null;
+        }
+    }
+
+    private IEnumerator CastSkillAction(Vector3 targetPosition, ISkill skillToCast)
+    {
+        if (_core == null || _core.Movement == null)
+        {
+            Debug.LogError("[PlayerActionSystem] Cannot perform CastSkillAction: _core or Movement is null");
+            CompleteAction();
+            yield break;
+        }
+        float originalStoppingDistance = _core.Movement.Agent.stoppingDistance;
+        _core.Movement.Agent.stoppingDistance = 0f;
+        const float castRangeOffset = 0.2f; // Уменьшение радиуса для начала каста
+        while (true)
+        {
+            if (_core.isDead || _core.isStunned)
+            {
+                Debug.Log("[PlayerActionSystem] Skill cast stopped: player is dead or stunned");
+                _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
+                CompleteAction();
+                yield break;
+            }
+            float distance = Vector3.Distance(transform.position, targetPosition);
+            float effectiveRange = skillToCast.Range - castRangeOffset; // Уменьшаем радиус на 0.2
+            if (distance <= effectiveRange)
+            {
+                _core.Movement.StopMovement();
+                _core.Movement.RotateTo(targetPosition - transform.position);
+                skillToCast.Execute(_core, targetPosition, null);
+                if (((SkillBase)skillToCast).CastTime > 0)
+                {
+                    _isCasting = true;
+                    yield return new WaitForSeconds(((SkillBase)skillToCast).CastTime);
+                    _isCasting = false;
+                }
+                _core.Skills.CancelSkillSelection();
+                _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
+                CompleteAction();
+                yield break;
+            }
+            else
+            {
+                _core.Movement.MoveTo(targetPosition);
                 _core.Movement.UpdateRotation();
             }
             yield return null;
