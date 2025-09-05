@@ -5,7 +5,8 @@ public enum CharacterClass
     Warrior,
     Mage,
     Archer,
-    Monster
+    Monster,
+    Tank
 }
 
 public enum DamageType

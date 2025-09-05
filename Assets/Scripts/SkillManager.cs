@@ -7,7 +7,7 @@ public class SkillManager : MonoBehaviour
     [SerializeField] private List<SkillBase> warriorSkills = new List<SkillBase>();
     [SerializeField] private List<SkillBase> mageSkills = new List<SkillBase>();
     [SerializeField] private List<SkillBase> archerSkills = new List<SkillBase>();
-
+    [SerializeField] private List<SkillBase> tankSkills = new List<SkillBase>(); // Добавляем список для Tank
     public static SkillManager Instance { get; private set; }
 
     private void Awake()
@@ -21,10 +21,10 @@ public class SkillManager : MonoBehaviour
         {
             Destroy(gameObject);
         }
-
         Debug.Log($"[SkillManager] Warrior skills: {string.Join(", ", warriorSkills.Select(s => s != null ? s.SkillName : "null"))}");
         Debug.Log($"[SkillManager] Mage skills: {string.Join(", ", mageSkills.Select(s => s != null ? s.SkillName : "null"))}");
         Debug.Log($"[SkillManager] Archer skills: {string.Join(", ", archerSkills.Select(s => s != null ? s.SkillName : "null"))}");
+        Debug.Log($"[SkillManager] Tank skills: {string.Join(", ", tankSkills.Select(s => s != null ? s.SkillName : "null"))}");
     }
 
     public List<SkillBase> GetSkillsForClass(CharacterClass characterClass)
@@ -41,6 +41,12 @@ public class SkillManager : MonoBehaviour
             case CharacterClass.Archer:
                 selectedSkills = archerSkills;
                 break;
+            case CharacterClass.Tank:
+                selectedSkills = tankSkills;
+                break;
+            case CharacterClass.Monster:
+                Debug.LogWarning($"[SkillManager] No skills defined for class {characterClass}");
+                return new List<SkillBase>();
             default:
                 Debug.LogError($"[SkillManager] No skills defined for class {characterClass}");
                 return new List<SkillBase>();

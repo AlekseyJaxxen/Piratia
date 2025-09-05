@@ -35,32 +35,32 @@ public class CharacterStats : NetworkBehaviour
     public int intelligence = 5;
     [Header("Combat Stats")]
     [SyncVar]
-    public float movementSpeed = 8f;
+    public float movementSpeed;
     [SyncVar]
-    public int maxHealth = 1000;
+    public int maxHealth;
     [SyncVar(hook = nameof(OnMinAttackChangedHook))]
-    public int minAttack = 5;
+    public int minAttack;
     [SyncVar(hook = nameof(OnMaxAttackChangedHook))]
-    public int maxAttack = 5;
+    public int maxAttack;
     [SyncVar]
-    public float attackSpeed = 1.0f;
+    public float attackSpeed;
     [SyncVar]
-    public float dodgeChance = 5.0f;
+    public float dodgeChance;
     [SyncVar]
-    public float hitChance = 80.0f;
+    public float hitChance;
     [SyncVar]
-    public float criticalHitChance = 15.0f;
+    public float criticalHitChance;
     [SyncVar]
     public float criticalHitMultiplier = 2.0f;
     [Header("New Attributes")]
     [SyncVar]
-    public int maxMana = 100;
+    public int maxMana;
     [SyncVar]
-    public int armor = 0;
+    public int armor;
     [SyncVar]
-    public float physicalResistance = 0f;
+    public float physicalResistance;
     [SyncVar]
-    public float magicDamageMultiplier = 1.0f;
+    public float magicDamageMultiplier;
     [Header("Current Stats")]
     [SyncVar(hook = nameof(OnManaChanged))]
     public int currentMana;
@@ -74,16 +74,21 @@ public class CharacterStats : NetworkBehaviour
     public event System.Action<int, int> OnAccuracyChangedEvent;
     public event System.Action<int, int> OnMinAttackChangedEvent;
     public event System.Action<int, int> OnMaxAttackChangedEvent;
-    public event System.Action<CharacterClass, CharacterClass> OnCharacterClassChangedEvent; // Добавлено публичное событие
+    public event System.Action<CharacterClass, CharacterClass> OnCharacterClassChangedEvent;
 
     private static readonly int[] ExperiencePerLevel = new int[100];
     private bool isClassSet = false;
+    private Health healthComponent; // Переменная для компонента Health
+
+    private void Awake()
+    {
+        healthComponent = GetComponent<Health>(); // Исправление: получаем компонент Health
+    }
 
     public override void OnStartServer()
     {
         base.OnStartServer();
         InitializeExperienceTable();
-        // Откладываем инициализацию до вызова CmdSetClass
         StartCoroutine(WaitForClassInitialization());
     }
 
@@ -113,35 +118,18 @@ public class CharacterStats : NetworkBehaviour
     [Server]
     public void LoadClassData()
     {
+        classData = Resources.Load<ClassData>($"ClassData/{characterClass}");
         if (classData == null)
         {
-            classData = Resources.Load<ClassData>($"ClassData/{characterClass}");
-            if (classData == null)
-            {
-                Debug.LogWarning($"[CharacterStats] ClassData is null for {characterClass}");
-                return;
-            }
+            Debug.LogWarning($"[CharacterStats] ClassData is null for {characterClass}");
+            return;
         }
-        characterClass = classData.characterClass;
         strength = classData.strength;
         agility = classData.agility;
         constitution = classData.constitution;
         spirit = classData.spirit;
         accuracy = classData.accuracy;
-        maxHealth = classData.maxHealth;
-        maxMana = classData.maxMana;
-        movementSpeed = classData.movementSpeed;
-        // Синхронизация с компонентами
-        Health healthComponent = GetComponent<Health>();
-        if (healthComponent != null)
-        {
-            healthComponent.SetMaxHealth(maxHealth);
-        }
-        PlayerMovement movementComponent = GetComponent<PlayerMovement>();
-        if (movementComponent != null)
-        {
-            movementComponent.SetMovementSpeed(movementSpeed);
-        }
+        intelligence = classData.intelligence;
         Debug.Log($"[CharacterStats] Loaded ClassData: class={characterClass}, strength={strength}, maxHealth={maxHealth}, maxMana={maxMana}");
     }
 
@@ -166,7 +154,7 @@ public class CharacterStats : NetworkBehaviour
         LoadClassData();
         CalculateDerivedStats();
         StartCoroutine(InitializeSkills());
-        OnCharacterClassChangedEvent?.Invoke(oldClass, newClass); // Вызываем публичное событие
+        OnCharacterClassChangedEvent?.Invoke(oldClass, newClass);
     }
 
     [Command]
@@ -184,15 +172,16 @@ public class CharacterStats : NetworkBehaviour
         classData = newClassData;
         characterClass = newClass;
         isClassSet = true;
-        strength = 5;
-        agility = 5;
-        constitution = 5;
-        spirit = 5;
-        accuracy = 5;
-        maxHealth = 1000;
-        maxMana = 100;
-        movementSpeed = 8f;
-        LoadClassData();
+
+        // Загружаем начальные атрибуты из ClassData
+        strength = classData.strength;
+        agility = classData.agility;
+        constitution = classData.constitution;
+        spirit = classData.spirit;
+        accuracy = classData.accuracy;
+        intelligence = classData.intelligence;
+
+        // Рассчитываем производные характеристики
         CalculateDerivedStats();
         StartCoroutine(InitializeSkills());
         RpcSyncSkills(newClass);
@@ -256,37 +245,42 @@ public class CharacterStats : NetworkBehaviour
     [Server]
     public void CalculateDerivedStats()
     {
-        int newMaxHealth = 1000 + (constitution * 20);
-        Health healthComponent = GetComponent<Health>();
+        if (classData == null)
+        {
+            Debug.LogWarning($"[CharacterStats] ClassData is null, loading for {characterClass}");
+            LoadClassData();
+            if (classData == null) return;
+        }
+
+        // Расчет характеристик с использованием базовых значений и множителей из ClassData
+        maxHealth = classData.baseHealth + Mathf.RoundToInt(constitution * 20 * classData.constitutionMultiplier);
+        maxMana = classData.baseMana + Mathf.RoundToInt(spirit * 10 * classData.spiritMultiplier + intelligence * 5 * classData.intelligenceMultiplier);
+        minAttack = Mathf.RoundToInt(classData.baseMinAttack + strength * 2 * classData.strengthMultiplier);
+        maxAttack = Mathf.RoundToInt(classData.baseMaxAttack + strength * 3 * classData.strengthMultiplier);
+        armor = Mathf.RoundToInt(classData.baseDef + strength * 1 * classData.strengthMultiplier);
+        movementSpeed = classData.baseMovementSpeed * classData.agilityMultiplier;
+        attackSpeed = 1.0f + (agility * 0.05f * classData.agilityMultiplier);
+        dodgeChance = 5.0f + (agility * 0.5f * classData.agilityMultiplier);
+        hitChance = 80.0f + (accuracy * 1.0f * classData.accuracyMultiplier);
+        criticalHitChance = 15.0f + (agility * 0.2f * classData.agilityMultiplier);
+        physicalResistance = constitution * 0.1f * classData.constitutionMultiplier;
+        magicDamageMultiplier = 1.0f + (spirit * 0.05f * classData.spiritMultiplier);
+
+        // Ограничиваем текущую ману
+        currentMana = Mathf.Min(currentMana, maxMana);
+
+        // Синхронизация с компонентами
         if (healthComponent != null)
         {
-            healthComponent.SetMaxHealth(newMaxHealth);
+            healthComponent.SetMaxHealth(maxHealth);
         }
-        attackSpeed = 1.0f + (agility * 0.05f);
-        dodgeChance = 5.0f + (agility * 0.5f);
-        hitChance = 80.0f + (accuracy * 1.0f);
-        criticalHitChance = 15.0f + (agility * 0.2f);
-        maxMana = 100 + (intelligence * 5) + (spirit * 5);
-        armor = constitution * 3;
-        physicalResistance = 0f;
-        magicDamageMultiplier = 1.0f + (spirit * 0.05f);
-        currentMana = Mathf.Min(currentMana, maxMana);
-        if (characterClass == CharacterClass.Warrior)
+        PlayerMovement movementComponent = GetComponent<PlayerMovement>();
+        if (movementComponent != null)
         {
-            minAttack = 5 + (strength * 3);
-            maxAttack = 10 + (strength * 3);
+            movementComponent.SetMovementSpeed(movementSpeed);
         }
-        else if (characterClass == CharacterClass.Archer)
-        {
-            minAttack = 5 + (accuracy * 2);
-            maxAttack = 10 + (accuracy * 2);
-        }
-        else
-        {
-            minAttack = 5 + (intelligence * 2);
-            maxAttack = 10 + (intelligence * 2);
-        }
-        Debug.Log($"[Server] CalculateDerivedStats: class={characterClass}, strength={strength}, minAttack={minAttack}, maxAttack={maxAttack}, attackSpeed={attackSpeed}, dodgeChance={dodgeChance}, hitChance={hitChance}");
+
+        Debug.Log($"[Server] CalculateDerivedStats: class={characterClass}, strength={strength}, minAttack={minAttack}, maxAttack={maxAttack}, maxHealth={maxHealth}, maxMana={maxMana}, armor={armor}, movementSpeed={movementSpeed}, attackSpeed={attackSpeed}");
     }
 
     [Server]
@@ -311,6 +305,9 @@ public class CharacterStats : NetworkBehaviour
             case "accuracy":
                 accuracy++;
                 break;
+            case "intelligence":
+                intelligence++;
+                break;
             default:
                 characteristicPoints++;
                 return false;
@@ -330,6 +327,7 @@ public class CharacterStats : NetworkBehaviour
             case "spirit": return spirit;
             case "constitution": return constitution;
             case "accuracy": return accuracy;
+            case "intelligence": return intelligence;
             default: return 0;
         }
     }
@@ -498,13 +496,15 @@ public class CharacterStats : NetworkBehaviour
     [Server]
     public void ApplyDebuff(string stat, float mult, float dur)
     {
-        // Аналогично, но mult < 1
+        int original = GetStatValue(stat);
+        SetStat(stat, Mathf.RoundToInt(original * mult));
+        StartCoroutine(RemoveBuff(stat, original, dur));
     }
 
     [Server]
     public void ToggleBuff(string type, float value)
     {
-        // Логика toggle
+        // Логика toggle баффа
     }
 
     [Server]
@@ -517,6 +517,7 @@ public class CharacterStats : NetworkBehaviour
             case "spirit": spirit = value; break;
             case "constitution": constitution = value; break;
             case "accuracy": accuracy = value; break;
+            case "intelligence": intelligence = value; break;
         }
     }
 }

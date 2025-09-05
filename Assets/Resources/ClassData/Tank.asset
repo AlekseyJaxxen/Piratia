@@ -10,27 +10,27 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f27f218145a0f7245906a1ca22931a44, type: 3}
-  m_Name: Archer
+  m_Name: Tank
   m_EditorClassIdentifier: Assembly-CSharp::ClassData
-  characterClass: 2
-  strength: 5
-  agility: 50
-  constitution: 50
+  characterClass: 4
+  strength: 120
+  agility: 20
+  constitution: 120
   spirit: 5
-  accuracy: 200
+  accuracy: 5
   intelligence: 5
-  baseHealth: 3000
+  baseHealth: 8000
   baseMana: 100
-  baseMinAttack: 200
-  baseMaxAttack: 1000
+  baseMinAttack: 100
+  baseMaxAttack: 200
   baseDef: 10
-  baseMovementSpeed: 11
-  strengthMultiplier: 1
+  baseMovementSpeed: 8
+  strengthMultiplier: 2
   agilityMultiplier: 1
-  constitutionMultiplier: 2
+  constitutionMultiplier: 10
   spiritMultiplier: 1
-  accuracyMultiplier: 3
+  accuracyMultiplier: 1
   intelligenceMultiplier: 1
-  modelPrefab: {fileID: 8571246296574977236, guid: a912daf36d9a2c4469303b7802c8e045,
+  modelPrefab: {fileID: 919132149155446097, guid: 6a001614733561744867b7e1d68f6314,
     type: 3}
-  animatorController: {fileID: 9100000, guid: 9dbaf61c1b1e78e45b6487b8cd5cc745, type: 2}
+  animatorController: {fileID: 9100000, guid: f96bd487256e1b643877be8834333d99, type: 2}

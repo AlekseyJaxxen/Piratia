@@ -44680,6 +44680,7 @@ MonoBehaviour:
   warriorButton: {fileID: 0}
   mageButton: {fileID: 0}
   archerButton: {fileID: 0}
+  tankButton: {fileID: 0}
   nameInputField: {fileID: 134294405}
   hostButton: {fileID: 0}
   clientButton: {fileID: 0}
@@ -56895,6 +56896,13 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 701db164e762e8d4eb55ee37444ee209, type: 2}
   - {fileID: 11400000, guid: 416c0a404f8283143b92925216e31ace, type: 2}
   - {fileID: 11400000, guid: 3b33861125ed1b042a157c074889acef, type: 2}
+  tankSkills:
+  - {fileID: 11400000, guid: 66e41989aa5f4f94bba13713265dfd2e, type: 2}
+  - {fileID: 11400000, guid: 99c8eac67305e384f974c7ef9b54607c, type: 2}
+  - {fileID: 11400000, guid: 47756f8d7bab7a049bcb586bb9f1018d, type: 2}
+  - {fileID: 11400000, guid: 701db164e762e8d4eb55ee37444ee209, type: 2}
+  - {fileID: 11400000, guid: 416c0a404f8283143b92925216e31ace, type: 2}
+  - {fileID: 11400000, guid: b7c06ffec485dd046acf254cd4bbccee, type: 2}
 --- !u!4 &1855098298
 Transform:
   m_ObjectHideFlags: 0

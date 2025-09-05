@@ -14,6 +14,7 @@ public class PlayerUI_Team : MonoBehaviour
     public Button warriorButton;
     public Button mageButton;
     public Button archerButton;
+    public Button tankButton; // Добавляем кнопку для Tank
     public TMP_InputField nameInputField;
     public Button hostButton;
     public Button clientButton;
@@ -21,6 +22,7 @@ public class PlayerUI_Team : MonoBehaviour
     public Button disconnectButton;
     public Button returnToMainMenuButton;
     private static PlayerInfo tempPlayerInfo = new PlayerInfo();
+
     public class PlayerInfo
     {
         public string name = "Player";
@@ -28,6 +30,7 @@ public class PlayerUI_Team : MonoBehaviour
         public int prefabIndex = 0;
         public CharacterClass characterClass = CharacterClass.Warrior;
     }
+
     void Start()
     {
         if (redTeamButton != null)
@@ -57,6 +60,10 @@ public class PlayerUI_Team : MonoBehaviour
         if (archerButton != null)
         {
             archerButton.onClick.AddListener(() => OnClassSelected(CharacterClass.Archer));
+        }
+        if (tankButton != null)
+        {
+            tankButton.onClick.AddListener(() => OnClassSelected(CharacterClass.Tank));
         }
         if (hostButton != null)
         {
@@ -90,6 +97,7 @@ public class PlayerUI_Team : MonoBehaviour
         UpdateClassButtonColors(tempPlayerInfo.characterClass);
         Debug.Log($"[PlayerUI_Team] Initialized with tempPlayerInfo: Name={tempPlayerInfo.name}, Team={tempPlayerInfo.team}, PrefabIndex={tempPlayerInfo.prefabIndex}, Class={tempPlayerInfo.characterClass}");
     }
+
     private void OnClassSelected(CharacterClass selectedClass)
     {
         tempPlayerInfo.characterClass = selectedClass;
@@ -101,6 +109,7 @@ public class PlayerUI_Team : MonoBehaviour
             Debug.Log($"[PlayerUI_Team] Sent CmdSetClass: {selectedClass}");
         }
     }
+
     public void OnHostClicked()
     {
         OnChangeNameClicked();
@@ -113,6 +122,7 @@ public class PlayerUI_Team : MonoBehaviour
             StartCoroutine(SendInitialPlayerInfoForHost());
         }
     }
+
     public void OnClientClicked()
     {
         OnChangeNameClicked();
@@ -125,6 +135,7 @@ public class PlayerUI_Team : MonoBehaviour
             StartCoroutine(SendInitialPlayerInfoForClient());
         }
     }
+
     private IEnumerator SendInitialPlayerInfoForHost()
     {
         yield return new WaitUntil(() => NetworkServer.active && PlayerCore.localPlayerCoreInstance != null);
@@ -133,6 +144,7 @@ public class PlayerUI_Team : MonoBehaviour
         PlayerCore.localPlayerCoreInstance.CmdSetClass(tempPlayerInfo.characterClass);
         Debug.Log($"[PlayerUI_Team] Sent initial player info for host: Name={tempPlayerInfo.name}, Team={tempPlayerInfo.team}, Class={tempPlayerInfo.characterClass}");
     }
+
     private IEnumerator SendInitialPlayerInfoForClient()
     {
         yield return new WaitUntil(() => NetworkClient.isConnected && PlayerCore.localPlayerCoreInstance != null);
@@ -142,6 +154,7 @@ public class PlayerUI_Team : MonoBehaviour
         PlayerCore.localPlayerCoreInstance.CmdSetClass(tempPlayerInfo.characterClass);
         Debug.Log($"[PlayerUI_Team] Sent initial player info for client: Name={tempPlayerInfo.name}, Team={tempPlayerInfo.team}, Class={tempPlayerInfo.characterClass}");
     }
+
     private void OnTeamSelected(PlayerTeam selectedTeam)
     {
         tempPlayerInfo.team = selectedTeam;
@@ -168,11 +181,13 @@ public class PlayerUI_Team : MonoBehaviour
             }
         }
     }
+
     private void OnPrefabSelected(int index)
     {
         tempPlayerInfo.prefabIndex = index;
         Debug.Log($"Выбран префаб игрока локально: {index}");
     }
+
     private void OnChangeNameClicked()
     {
         string newName = nameInputField.text;
@@ -199,6 +214,7 @@ public class PlayerUI_Team : MonoBehaviour
             }
         }
     }
+
     public void OnDisconnectClicked()
     {
         if (NetworkServer.active && NetworkClient.isConnected)
@@ -212,6 +228,7 @@ public class PlayerUI_Team : MonoBehaviour
             Debug.Log("Клиент отключился.");
         }
     }
+
     public void OnReturnToMainMenuClicked()
     {
         if (NetworkServer.active && NetworkClient.isConnected)
@@ -225,14 +242,17 @@ public class PlayerUI_Team : MonoBehaviour
             Debug.Log("Клиент отключился и возвращается в главное меню.");
         }
     }
+
     public static PlayerTeam GetTempPlayerTeam()
     {
         return tempPlayerInfo.team;
     }
+
     public static PlayerInfo GetTempPlayerInfo()
     {
         return tempPlayerInfo;
     }
+
     private void UpdateButtonColors(PlayerTeam currentTeam)
     {
         Color selectedColor = Color.yellow;
@@ -242,6 +262,7 @@ public class PlayerUI_Team : MonoBehaviour
         if (blueTeamButton != null)
             blueTeamButton.GetComponent<Image>().color = (currentTeam == PlayerTeam.Blue) ? selectedColor : defaultColor;
     }
+
     private void UpdateClassButtonColors(CharacterClass currentClass)
     {
         Color selectedColor = Color.yellow;
@@ -252,5 +273,7 @@ public class PlayerUI_Team : MonoBehaviour
             mageButton.GetComponent<Image>().color = (currentClass == CharacterClass.Mage) ? selectedColor : defaultColor;
         if (archerButton != null)
             archerButton.GetComponent<Image>().color = (currentClass == CharacterClass.Archer) ? selectedColor : defaultColor;
+        if (tankButton != null)
+            tankButton.GetComponent<Image>().color = (currentClass == CharacterClass.Tank) ? selectedColor : defaultColor;
     }
 }
