@@ -153,3 +153,214 @@ Client/logs.txt
 Assets/Textures/icon/
 Client/
 Client.rar
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Combat/BlockingLoop.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Combat/BowShot.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Combat/Buff.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Combat/CastingLoop.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Combat/Death.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Combat/GetHit.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Combat/IdleCombat.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Combat/MeleeAttack_OneHanded.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Combat/MeleeAttack_TwoHanded.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Combat/PunchLeft.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Combat/PunchRight.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Combat/SpellCast.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Combat/StunnedLoop.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Gathering/Gathering.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Gathering/MiningLoop.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Movement/FallingLoop.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Movement/Idle.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Movement/Jumps.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Movement/JumpWhileRunning.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Movement/RollBackward.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Movement/RollForward.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Movement/RollLeft.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Movement/RollRight.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Movement/RunBackward.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Movement/RunBackwardLeft.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Movement/RunBackwardRight.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Movement/RunForward.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Movement/RunLeft.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Movement/RunRight.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Movement/Sprint.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Movement/StrafeLeft.fbx
+Assets/Blink/Art/Animations/Animations_Starter_Pack/Movement/StrafeRight.fbx
+Assets/Epic Toon FX/Demo/Materials/wood 1.mat
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Materials/Low Poly Weapon Golden.mat
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Materials/Low Poly Weapon Texture.mat
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Anvil_Hammer.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Arming_Sword.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Armor_Piercing_Arrow.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Bat.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Bearded_Axe.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Big_Rock.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Blunt_Arrow.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Bone_Shiv.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Bow.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Broadhead_Arrow.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Bullet_Arrow.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Crossbow.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Cutlass.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Dagger.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Double_Axe.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Double_Hammer.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Falchion.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Flared_Spear.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Great_Sword.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Halberd.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Hatchet.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Kopesh.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Kriegmesser.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Kukri.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Leaf_Blade.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Macuahuitl.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Offset_Sword.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Orc_Sword.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Pebble.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Pitchfork.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Rock.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Scimitar.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Spear.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Spiked_Club.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/War_Hammer.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Prefabs/Wizard_Staff.prefab
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Scenes/Lighting_Settings.lighting
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Scenes/Weapons_Demo.unity
+Assets/Low Poly Medieval Weapons (Melee + Ranged)/Scenes/Weapons_Overview.unity
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Human Spellcasting Animations - Unity Demo Scene.unity
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/AnimatorControllers/HumanF@CastingBlock01.overrideController
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/AnimatorControllers/HumanF@CastingDamages.overrideController
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/AnimatorControllers/HumanF@CastingDeaths.overrideController
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/AnimatorControllers/HumanF@CastingDodge01.overrideController
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/AnimatorControllers/HumanF@CastingIdles.overrideController
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/AnimatorControllers/HumanF@IdlesBook_L.overrideController
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/AnimatorControllers/HumanF@IdlesBook_R.overrideController
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/AnimatorControllers/HumanF@MagicAttackCalls.overrideController
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/AnimatorControllers/HumanF@MagicAttackDirectionals.overrideController
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/AnimatorControllers/HumanF@MagicAttackGrounds.overrideController
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/AnimatorControllers/HumanF@MagicAttackOmnidirectionals.overrideController
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/AnimatorControllers/HumanF@RunningDirectionalCasts.overrideController
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/AnimatorControllers/HumanF@SpecialMagicAttack01.overrideController
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/AnimatorControllers/HumanM@CastingBlock01.controller
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/AnimatorControllers/HumanM@CastingDamages.controller
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/AnimatorControllers/HumanM@CastingDeaths.controller
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/AnimatorControllers/HumanM@CastingDodge01.controller
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/AnimatorControllers/HumanM@CastingIdles.controller
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/AnimatorControllers/HumanM@IdlesBook_L.controller
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/AnimatorControllers/HumanM@IdlesBook_R.controller
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/AnimatorControllers/HumanM@MagicAttackCalls.controller
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/AnimatorControllers/HumanM@MagicAttackDirectionals.controller
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/AnimatorControllers/HumanM@MagicAttackGrounds.controller
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/AnimatorControllers/HumanM@MagicAttackOmnidirectionals.controller
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/AnimatorControllers/HumanM@RunningDirectionalCasts.controller
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/AnimatorControllers/HumanM@SpecialMagicAttack01.controller
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Materials/HumanSpellcastingAnimations_Floor.mat
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Materials/HumanSpellcastingAnimations_Props.mat
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Materials/Spells/HumanSpellcastingAnimations_Spell_Burn_Mark.mat
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Materials/Spells/HumanSpellcastingAnimations_Spell_Fireball.mat
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Materials/Spells/HumanSpellcastingAnimations_Spell_Flame.mat
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Materials/Spells/HumanSpellcastingAnimations_Spell_Heal_Aura.mat
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Materials/Spells/HumanSpellcastingAnimations_Spell_Heal_Base.mat
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Materials/Spells/HumanSpellcastingAnimations_Spell_Heal_Glow.mat
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Materials/Spells/HumanSpellcastingAnimations_Spell_Heal_Particles.mat
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Materials/Spells/HumanSpellcastingAnimations_Spell_Heal_Seal.mat
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Materials/Spells/HumanSpellcastingAnimations_Spell_Heal_Sparks.mat
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Materials/Spells/HumanSpellcastingAnimations_Spell_Ice_Aura.mat
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Materials/Spells/HumanSpellcastingAnimations_Spell_Ice_Sparks.mat
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Materials/Spells/HumanSpellcastingAnimations_Spell_Ice_Spikes.mat
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Materials/Spells/HumanSpellcastingAnimations_Spell_Lightning01.mat
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Materials/Spells/HumanSpellcastingAnimations_Spell_Lightning02.mat
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Materials/Spells/HumanSpellcastingAnimations_Spell_Lightning03.mat
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Materials/Spells/HumanSpellcastingAnimations_Spell_LightningAura.mat
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Materials/Spells/HumanSpellcastingAnimations_Spell_LightningSpark.mat
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Materials/Spells/HumanSpellcastingAnimations_Spell_LightningWind.mat
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Materials/Spells/HumanSpellcastingAnimations_Spell_Ring.mat
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Materials/Spells/HumanSpellcastingAnimations_Spell_Smoke_Fire.mat
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Materials/Spells/HumanSpellcastingAnimations_Spell_Smoke_Ice.mat
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Materials/Spells/HumanSpellcastingAnimations_Spell_Smoke_Lighting.mat
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Materials/Spells/HumanSpellcastingAnimations_Spell_Spark.mat
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Models/Human_MageBook.fbx
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Models/Human_MageHat.fbx
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Models/Spells/Human_Spell_Ice.fbx
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Models/Spells/Human_Spell_Lightning_Ground.fbx
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Models/Spells/Human_Spell_Lightning_Strike.fbx
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Models/Spells/Human_Spell_Shield.fbx
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Models/Spells/Human_Spell_Shockwave_Cone.fbx
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Models/Spells/Human_Spell_Shockwave_Ground.fbx
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Models/Spells/Human_Spell_Shockwave_Sphere.fbx
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Models/Spells/Human_Spell_Spark.fbx
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Prefabs/Human_MageBook.prefab
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Prefabs/Human_MageHat.prefab
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Prefabs/HumanF_Dummy_Purple.prefab
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Prefabs/HumanM_Dummy_Purple.prefab
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Prefabs/Spells/Human_Spell_Fireball.prefab
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Prefabs/Spells/Human_Spell_Fireball_Large.prefab
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Prefabs/Spells/Human_Spell_Heal.prefab
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Prefabs/Spells/Human_Spell_Ice.prefab
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Prefabs/Spells/Human_Spell_LightningStrike.prefab
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Prefabs/Spells/Human_SpellAura_Fire.prefab
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Prefabs/Spells/Human_SpellAura_Heal.prefab
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Prefabs/Spells/Human_SpellAura_Ice.prefab
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Prefabs/Spells/Human_SpellAura_Lightning.prefab
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Textures/Human_Spell_Fireball_Texture.tga
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Textures/Human_Spell_Flame_Texture.tga
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Textures/Human_Spell_IceRing_Texture.tga
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Textures/Human_Spell_Ring_Texture.tga
+Assets/Kevin Iglesias/Human Animations/Unity Demo Scenes/Human Spellcasting Animations/Textures/Human_Spell_Smoke_Texture.tga
+Assets/Kevin Iglesias/Human Animations/Human Spellcasting Animations 2.0 FREE.pdf
+Assets/Kevin Iglesias/Human Animations/Animations/HumanSpellcastingAnimationsFREE_BlenderFiles.zip
+Assets/Kevin Iglesias/Human Animations/Animations/Female/Combat/Spellcasting/HumanF@CastingDamage01.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Female/Combat/Spellcasting/HumanF@CastingEnter01.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Female/Combat/Spellcasting/HumanF@CastingExit01.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Female/Combat/Spellcasting/HumanF@CastingIdle01.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Female/Combat/Spellcasting/MagicAttacks/Call/HumanF@MagicAttackCall1H01_L - Cast.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Female/Combat/Spellcasting/MagicAttacks/Call/HumanF@MagicAttackCall1H01_L - Load.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Female/Combat/Spellcasting/MagicAttacks/Call/HumanF@MagicAttackCall1H01_L.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Female/Combat/Spellcasting/MagicAttacks/Directional/HumanF@MagicAttackDirect1H01_L - Cast.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Female/Combat/Spellcasting/MagicAttacks/Directional/HumanF@MagicAttackDirect1H01_L - Load.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Female/Combat/Spellcasting/MagicAttacks/Directional/HumanF@MagicAttackDirect1H01_L.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Female/Combat/Spellcasting/MagicAttacks/Directional/HumanF@MagicAttackDirect1H01_R - Cast.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Female/Combat/Spellcasting/MagicAttacks/Directional/HumanF@MagicAttackDirect1H01_R - Load.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Female/Combat/Spellcasting/MagicAttacks/Directional/HumanF@MagicAttackDirect1H01_R.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Female/Combat/Spellcasting/MagicAttacks/Directional/HumanF@MagicAttackDirect2H01 - Cast.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Female/Combat/Spellcasting/MagicAttacks/Directional/HumanF@MagicAttackDirect2H01 - Load.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Female/Combat/Spellcasting/MagicAttacks/Directional/HumanF@MagicAttackDirect2H01.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Female/Combat/Spellcasting/MagicAttacks/Omnidirectional/HumanF@MagicAttackOmni01 - Cast.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Female/Combat/Spellcasting/MagicAttacks/Omnidirectional/HumanF@MagicAttackOmni01 - Load.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Female/Combat/Spellcasting/MagicAttacks/Omnidirectional/HumanF@MagicAttackOmni01.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Male/Combat/Spellcasting/HumanM@CastingDamage01.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Male/Combat/Spellcasting/HumanM@CastingEnter01.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Male/Combat/Spellcasting/HumanM@CastingExit01.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Male/Combat/Spellcasting/HumanM@CastingIdle01.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Male/Combat/Spellcasting/MagicAttacks/Call/HumanM@MagicAttackCall1H01_L - Cast.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Male/Combat/Spellcasting/MagicAttacks/Call/HumanM@MagicAttackCall1H01_L - Load.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Male/Combat/Spellcasting/MagicAttacks/Call/HumanM@MagicAttackCall1H01_L.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Male/Combat/Spellcasting/MagicAttacks/Directional/HumanM@MagicAttackDirect1H01_L - Cast.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Male/Combat/Spellcasting/MagicAttacks/Directional/HumanM@MagicAttackDirect1H01_L - Load.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Male/Combat/Spellcasting/MagicAttacks/Directional/HumanM@MagicAttackDirect1H01_L.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Male/Combat/Spellcasting/MagicAttacks/Directional/HumanM@MagicAttackDirect1H01_R - Cast.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Male/Combat/Spellcasting/MagicAttacks/Directional/HumanM@MagicAttackDirect1H01_R - Load.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Male/Combat/Spellcasting/MagicAttacks/Directional/HumanM@MagicAttackDirect1H01_R.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Male/Combat/Spellcasting/MagicAttacks/Directional/HumanM@MagicAttackDirect2H01 - Cast.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Male/Combat/Spellcasting/MagicAttacks/Directional/HumanM@MagicAttackDirect2H01 - Load.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Male/Combat/Spellcasting/MagicAttacks/Directional/HumanM@MagicAttackDirect2H01.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Male/Combat/Spellcasting/MagicAttacks/Omnidirectional/HumanM@MagicAttackOmni01 - Cast.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Male/Combat/Spellcasting/MagicAttacks/Omnidirectional/HumanM@MagicAttackOmni01 - Load.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Male/Combat/Spellcasting/MagicAttacks/Omnidirectional/HumanM@MagicAttackOmni01.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Female/Idles/HumanF@Idle01-Idle02.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Female/Idles/HumanF@Idle01-Idle03.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Female/Idles/HumanF@Idle02.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Female/Idles/HumanF@Idle02-Idle01.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Female/Idles/HumanF@Idle03.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Female/Idles/HumanF@Idle03-Idle01.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Masked Poses/HumanF@ObjectBook01_L.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Masked Poses/HumanF@ObjectBook01_R.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Masked Poses/HumanM@ObjectBook01_L.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Masked Poses/HumanM@ObjectBook01_R.fbx
+Assets/Kevin Iglesias/Human Animations/Materials/HumanAnimations_Dummy-Purple.mat
+Assets/Kevin Iglesias/Human Animations/Animations/Male/Idles/HumanM@Idle01-Idle02.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Male/Idles/HumanM@Idle01-Idle03.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Male/Idles/HumanM@Idle02.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Male/Idles/HumanM@Idle02-Idle01.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Male/Idles/HumanM@Idle03.fbx
+Assets/Kevin Iglesias/Human Animations/Animations/Male/Idles/HumanM@Idle03-Idle01.fbx
