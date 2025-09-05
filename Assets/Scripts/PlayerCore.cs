@@ -42,12 +42,20 @@ public class PlayerCore : NetworkBehaviour
     public bool isDead = false;
     [SyncVar(hook = nameof(OnStunStateChanged))]
     public bool isStunned = false;
+    [SyncVar(hook = nameof(OnSilenceStateChanged))]
+    public bool isSilenced = false;
     [SyncVar]
-    private ControlEffectType currentControlEffect = ControlEffectType.None;
+    private float stunEffectEndTime = 0f;
     [SyncVar]
-    private float controlEffectEndTime = 0f;
+    private int stunEffectWeight = 0;
     [SyncVar]
-    private int currentEffectWeight = 0;
+    private float slowEffectEndTime = 0f;
+    [SyncVar]
+    private int slowEffectWeight = 0;
+    [SyncVar]
+    private float silenceEffectEndTime = 0f;
+    [SyncVar]
+    private int silenceEffectWeight = 0;
     [SyncVar]
     private float _slowPercentage = 0f;
     private float _originalSpeed = 0f;
@@ -62,11 +70,8 @@ public class PlayerCore : NetworkBehaviour
     private PlayerUI_Team _playerUI_Team;
     public static PlayerCore localPlayerCoreInstance;
     [SerializeField] private BoxCollider reviveCollider;
-
     [SyncVar] public Vector3 deathPosition;
-
     [SerializeField] private ReviveRequestUI reviveRequestUI;
-
     [SyncVar] public float pendingReviveHpFraction = 0f;
 
     protected virtual void Awake()
@@ -89,7 +94,6 @@ public class PlayerCore : NetworkBehaviour
         boxCollider = GetComponent<BoxCollider>();
         reviveCollider = transform.Find("ReviveCollider")?.GetComponent<BoxCollider>();
         if (reviveCollider != null) reviveCollider.enabled = false;
-        reviveCollider.enabled = false;
         reviveRequestUI = GetComponentInChildren<ReviveRequestUI>();
     }
 
@@ -104,9 +108,17 @@ public class PlayerCore : NetworkBehaviour
     [Server]
     protected virtual void ServerUpdate()
     {
-        if (currentControlEffect != ControlEffectType.None && Time.time >= controlEffectEndTime)
+        if (isStunned && Time.time >= stunEffectEndTime)
         {
-            ClearControlEffect();
+            ClearStunEffect();
+        }
+        if (_slowPercentage > 0f && Time.time >= slowEffectEndTime)
+        {
+            ClearSlowEffect();
+        }
+        if (isSilenced && Time.time >= silenceEffectEndTime)
+        {
+            ClearSilenceEffect();
         }
         if (Time.time >= _lastManaRegenTime + manaRegenInterval)
         {
@@ -144,9 +156,7 @@ public class PlayerCore : NetworkBehaviour
         }
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
-
         reviveRequestUI = GetComponentInChildren<ReviveRequestUI>();
-
     }
 
     public override void OnStartClient()
@@ -170,9 +180,7 @@ public class PlayerCore : NetworkBehaviour
                 healthBarUI.UpdateHP(Health.CurrentHealth, Health.MaxHealth);
             }
         }
-
         reviveRequestUI = GetComponentInChildren<ReviveRequestUI>(true);
-
         if (nameTagUI != null)
         {
             nameTagUI.target = transform;
@@ -228,9 +236,10 @@ public class PlayerCore : NetworkBehaviour
     {
         SetDeathState(false);
         isStunned = false;
-        currentControlEffect = ControlEffectType.None;
-        currentEffectWeight = 0;
-        _slowPercentage = 0f;
+        isSilenced = false;
+        ClearStunEffect();
+        ClearSlowEffect();
+        ClearSilenceEffect();
         if (Movement != null) Movement.SetMovementSpeed(Stats.movementSpeed);
         if (Health != null)
         {
@@ -252,7 +261,7 @@ public class PlayerCore : NetworkBehaviour
             if (ActionSystem != null)
             {
                 ActionSystem.enabled = true;
-                ActionSystem.Init(this);  // Повторный Init для сброса состояний
+                ActionSystem.Init(this);
             }
             deathScreenUI.HideDeathScreen();
             if (reviveRequestUI != null) reviveRequestUI.Hide();
@@ -261,7 +270,7 @@ public class PlayerCore : NetworkBehaviour
                 healthBarUI.gameObject.SetActive(Health.CurrentHealth > 0);
                 healthBarUI.UpdateHP(Health.CurrentHealth, Health.MaxHealth);
             }
-            GetComponent<PlayerAnimationSystem>()?.ResetAnimations();  // Сброс анимаций
+            GetComponent<PlayerAnimationSystem>()?.ResetAnimations();
         }
     }
 
@@ -332,7 +341,7 @@ public class PlayerCore : NetworkBehaviour
 
     private void OnTeamChanged(PlayerTeam oldTeam, PlayerTeam newTeam)
     {
-        UpdateTeamIndicatorColor();
+       // UpdateTeamIndicatorColor();
         if (nameTagUI != null)
         {
             nameTagUI.UpdateNameAndTeam(playerName, newTeam, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
@@ -348,28 +357,6 @@ public class PlayerCore : NetworkBehaviour
         if (nameTagUI != null)
         {
             nameTagUI.UpdateNameAndTeam(newName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
-        }
-    }
-
-    private void UpdateTeamIndicatorColor()
-    {
-        if (_teamIndicator == null) return;
-        Renderer rend = _teamIndicator.GetComponent<Renderer>();
-        if (rend == null) return;
-        if (isLocalPlayer)
-        {
-            rend.material = localPlayerMaterial;
-        }
-        else
-        {
-            if (localPlayerCoreInstance != null && localPlayerCoreInstance.team == team)
-            {
-                rend.material = allyMaterial;
-            }
-            else
-            {
-                rend.material = enemyMaterial;
-            }
         }
     }
 
@@ -408,67 +395,107 @@ public class PlayerCore : NetworkBehaviour
         if (newValue && ActionSystem != null) ActionSystem.CompleteAction();
     }
 
-    [Server]
-    public void ApplyControlEffect(ControlEffectType effectType, float duration, int skillWeight)
+    private void OnSilenceStateChanged(bool oldValue, bool newValue)
     {
-        if (currentControlEffect != ControlEffectType.None && Time.time < controlEffectEndTime && skillWeight <= currentEffectWeight)
-        {
-            return;
-        }
-        if (currentControlEffect != ControlEffectType.None)
-        {
-            ClearControlEffect();
-        }
-        currentControlEffect = effectType;
-        currentEffectWeight = skillWeight;
-        controlEffectEndTime = Time.time + duration;
+        if (Skills != null) Skills.HandleSilenceEffect(newValue);
+    }
+
+    [Server]
+    public void ApplyControlEffect(ControlEffectType effectType, float duration, int skillWeight, float slowPercentage = 0f)
+    {
         if (effectType == ControlEffectType.Stun)
         {
+            if (isStunned && Time.time < stunEffectEndTime && skillWeight <= stunEffectWeight)
+            {
+                return;
+            }
+            ClearStunEffect();
             isStunned = true;
+            stunEffectEndTime = Time.time + duration;
+            stunEffectWeight = skillWeight;
         }
         else if (effectType == ControlEffectType.Slow)
         {
-            _slowPercentage = duration;
+            if (_slowPercentage > 0f && Time.time < slowEffectEndTime && skillWeight <= slowEffectWeight)
+            {
+                return;
+            }
+            ClearSlowEffect();
+            _slowPercentage = slowPercentage;
             _originalSpeed = Stats.movementSpeed;
             if (Movement != null) Movement.SetMovementSpeed(Stats.movementSpeed * (1f - _slowPercentage));
+            slowEffectEndTime = Time.time + duration;
+            slowEffectWeight = skillWeight;
+        }
+        else if (effectType == ControlEffectType.Silence)
+        {
+            if (isSilenced && Time.time < silenceEffectEndTime && skillWeight <= silenceEffectWeight)
+            {
+                return;
+            }
+            ClearSilenceEffect();
+            isSilenced = true;
+            silenceEffectEndTime = Time.time + duration;
+            silenceEffectWeight = skillWeight;
         }
     }
 
     [Server]
     public void ApplySlow(float percentage, float duration, int skillWeight)
     {
-        if (currentControlEffect != ControlEffectType.None && Time.time < controlEffectEndTime && skillWeight <= currentEffectWeight)
+        if (_slowPercentage > 0f && Time.time < slowEffectEndTime && skillWeight <= slowEffectWeight)
         {
             return;
         }
-        if (currentControlEffect != ControlEffectType.None)
-        {
-            ClearControlEffect();
-        }
-        currentControlEffect = ControlEffectType.Slow;
-        currentEffectWeight = skillWeight;
+        ClearSlowEffect();
         _slowPercentage = percentage;
         _originalSpeed = Stats.movementSpeed;
         if (Movement != null) Movement.SetMovementSpeed(Stats.movementSpeed * (1f - _slowPercentage));
-        controlEffectEndTime = Time.time + duration;
+        slowEffectEndTime = Time.time + duration;
+        slowEffectWeight = skillWeight;
+    }
+
+    [Server]
+    private void ClearStunEffect()
+    {
+        if (isStunned)
+        {
+            isStunned = false;
+            stunEffectEndTime = 0f;
+            stunEffectWeight = 0;
+        }
+    }
+
+    [Server]
+    private void ClearSlowEffect()
+    {
+        if (_slowPercentage > 0f && Movement != null)
+        {
+            Movement.SetMovementSpeed(_originalSpeed);
+            _slowPercentage = 0f;
+            _originalSpeed = 0f;
+            slowEffectEndTime = 0f;
+            slowEffectWeight = 0;
+        }
+    }
+
+    [Server]
+    private void ClearSilenceEffect()
+    {
+        if (isSilenced)
+        {
+            isSilenced = false;
+            silenceEffectEndTime = 0f;
+            silenceEffectWeight = 0;
+        }
     }
 
     [Server]
     private void ClearControlEffect()
     {
-        if (currentControlEffect == ControlEffectType.Stun)
-        {
-            isStunned = false;
-        }
-        else if (currentControlEffect == ControlEffectType.Slow && _originalSpeed > 0f)
-        {
-            if (Movement != null) Movement.SetMovementSpeed(_originalSpeed);
-            _slowPercentage = 0f;
-            _originalSpeed = 0f;
-        }
-        currentControlEffect = ControlEffectType.None;
-        currentEffectWeight = 0;
-        controlEffectEndTime = 0f;
+        ClearStunEffect();
+        ClearSlowEffect();
+        ClearSilenceEffect();
     }
 
     [Command]
@@ -504,7 +531,7 @@ public class PlayerCore : NetworkBehaviour
     public NameTagUI GetNameTagUI() { return nameTagUI; }
     public bool CanCastSkill()
     {
-        return !isDead && !isStunned;
+        return !isDead && !isStunned && !isSilenced;
     }
 
     [Command]

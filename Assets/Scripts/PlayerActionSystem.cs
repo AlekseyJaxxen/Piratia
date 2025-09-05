@@ -59,6 +59,11 @@ public class PlayerActionSystem : NetworkBehaviour
         bool canInterruptAndStart = true;
         if (actionType == PlayerAction.SkillCast)
         {
+            if (_core.isSilenced)
+            {
+                Debug.LogWarning("[PlayerActionSystem] Cannot cast skill: player is silenced");
+                return false;
+            }
             if (skillToCast == null)
             {
                 canInterruptAndStart = false;
@@ -316,18 +321,18 @@ public class PlayerActionSystem : NetworkBehaviour
         _core.Combat.SetCurrentTarget(targetObject);
         float originalStoppingDistance = _core.Movement.Agent.stoppingDistance;
         _core.Movement.Agent.stoppingDistance = 0f;
-        const float castRangeOffset = 0.2f; // Уменьшение радиуса для начала каста
+        const float castRangeOffset = 0.2f;
         while (true)
         {
-            if (_core.isDead || _core.isStunned)
+            if (_core.isDead || _core.isStunned || _core.isSilenced)
             {
-                Debug.Log("[PlayerActionSystem] Skill cast stopped: player is dead or stunned");
+                Debug.Log("[PlayerActionSystem] Skill cast stopped: player is dead, stunned, or silenced");
                 _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
                 CompleteAction();
                 yield break;
             }
             float distance = Vector3.Distance(transform.position, targetObject.transform.position);
-            float effectiveRange = skillToCast.Range - castRangeOffset; // Уменьшаем радиус на 0.2
+            float effectiveRange = skillToCast.Range - castRangeOffset;
             if (distance <= effectiveRange)
             {
                 _core.Movement.StopMovement();
@@ -363,18 +368,18 @@ public class PlayerActionSystem : NetworkBehaviour
         }
         float originalStoppingDistance = _core.Movement.Agent.stoppingDistance;
         _core.Movement.Agent.stoppingDistance = 0f;
-        const float castRangeOffset = 0.2f; // Уменьшение радиуса для начала каста
+        const float castRangeOffset = 0.2f;
         while (true)
         {
-            if (_core.isDead || _core.isStunned)
+            if (_core.isDead || _core.isStunned || _core.isSilenced)
             {
-                Debug.Log("[PlayerActionSystem] Skill cast stopped: player is dead or stunned");
+                Debug.Log("[PlayerActionSystem] Skill cast stopped: player is dead, stunned, or silenced");
                 _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
                 CompleteAction();
                 yield break;
             }
             float distance = Vector3.Distance(transform.position, targetPosition);
-            float effectiveRange = skillToCast.Range - castRangeOffset; // Уменьшаем радиус на 0.2
+            float effectiveRange = skillToCast.Range - castRangeOffset;
             if (distance <= effectiveRange)
             {
                 _core.Movement.StopMovement();

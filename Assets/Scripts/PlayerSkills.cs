@@ -12,6 +12,9 @@ public class PlayerSkills : NetworkBehaviour
     [Header("Stun Effect")]
     public GameObject stunEffectPrefab;
     private GameObject _stunEffectInstance;
+    [Header("Silence Effect")]
+    public GameObject silenceEffectPrefab;
+    private GameObject _silenceEffectInstance;
     [Header("Cursor Settings")]
     public Texture2D defaultCursor;
     public Texture2D castCursor;
@@ -57,6 +60,11 @@ public class PlayerSkills : NetworkBehaviour
         {
             _stunEffectInstance = Instantiate(stunEffectPrefab, transform);
             _stunEffectInstance.SetActive(false);
+        }
+        if (silenceEffectPrefab != null)
+        {
+            _silenceEffectInstance = Instantiate(silenceEffectPrefab, transform);
+            _silenceEffectInstance.SetActive(false);
         }
         CharacterStats stats = GetComponent<CharacterStats>();
         if (stats == null)
@@ -104,6 +112,10 @@ public class PlayerSkills : NetworkBehaviour
         {
             Destroy(_stunEffectInstance);
         }
+        if (_silenceEffectInstance != null)
+        {
+            Destroy(_silenceEffectInstance);
+        }
         CancelAllSkillSelections();
         foreach (var skill in skills)
         {
@@ -123,6 +135,10 @@ public class PlayerSkills : NetworkBehaviour
         {
             Destroy(_stunEffectInstance);
         }
+        if (_silenceEffectInstance != null)
+        {
+            Destroy(_silenceEffectInstance);
+        }
         CancelAllSkillSelections();
         foreach (var skill in skills)
         {
@@ -135,6 +151,14 @@ public class PlayerSkills : NetworkBehaviour
         if (_stunEffectInstance != null)
         {
             _stunEffectInstance.SetActive(isStunned);
+        }
+    }
+
+    public void HandleSilenceEffect(bool isSilenced)
+    {
+        if (_silenceEffectInstance != null)
+        {
+            _silenceEffectInstance.SetActive(isSilenced);
         }
     }
 
@@ -178,37 +202,28 @@ public class PlayerSkills : NetworkBehaviour
         {
             targetObject = NetworkServer.spawned[targetNetId].gameObject;
         }
-
-        // Проверка дистанции с учетом tolerance
-        const float tolerance = 3f; // Допустимое отклонение
-        const float warningThreshold = 1.5f; // Порог для предупреждения
+        const float tolerance = 3f;
+        const float warningThreshold = 1.5f;
         if (skill.Range > 0)
         {
             float distance = 0f;
             if (targetObject != null)
             {
-                // Расчет дистанции до объекта
                 distance = Vector3.Distance(transform.position, targetObject.transform.position);
             }
             else if (targetPosition.HasValue)
             {
-                // Расчет дистанции до позиции
                 distance = Vector3.Distance(transform.position, targetPosition.Value);
             }
-
-            // Проверка дистанции с учетом tolerance
             if (distance > skill.Range + tolerance)
             {
-                return; // Отклоняем, если дистанция превышает допуск
+                return;
             }
-
-            // Выдача предупреждения, если tolerance превышает порог
             if (distance > skill.Range + warningThreshold)
             {
                 Debug.LogWarning($"Skill {skillName} used with high tolerance: Distance = {distance}, Range = {skill.Range}, Tolerance = {tolerance}");
             }
         }
-
         if (stats != null) stats.SpendMana(skill.ManaCost);
         if (skill.CastTime > 0)
         {
@@ -267,6 +282,11 @@ public class PlayerSkills : NetworkBehaviour
         {
             if (Input.GetKeyDown(skill.Hotkey))
             {
+                if (_core.isSilenced)
+                {
+                    Debug.LogWarning($"[PlayerSkills] Cannot select skill {skill.SkillName}: player is silenced");
+                    continue;
+                }
                 if (GetRemainingCooldown(skill.SkillName) > 0 || (!skill.ignoreGlobalCooldown && GetGlobalRemainingCooldown() > 0))
                 {
                     continue;
@@ -300,6 +320,11 @@ public class PlayerSkills : NetworkBehaviour
 
     public void SelectSkill(ISkill skill)
     {
+        if (_core.isSilenced)
+        {
+            Debug.LogWarning("[PlayerSkills] Cannot select skill: player is silenced");
+            return;
+        }
         if (_activeSkill != null)
         {
             _activeSkill.SetIndicatorVisibility(false);
@@ -362,6 +387,20 @@ public class PlayerSkills : NetworkBehaviour
     }
 
     [ClientRpc]
+    public void RpcPlayTargetedSilence(uint targetNetId, string skillName)
+    {
+        if (NetworkClient.spawned.ContainsKey(targetNetId))
+        {
+            NetworkIdentity targetIdentity = NetworkClient.spawned[targetNetId];
+            SkillBase skill = skills.Find(s => s.SkillName == skillName);
+            if (skill is TargetedSilenceSkill targetedSilenceSkill)
+            {
+                targetedSilenceSkill.PlayEffect(targetIdentity.gameObject, this);
+            }
+        }
+    }
+
+    [ClientRpc]
     public void RpcPlayHealingSkill(uint targetNetId, string skillName)
     {
         if (NetworkClient.spawned.ContainsKey(targetNetId))
@@ -404,6 +443,7 @@ public class PlayerSkills : NetworkBehaviour
             aoeDamageSkill.PlayEffect(position, GetComponent<PlayerCore>());
         }
     }
+
     private void Update()
     {
         if (isLocalPlayer) HandleSkills();
@@ -522,7 +562,7 @@ public class PlayerSkills : NetworkBehaviour
     public override void OnDeserialize(NetworkReader reader, bool initialState)
     {
         base.OnDeserialize(reader, initialState);
-        if (skills == null || skills.Count == 0) return; // Избежать NRE до init
+        if (skills == null || skills.Count == 0) return;
     }
 
     [ClientRpc]

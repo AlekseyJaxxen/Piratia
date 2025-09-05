@@ -46,6 +46,7 @@ public enum ControlEffectType
     Silence = 2,
     FbStun = 3,
     Slow = 4,
+    
 }
 
 public static class CombatConstants
