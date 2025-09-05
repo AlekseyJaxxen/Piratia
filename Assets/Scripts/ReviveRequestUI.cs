@@ -55,7 +55,7 @@ public class ReviveRequestUI : NetworkBehaviour
         if (!isLocalPlayer) return;
         _isShown = true;
         revivePanel.SetActive(true);
-        messageText.text = string.IsNullOrEmpty(casterName) ? "Принять воскрешение?" : $"Принять воскрешение от {casterName}?";
+        messageText.text = string.IsNullOrEmpty(casterName) ? "Take revive" : $"Take revive from {casterName}?";
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
     }

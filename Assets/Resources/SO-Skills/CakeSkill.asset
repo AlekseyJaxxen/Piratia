@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::HealingSkill
   castType: 4
   ignoreGlobalCooldown: 0
-  _icon: {fileID: 21300000, guid: 907b479847733014ab085dde25847da4, type: 3}
+  _icon: {fileID: 21300000, guid: 56a4aeb309ed91a4fbb54d7f3450a493, type: 3}
   _skillName: Caking
   _hotkey: 286
   _range: 1
