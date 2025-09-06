@@ -457,7 +457,7 @@ public class PlayerActionSystem : NetworkBehaviour
                 _currentTargetIndicator = Instantiate(_core.GetTargetIndicatorPrefab(), CurrentTarget.transform.position + Vector3.up * 2f, Quaternion.identity);
                 Debug.Log($"[PlayerActionSystem] Spawned target indicator for {CurrentTarget.name}");
             }
-            _currentTargetIndicator.transform.position = CurrentTarget.transform.position + Vector3.up * 1f;
+            _currentTargetIndicator.transform.position = CurrentTarget.transform.position + Vector3.up * 2f;
         }
         else
         {
