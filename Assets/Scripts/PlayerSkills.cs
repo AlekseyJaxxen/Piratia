@@ -234,7 +234,11 @@ public class PlayerSkills : NetworkBehaviour
             skill.ExecuteOnServer(caster, targetPosition, targetObject, weight);
             StartSkillCooldown(skillName);
             if (!skill.ignoreGlobalCooldown) StartGlobalCooldown();
-            RpcCancelSkillSelection();
+            // Не вызываем RpcCancelSkillSelection для BasicAttackSkill
+            if (!(skill is BasicAttackSkill))
+            {
+                RpcCancelSkillSelection();
+            }
         }
     }
 
