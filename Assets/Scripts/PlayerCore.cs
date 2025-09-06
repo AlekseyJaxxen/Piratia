@@ -19,10 +19,8 @@ public class PlayerCore : NetworkBehaviour
     public float respawnTime = 5.0f;
     private float _timeOfDeath;
     [Header("UI References")]
-    [SerializeField]
-    private DeathScreenUI deathScreenUI;
-    [SerializeField]
-    private Canvas mainCanvasReference;
+    [SerializeField] private DeathScreenUI deathScreenUI;
+    [SerializeField] private Canvas mainCanvasReference;
     [Header("Dependencies")]
     public LayerMask interactableLayers;
     public LayerMask groundLayer;
@@ -34,6 +32,9 @@ public class PlayerCore : NetworkBehaviour
     [SerializeField] private Transform modelTransform;
     private Quaternion initialModelRotation;
     [SerializeField] private BoxCollider boxCollider;
+    [Header("Indicators")]
+    [SerializeField] private GameObject targetIndicatorPrefab; // Префаб индикатора цели атаки
+    [SerializeField] private GameObject moveIndicatorPrefab; // Префаб индикатора точки движения
     [SyncVar(hook = nameof(OnTeamChanged))]
     public PlayerTeam team = PlayerTeam.None;
     [SyncVar(hook = nameof(OnNameChanged))]
@@ -517,7 +518,6 @@ public class PlayerCore : NetworkBehaviour
     {
         ClearSlowEffect();
         ClearSilenceEffect();
-        // Добавьте здесь очистку других негативных эффектов, если они будут введены (например, FbStun)
     }
 
     [Server]
@@ -602,4 +602,8 @@ public class PlayerCore : NetworkBehaviour
         ServerRespawnPlayer(deathPosition, pendingReviveHpFraction);
         pendingReviveHpFraction = 0f;
     }
+
+    // Доступ к префабам индикаторов для других компонентов
+    public GameObject GetTargetIndicatorPrefab() => targetIndicatorPrefab;
+    public GameObject GetMoveIndicatorPrefab() => moveIndicatorPrefab;
 }

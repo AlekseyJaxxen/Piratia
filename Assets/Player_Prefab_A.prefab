@@ -3110,6 +3110,10 @@ MonoBehaviour:
   deathVFXPrefab: {fileID: 160684, guid: de85f8f81ea29ea479250adb36debd92, type: 3}
   modelTransform: {fileID: 0}
   boxCollider: {fileID: 5639771108257393879}
+  targetIndicatorPrefab: {fileID: 8385091576251637434, guid: 40b27fc8e72d8d64da671acda3052792,
+    type: 3}
+  moveIndicatorPrefab: {fileID: 8812004423981112387, guid: 0638cd1b54720094fbe223ab28cc7854,
+    type: 3}
   team: 1
   playerName: EBLAN
   isDead: 0

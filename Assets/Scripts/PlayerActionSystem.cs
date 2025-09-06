@@ -10,6 +10,7 @@ public class PlayerActionSystem : NetworkBehaviour
     private PlayerAction _currentActionType;
     private ISkill _currentSkill;
     private bool _isCasting;
+    private GameObject _currentTargetIndicator; // Индикатор цели атаки
     public bool IsPerformingAction => _isPerformingAction;
     public PlayerAction CurrentAction => _currentActionType;
     public ISkill CurrentSkill => _currentSkill;
@@ -25,15 +26,25 @@ public class PlayerActionSystem : NetworkBehaviour
         }
     }
 
+    private void Update()
+    {
+        if (isLocalPlayer)
+        {
+            UpdateTargetIndicator(); // Обновляем индикатор цели атаки
+        }
+    }
+
     private void OnDisable()
     {
         CompleteAction();
+        ClearTargetIndicator();
     }
 
     public override void OnStopClient()
     {
         base.OnStopClient();
         CompleteAction();
+        ClearTargetIndicator();
         Debug.Log("[PlayerActionSystem] Cleaned up on client disconnect.");
     }
 
@@ -61,7 +72,7 @@ public class PlayerActionSystem : NetworkBehaviour
         {
             if (!_core.CanCastSkill(skillToCast))
             {
-                Debug.LogWarning("[Playerros] PlayerActionSystem: Cannot cast skill: player is dead, stunned, or silenced");
+                Debug.LogWarning("[PlayerActionSystem] Cannot cast skill: player is dead, stunned, or silenced");
                 return false;
             }
             if (skillToCast == null)
@@ -433,5 +444,35 @@ public class PlayerActionSystem : NetworkBehaviour
             _core.Movement.StopMovement();
         }
         GetComponent<PlayerAnimationSystem>()?.ResetAnimations();
+        ClearTargetIndicator();
+    }
+
+    [Client]
+    private void UpdateTargetIndicator()
+    {
+        if (CurrentTarget != null && _core.GetTargetIndicatorPrefab() != null)
+        {
+            if (_currentTargetIndicator == null)
+            {
+                _currentTargetIndicator = Instantiate(_core.GetTargetIndicatorPrefab(), CurrentTarget.transform.position + Vector3.up * 2f, Quaternion.identity);
+                Debug.Log($"[PlayerActionSystem] Spawned target indicator for {CurrentTarget.name}");
+            }
+            _currentTargetIndicator.transform.position = CurrentTarget.transform.position + Vector3.up * 1f;
+        }
+        else
+        {
+            ClearTargetIndicator();
+        }
+    }
+
+    [Client]
+    private void ClearTargetIndicator()
+    {
+        if (_currentTargetIndicator != null)
+        {
+            Destroy(_currentTargetIndicator);
+            _currentTargetIndicator = null;
+            Debug.Log("[PlayerActionSystem] Destroyed target indicator");
+        }
     }
 }

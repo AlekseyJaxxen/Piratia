@@ -12,6 +12,7 @@ public class PlayerMovement : NetworkBehaviour
     private NavMeshAgent _agent;
     public NavMeshAgent Agent => _agent;
     private PlayerCore _core;
+    private GameObject _currentMoveIndicator; // Индикатор точки движения
     public bool IsMoving => _agent != null && _agent.velocity.magnitude > 0.1f;
 
     public void Init(PlayerCore core)
@@ -39,6 +40,7 @@ public class PlayerMovement : NetworkBehaviour
         if (isLocalPlayer)
         {
             HandleMovement();
+            UpdateMoveIndicator(); // Обновляем индикатор точки движения
         }
     }
 
@@ -207,6 +209,7 @@ public class PlayerMovement : NetworkBehaviour
         {
             _agent.isStopped = true;
             Debug.Log("[PlayerMovement] Movement stopped");
+            ClearMoveIndicator();
         }
     }
 
@@ -239,5 +242,35 @@ public class PlayerMovement : NetworkBehaviour
     public float GetOriginalSpeed()
     {
         return _core != null && _core.Stats != null ? _core.Stats.movementSpeed : moveSpeed;
+    }
+
+    [Client]
+    private void UpdateMoveIndicator()
+    {
+        if (IsMoving && _core.GetMoveIndicatorPrefab() != null)
+        {
+            Vector3 destination = _agent.destination;
+            if (_currentMoveIndicator == null)
+            {
+                _currentMoveIndicator = Instantiate(_core.GetMoveIndicatorPrefab(), destination, Quaternion.identity);
+                Debug.Log($"[PlayerMovement] Spawned move indicator at {destination}");
+            }
+            _currentMoveIndicator.transform.position = destination;
+        }
+        else
+        {
+            ClearMoveIndicator();
+        }
+    }
+
+    [Client]
+    private void ClearMoveIndicator()
+    {
+        if (_currentMoveIndicator != null)
+        {
+            Destroy(_currentMoveIndicator);
+            _currentMoveIndicator = null;
+            Debug.Log("[PlayerMovement] Destroyed move indicator");
+        }
     }
 }
