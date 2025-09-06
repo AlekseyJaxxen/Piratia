@@ -29,5 +29,6 @@ MonoBehaviour:
   effectRadiusPrefab: {fileID: 8212533921873324154, guid: e6230a171a068cd489eb410abd241717,
     type: 3}
   stunDuration: 2
-  effectPrefab: {fileID: 153256, guid: fe394d041df1a0547990f49cf653249f, type: 3}
+  effectPrefab: {fileID: 5711338677469876575, guid: 976bb224c8c175d49a2690649c457e33,
+    type: 3}
   aoeRadius: 5
