@@ -950,7 +950,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
+  m_Size: {x: 1, y: 0.08, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &2177370417682174418
 GameObject:
@@ -3007,7 +3007,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1.5, y: 2, z: 1.5}
+  m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0.6, z: 0}
 --- !u!114 &3920754116015596352
 MonoBehaviour:
@@ -5838,6 +5838,11 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5589917241675344064, guid: 8fb9c39c4d12b2646af12ca3609c1fe1,
+        type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: 71fcce2c0b71d894a8f7d266816e9c6d, type: 2}
     - target: {fileID: 7105806750439672986, guid: 8fb9c39c4d12b2646af12ca3609c1fe1,
         type: 3}
       propertyPath: m_LocalPosition.x
