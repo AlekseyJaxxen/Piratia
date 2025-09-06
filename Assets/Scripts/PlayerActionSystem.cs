@@ -120,22 +120,21 @@ public class PlayerActionSystem : NetworkBehaviour
                 Debug.Log($"[PlayerActionSystem] Ignoring Move: player is casting a skill");
                 return false;
             }
-            if (actionType == PlayerAction.Move && _currentActionType == PlayerAction.SkillCast)
+            // Разрешаем Move или новый Attack прерывать текущий Attack
+            if (_currentActionType == PlayerAction.Attack && (actionType == PlayerAction.Move || actionType == PlayerAction.Attack))
             {
-                if (_currentSkill != null)
-                {
-                    var skillBase = (SkillBase)_currentSkill;
-                    bool isTargeted = skillBase.SkillCastType == SkillBase.CastType.TargetedEnemy || skillBase.SkillCastType == SkillBase.CastType.TargetedAlly;
-                    if (isTargeted)
-                    {
-                        Debug.Log($"[PlayerActionSystem] Ignoring Move: current action is targeted SkillCast");
-                        return false;
-                    }
-                }
+                Debug.Log($"[PlayerActionSystem] Allowing {actionType} to interrupt Attack");
+                CompleteAction();
             }
-            if (newPriority >= currentPriority || actionType == PlayerAction.Move)
+            // Разрешаем Move прерывать SkillCast (если не casting)
+            else if (actionType == PlayerAction.Move && _currentActionType == PlayerAction.SkillCast)
             {
-                Debug.Log($"[PlayerActionSystem] Interrupting {_currentActionType} for higher/equal priority or Move: {actionType}");
+                Debug.Log($"[PlayerActionSystem] Allowing Move to interrupt SkillCast (not yet cast)");
+                CompleteAction();
+            }
+            else if (newPriority >= currentPriority)
+            {
+                Debug.Log($"[PlayerActionSystem] Interrupting {_currentActionType} for higher/equal priority: {actionType}");
                 CompleteAction();
             }
             else
@@ -304,6 +303,11 @@ public class PlayerActionSystem : NetworkBehaviour
                         yield return new WaitForSeconds(((SkillBase)skill).CastTime);
                         _isCasting = false;
                     }
+                    // Удаляем CancelSkillSelection для BasicAttackSkill
+                    if (!(skill is BasicAttackSkill))
+                    {
+                        _core.Skills.CancelSkillSelection();
+                    }
                     break;
                 }
                 else
@@ -339,6 +343,7 @@ public class PlayerActionSystem : NetworkBehaviour
         float originalStoppingDistance = _core.Movement.Agent.stoppingDistance;
         _core.Movement.Agent.stoppingDistance = 0f;
         const float castRangeOffset = 0.2f;
+        _core.Skills.CancelSkillSelection(); // Закрываем режим сразу после начала
         while (true)
         {
             if (_core.isDead || _core.isStunned || (_core.isSilenced && !(skillToCast is BasicAttackSkill)))
@@ -361,7 +366,6 @@ public class PlayerActionSystem : NetworkBehaviour
                     yield return new WaitForSeconds(((SkillBase)skillToCast).CastTime);
                     _isCasting = false;
                 }
-                _core.Skills.CancelSkillSelection();
                 _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
                 CompleteAction();
                 yield break;
