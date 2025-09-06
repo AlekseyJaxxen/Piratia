@@ -9,6 +9,9 @@ public class BasicAttackSkill : SkillBase
     public GameObject vfxPrefab;
     public GameObject projectilePrefab;
     public float projectileSpeed = 20f;
+    [Header("VFX Position Settings")]
+    public Vector3 vfxStartOffset = new Vector3(0f, 1.5f, 0f); // —мещение начальной позиции дл€ снар€да
+    public Vector3 vfxTargetOffset = new Vector3(0f, 1.0f, 0f); // —мещение позиции VFX на цели
     [Header("Critical Hit Settings")]
     public GameObject criticalHitVfxPrefab;
     public GameObject impactEffectPrefab;
@@ -62,15 +65,15 @@ public class BasicAttackSkill : SkillBase
     {
         CharacterStats stats = caster.GetComponent<CharacterStats>();
         int damage = Random.Range(stats.minAttack, stats.maxAttack + 1);
-        bool isCritical = stats.TryCriticalHit(); // »спользуем метод из CharacterStats
+        bool isCritical = stats.TryCriticalHit();
         Health targetHealth = targetObject.GetComponent<Health>();
         if (targetHealth != null)
         {
             targetHealth.TakeDamage(damage, SkillDamageType, isCritical, caster.netIdentity);
         }
-        Vector3 startPos = caster.transform.position + Vector3.up * 1.5f;
+        Vector3 startPos = caster.transform.position + vfxStartOffset;
         Quaternion startRot = caster.transform.rotation;
-        Vector3 targetPos = targetObject.transform.position + Vector3.up * 1.5f;
+        Vector3 targetPos = targetObject.transform.position + vfxTargetOffset;
         caster.GetComponent<PlayerSkills>().RpcPlayBasicAttackVFX(startPos, startRot, targetPos, isCritical, _skillName);
     }
 
@@ -78,22 +81,25 @@ public class BasicAttackSkill : SkillBase
     {
         if (vfxPrefab != null)
         {
-            Quaternion xRotation = Quaternion.Euler(0, 0, 0);
-            Quaternion finalRotation = startRotation * xRotation;
-            GameObject vfxInstance = Object.Instantiate(vfxPrefab, startPosition, finalRotation);
+            // VFX по€вл€етс€ на цели
+            GameObject vfxInstance = Object.Instantiate(vfxPrefab, endPosition, Quaternion.identity);
             if (isCritical && vfxInstance.TryGetComponent<Renderer>(out var renderer))
             {
                 renderer.material.color = criticalHitColor;
             }
             Object.Destroy(vfxInstance, 0.2f);
+            Debug.Log($"[BasicAttackSkill] Spawned VFX at target position: {endPosition}");
         }
         if (isCritical && criticalHitVfxPrefab != null)
         {
-            GameObject critVfx = Object.Instantiate(criticalHitVfxPrefab, startPosition, startRotation);
+            //  ритический VFX также на цели
+            GameObject critVfx = Object.Instantiate(criticalHitVfxPrefab, endPosition, Quaternion.identity);
             Object.Destroy(critVfx, 1f);
+            Debug.Log($"[BasicAttackSkill] Spawned critical VFX at target position: {endPosition}");
         }
         if (projectilePrefab != null)
         {
+            // —нар€д движетс€ от персонажа к цели
             GameObject projectileInstance = Object.Instantiate(projectilePrefab, startPosition, Quaternion.LookRotation(endPosition - startPosition));
             if (isCritical && projectileInstance.TryGetComponent<Renderer>(out var projectileRenderer))
             {
@@ -120,13 +126,15 @@ public class BasicAttackSkill : SkillBase
         {
             if (impactEffectPrefab != null)
             {
-                GameObject impact = Object.Instantiate(impactEffectPrefab, projectile.transform.position, Quaternion.identity);
+                // Ёффект попадани€ на цели
+                GameObject impact = Object.Instantiate(impactEffectPrefab, end, Quaternion.identity);
                 if (isCritical && impact.TryGetComponent<Renderer>(out var impactRenderer))
                 {
                     impactRenderer.material.color = criticalHitColor;
                     impact.transform.localScale *= 1.5f;
                 }
                 Object.Destroy(impact, isCritical ? 2f : 1f);
+                Debug.Log($"[BasicAttackSkill] Spawned impact effect at target position: {end}");
             }
             Object.Destroy(projectile);
         }
