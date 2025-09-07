@@ -9,25 +9,29 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c6188f4ad380ff84daaef50a6070f23f, type: 3}
-  m_Name: SealArcher
-  m_EditorClassIdentifier: Assembly-CSharp::TargetedSilenceSkill
-  castType: 0
+  m_Script: {fileID: 11500000, guid: cb36f2d772d58664e9c82cd331ad1dec, type: 3}
+  m_Name: MeteorArrow
+  m_EditorClassIdentifier: Assembly-CSharp::AoeDamageSkill
+  castType: 2
   ignoreGlobalCooldown: 0
-  _icon: {fileID: 21300000, guid: 3e00c4733fbbc96498c129f7aea582de, type: 3}
-  _skillName: SealRanger
-  _hotkey: 286
+  _icon: {fileID: 21300000, guid: 51f406d8c10de6a4c88a1a378fc30419, type: 3}
+  _skillName: MeteorArrow
+  _hotkey: 285
   _range: 8
-  _cooldown: 12
+  _cooldown: 10
   _castTime: 0.1
   _castCursor: {fileID: 0}
   _manaCost: 0
   _damageType: 0
-  _weight: 2
-  _effectRadius: 0
+  _weight: 1
+  _effectRadius: 6
   castRangePrefab: {fileID: 3299273662854126661, guid: ee30310967d98c04fb16bcfa96cfb3c2,
     type: 3}
   effectRadiusPrefab: {fileID: 8212533921873324154, guid: e6230a171a068cd489eb410abd241717,
     type: 3}
-  silenceDuration: 7
-  effectPrefab: {fileID: 102660, guid: 4afeaa47e521a1f4dae511b3c14f9fc1, type: 3}
+  baseDamage: 50
+  damageMultiplier: 3
+  aoeRadius: 6
+  effectPrefab: {fileID: 6108195706035121270, guid: a78bd09a13b6a474a970248bda954d35,
+    type: 3}
+  forwardOffset: 0

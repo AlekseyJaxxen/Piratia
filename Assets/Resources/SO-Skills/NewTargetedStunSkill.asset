@@ -31,4 +31,4 @@ MonoBehaviour:
   baseDamage: 0
   damageMultiplier: 2
   stunDuration: 10
-  effectPrefab: {fileID: 183892, guid: 77aff4f1c9d07704bafd856e02a46ac9, type: 3}
+  effectPrefab: {fileID: 163420, guid: acee4f4e191fea8479aad0b4b8e1dc18, type: 3}

@@ -34,18 +34,16 @@ public class AoeDamageSkill : SkillBase
     {
         CharacterStats stats = caster.GetComponent<CharacterStats>();
         if (stats == null) return;
-
-        int finalDamage;
+        int totalBaseDamage;
         if (SkillDamageType == DamageType.Physical)
         {
             int randomAttack = Random.Range(stats.minAttack, stats.maxAttack + 1);
-            finalDamage = Mathf.RoundToInt((baseDamage + randomAttack) * damageMultiplier);
+            totalBaseDamage = baseDamage + randomAttack; // Суммируем без множителя
         }
         else
         {
-            finalDamage = baseDamage + Mathf.RoundToInt(stats.spirit * damageMultiplier);
+            totalBaseDamage = baseDamage + Mathf.RoundToInt(stats.spirit);
         }
-
         // Обновляем маску слоев, чтобы включить "Player" и "Ignore Raycast"
         int aoeLayerMask = LayerMask.GetMask("Player", "Ignore Raycast", "Monster", "Enemy");
         Collider[] hitColliders = Physics.OverlapSphere(targetPosition.Value, aoeRadius, aoeLayerMask);
@@ -58,11 +56,11 @@ public class AoeDamageSkill : SkillBase
                 Monster targetMonster = col.GetComponent<Monster>();
                 if (targetCore != null && targetCore.team != caster.team)
                 {
-                    targetHealth.TakeDamage(finalDamage, SkillDamageType, false, caster.netIdentity);
+                    targetHealth.TakeDamage(totalBaseDamage, SkillDamageType, false, caster.netIdentity, damageMultiplier); // Передаем множитель
                 }
                 else if (targetMonster != null)
                 {
-                    targetHealth.TakeDamage(finalDamage, SkillDamageType, false, caster.netIdentity);
+                    targetHealth.TakeDamage(totalBaseDamage, SkillDamageType, false, caster.netIdentity, damageMultiplier); // Передаем множитель
                 }
             }
         }
@@ -73,11 +71,9 @@ public class AoeDamageSkill : SkillBase
     {
         if (effectPrefab != null)
         {
-            Vector3 effectPosition = caster.transform.position + caster.transform.forward * forwardOffset;
-            Quaternion effectRotation = Quaternion.LookRotation(caster.transform.forward);
-            GameObject effect = Object.Instantiate(effectPrefab, effectPosition, effectRotation);
+            GameObject effect = Object.Instantiate(effectPrefab, position, Quaternion.identity);
             Object.Destroy(effect, 2f);
-            Debug.Log($"[AoeDamageSkill] Effect spawned at {effectPosition}, facing {caster.transform.forward}");
+            Debug.Log($"[AoeDamageSkill] Effect spawned at cast point: {position}");
         }
     }
 }
