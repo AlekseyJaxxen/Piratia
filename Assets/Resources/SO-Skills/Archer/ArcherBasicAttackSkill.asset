@@ -30,7 +30,9 @@ MonoBehaviour:
   vfxPrefab: {fileID: 0}
   projectilePrefab: {fileID: 6019109055774185331, guid: 9eeebc29afbec8e47bd1a0eb50ee4be1,
     type: 3}
-  projectileSpeed: 20
+  projectileSpeed: 30
+  vfxStartOffset: {x: 0, y: 0, z: 0}
+  vfxTargetOffset: {x: 0, y: 0, z: 0}
   criticalHitVfxPrefab: {fileID: 0}
   impactEffectPrefab: {fileID: 0}
   criticalHitColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}

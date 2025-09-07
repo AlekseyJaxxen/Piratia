@@ -29,8 +29,12 @@ public class GroundEffect : NetworkBehaviour
             PlayerCore player = col.GetComponent<PlayerCore>();
             if (player != null && player.team != team)
             {
-                player.ApplyControlEffect(ControlEffectType.Slow, 1f, Mathf.RoundToInt(slowPercent * 100));
-                Debug.Log($"[GroundEffect] Applied slow to player {player.gameObject.name}, percentage={slowPercent}, duration=1f");
+                CharacterStats stats = player.GetComponent<CharacterStats>();
+                if (stats != null)
+                {
+                    stats.ApplySlow(slowPercent, 1f);
+                    Debug.Log($"[GroundEffect] Applied slow to player {player.gameObject.name}, percentage={slowPercent}, duration=1f");
+                }
                 continue;
             }
             Monster monster = col.GetComponent<Monster>();

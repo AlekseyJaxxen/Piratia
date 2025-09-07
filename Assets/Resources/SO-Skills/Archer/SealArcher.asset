@@ -16,7 +16,7 @@ MonoBehaviour:
   ignoreGlobalCooldown: 0
   _icon: {fileID: 21300000, guid: 3e00c4733fbbc96498c129f7aea582de, type: 3}
   _skillName: SealRanger
-  _hotkey: 287
+  _hotkey: 286
   _range: 6
   _cooldown: 12
   _castTime: 0.1

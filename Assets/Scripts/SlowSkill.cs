@@ -47,7 +47,6 @@ public class SlowSkill : SkillBase
     {
         CharacterStats stats = caster.GetComponent<CharacterStats>();
         if (stats == null) return;
-
         int finalDamage;
         if (SkillDamageType == DamageType.Physical)
         {
@@ -58,26 +57,27 @@ public class SlowSkill : SkillBase
         {
             finalDamage = baseDamage + Mathf.RoundToInt(stats.spirit * damageMultiplier);
         }
-
         Health targetHealth = targetObject.GetComponent<Health>();
         if (targetHealth != null)
         {
             targetHealth.TakeDamage(finalDamage, SkillDamageType, false, caster.netIdentity);
         }
-
         PlayerCore targetCore = targetObject.GetComponent<PlayerCore>();
         Monster targetMonster = targetObject.GetComponent<Monster>();
         if (targetCore != null)
         {
-            targetCore.ApplyControlEffect(ControlEffectType.Slow, slowDuration, Mathf.RoundToInt(slowPercentage * 100)); // Передаем процент как weight
-            Debug.Log($"[SlowSkill] Applied slow to player {targetCore.gameObject.name}, duration={slowDuration}, percentage={slowPercentage}");
+            CharacterStats targetStats = targetCore.GetComponent<CharacterStats>();
+            if (targetStats != null)
+            {
+                targetStats.ApplySlow(slowPercentage, slowDuration);
+                Debug.Log($"[SlowSkill] Applied slow to player {targetCore.gameObject.name}, duration={slowDuration}, percentage={slowPercentage}");
+            }
         }
         else if (targetMonster != null)
         {
-            targetMonster.ReceiveControlEffect(ControlEffectType.Slow, slowDuration, Mathf.RoundToInt(slowPercentage * 100)); // Передаем процент как weight
+            targetMonster.ReceiveControlEffect(ControlEffectType.Slow, slowDuration, Mathf.RoundToInt(slowPercentage * 100));
             Debug.Log($"[SlowSkill] Applied slow to monster {targetMonster.monsterName}, duration={slowDuration}, percentage={slowPercentage}");
         }
-
         uint targetNetId = targetObject.GetComponent<NetworkIdentity>().netId;
         caster.GetComponent<PlayerSkills>().RpcApplySlowEffect(targetNetId, slowDuration, _skillName);
     }

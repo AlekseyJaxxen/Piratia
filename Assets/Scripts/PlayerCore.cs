@@ -50,16 +50,9 @@ public class PlayerCore : NetworkBehaviour
     [SyncVar]
     private int stunEffectWeight = 0;
     [SyncVar]
-    private float slowEffectEndTime = 0f;
-    [SyncVar]
-    private int slowEffectWeight = 0;
-    [SyncVar]
     private float silenceEffectEndTime = 0f;
     [SyncVar]
     private int silenceEffectWeight = 0;
-    [SyncVar]
-    private float _slowPercentage = 0f;
-    private float _originalSpeed = 0f;
     [Header("Mana Regeneration")]
     public float manaRegenInterval = 1f;
     public int manaRegenAmount = 5;
@@ -112,10 +105,6 @@ public class PlayerCore : NetworkBehaviour
         if (isStunned && Time.time >= stunEffectEndTime)
         {
             ClearStunEffect();
-        }
-        if (_slowPercentage > 0f && Time.time >= slowEffectEndTime)
-        {
-            ClearSlowEffect();
         }
         if (isSilenced && Time.time >= silenceEffectEndTime)
         {
@@ -239,7 +228,6 @@ public class PlayerCore : NetworkBehaviour
         isStunned = false;
         isSilenced = false;
         ClearStunEffect();
-        ClearSlowEffect();
         ClearSilenceEffect();
         if (Movement != null) Movement.SetMovementSpeed(Stats.movementSpeed);
         if (Health != null)
@@ -439,16 +427,7 @@ public class PlayerCore : NetworkBehaviour
         }
         else if (effectType == ControlEffectType.Slow)
         {
-            if (_slowPercentage > 0f && Time.time < slowEffectEndTime && skillWeight <= slowEffectWeight)
-            {
-                return;
-            }
-            ClearSlowEffect();
-            _slowPercentage = slowPercentage;
-            _originalSpeed = Stats.movementSpeed;
-            if (Movement != null) Movement.SetMovementSpeed(Stats.movementSpeed * (1f - _slowPercentage));
-            slowEffectEndTime = Time.time + duration;
-            slowEffectWeight = skillWeight;
+            Stats.ApplySlow(slowPercentage, duration, "ControlEffect");
         }
         else if (effectType == ControlEffectType.Silence)
         {
@@ -466,16 +445,7 @@ public class PlayerCore : NetworkBehaviour
     [Server]
     public void ApplySlow(float percentage, float duration, int skillWeight)
     {
-        if (_slowPercentage > 0f && Time.time < slowEffectEndTime && skillWeight <= slowEffectWeight)
-        {
-            return;
-        }
-        ClearSlowEffect();
-        _slowPercentage = percentage;
-        _originalSpeed = Stats.movementSpeed;
-        if (Movement != null) Movement.SetMovementSpeed(Stats.movementSpeed * (1f - _slowPercentage));
-        slowEffectEndTime = Time.time + duration;
-        slowEffectWeight = skillWeight;
+        Stats.ApplySlow(percentage, duration, "ApplySlow");
     }
 
     [Server]
@@ -492,14 +462,7 @@ public class PlayerCore : NetworkBehaviour
     [Server]
     private void ClearSlowEffect()
     {
-        if (_slowPercentage > 0f && Movement != null)
-        {
-            Movement.SetMovementSpeed(_originalSpeed);
-            _slowPercentage = 0f;
-            _originalSpeed = 0f;
-            slowEffectEndTime = 0f;
-            slowEffectWeight = 0;
-        }
+        // Замедление очищается через CharacterStats.ClearSlowEffects
     }
 
     [Server]
@@ -516,16 +479,11 @@ public class PlayerCore : NetworkBehaviour
     [Server]
     public void ClearNegativeEffectsExceptStun()
     {
-        ClearSlowEffect();
         ClearSilenceEffect();
-    }
-
-    [Server]
-    private void ClearControlEffect()
-    {
-        ClearStunEffect();
-        ClearSlowEffect();
-        ClearSilenceEffect();
+        if (Stats != null)
+        {
+            Stats.ClearSlowEffects();
+        }
     }
 
     [Command]
@@ -559,6 +517,7 @@ public class PlayerCore : NetworkBehaviour
     public int GetCurrentHealth() { return Health != null ? Health.CurrentHealth : 0; }
     public int GetMaxHealth() { return Health != null ? Health.MaxHealth : 0; }
     public NameTagUI GetNameTagUI() { return nameTagUI; }
+
     public bool CanCastSkill(ISkill skill = null)
     {
         if (skill != null && skill is BasicAttackSkill)

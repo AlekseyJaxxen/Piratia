@@ -1,6 +1,7 @@
 using UnityEngine;
 using Mirror;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 
 public class CharacterStats : NetworkBehaviour
@@ -78,6 +79,17 @@ public class CharacterStats : NetworkBehaviour
     private static readonly int[] ExperiencePerLevel = new int[100];
     private bool isClassSet = false;
     private Health healthComponent;
+    // Стек замедлений
+    private readonly List<SlowEffect> activeSlowEffects = new List<SlowEffect>();
+
+    private struct SlowEffect
+    {
+        public float Percentage;
+        public float Duration;
+        public int SkillWeight;
+        public float EndTime;
+        public string Source; // Для идентификации источника (например, "AoeDebuffGroundSkill")
+    }
 
     private void Awake()
     {
@@ -255,7 +267,9 @@ public class CharacterStats : NetworkBehaviour
         minAttack = Mathf.RoundToInt(classData.baseMinAttack + attackValue * 2 * attackMultiplier);
         maxAttack = Mathf.RoundToInt(classData.baseMaxAttack + attackValue * 3 * attackMultiplier);
         armor = Mathf.RoundToInt(classData.baseDef + strength * 1 * classData.strengthMultiplier);
-        movementSpeed = classData.baseMovementSpeed * classData.agilityMultiplier;
+        float baseMovementSpeed = classData.baseMovementSpeed * classData.agilityMultiplier;
+        float slowMultiplier = CalculateSlowMultiplier();
+        movementSpeed = baseMovementSpeed * slowMultiplier; // Учитываем стек замедлений
         attackSpeed = 1.0f + (agility * 0.05f * classData.agilityMultiplier);
         dodgeChance = 5.0f + (agility * 0.5f * classData.agilityMultiplier);
         hitChance = 80.0f + (accuracy * 1.0f * classData.accuracyMultiplier);
@@ -659,5 +673,94 @@ public class CharacterStats : NetworkBehaviour
             Debug.Log($"[CharacterStats] ToggleBuff: Applied buff for {stat}, set to {value}");
         }
         CalculateDerivedStats();
+    }
+
+    [Server]
+    public void ApplySlow(float slowPercentage, float duration, string source = "Unknown")
+    {
+        if (classData == null)
+        {
+            Debug.LogWarning($"[CharacterStats] Cannot apply slow: ClassData is null");
+            return;
+        }
+
+        // Проверяем, есть ли эффект от этого источника
+        var existingEffect = activeSlowEffects.Find(e => e.Source == source);
+        if (existingEffect.Percentage > 0)
+        {
+            // Обновляем существующий эффект
+            activeSlowEffects.Remove(existingEffect);
+        }
+
+        // Добавляем новый эффект замедления
+        SlowEffect effect = new SlowEffect
+        {
+            Percentage = Mathf.Clamp(slowPercentage, 0f, 0.9f), // Ограничиваем процент замедления
+            Duration = duration,
+            SkillWeight = 0, // Можно добавить поддержку skillWeight, если нужно
+            EndTime = Time.time + duration,
+            Source = source
+        };
+        activeSlowEffects.Add(effect);
+
+        // Пересчитываем итоговый множитель замедления
+        float slowMultiplier = CalculateSlowMultiplier();
+        float baseMovementSpeed = classData.baseMovementSpeed * classData.agilityMultiplier;
+        movementSpeed = baseMovementSpeed * slowMultiplier;
+
+        PlayerMovement movement = GetComponent<PlayerMovement>();
+        if (movement != null)
+        {
+            movement.SetMovementSpeed(movementSpeed);
+        }
+
+        StartCoroutine(RemoveSlow(effect));
+        Debug.Log($"[CharacterStats] Applied slow from {source}: percentage={slowPercentage}, duration={duration}, total slowMultiplier={slowMultiplier}, new movementSpeed={movementSpeed}");
+    }
+
+    private float CalculateSlowMultiplier()
+    {
+        // Удаляем просроченные эффекты
+        activeSlowEffects.RemoveAll(effect => Time.time >= effect.EndTime);
+
+        // Вычисляем итоговый множитель как произведение (1 - percentage) для всех активных эффектов
+        float slowMultiplier = 1f;
+        foreach (var effect in activeSlowEffects)
+        {
+            slowMultiplier *= Mathf.Max(0.1f, 1f - effect.Percentage); // Минимум 10% скорости для каждого эффекта
+        }
+        // Ограничиваем итоговый множитель, чтобы не был меньше 0.1
+        return Mathf.Max(0.1f, slowMultiplier);
+    }
+
+    private IEnumerator RemoveSlow(SlowEffect effect)
+    {
+        yield return new WaitForSeconds(effect.Duration);
+        activeSlowEffects.Remove(effect);
+        float slowMultiplier = CalculateSlowMultiplier();
+        float baseMovementSpeed = classData.baseMovementSpeed * classData.agilityMultiplier;
+        movementSpeed = baseMovementSpeed * slowMultiplier;
+
+        PlayerMovement movement = GetComponent<PlayerMovement>();
+        if (movement != null)
+        {
+            movement.SetMovementSpeed(movementSpeed);
+        }
+        Debug.Log($"[CharacterStats] Slow removed from {effect.Source}: total slowMultiplier={slowMultiplier}, movementSpeed restored to {movementSpeed}");
+    }
+
+    [Server]
+    public void ClearSlowEffects()
+    {
+        activeSlowEffects.Clear();
+        float baseMovementSpeed = classData.baseMovementSpeed * classData.agilityMultiplier;
+        movementSpeed = baseMovementSpeed;
+
+        PlayerMovement movement = GetComponent<PlayerMovement>();
+        if (movement != null)
+        {
+            movement.SetMovementSpeed(movementSpeed);
+        }
+        Debug.Log($"[CharacterStats] All slow effects cleared, movementSpeed restored to {movementSpeed}");
     }
 }
