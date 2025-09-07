@@ -9,8 +9,10 @@ public class BuffStatSkill : SkillBase
     {
         [Tooltip("Стат для баффа")]
         public StatType stat;
-        [Tooltip("Множитель баффа (например, 1.3 для увеличения на 30%)")]
+        [Tooltip("Множитель баффа (например, 1.3 для увеличения на 30%, 0 для игнорирования)")]
         public float multiplier;
+        [Tooltip("Фиксированное значение баффа (например, +50, 0 для игнорирования)")]
+        public float rawValue;
         [Tooltip("Длительность баффа в секундах")]
         public float duration;
     }
@@ -41,7 +43,7 @@ public class BuffStatSkill : SkillBase
 
     [SerializeField]
     [Tooltip("Список эффектов баффа")]
-    private BuffEffect[] buffEffects = new BuffEffect[1] { new BuffEffect { stat = StatType.Agility, multiplier = 1.3f, duration = 10f } };
+    private BuffEffect[] buffEffects = new BuffEffect[1] { new BuffEffect { stat = StatType.Agility, multiplier = 1.3f, rawValue = 0f, duration = 10f } };
 
     protected override void ExecuteSkillImplementation(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
     {
@@ -59,7 +61,7 @@ public class BuffStatSkill : SkillBase
             foreach (var effect in buffEffects)
             {
                 string statName = effect.stat.ToString().ToLower();
-                stats.ApplyBuff(statName, effect.multiplier, effect.duration);
+                stats.ApplyBuff(statName, effect.multiplier, effect.rawValue, effect.duration);
             }
         }
     }

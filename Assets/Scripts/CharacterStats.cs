@@ -530,31 +530,33 @@ public class CharacterStats : NetworkBehaviour
     }
 
     [Server]
-    public void ApplyBuff(string stat, float mult, float dur)
+    public void ApplyBuff(string stat, float mult, float rawValue, float dur)
     {
         float original = GetStatValue(stat);
+        float newValue = original * (mult == 0 ? 1f : mult) + rawValue;
         if (IsFloatStat(stat))
         {
-            SetStat(stat, original * mult);
+            SetStat(stat, newValue);
         }
         else
         {
-            SetStat(stat, Mathf.RoundToInt(original * mult));
+            SetStat(stat, Mathf.RoundToInt(newValue));
         }
         StartCoroutine(RemoveBuff(stat, original, dur));
     }
 
     [Server]
-    public void ApplyDebuff(string stat, float mult, float dur)
+    public void ApplyDebuff(string stat, float mult, float rawValue, float dur)
     {
         float original = GetStatValue(stat);
+        float newValue = original * (mult == 0 ? 1f : mult) + rawValue;
         if (IsFloatStat(stat))
         {
-            SetStat(stat, original * mult);
+            SetStat(stat, newValue);
         }
         else
         {
-            SetStat(stat, Mathf.RoundToInt(original * mult));
+            SetStat(stat, Mathf.RoundToInt(newValue));
         }
         StartCoroutine(RemoveBuff(stat, original, dur));
     }
