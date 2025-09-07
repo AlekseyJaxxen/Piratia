@@ -63,8 +63,10 @@ MonoBehaviour:
   deathVFXPrefab: {fileID: 192166, guid: c6de9c3e430816d40aedcaaf84000975, type: 3}
   canMove: 1
   canAttack: 1
+  slowEffectPrefab: {fileID: 0}
   IsDead: 0
   IsStunned: 0
+  IsSilenced: 0
   stoppingDistance: 1.8
   basicAttackSkill: {fileID: 11400000, guid: 7bbed8c6ef038aa418d85853fbc14319, type: 2}
   physicsModel: {fileID: 7651286584265580614}
@@ -564,7 +566,7 @@ PrefabInstance:
     - target: {fileID: 525983451303065500, guid: c53b323b75c29944eb8357f087f2fe32,
         type: 3}
       propertyPath: m_text
-      value: 'Demonic World Wandering '
+      value: Wandering soul
       objectReference: {fileID: 0}
     - target: {fileID: 525983451303065500, guid: c53b323b75c29944eb8357f087f2fe32,
         type: 3}
@@ -605,6 +607,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_SizeDelta.y
       value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 2328163524465767592, guid: c53b323b75c29944eb8357f087f2fe32,
+        type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 140
       objectReference: {fileID: 0}
     - target: {fileID: 2872310634014780167, guid: c53b323b75c29944eb8357f087f2fe32,
         type: 3}

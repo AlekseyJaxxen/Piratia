@@ -7,7 +7,7 @@ public class AreaOfEffectStunSkill : SkillBase
     [Header("AOE Stun Skill Specifics")]
     public float stunDuration = 2f;
     public GameObject effectPrefab;
-    public float aoeRadius = 5f; // Радиус действия
+    public float aoeRadius = 5f;
 
     protected override void ExecuteSkillImplementation(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
     {
@@ -29,8 +29,7 @@ public class AreaOfEffectStunSkill : SkillBase
 
     public override void ExecuteOnServer(PlayerCore caster, Vector3? targetPosition, GameObject targetObject, int weight)
     {
-        // Обновляем маску слоев, чтобы включить "Player", "Ignore Raycast" и "Monster"
-        int aoeLayerMask = LayerMask.GetMask("Player", "Ignore Raycast", "Monster");
+        int aoeLayerMask = LayerMask.GetMask("Player", "Ignore Raycast", "Enemy"); // Изменено на "Enemy"
         Collider[] hitColliders = Physics.OverlapSphere(targetPosition.Value, aoeRadius, aoeLayerMask);
         foreach (Collider col in hitColliders)
         {
@@ -39,10 +38,12 @@ public class AreaOfEffectStunSkill : SkillBase
             if (targetCore != null && targetCore.team != caster.team)
             {
                 targetCore.ApplyControlEffect(ControlEffectType.Stun, stunDuration, weight);
+                Debug.Log($"[AreaOfEffectStunSkill] Applied stun to player {targetCore.gameObject.name}, duration={stunDuration}, weight={weight}");
             }
-            else if (targetMonster != null)
+            else if (targetMonster != null && targetMonster.gameObject.CompareTag("Enemy"))
             {
                 targetMonster.ReceiveControlEffect(ControlEffectType.Stun, stunDuration, weight);
+                Debug.Log($"[AreaOfEffectStunSkill] Applied stun to monster {targetMonster.monsterName}, duration={stunDuration}, weight={weight}");
             }
         }
         caster.GetComponent<PlayerSkills>().RpcPlayAoeStun(targetPosition.Value, _skillName);

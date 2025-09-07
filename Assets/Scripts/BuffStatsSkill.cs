@@ -4,9 +4,44 @@ using Mirror;
 [CreateAssetMenu(fileName = "NewBuffStatSkill", menuName = "Skills/BuffStatSkill")]
 public class BuffStatSkill : SkillBase
 {
-    public string statName = "agility";
-    public float multiplier = 1.3f; // Увеличить на 30%
-    public float duration = 10f;
+    [System.Serializable]
+    public struct BuffEffect
+    {
+        [Tooltip("Стат для баффа")]
+        public StatType stat;
+        [Tooltip("Множитель баффа (например, 1.3 для увеличения на 30%)")]
+        public float multiplier;
+        [Tooltip("Длительность баффа в секундах")]
+        public float duration;
+    }
+
+    // Enum для всех статов, включая основные и производные
+    public enum StatType
+    {
+        Strength,
+        Agility,
+        Spirit,
+        Constitution,
+        Accuracy,
+        Intelligence,
+        MaxHealth,
+        MaxMana,
+        MovementSpeed,
+        Armor,
+        MinAttack,
+        MaxAttack,
+        AttackSpeed,
+        DodgeChance,
+        HitChance,
+        CriticalHitChance,
+        CriticalHitMultiplier,
+        PhysicalResistance,
+        MagicDamageMultiplier
+    }
+
+    [SerializeField]
+    [Tooltip("Список эффектов баффа")]
+    private BuffEffect[] buffEffects = new BuffEffect[1] { new BuffEffect { stat = StatType.Agility, multiplier = 1.3f, duration = 10f } };
 
     protected override void ExecuteSkillImplementation(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
     {
@@ -21,7 +56,11 @@ public class BuffStatSkill : SkillBase
         CharacterStats stats = targetObject.GetComponent<CharacterStats>();
         if (stats != null)
         {
-            stats.ApplyBuff(statName, multiplier, duration);
+            foreach (var effect in buffEffects)
+            {
+                string statName = effect.stat.ToString().ToLower();
+                stats.ApplyBuff(statName, effect.multiplier, effect.duration);
+            }
         }
     }
 }

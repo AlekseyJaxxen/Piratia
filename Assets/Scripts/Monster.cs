@@ -12,6 +12,8 @@ public class Monster : NetworkBehaviour
     [SerializeField] private GameObject deathVFXPrefab;
     [SerializeField] private bool canMove = true;
     [SerializeField] private bool canAttack = true;
+    [SerializeField] private GameObject slowEffectPrefab; // Префаб частиц для замедления
+    private GameObject _slowEffectInstance;
     private NavMeshAgent _agent;
     private MonsterUI _monsterUI;
     private Rigidbody _rigidbody;
@@ -21,6 +23,7 @@ public class Monster : NetworkBehaviour
     [SyncVar] private ControlEffectType _currentControlEffect = ControlEffectType.None;
     [SyncVar] private float _controlEffectEndTime = 0f;
     [SyncVar(hook = nameof(OnStunStateChanged))] public bool IsStunned = false;
+    [SyncVar(hook = nameof(OnSilenceStateChanged))] public bool IsSilenced = false;
     [SyncVar] private int _currentEffectWeight = 0;
     [SerializeField] public float stoppingDistance = 1f;
     [SerializeField] public MonsterBasicAttackSkill basicAttackSkill;
@@ -29,6 +32,7 @@ public class Monster : NetworkBehaviour
     [SerializeField] public Vector3 minForce = new Vector3(-5f, 2f, -5f);
     [SerializeField] public Vector3 maxForce = new Vector3(5f, 5f, 0f);
     [SyncVar] public bool IsCooldown = false;
+    private SkinnedMeshRenderer _renderer;
     private Health _health;
 
     private void Awake()
@@ -76,13 +80,20 @@ public class Monster : NetworkBehaviour
         {
             Debug.LogError("[Monster] Health component missing!");
         }
+        _renderer = GetComponentInChildren<SkinnedMeshRenderer>();
+        if (_renderer == null)
+        {
+            Debug.LogWarning($"[Monster] SkinnedMeshRenderer not found on {monsterName}");
+        }
     }
+
     public override void OnStartServer()
     {
         base.OnStartServer();
         Debug.Log($"[Monster] Initialized health on server to: {_health.CurrentHealth}/{_health.MaxHealth}");
         StartCoroutine(CheckControlEffectExpiration());
     }
+
     public override void OnStartClient()
     {
         base.OnStartClient();
@@ -97,12 +108,14 @@ public class Monster : NetworkBehaviour
         Debug.Log($"[Monster] OnStartClient called. UI initialized with currentHealth: {_health.CurrentHealth}. IsHost={isServer}");
         _health.OnHealthUpdated += OnHealthUpdatedHandler;
     }
+
     public override void OnStopClient()
     {
         base.OnStopClient();
         _health.OnHealthUpdated -= OnHealthUpdatedHandler;
         if (_monsterUI != null) Destroy(_monsterUI.gameObject);
     }
+
     private void OnNameChanged(string _, string newName)
     {
         if (_monsterUI != null)
@@ -110,6 +123,7 @@ public class Monster : NetworkBehaviour
             _monsterUI.SetData(newName, _health.CurrentHealth, _health.MaxHealth);
         }
     }
+
     private void OnStunStateChanged(bool _, bool newValue)
     {
         Debug.Log($"[Monster] Stun state changed: {newValue}, isClient={isClient}, isServer={isServer}");
@@ -118,6 +132,12 @@ public class Monster : NetworkBehaviour
             _agent.isStopped = newValue;
         }
     }
+
+    private void OnSilenceStateChanged(bool _, bool newValue)
+    {
+        Debug.Log($"[Monster] Silence state changed: {newValue}, isClient={isClient}, isServer={isServer}");
+    }
+
     private void OnHealthUpdatedHandler(int currentHP, int maxHP)
     {
         if (_monsterUI != null)
@@ -134,6 +154,7 @@ public class Monster : NetworkBehaviour
             Die();
         }
     }
+
     [ClientRpc]
     public void RpcUpdateMonsterUI(int currentHealth, int maxHealth)
     {
@@ -143,6 +164,7 @@ public class Monster : NetworkBehaviour
             Debug.Log($"[Monster] RpcUpdateMonsterUI called: {currentHealth}/{maxHealth}");
         }
     }
+
     [Server]
     public void ApplyControlEffect(ControlEffectType effectType, float duration, int skillWeight)
     {
@@ -166,12 +188,23 @@ public class Monster : NetworkBehaviour
         }
         else if (effectType == ControlEffectType.Slow)
         {
-            _slowPercentage = duration;
+            _slowPercentage = skillWeight / 100f; // Используем weight как процент замедления (будет исправлено в скиллах)
             _originalSpeed = moveSpeed;
-            if (_agent != null && _agent.isOnNavMesh) _agent.speed = moveSpeed * (1f - _slowPercentage);
-            Debug.Log($"[Monster] Applied slow effect to {monsterName}, weight={skillWeight}, percentage={_slowPercentage}, duration={duration}");
+            if (_agent != null && _agent.isOnNavMesh)
+            {
+                float newSpeed = moveSpeed * (1f - _slowPercentage);
+                _agent.speed = Mathf.Max(0.1f, newSpeed); // Минимальная скорость, чтобы не остановиться
+                Debug.Log($"[Monster] Applied slow effect to {monsterName}, weight={skillWeight}, percentage={_slowPercentage}, newSpeed={_agent.speed}, duration={duration}");
+            }
+            RpcApplySlowEffect(true);
+        }
+        else if (effectType == ControlEffectType.Silence)
+        {
+            IsSilenced = true;
+            Debug.Log($"[Monster] Applied silence effect to {monsterName}, weight={skillWeight}, duration={duration}");
         }
     }
+
     [Server]
     public void ApplySlow(float percentage, float duration, int skillWeight)
     {
@@ -188,10 +221,16 @@ public class Monster : NetworkBehaviour
         _currentEffectWeight = skillWeight;
         _slowPercentage = percentage;
         _originalSpeed = moveSpeed;
-        if (_agent != null && _agent.isOnNavMesh) _agent.speed = moveSpeed * (1f - _slowPercentage);
+        if (_agent != null && _agent.isOnNavMesh)
+        {
+            float newSpeed = moveSpeed * (1f - _slowPercentage);
+            _agent.speed = Mathf.Max(0.1f, newSpeed); // Минимальная скорость, чтобы не остановиться
+            Debug.Log($"[Monster] Applied slow to {monsterName}: percentage={percentage}, duration={duration}, weight={skillWeight}, newSpeed={_agent.speed}");
+        }
         _controlEffectEndTime = Time.time + duration;
-        Debug.Log($"[Monster] Applied slow to {monsterName}: percentage={percentage}, duration={duration}, weight={skillWeight}");
+        RpcApplySlowEffect(true);
     }
+
     [Server]
     private void ClearControlEffect()
     {
@@ -208,12 +247,50 @@ public class Monster : NetworkBehaviour
             if (_agent != null && _agent.isOnNavMesh) _agent.speed = _originalSpeed;
             _slowPercentage = 0f;
             _originalSpeed = 0f;
+            RpcApplySlowEffect(false);
+        }
+        else if (_currentControlEffect == ControlEffectType.Silence)
+        {
+            IsSilenced = false;
         }
         _currentControlEffect = ControlEffectType.None;
         _currentEffectWeight = 0;
         _controlEffectEndTime = 0f;
         Debug.Log($"[Monster] Cleared control effect for {monsterName}");
     }
+
+    [ClientRpc]
+    private void RpcApplySlowEffect(bool isActive)
+    {
+        if (isActive)
+        {
+            if (slowEffectPrefab != null && _slowEffectInstance == null)
+            {
+                _slowEffectInstance = Instantiate(slowEffectPrefab, transform);
+                Debug.Log($"[Monster] Spawned slow effect particles for {monsterName}");
+            }
+            else if (_renderer != null)
+            {
+                _renderer.material.color = new Color(0.5f, 0.5f, 1f, 1f);
+                Debug.Log($"[Monster] Applied slow visual effect (color change) to {monsterName}");
+            }
+        }
+        else
+        {
+            if (_slowEffectInstance != null)
+            {
+                Destroy(_slowEffectInstance);
+                _slowEffectInstance = null;
+                Debug.Log($"[Monster] Removed slow effect particles from {monsterName}");
+            }
+            if (_renderer != null)
+            {
+                _renderer.material.color = Color.white;
+                Debug.Log($"[Monster] Removed slow visual effect from {monsterName}");
+            }
+        }
+    }
+
     [Server]
     public void Die()
     {
@@ -254,6 +331,7 @@ public class Monster : NetworkBehaviour
         RpcHideMonsterUI();
         StartCoroutine(DespawnAfterDelay(2f));
     }
+
     [ClientRpc]
     private void RpcDie()
     {
@@ -275,6 +353,7 @@ public class Monster : NetworkBehaviour
         }
         gameObject.layer = LayerMask.NameToLayer("Ignore Raycast");
     }
+
     [ClientRpc]
     private void RpcHideMonsterUI()
     {
@@ -284,6 +363,7 @@ public class Monster : NetworkBehaviour
             Debug.Log($"[Monster] RpcHideMonsterUI called for {gameObject.name}");
         }
     }
+
     private IEnumerator DespawnAfterDelay(float delay)
     {
         yield return new WaitForSeconds(delay);
@@ -293,14 +373,16 @@ public class Monster : NetworkBehaviour
             Debug.Log($"[Monster] Destroyed {monsterName}");
         }
     }
+
     private void OnDestroy()
     {
         if (_monsterUI != null) Destroy(_monsterUI.gameObject);
     }
+
     [Server]
     public void ExecuteAttack(uint targetNetId, string skillName, int damage, bool isCritical)
     {
-        if (!canAttack || IsDead || IsStunned) return;
+        if (!canAttack || IsDead || IsStunned || IsSilenced) return;
         GameObject targetObject = NetworkServer.spawned.ContainsKey(targetNetId) ? NetworkServer.spawned[targetNetId].gameObject : null;
         if (targetObject == null)
         {
@@ -323,6 +405,7 @@ public class Monster : NetworkBehaviour
         IsCooldown = true;
         StartCoroutine(EndCooldown(attackCooldown));
     }
+
     [ClientRpc]
     private void RpcPlayVFX(Vector3 startPosition, Quaternion startRotation, Vector3 endPosition, bool isCritical)
     {
@@ -331,6 +414,7 @@ public class Monster : NetworkBehaviour
             basicAttackSkill.PlayVFX(startPosition, startRotation, endPosition, isCritical, this);
         }
     }
+
     private IEnumerator EndCooldown(float cooldown)
     {
         yield return new WaitForSeconds(cooldown);
@@ -340,11 +424,13 @@ public class Monster : NetworkBehaviour
             _agent.isStopped = false;
         }
     }
+
     [Server]
     public void ReceiveControlEffect(ControlEffectType effectType, float duration, int skillWeight)
     {
         ApplyControlEffect(effectType, duration, skillWeight);
     }
+
     private IEnumerator CheckControlEffectExpiration()
     {
         while (true)

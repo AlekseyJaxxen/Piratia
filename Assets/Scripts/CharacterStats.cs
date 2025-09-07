@@ -75,7 +75,6 @@ public class CharacterStats : NetworkBehaviour
     public event System.Action<int, int> OnMinAttackChangedEvent;
     public event System.Action<int, int> OnMaxAttackChangedEvent;
     public event System.Action<CharacterClass, CharacterClass> OnCharacterClassChangedEvent;
-
     private static readonly int[] ExperiencePerLevel = new int[100];
     private bool isClassSet = false;
     private Health healthComponent;
@@ -172,14 +171,12 @@ public class CharacterStats : NetworkBehaviour
         classData = newClassData;
         characterClass = newClass;
         isClassSet = true;
-
         strength = classData.strength;
         agility = classData.agility;
         constitution = classData.constitution;
         spirit = classData.spirit;
         accuracy = classData.accuracy;
         intelligence = classData.intelligence;
-
         CalculateDerivedStats();
         StartCoroutine(InitializeSkills());
         RpcSyncSkills(newClass);
@@ -249,17 +246,14 @@ public class CharacterStats : NetworkBehaviour
             LoadClassData();
             if (classData == null) return;
         }
-
         // Расчет характеристик с использованием базовых значений и множителей из ClassData
         maxHealth = classData.baseHealth + Mathf.RoundToInt(constitution * 20 * classData.constitutionMultiplier);
         maxMana = classData.baseMana + Mathf.RoundToInt(spirit * 10 * classData.spiritMultiplier + intelligence * 5 * classData.intelligenceMultiplier);
-
         // Расчет атаки в зависимости от attackAttribute
         float attackValue = classData.attackAttribute == AttackAttributeType.Strength ? strength : accuracy;
         float attackMultiplier = classData.attackAttribute == AttackAttributeType.Strength ? classData.strengthMultiplier : classData.accuracyMultiplier;
         minAttack = Mathf.RoundToInt(classData.baseMinAttack + attackValue * 2 * attackMultiplier);
         maxAttack = Mathf.RoundToInt(classData.baseMaxAttack + attackValue * 3 * attackMultiplier);
-
         armor = Mathf.RoundToInt(classData.baseDef + strength * 1 * classData.strengthMultiplier);
         movementSpeed = classData.baseMovementSpeed * classData.agilityMultiplier;
         attackSpeed = 1.0f + (agility * 0.05f * classData.agilityMultiplier);
@@ -268,9 +262,7 @@ public class CharacterStats : NetworkBehaviour
         criticalHitChance = 15.0f + (agility * 0.2f * classData.agilityMultiplier);
         physicalResistance = classData.basePhysicalResistance;
         magicDamageMultiplier = 1.0f + (spirit * 0.05f * classData.spiritMultiplier);
-
         currentMana = Mathf.Min(currentMana, maxMana);
-
         if (healthComponent != null)
         {
             healthComponent.SetMaxHealth(maxHealth);
@@ -280,7 +272,6 @@ public class CharacterStats : NetworkBehaviour
         {
             movementComponent.SetMovementSpeed(movementSpeed);
         }
-
         Debug.Log($"[Server] CalculateDerivedStats: class={characterClass}, strength={strength}, minAttack={minAttack}, maxAttack={maxAttack}, maxHealth={maxHealth}, maxMana={maxMana}, armor={armor}, movementSpeed={movementSpeed}, attackSpeed={attackSpeed}");
     }
 
@@ -319,7 +310,7 @@ public class CharacterStats : NetworkBehaviour
     }
 
     [Server]
-    private int GetStatValue(string statName)
+    private float GetStatValue(string statName)
     {
         switch (statName.ToLower())
         {
@@ -329,7 +320,66 @@ public class CharacterStats : NetworkBehaviour
             case "constitution": return constitution;
             case "accuracy": return accuracy;
             case "intelligence": return intelligence;
-            default: return 0;
+            case "maxhealth": return maxHealth;
+            case "maxmana": return maxMana;
+            case "movementspeed": return movementSpeed;
+            case "armor": return armor;
+            case "minattack": return minAttack;
+            case "maxattack": return maxAttack;
+            case "attackspeed": return attackSpeed;
+            case "dodgechance": return dodgeChance;
+            case "hitchance": return hitChance;
+            case "criticalhitchance": return criticalHitChance;
+            case "criticalhitmultiplier": return criticalHitMultiplier;
+            case "physicalresistance": return physicalResistance;
+            case "magicdamagemultiplier": return magicDamageMultiplier;
+            default:
+                Debug.LogWarning($"[CharacterStats] Unknown stat: {statName}");
+                return 0;
+        }
+    }
+
+    [Server]
+    private void SetStat(string stat, int value)
+    {
+        switch (stat.ToLower())
+        {
+            case "strength": strength = value; break;
+            case "agility": agility = value; break;
+            case "spirit": spirit = value; break;
+            case "constitution": constitution = value; break;
+            case "accuracy": accuracy = value; break;
+            case "intelligence": intelligence = value; break;
+            case "maxhealth":
+                maxHealth = value;
+                if (healthComponent != null) healthComponent.SetMaxHealth(maxHealth);
+                break;
+            case "maxmana": maxMana = value; currentMana = Mathf.Min(currentMana, maxMana); break;
+            case "armor": armor = value; break;
+            case "minattack": minAttack = value; break;
+            case "maxattack": maxAttack = value; break;
+            default: Debug.LogWarning($"[CharacterStats] Cannot set int for stat: {stat}"); break;
+        }
+    }
+
+    [Server]
+    private void SetStat(string stat, float value)
+    {
+        switch (stat.ToLower())
+        {
+            case "movementspeed":
+                movementSpeed = value;
+                PlayerMovement movement = GetComponent<PlayerMovement>();
+                if (movement != null) movement.SetMovementSpeed(movementSpeed);
+                break;
+            case "attackspeed": attackSpeed = value; break;
+            case "dodgechance": dodgeChance = value; break;
+            case "hitchance": hitChance = value; break;
+            case "criticalhitchance": criticalHitChance = value; break;
+            case "criticalhitmultiplier": criticalHitMultiplier = value; break;
+            case "physicalresistance": physicalResistance = value; break;
+            case "magicdamagemultiplier": magicDamageMultiplier = value; break;
+            default: Debug.LogWarning($"[CharacterStats] Cannot set float for stat: {stat}"); break;
         }
     }
 
@@ -482,43 +532,130 @@ public class CharacterStats : NetworkBehaviour
     [Server]
     public void ApplyBuff(string stat, float mult, float dur)
     {
-        int original = GetStatValue(stat);
-        SetStat(stat, Mathf.RoundToInt(original * mult));
+        float original = GetStatValue(stat);
+        if (IsFloatStat(stat))
+        {
+            SetStat(stat, original * mult);
+        }
+        else
+        {
+            SetStat(stat, Mathf.RoundToInt(original * mult));
+        }
         StartCoroutine(RemoveBuff(stat, original, dur));
-    }
-
-    private IEnumerator RemoveBuff(string stat, int original, float dur)
-    {
-        yield return new WaitForSeconds(dur);
-        SetStat(stat, original);
-        CalculateDerivedStats();
     }
 
     [Server]
     public void ApplyDebuff(string stat, float mult, float dur)
     {
-        int original = GetStatValue(stat);
-        SetStat(stat, Mathf.RoundToInt(original * mult));
+        float original = GetStatValue(stat);
+        if (IsFloatStat(stat))
+        {
+            SetStat(stat, original * mult);
+        }
+        else
+        {
+            SetStat(stat, Mathf.RoundToInt(original * mult));
+        }
         StartCoroutine(RemoveBuff(stat, original, dur));
     }
 
-    [Server]
-    public void ToggleBuff(string type, float value)
+    private IEnumerator RemoveBuff(string stat, float original, float dur)
     {
-        // Логика toggle баффа
+        yield return new WaitForSeconds(dur);
+        if (IsFloatStat(stat))
+        {
+            SetStat(stat, original);
+        }
+        else
+        {
+            SetStat(stat, Mathf.RoundToInt(original));
+        }
+        CalculateDerivedStats();
     }
 
-    [Server]
-    private void SetStat(string stat, int value)
+    private bool IsFloatStat(string stat)
     {
         switch (stat.ToLower())
         {
-            case "strength": strength = value; break;
-            case "agility": agility = value; break;
-            case "spirit": spirit = value; break;
-            case "constitution": constitution = value; break;
-            case "accuracy": accuracy = value; break;
-            case "intelligence": intelligence = value; break;
+            case "movementspeed":
+            case "attackspeed":
+            case "dodgechance":
+            case "hitchance":
+            case "criticalhitchance":
+            case "criticalhitmultiplier":
+            case "physicalresistance":
+            case "magicdamagemultiplier":
+                return true;
+            default:
+                return false;
         }
+    }
+
+    [Server]
+    public void ToggleBuff(string stat, float value)
+    {
+        if (classData == null)
+        {
+            Debug.LogWarning($"[CharacterStats] Cannot toggle buff for {stat}: ClassData is null");
+            return;
+        }
+
+        float current = GetStatValue(stat);
+        float baseValue;
+
+        // Получение базового значения из ClassData
+        switch (stat.ToLower())
+        {
+            case "strength": baseValue = classData.strength; break;
+            case "agility": baseValue = classData.agility; break;
+            case "spirit": baseValue = classData.spirit; break;
+            case "constitution": baseValue = classData.constitution; break;
+            case "accuracy": baseValue = classData.accuracy; break;
+            case "intelligence": baseValue = classData.intelligence; break;
+            case "maxhealth": baseValue = classData.baseHealth; break;
+            case "maxmana": baseValue = classData.baseMana; break;
+            case "movementspeed": baseValue = classData.baseMovementSpeed; break;
+            case "armor": baseValue = classData.baseDef; break;
+            case "minattack": baseValue = classData.baseMinAttack; break;
+            case "maxattack": baseValue = classData.baseMaxAttack; break;
+            case "attackspeed": baseValue = 1.0f + (classData.agility * 0.05f * classData.agilityMultiplier); break;
+            case "dodgechance": baseValue = 5.0f + (classData.agility * 0.5f * classData.agilityMultiplier); break;
+            case "hitchance": baseValue = 80.0f + (classData.accuracy * 1.0f * classData.accuracyMultiplier); break;
+            case "criticalhitchance": baseValue = 15.0f + (classData.agility * 0.2f * classData.agilityMultiplier); break;
+            case "criticalhitmultiplier": baseValue = criticalHitMultiplier; break; // Нет базового в ClassData, используем текущее
+            case "physicalresistance": baseValue = classData.basePhysicalResistance; break;
+            case "magicdamagemultiplier": baseValue = 1.0f + (classData.spirit * 0.05f * classData.spiritMultiplier); break;
+            default:
+                Debug.LogWarning($"[CharacterStats] Cannot toggle unknown stat: {stat}");
+                return;
+        }
+
+        if (Mathf.Approximately(current, value))
+        {
+            // Бафф уже активен, отключаем его, восстанавливая базовое значение
+            if (IsFloatStat(stat))
+            {
+                SetStat(stat, baseValue);
+            }
+            else
+            {
+                SetStat(stat, Mathf.RoundToInt(baseValue));
+            }
+            Debug.Log($"[CharacterStats] ToggleBuff: Removed buff for {stat}, restored to {baseValue}");
+        }
+        else
+        {
+            // Бафф не активен, применяем его
+            if (IsFloatStat(stat))
+            {
+                SetStat(stat, value);
+            }
+            else
+            {
+                SetStat(stat, Mathf.RoundToInt(value));
+            }
+            Debug.Log($"[CharacterStats] ToggleBuff: Applied buff for {stat}, set to {value}");
+        }
+        CalculateDerivedStats();
     }
 }

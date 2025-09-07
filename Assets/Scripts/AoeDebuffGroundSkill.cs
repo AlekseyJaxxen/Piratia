@@ -7,7 +7,7 @@ public class AoeDebuffGroundSkill : SkillBase
     public float slowPercentage = 0.3f;
     public float duration = 10f;
     public float aoeRadius = 5f;
-    public GameObject groundEffectPrefab; // Префаб с NetworkBehaviour для эффекта
+    public GameObject groundEffectPrefab;
 
     protected override void ExecuteSkillImplementation(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
     {
@@ -21,8 +21,7 @@ public class AoeDebuffGroundSkill : SkillBase
     {
         GameObject groundEffect = Instantiate(groundEffectPrefab, targetPosition.Value, Quaternion.identity);
         NetworkServer.Spawn(groundEffect);
-        // Передаем маску слоев, включающую "Player", "Ignore Raycast" и "Monster"
-        int aoeLayerMask = LayerMask.GetMask("Player", "Ignore Raycast", "Monster");
+        int aoeLayerMask = LayerMask.GetMask("Player", "Ignore Raycast", "Enemy");
         groundEffect.GetComponent<GroundEffect>().Init(slowPercentage, duration, aoeRadius, caster.team, aoeLayerMask);
     }
 }

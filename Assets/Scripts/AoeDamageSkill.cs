@@ -47,7 +47,7 @@ public class AoeDamageSkill : SkillBase
         }
 
         // Обновляем маску слоев, чтобы включить "Player" и "Ignore Raycast"
-        int aoeLayerMask = LayerMask.GetMask("Player", "Ignore Raycast", "Monster");
+        int aoeLayerMask = LayerMask.GetMask("Player", "Ignore Raycast", "Monster", "Enemy");
         Collider[] hitColliders = Physics.OverlapSphere(targetPosition.Value, aoeRadius, aoeLayerMask);
         foreach (Collider col in hitColliders)
         {

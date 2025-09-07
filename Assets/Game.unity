@@ -56879,6 +56879,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 701db164e762e8d4eb55ee37444ee209, type: 2}
   - {fileID: 11400000, guid: 416c0a404f8283143b92925216e31ace, type: 2}
   - {fileID: 11400000, guid: 5e7dae658d5acbd40ab22695aa6763cb, type: 2}
+  - {fileID: 11400000, guid: 921c930d425e53243b9becb1a5a82f8e, type: 2}
   mageSkills:
   - {fileID: 11400000, guid: 3eb9b1d80c8fde844a94600c814cc491, type: 2}
   - {fileID: 11400000, guid: 9a1d78afb8732344b98a8f8244a0e5da, type: 2}

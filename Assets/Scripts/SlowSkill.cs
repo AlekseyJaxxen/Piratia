@@ -20,9 +20,9 @@ public class SlowSkill : SkillBase
         }
         PlayerCore targetCore = targetObject.GetComponent<PlayerCore>();
         Monster targetMonster = targetObject.GetComponent<Monster>();
-        if ((targetCore == null || targetCore.team == caster.team) && targetMonster == null)
+        if ((targetCore == null || targetCore.team == caster.team) && (targetMonster == null || !targetObject.CompareTag("Enemy")))
         {
-            Debug.LogWarning("[SlowSkill] Invalid target: not enemy");
+            Debug.LogWarning("[SlowSkill] Invalid target: not enemy or same team");
             return;
         }
         NetworkIdentity targetIdentity = targetObject.GetComponent<NetworkIdentity>();
@@ -40,7 +40,7 @@ public class SlowSkill : SkillBase
         PlayerSkills skills = caster.GetComponent<PlayerSkills>();
         Debug.Log($"[SlowSkill] Attempting to slow target: {targetObject.name}, netId: {targetIdentity.netId}");
         skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName, Weight);
-        caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
+        skills.StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
     }
 
     public override void ExecuteOnServer(PlayerCore caster, Vector3? targetPosition, GameObject targetObject, int weight)
@@ -64,11 +64,20 @@ public class SlowSkill : SkillBase
         {
             targetHealth.TakeDamage(finalDamage, SkillDamageType, false, caster.netIdentity);
         }
+
         PlayerCore targetCore = targetObject.GetComponent<PlayerCore>();
+        Monster targetMonster = targetObject.GetComponent<Monster>();
         if (targetCore != null)
         {
-            targetCore.ApplySlow(slowPercentage, slowDuration, weight);
+            targetCore.ApplyControlEffect(ControlEffectType.Slow, slowDuration, Mathf.RoundToInt(slowPercentage * 100)); // Передаем процент как weight
+            Debug.Log($"[SlowSkill] Applied slow to player {targetCore.gameObject.name}, duration={slowDuration}, percentage={slowPercentage}");
         }
+        else if (targetMonster != null)
+        {
+            targetMonster.ReceiveControlEffect(ControlEffectType.Slow, slowDuration, Mathf.RoundToInt(slowPercentage * 100)); // Передаем процент как weight
+            Debug.Log($"[SlowSkill] Applied slow to monster {targetMonster.monsterName}, duration={slowDuration}, percentage={slowPercentage}");
+        }
+
         uint targetNetId = targetObject.GetComponent<NetworkIdentity>().netId;
         caster.GetComponent<PlayerSkills>().RpcApplySlowEffect(targetNetId, slowDuration, _skillName);
     }
@@ -84,6 +93,6 @@ public class SlowSkill : SkillBase
 
     public void ApplySlowEffect(GameObject target, float duration, PlayerSkills playerSkills)
     {
-        // VFX для slow
+        Debug.Log($"[SlowSkill] Applying VFX for slow on {target.name}, duration={duration}");
     }
 }

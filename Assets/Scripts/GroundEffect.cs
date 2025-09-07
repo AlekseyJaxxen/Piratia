@@ -8,7 +8,7 @@ public class GroundEffect : NetworkBehaviour
     private float dur;
     private float rad;
     private PlayerTeam team;
-    private int layerMask; // Добавляем маску слоев
+    private int layerMask;
 
     public void Init(float slow, float duration, float radius, PlayerTeam ownerTeam, int layerMask)
     {
@@ -16,7 +16,7 @@ public class GroundEffect : NetworkBehaviour
         dur = duration;
         rad = radius;
         team = ownerTeam;
-        this.layerMask = layerMask; // Сохраняем маску
+        this.layerMask = layerMask;
         StartCoroutine(DestroyAfter(duration));
     }
 
@@ -29,13 +29,15 @@ public class GroundEffect : NetworkBehaviour
             PlayerCore player = col.GetComponent<PlayerCore>();
             if (player != null && player.team != team)
             {
-                player.ApplySlow(slowPercent, 1f, 1);
+                player.ApplyControlEffect(ControlEffectType.Slow, 1f, Mathf.RoundToInt(slowPercent * 100));
+                Debug.Log($"[GroundEffect] Applied slow to player {player.gameObject.name}, percentage={slowPercent}, duration=1f");
                 continue;
             }
             Monster monster = col.GetComponent<Monster>();
-            if (monster != null)
+            if (monster != null && monster.gameObject.CompareTag("Enemy"))
             {
-                monster.ApplySlow(slowPercent, 1f, 1);
+                monster.ReceiveControlEffect(ControlEffectType.Slow, 1f, Mathf.RoundToInt(slowPercent * 100));
+                Debug.Log($"[GroundEffect] Applied slow to monster {monster.monsterName}, percentage={slowPercent}, duration=1f");
             }
         }
     }
