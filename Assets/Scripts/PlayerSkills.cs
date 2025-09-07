@@ -3,7 +3,6 @@ using Mirror;
 using System.Collections.Generic;
 using System.Linq;
 using System.Collections;
-using Mirror.BouncyCastle.Crypto.Generators;
 using static SkillBase;
 
 public class PlayerSkills : NetworkBehaviour
@@ -287,11 +286,6 @@ public class PlayerSkills : NetworkBehaviour
         return 0f;
     }
 
-    public float GetGlobalRemainingCooldown()
-    {
-        return Mathf.Max(0, globalCooldown - ((float)NetworkTime.time - _lastGlobalUseTime));
-    }
-
     [Server]
     public void StartSkillCooldown(string skillName)
     {
@@ -476,7 +470,7 @@ public class PlayerSkills : NetworkBehaviour
     public void RpcPlayAoeStun(Vector3 position, string skillName)
     {
         SkillBase skill = skills.Find(s => s.SkillName == skillName);
-        if (skill is AreaOfEffectStunSkill aoeStunSkill) // Исправлено: script -> skill
+        if (skill is AreaOfEffectStunSkill aoeStunSkill)
         {
             aoeStunSkill.PlayEffect(position);
         }
@@ -495,7 +489,7 @@ public class PlayerSkills : NetworkBehaviour
     [ClientRpc]
     public void RpcPlayAoeDamage(Vector3 position, string skillName)
     {
-        SkillBase skill = skills.Find(s => s.SkillName == skillName); // Исправлено: scripts -> skills
+        SkillBase skill = skills.Find(s => s.SkillName == skillName);
         if (skill is AoeDamageSkill aoeDamageSkill)
         {
             aoeDamageSkill.PlayEffect(position, GetComponent<PlayerCore>());
@@ -719,15 +713,42 @@ public class PlayerSkills : NetworkBehaviour
     [ClientRpc]
     public void RpcRevealPlayer(bool isVisible, int layer)
     {
+        PlayerCore localPlayer = NetworkClient.localPlayer?.GetComponent<PlayerCore>();
+        bool isSameTeam = localPlayer != null && localPlayer.team == _core.team;
+
         Transform modelsTransform = transform.Find("Models");
         if (modelsTransform != null)
         {
-            modelsTransform.gameObject.SetActive(isVisible);
+            // Включаем Models для союзников, самого игрока или в зоне раскрытия
+            modelsTransform.gameObject.SetActive(isVisible || isSameTeam || this.isLocalPlayer);
         }
         else
         {
             Debug.LogWarning($"[PlayerSkills] GameObject 'Models' not found on {gameObject.name}");
         }
         gameObject.layer = layer; // Меняем слой игрока
+    }
+
+    [ClientRpc]
+    public void RpcSetInvisibilityVisibility(bool isInvisible, PlayerTeam targetTeam)
+    {
+        PlayerCore localPlayer = NetworkClient.localPlayer?.GetComponent<PlayerCore>();
+        bool isSameTeam = localPlayer != null && localPlayer.team == targetTeam;
+
+        Transform modelsTransform = transform.Find("Models");
+        if (modelsTransform != null)
+        {
+            // Models видим для союзников и самого игрока, скрыт для врагов
+            modelsTransform.gameObject.SetActive(!isInvisible || isSameTeam || this.isLocalPlayer);
+        }
+        else
+        {
+            Debug.LogWarning($"[PlayerSkills] GameObject 'Models' not found on {gameObject.name}");
+        }
+    }
+
+    public float GetGlobalRemainingCooldown()
+    {
+        return Mathf.Max(0, globalCooldown - ((float)NetworkTime.time - _lastGlobalUseTime));
     }
 }

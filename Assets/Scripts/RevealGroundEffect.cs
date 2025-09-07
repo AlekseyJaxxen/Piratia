@@ -34,7 +34,7 @@ public class RevealGroundEffect : NetworkBehaviour
                 currentPlayers.Add(player.netId);
                 if (!revealedPlayers.Contains(player.netId))
                 {
-                    // Включаем Models и меняем слой на "Player"
+                    // Включаем Models и меняем слой на "Player" для всех
                     player.Skills.RpcRevealPlayer(true, LayerMask.NameToLayer("Player"));
                     revealedPlayers.Add(player.netId);
                 }
@@ -52,7 +52,8 @@ public class RevealGroundEffect : NetworkBehaviour
                     PlayerCore player = NetworkServer.spawned[playerId].GetComponent<PlayerCore>();
                     if (player != null && player.Skills._isInvisible)
                     {
-                        // Скрываем Models и восстанавливаем слой "Ignore Raycast"
+                        // Восстанавливаем видимость и слой для невидимости
+                        player.Skills.RpcSetInvisibilityVisibility(true, player.team);
                         player.Skills.RpcRevealPlayer(false, LayerMask.NameToLayer("Ignore Raycast"));
                     }
                 }
@@ -64,7 +65,7 @@ public class RevealGroundEffect : NetworkBehaviour
     private IEnumerator DestroyAfter(float delay)
     {
         yield return new WaitForSeconds(delay);
-        // Скрываем Models и восстанавливаем слой для всех раскрытых игроков
+        // Восстанавливаем видимость и слой для всех раскрытых игроков
         foreach (uint playerId in revealedPlayers)
         {
             if (NetworkServer.spawned.ContainsKey(playerId))
@@ -72,6 +73,7 @@ public class RevealGroundEffect : NetworkBehaviour
                 PlayerCore player = NetworkServer.spawned[playerId].GetComponent<PlayerCore>();
                 if (player != null && player.Skills._isInvisible)
                 {
+                    player.Skills.RpcSetInvisibilityVisibility(true, player.team);
                     player.Skills.RpcRevealPlayer(false, LayerMask.NameToLayer("Ignore Raycast"));
                 }
             }

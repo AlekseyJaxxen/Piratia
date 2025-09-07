@@ -45,17 +45,6 @@ public class InvisibilitySkill : SkillBase
 
     public override void ApplyInvisibilityEffect(bool isActive)
     {
-        // Находим GameObject с именем "Models"
-        Transform modelsTransform = _player.transform.Find("Models");
-        if (modelsTransform != null)
-        {
-            modelsTransform.gameObject.SetActive(!isActive); // Отключаем/включаем весь объект Models
-        }
-        else
-        {
-            Debug.LogWarning($"[InvisibilitySkill] GameObject 'Models' not found on {_player.gameObject.name}");
-        }
-
         // Меняем слой игрока
         if (isActive)
         {
@@ -70,6 +59,13 @@ public class InvisibilitySkill : SkillBase
         if (_invisibilityEffectInstance != null)
         {
             _invisibilityEffectInstance.SetActive(isActive);
+        }
+
+        // Вызываем RPC для управления видимостью Models
+        PlayerSkills skills = _player.GetComponent<PlayerSkills>();
+        if (skills != null)
+        {
+            skills.RpcSetInvisibilityVisibility(isActive, _player.team);
         }
     }
 }
