@@ -88,7 +88,7 @@ public class Health : NetworkBehaviour
     }
 
     [Server]
-    public void TakeDamage(int baseDamage, DamageType damageType, bool isCritical, NetworkIdentity attacker = null)
+    public void TakeDamage(int baseDamage, DamageType damageType, bool isCritical, NetworkIdentity attacker = null, float damageMultiplier = 1f)
     {
         PlayerCore attackerCore = attacker?.GetComponent<PlayerCore>();
         if (attackerCore != null && attackerCore.isDead)
@@ -97,6 +97,7 @@ public class Health : NetworkBehaviour
             return;
         }
         int finalDamage = CalculateFinalDamage(baseDamage, damageType);
+        finalDamage = Mathf.RoundToInt(finalDamage * damageMultiplier); // Применяем множитель после брони
         if (isCritical)
         {
             CharacterStats attackerStats = attacker?.GetComponent<CharacterStats>();
@@ -108,8 +109,6 @@ public class Health : NetworkBehaviour
         LastAttacker = attacker;
         Debug.Log($"[Server] {gameObject.name} took {finalDamage} damage from {attacker?.gameObject.name}. Current health: {CurrentHealth}");
         RpcShowDamageNumber(finalDamage, isCritical, damageType);
-
-        // Проверяем вызов прерывания невидимости
         PlayerSkills skills = GetComponent<PlayerSkills>();
         if (skills != null)
         {
@@ -120,7 +119,6 @@ public class Health : NetworkBehaviour
         {
             Debug.LogWarning($"[Health] PlayerSkills component not found on {gameObject.name}");
         }
-
         if (CurrentHealth <= 0)
         {
             Debug.Log($"[Server] {gameObject.name} has died. Setting death state.");

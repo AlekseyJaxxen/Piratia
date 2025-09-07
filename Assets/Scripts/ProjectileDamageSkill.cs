@@ -52,22 +52,20 @@ public class ProjectileDamageSkill : SkillBase
         }
         CharacterStats stats = caster.GetComponent<CharacterStats>();
         if (stats == null) return;
-
-        int finalDamage;
+        int randomAttack;
         if (SkillDamageType == DamageType.Physical)
         {
-            int randomAttack = Random.Range(stats.minAttack, stats.maxAttack + 1);
-            finalDamage = Mathf.RoundToInt((baseDamage + randomAttack) * damageMultiplier);
+            randomAttack = Random.Range(stats.minAttack, stats.maxAttack + 1);
         }
         else
         {
-            finalDamage = baseDamage + Mathf.RoundToInt(stats.spirit * damageMultiplier);
+            randomAttack = Mathf.RoundToInt(stats.spirit);
         }
-
+        int totalBaseDamage = baseDamage + randomAttack; // Суммируем базовый урон и атаку
         Health targetHealth = targetObject.GetComponent<Health>();
         if (targetHealth != null)
         {
-            targetHealth.TakeDamage(finalDamage, SkillDamageType, false, caster.netIdentity);
+            targetHealth.TakeDamage(totalBaseDamage, SkillDamageType, false, caster.netIdentity, damageMultiplier); // Передаем множитель
         }
         Vector3 startPos = caster.transform.position;
         Vector3 targetPos = targetObject.transform.position;
