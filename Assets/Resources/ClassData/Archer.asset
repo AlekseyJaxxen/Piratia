@@ -14,15 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ClassData
   characterClass: 2
   strength: 5
-  agility: 5
+  agility: 40
   constitution: 5
   spirit: 5
   accuracy: 5
   intelligence: 5
-  baseHealth: 1000
+  baseHealth: 5000
   baseMana: 100
-  baseMinAttack: 15
-  baseMaxAttack: 20
+  baseMinAttack: 1200
+  baseMaxAttack: 1500
   baseDef: 310
   baseMovementSpeed: 11
   basePhysicalResistance: 25
