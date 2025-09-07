@@ -44,7 +44,7 @@ public class HealthBarUI : MonoBehaviour
         if (hpText != null) hpText.text = $"{current}/{max}";
         if (current < previousHealth && gameObject.activeSelf)
         {
-            StartCoroutine(FlashHealthBar());
+            //StartCoroutine(FlashHealthBar());
         }
         previousHealth = current;
     }

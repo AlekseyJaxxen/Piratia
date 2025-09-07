@@ -3,6 +3,7 @@ using Mirror;
 using System.Collections.Generic;
 using System.Linq;
 using System.Collections;
+using Mirror.BouncyCastle.Crypto.Generators;
 using static SkillBase;
 
 public class PlayerSkills : NetworkBehaviour
@@ -33,7 +34,7 @@ public class PlayerSkills : NetworkBehaviour
     public ISkill ActiveSkill => _activeSkill;
     private Dictionary<string, float> localCooldowns = new Dictionary<string, float>();
     private float localGlobalCooldownEnd = 0f;
-    [SyncVar] public bool _isInvisible; // Для невидимости
+    [SyncVar(hook = nameof(OnInvisibilityChanged))] public bool _isInvisible; // Для невидимости
     private Coroutine _invisibilityCoroutine;
 
     private void Awake()
@@ -45,6 +46,11 @@ public class PlayerSkills : NetworkBehaviour
     {
         _core = GetComponent<PlayerCore>();
         StartCoroutine(InitializeSkills());
+    }
+
+    private void OnInvisibilityChanged(bool oldValue, bool newValue)
+    {
+        Debug.Log($"[PlayerSkills] Invisibility changed: {oldValue} -> {newValue} on {gameObject.name}, isServer={isServer}, isClient={isClient}");
     }
 
     private IEnumerator InitializeSkills()
@@ -183,30 +189,36 @@ public class PlayerSkills : NetworkBehaviour
     {
         if (!caster.CanCastSkill(caster.Skills.skills.Find(s => s.SkillName == skillName)))
         {
+            Debug.Log($"[PlayerSkills] Cannot cast skill {skillName}: invalid conditions on {gameObject.name}");
             return;
         }
         SkillBase skill = skills.Find(s => s.SkillName == skillName);
         if (skill == null)
         {
+            Debug.LogWarning($"[PlayerSkills] Skill {skillName} not found on {gameObject.name}");
             return;
         }
         if (GetRemainingCooldown(skillName) > 0)
         {
+            Debug.Log($"[PlayerSkills] Skill {skillName} on cooldown: {GetRemainingCooldown(skillName)}s remaining on {gameObject.name}");
             return;
         }
         if (!skill.ignoreGlobalCooldown && GetGlobalRemainingCooldown() > 0)
         {
+            Debug.Log($"[PlayerSkills] Global cooldown active for {skillName}: {GetGlobalRemainingCooldown()}s remaining on {gameObject.name}");
             return;
         }
         CharacterStats stats = caster.GetComponent<CharacterStats>();
         if (stats != null && !stats.HasEnoughMana(skill.ManaCost))
         {
+            Debug.Log($"[PlayerSkills] Not enough mana for {skillName}: required {skill.ManaCost}, available {stats.currentMana} on {gameObject.name}");
             return;
         }
 
         // Снимаем невидимость при касте скилла/атаки
         if (_isInvisible)
         {
+            Debug.Log($"[PlayerSkills] Interrupting invisibility due to skill cast: {skillName} on {gameObject.name}");
             InterruptInvisibility();
         }
 
@@ -230,11 +242,12 @@ public class PlayerSkills : NetworkBehaviour
             }
             if (distance > skill.Range + tolerance)
             {
+                Debug.LogWarning($"[PlayerSkills] Skill {skillName} out of range: distance={distance}, range={skill.Range} on {gameObject.name}");
                 return;
             }
             if (distance > skill.Range + warningThreshold)
             {
-                Debug.LogWarning($"Skill {skillName} used with high tolerance: Distance = {distance}, Range = {skill.Range}, Tolerance = {tolerance}");
+                Debug.LogWarning($"Skill {skillName} used with high tolerance: Distance = {distance}, Range = {skill.Range}, Tolerance = {tolerance} on {gameObject.name}");
             }
         }
         if (stats != null) stats.SpendMana(skill.ManaCost);
@@ -300,7 +313,7 @@ public class PlayerSkills : NetworkBehaviour
             {
                 if (!_core.CanCastSkill(skill))
                 {
-                    Debug.LogWarning($"[PlayerSkills] Cannot select skill {skill.SkillName}: player is dead, stunned, or silenced (and not BasicAttackSkill)");
+                    Debug.LogWarning($"[PlayerSkills] Cannot select skill {skill.SkillName}: player is dead, stunned, or silenced (and not BasicAttackSkill) on {gameObject.name}");
                     continue;
                 }
                 if (GetRemainingCooldown(skill.SkillName) > 0 || (!skill.ignoreGlobalCooldown && GetGlobalRemainingCooldown() > 0))
@@ -353,7 +366,7 @@ public class PlayerSkills : NetworkBehaviour
     {
         if (!_core.CanCastSkill(skill))
         {
-            Debug.LogWarning($"[PlayerSkills] Cannot select skill {((SkillBase)skill).SkillName}: player is dead, stunned, or silenced (and not BasicAttackSkill)");
+            Debug.LogWarning($"[PlayerSkills] Cannot select skill {((SkillBase)skill).SkillName}: player is dead, stunned, or silenced (and not BasicAttackSkill) on {gameObject.name}");
             return;
         }
         if (_activeSkill != null)
@@ -463,7 +476,7 @@ public class PlayerSkills : NetworkBehaviour
     public void RpcPlayAoeStun(Vector3 position, string skillName)
     {
         SkillBase skill = skills.Find(s => s.SkillName == skillName);
-        if (skill is AreaOfEffectStunSkill aoeStunSkill)
+        if (skill is AreaOfEffectStunSkill aoeStunSkill) // Исправлено: script -> skill
         {
             aoeStunSkill.PlayEffect(position);
         }
@@ -482,7 +495,7 @@ public class PlayerSkills : NetworkBehaviour
     [ClientRpc]
     public void RpcPlayAoeDamage(Vector3 position, string skillName)
     {
-        SkillBase skill = skills.Find(s => s.SkillName == skillName);
+        SkillBase skill = skills.Find(s => s.SkillName == skillName); // Исправлено: scripts -> skills
         if (skill is AoeDamageSkill aoeDamageSkill)
         {
             aoeDamageSkill.PlayEffect(position, GetComponent<PlayerCore>());
@@ -598,7 +611,7 @@ public class PlayerSkills : NetworkBehaviour
         CancelSkillSelection();
     }
 
-    public void StartLocalCooldown(string skillName, float cooldown, bool useGlobal) // Исправлено: personally -> bool useGlobal
+    public void StartLocalCooldown(string skillName, float cooldown, bool useGlobal)
     {
         localCooldowns[skillName] = (float)NetworkTime.time + cooldown;
         if (useGlobal) localGlobalCooldownEnd = (float)NetworkTime.time + globalCooldown;
@@ -633,6 +646,7 @@ public class PlayerSkills : NetworkBehaviour
             SkillBase skill = skills.Find(s => s.SkillName == skillName);
             if (stats != null && !stats.HasEnoughMana(skill.ManaCost))
             {
+                Debug.Log($"[PlayerSkills] Not enough mana for {skillName}: required {skill.ManaCost}, available {stats.currentMana} on {gameObject.name}");
                 return;
             }
             if (stats != null) stats.SpendMana(skill.ManaCost);
@@ -662,6 +676,7 @@ public class PlayerSkills : NetworkBehaviour
     private void SetInvisible(bool value)
     {
         _isInvisible = value;
+        Debug.Log($"[PlayerSkills] SetInvisible: {value} on {gameObject.name}");
         RpcSetInvisible(value);
     }
 
@@ -678,7 +693,27 @@ public class PlayerSkills : NetworkBehaviour
 
     public void InterruptInvisibility()
     {
-        if (_isInvisible) CmdToggleInvisibility(false, "Invisibility");
+        if (_isInvisible)
+        {
+            Debug.Log($"[PlayerSkills] Attempting to interrupt invisibility on {gameObject.name}, isServer={isServer}");
+            if (isServer)
+            {
+                // На сервере напрямую снимаем невидимость
+                SetInvisible(false);
+            }
+            else
+            {
+                // На клиенте отправляем команду
+                CmdInterruptInvisibility();
+            }
+        }
+    }
+
+    [Command]
+    private void CmdInterruptInvisibility()
+    {
+        Debug.Log($"[PlayerSkills] CmdInterruptInvisibility called on {gameObject.name}, _isInvisible={_isInvisible}");
+        SetInvisible(false);
     }
 
     [ClientRpc]
