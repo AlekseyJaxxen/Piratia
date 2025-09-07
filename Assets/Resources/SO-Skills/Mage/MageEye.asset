@@ -18,7 +18,7 @@ MonoBehaviour:
   _skillName: TrueSight
   _hotkey: 290
   _range: 5
-  _cooldown: 5
+  _cooldown: 15
   _castTime: 0
   _castCursor: {fileID: 0}
   _manaCost: 0
@@ -27,7 +27,7 @@ MonoBehaviour:
   _effectRadius: 0
   castRangePrefab: {fileID: 0}
   effectRadiusPrefab: {fileID: 0}
-  duration: 10
+  duration: 30
   aoeRadius: 5
   revealEffectPrefab: {fileID: 3299273662854126661, guid: 9cbde2bf5a51a4f43b201cecd0ec5787,
     type: 3}
