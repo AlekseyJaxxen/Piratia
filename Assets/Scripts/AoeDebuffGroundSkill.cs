@@ -1,6 +1,5 @@
 using UnityEngine;
 using Mirror;
-using System.Collections;
 
 [CreateAssetMenu(fileName = "NewAoeDebuffGroundSkill", menuName = "Skills/AoeDebuffGroundSkill")]
 public class AoeDebuffGroundSkill : SkillBase
@@ -22,7 +21,8 @@ public class AoeDebuffGroundSkill : SkillBase
     {
         GameObject groundEffect = Instantiate(groundEffectPrefab, targetPosition.Value, Quaternion.identity);
         NetworkServer.Spawn(groundEffect);
-        groundEffect.GetComponent<GroundEffect>().Init(slowPercentage, duration, aoeRadius, caster.team);
+        // Передаем маску слоев, включающую "Player", "Ignore Raycast" и "Monster"
+        int aoeLayerMask = LayerMask.GetMask("Player", "Ignore Raycast", "Monster");
+        groundEffect.GetComponent<GroundEffect>().Init(slowPercentage, duration, aoeRadius, caster.team, aoeLayerMask);
     }
 }
-

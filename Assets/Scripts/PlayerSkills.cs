@@ -33,6 +33,8 @@ public class PlayerSkills : NetworkBehaviour
     public ISkill ActiveSkill => _activeSkill;
     private Dictionary<string, float> localCooldowns = new Dictionary<string, float>();
     private float localGlobalCooldownEnd = 0f;
+    [SyncVar] public bool _isInvisible; // Для невидимости
+    private Coroutine _invisibilityCoroutine;
 
     private void Awake()
     {
@@ -121,6 +123,8 @@ public class PlayerSkills : NetworkBehaviour
         {
             skill.CleanupIndicators();
         }
+        if (_invisibilityCoroutine != null) StopCoroutine(_invisibilityCoroutine);
+        SetInvisible(false);
     }
 
     public override void OnStopClient()
@@ -144,6 +148,8 @@ public class PlayerSkills : NetworkBehaviour
         {
             skill.CleanupIndicators();
         }
+        if (_invisibilityCoroutine != null) StopCoroutine(_invisibilityCoroutine);
+        SetInvisible(false);
     }
 
     public void HandleStunEffect(bool isStunned)
@@ -197,6 +203,13 @@ public class PlayerSkills : NetworkBehaviour
         {
             return;
         }
+
+        // Снимаем невидимость при касте скилла/атаки
+        if (_isInvisible)
+        {
+            InterruptInvisibility();
+        }
+
         GameObject targetObject = null;
         if (targetNetId != 0 && NetworkServer.spawned.ContainsKey(targetNetId))
         {
@@ -234,7 +247,6 @@ public class PlayerSkills : NetworkBehaviour
             skill.ExecuteOnServer(caster, targetPosition, targetObject, weight);
             StartSkillCooldown(skillName);
             if (!skill.ignoreGlobalCooldown) StartGlobalCooldown();
-            // Не вызываем RpcCancelSkillSelection для BasicAttackSkill
             if (!(skill is BasicAttackSkill))
             {
                 RpcCancelSkillSelection();
@@ -301,6 +313,21 @@ public class PlayerSkills : NetworkBehaviour
                 {
                     skill.Execute(_core, null, _core.gameObject);
                     CancelSkillSelection();
+                    return;
+                }
+                if (skill.SkillCastType == CastType.ToggleBuff)
+                {
+                    if (skill.SkillName == "Invisibility")
+                    {
+                        if (_isInvisible)
+                        {
+                            CmdToggleInvisibility(false, skill.SkillName);
+                        }
+                        else
+                        {
+                            CmdToggleInvisibility(true, skill.SkillName);
+                        }
+                    }
                     return;
                 }
                 SelectSkill(skill);
@@ -508,7 +535,7 @@ public class PlayerSkills : NetworkBehaviour
                 GameObject hitObject = hit.collider.gameObject;
                 PlayerCore hitCore = hitObject.GetComponent<PlayerCore>();
                 Monster hitMonster = hitObject.GetComponent<Monster>();
-                if ((hitCore != null && hitCore.team != _core.team) || hitMonster != null)
+                if ((hitCore != null && hitCore.team != _core.team && !hitCore.Skills._isInvisible) || hitMonster != null)
                 {
                     SetCursor(attackCursor);
                 }
@@ -571,7 +598,7 @@ public class PlayerSkills : NetworkBehaviour
         CancelSkillSelection();
     }
 
-    public void StartLocalCooldown(string skillName, float cooldown, bool useGlobal)
+    public void StartLocalCooldown(string skillName, float cooldown, bool useGlobal) // Исправлено: personally -> bool useGlobal
     {
         localCooldowns[skillName] = (float)NetworkTime.time + cooldown;
         if (useGlobal) localGlobalCooldownEnd = (float)NetworkTime.time + globalCooldown;
@@ -595,5 +622,77 @@ public class PlayerSkills : NetworkBehaviour
                 reviveSkill.PlayEffect(targetIdentity.gameObject);
             }
         }
+    }
+
+    [Command]
+    private void CmdToggleInvisibility(bool enable, string skillName)
+    {
+        if (enable)
+        {
+            CharacterStats stats = GetComponent<CharacterStats>();
+            SkillBase skill = skills.Find(s => s.SkillName == skillName);
+            if (stats != null && !stats.HasEnoughMana(skill.ManaCost))
+            {
+                return;
+            }
+            if (stats != null) stats.SpendMana(skill.ManaCost);
+            StartSkillCooldown(skillName);
+            if (_invisibilityCoroutine != null) StopCoroutine(_invisibilityCoroutine);
+            if (skill != null && skill.SkillName == "Invisibility")
+            {
+                float duration = 10f; // Значение по умолчанию
+                var durationField = skill.GetType().GetField("duration");
+                if (durationField != null)
+                {
+                    duration = (float)durationField.GetValue(skill);
+                }
+                _invisibilityCoroutine = StartCoroutine(InvisibilityDuration(duration));
+            }
+        }
+        SetInvisible(enable);
+    }
+
+    private IEnumerator InvisibilityDuration(float duration)
+    {
+        yield return new WaitForSeconds(duration);
+        SetInvisible(false);
+    }
+
+    [Server]
+    private void SetInvisible(bool value)
+    {
+        _isInvisible = value;
+        RpcSetInvisible(value);
+    }
+
+    [ClientRpc]
+    private void RpcSetInvisible(bool value)
+    {
+        _isInvisible = value;
+        SkillBase skill = skills.Find(s => s.SkillName == "Invisibility");
+        if (skill != null)
+        {
+            skill.ApplyInvisibilityEffect(value);
+        }
+    }
+
+    public void InterruptInvisibility()
+    {
+        if (_isInvisible) CmdToggleInvisibility(false, "Invisibility");
+    }
+
+    [ClientRpc]
+    public void RpcRevealPlayer(bool isVisible, int layer)
+    {
+        Transform modelsTransform = transform.Find("Models");
+        if (modelsTransform != null)
+        {
+            modelsTransform.gameObject.SetActive(isVisible);
+        }
+        else
+        {
+            Debug.LogWarning($"[PlayerSkills] GameObject 'Models' not found on {gameObject.name}");
+        }
+        gameObject.layer = layer; // Меняем слой игрока
     }
 }

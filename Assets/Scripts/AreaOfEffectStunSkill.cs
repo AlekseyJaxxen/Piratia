@@ -16,23 +16,22 @@ public class AreaOfEffectStunSkill : SkillBase
             Debug.LogWarning("[AreaOfEffectStunSkill] Target position is null");
             return;
         }
-
         PlayerSkills skills = caster.GetComponent<PlayerSkills>();
         if (skills == null)
         {
             Debug.LogWarning("[AreaOfEffectStunSkill] PlayerSkills component missing on caster");
             return;
         }
-
         Debug.Log($"[AreaOfEffectStunSkill] Attempting to AOE stun at position: {targetPosition.Value}, weight: {Weight}");
-
         skills.CmdExecuteSkill(caster, targetPosition, 0, _skillName, Weight);
-        caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
+        skills.StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
     }
 
     public override void ExecuteOnServer(PlayerCore caster, Vector3? targetPosition, GameObject targetObject, int weight)
     {
-        Collider[] hitColliders = Physics.OverlapSphere(targetPosition.Value, aoeRadius, caster.interactableLayers);
+        // Обновляем маску слоев, чтобы включить "Player", "Ignore Raycast" и "Monster"
+        int aoeLayerMask = LayerMask.GetMask("Player", "Ignore Raycast", "Monster");
+        Collider[] hitColliders = Physics.OverlapSphere(targetPosition.Value, aoeRadius, aoeLayerMask);
         foreach (Collider col in hitColliders)
         {
             PlayerCore targetCore = col.GetComponent<PlayerCore>();
@@ -46,7 +45,6 @@ public class AreaOfEffectStunSkill : SkillBase
                 targetMonster.ReceiveControlEffect(ControlEffectType.Stun, stunDuration, weight);
             }
         }
-
         caster.GetComponent<PlayerSkills>().RpcPlayAoeStun(targetPosition.Value, _skillName);
     }
 
