@@ -51,8 +51,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b3c1d464dba2ef4fbf37413fb8b8ef4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveSpeed: 5
-  moveRandomness: 6
+  moveSpeed: 0.1
+  moveRandomness: 2
   moveDirection: {x: -1, y: 0}
   lifetime: 0.5
   appearTime: 0
@@ -63,6 +63,9 @@ MonoBehaviour:
   criticalColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   maxScale: 2
   startOffsetY: 1
+  useDamageGradient: 1
+  damageGradientTop: {r: 1, g: 0, b: 0, a: 1}
+  damageGradientBottom: {r: 1, g: 0.5797377, b: 0, a: 1}
   horizontalRandomness: 1
   verticalRandomness: 1
   rotationRandomness: 0
@@ -147,13 +150,13 @@ MonoBehaviour:
     serializedVersion: 2
     rgba: 4278850547
   m_fontColor: {r: 0.9528302, g: 0.07378471, b: 0.04045032, a: 1}
-  m_enableVertexGradient: 0
-  m_colorMode: 3
+  m_enableVertexGradient: 1
+  m_colorMode: 2
   m_fontColorGradient:
-    topLeft: {r: 1, g: 1, b: 1, a: 1}
-    topRight: {r: 1, g: 1, b: 1, a: 1}
-    bottomLeft: {r: 1, g: 1, b: 1, a: 1}
-    bottomRight: {r: 1, g: 1, b: 1, a: 1}
+    topLeft: {r: 0.9254902, g: 0.039215688, b: 0.11302428, a: 1}
+    topRight: {r: 0.9254902, g: 0.039215688, b: 0.11302428, a: 1}
+    bottomLeft: {r: 1, g: 0.58360845, b: 0, a: 1}
+    bottomRight: {r: 1, g: 0.58360845, b: 0, a: 1}
   m_fontColorGradientPreset: {fileID: 0}
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0

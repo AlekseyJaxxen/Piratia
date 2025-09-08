@@ -76,8 +76,12 @@ public class ProjectileDamageSkill : SkillBase
     {
         if (projectilePrefab != null)
         {
-            GameObject projectile = Object.Instantiate(projectilePrefab, startPos, Quaternion.identity);
+            PlayerCore caster = playerSkills.GetComponent<PlayerCore>();
+            Vector3 direction = (targetPos - startPos).normalized; // Направление к цели
+            Quaternion rotation = Quaternion.LookRotation(caster.transform.forward); // Ориентация по направлению игрока
+            GameObject projectile = Object.Instantiate(projectilePrefab, startPos, rotation);
             playerSkills.StartCoroutine(MoveProjectile(projectile, targetPos));
+            Debug.Log($"[ProjectileDamageSkill] Spawned projectile from {startPos} towards {targetPos} with rotation {rotation}");
         }
     }
 

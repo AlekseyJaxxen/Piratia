@@ -13,11 +13,15 @@ public class FloatingDamageText : MonoBehaviour
     public float appearTime = 0.2f; // Time to appear from 0 to max scale (delay at start)
     public float holdTime = 0.3f; // Time to hold full size and visibility after appear, before fade
     public float fadeOutTime = 0.2f; // Time for quick fade out at the end (must be < lifetime - appearTime - holdTime)
-    public Color damageColor = Color.red; // Color for damage text
+    public Color damageColor = Color.red; // Color for damage text (used as fallback if no gradient)
     public Color healColor = Color.green; // Color for heal text
     public Color criticalColor = Color.yellow; // Color for critical hits
     public float maxScale = 3f; // Maximum scale factor (appears to this)
     public float startOffsetY = 1f; // Initial vertical offset (appears higher)
+    [Header("Damage Gradient Settings")]
+    public bool useDamageGradient = false; // Enable gradient for damage text
+    public Color damageGradientTop = Color.red; // Top color for damage text gradient
+    public Color damageGradientBottom = Color.black; // Bottom color for damage text gradient
     [Header("Randomness")]
     public float horizontalRandomness = 1f; // Random horizontal offset in direction
     public float verticalRandomness = 0.5f; // Random vertical offset in direction
@@ -29,6 +33,7 @@ public class FloatingDamageText : MonoBehaviour
     private float _timer;
     private Vector3 _randomMoveDirection;
     private Vector3 _initialScale;
+
     private void Awake()
     {
         _textMesh = GetComponent<TextMeshPro>();
@@ -50,6 +55,7 @@ public class FloatingDamageText : MonoBehaviour
         // Random rotation
         transform.rotation = Quaternion.Euler(0, 0, Random.Range(-rotationRandomness, rotationRandomness));
     }
+
     public void SetDamageText(int damage, bool isCritical = false)
     {
         _textMesh.text = damage.ToString(); // Just the number, no sign
@@ -61,16 +67,26 @@ public class FloatingDamageText : MonoBehaviour
         }
         else
         {
-            _textMesh.color = damageColor;
-            _textMesh.fontSize = normalFontSize;
+            if (useDamageGradient)
+            {
+                _textMesh.colorGradient = new VertexGradient(damageGradientTop, damageGradientTop, damageGradientBottom, damageGradientBottom);
+                _textMesh.fontSize = normalFontSize;
+            }
+            else
+            {
+                _textMesh.color = damageColor;
+                _textMesh.fontSize = normalFontSize;
+            }
         }
     }
+
     public void SetHealText(int amount)
     {
         _textMesh.text = amount.ToString(); // Just the number, no sign
         _textMesh.color = healColor;
         _textMesh.fontSize = normalFontSize;
     }
+
     private void Update()
     {
         _timer += Time.deltaTime;
@@ -96,7 +112,19 @@ public class FloatingDamageText : MonoBehaviour
             transform.localScale = Vector3.Lerp(_initialScale * maxScale, Vector3.zero, fadeProgress);
             // Also fade alpha
             float alpha = Mathf.Lerp(1f, 0f, fadeProgress);
-            _textMesh.color = new Color(_textMesh.color.r, _textMesh.color.g, _textMesh.color.b, alpha);
+            if (useDamageGradient && !_textMesh.colorGradient.Equals(null))
+            {
+                VertexGradient gradient = _textMesh.colorGradient;
+                gradient.topLeft.a = alpha;
+                gradient.topRight.a = alpha;
+                gradient.bottomLeft.a = alpha;
+                gradient.bottomRight.a = alpha;
+                _textMesh.colorGradient = gradient;
+            }
+            else
+            {
+                _textMesh.color = new Color(_textMesh.color.r, _textMesh.color.g, _textMesh.color.b, alpha);
+            }
         }
         // Constant movement
         transform.position += _randomMoveDirection * (moveSpeed + Random.Range(0, moveRandomness)) * Time.deltaTime;
