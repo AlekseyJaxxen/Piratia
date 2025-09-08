@@ -15,9 +15,12 @@ public class BuffStatSkill : SkillBase
         public float rawValue;
         [Tooltip("Длительность баффа в секундах")]
         public float duration;
+        [Tooltip("VFX-префаб для баффа")]
+        public GameObject vfxPrefab;
+        [Tooltip("Смещение VFX относительно персонажа")]
+        public Vector3 vfxOffset;
     }
 
-    // Enum для всех статов, включая основные и производные
     public enum StatType
     {
         Strength,
@@ -43,7 +46,7 @@ public class BuffStatSkill : SkillBase
 
     [SerializeField]
     [Tooltip("Список эффектов баффа")]
-    private BuffEffect[] buffEffects = new BuffEffect[1] { new BuffEffect { stat = StatType.Agility, multiplier = 1.3f, rawValue = 0f, duration = 10f } };
+    private BuffEffect[] buffEffects = new BuffEffect[1] { new BuffEffect { stat = StatType.Agility, multiplier = 1.3f, rawValue = 0f, duration = 10f, vfxPrefab = null, vfxOffset = Vector3.up } };
 
     protected override void ExecuteSkillImplementation(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
     {
@@ -61,7 +64,7 @@ public class BuffStatSkill : SkillBase
             foreach (var effect in buffEffects)
             {
                 string statName = effect.stat.ToString().ToLower();
-                stats.ApplyBuff(statName, effect.multiplier, effect.rawValue, effect.duration);
+                stats.ApplyBuff(statName, effect.multiplier, effect.rawValue, effect.duration, effect.vfxPrefab, effect.vfxOffset);
             }
         }
     }

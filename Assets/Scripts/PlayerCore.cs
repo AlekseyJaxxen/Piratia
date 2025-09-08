@@ -46,11 +46,11 @@ public class PlayerCore : NetworkBehaviour
     [SyncVar(hook = nameof(OnSilenceStateChanged))]
     public bool isSilenced = false;
     [SyncVar]
-    private float stunEffectEndTime = 0f;
+    public float stunEffectEndTime = 0f; // Изменено на public
     [SyncVar]
     private int stunEffectWeight = 0;
     [SyncVar]
-    private float silenceEffectEndTime = 0f;
+    public float silenceEffectEndTime = 0f; // Изменено на public
     [SyncVar]
     private int silenceEffectWeight = 0;
     [Header("Mana Regeneration")]

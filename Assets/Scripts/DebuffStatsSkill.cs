@@ -15,9 +15,12 @@ public class DebuffStatSkill : SkillBase
         public float rawValue;
         [Tooltip("Длительность дебаффа в секундах")]
         public float duration;
+        [Tooltip("VFX-префаб для дебаффа")]
+        public GameObject vfxPrefab;
+        [Tooltip("Смещение VFX относительно персонажа")]
+        public Vector3 vfxOffset;
     }
 
-    // Enum для всех статов, включая основные и производные
     public enum StatType
     {
         Strength,
@@ -43,7 +46,7 @@ public class DebuffStatSkill : SkillBase
 
     [SerializeField]
     [Tooltip("Список эффектов дебаффа")]
-    private DebuffEffect[] debuffEffects = new DebuffEffect[1] { new DebuffEffect { stat = StatType.Strength, multiplier = 0.7f, rawValue = 0f, duration = 10f } };
+    private DebuffEffect[] debuffEffects = new DebuffEffect[1] { new DebuffEffect { stat = StatType.Strength, multiplier = 0.7f, rawValue = 0f, duration = 10f, vfxPrefab = null, vfxOffset = Vector3.up } };
 
     protected override void ExecuteSkillImplementation(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
     {
@@ -61,7 +64,7 @@ public class DebuffStatSkill : SkillBase
             foreach (var effect in debuffEffects)
             {
                 string statName = effect.stat.ToString().ToLower();
-                stats.ApplyDebuff(statName, effect.multiplier, effect.rawValue, effect.duration);
+                stats.ApplyDebuff(statName, effect.multiplier, effect.rawValue, effect.duration, effect.vfxPrefab, effect.vfxOffset);
             }
         }
     }

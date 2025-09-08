@@ -48,6 +48,8 @@ public abstract class SkillBase : ScriptableObject, ISkill
     [SerializeField] public GameObject effectRadiusPrefab;
     private GameObject castRangeIndicator;
     private GameObject effectRadiusIndicator;
+    public GameObject VFXPrefab; // Базовый VFX-префаб (для совместимости)
+    public GameObject GetVFXPrefab() => VFXPrefab;
 
     public virtual void Init(PlayerCore core)
     {

@@ -56891,6 +56891,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ab40c771bb9731c49976f330705f5542, type: 2}
   - {fileID: 11400000, guid: 98da5bee077b24744a433bfaf95a8a74, type: 2}
   - {fileID: 11400000, guid: 9304033d9f889c74688e6e90b8d857d1, type: 2}
+  - {fileID: 11400000, guid: 2e4b6d924e6355c49a10e1a88a9c213d, type: 2}
   archerSkills:
   - {fileID: 11400000, guid: b6306e214bb395b4192626b3912fc0c6, type: 2}
   - {fileID: 11400000, guid: ebbf47ecd1d49094dac17c306e5f32af, type: 2}

@@ -10,29 +10,30 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 392514f77603d6b4b82b72437011934c, type: 3}
-  m_Name: WarriorBerserk
+  m_Name: BuffSpeed
   m_EditorClassIdentifier: Assembly-CSharp::BuffStatSkill
-  castType: 4
+  castType: 1
   ignoreGlobalCooldown: 0
-  _icon: {fileID: 21300000, guid: 9d1bd08616d4c674790b13c23c7b960b, type: 3}
-  _skillName: Berserk
-  _hotkey: 286
-  _range: 0
-  _cooldown: 30
+  _icon: {fileID: 21300000, guid: 394fe170ddb6dad4d870dc2a84d81aff, type: 3}
+  _skillName: SpeedBuff
+  _hotkey: 291
+  _range: 5
+  _cooldown: 5
   _castTime: 0.1
   _castCursor: {fileID: 0}
   _manaCost: 0
   _damageType: 0
   _weight: 1
   _effectRadius: 0
-  castRangePrefab: {fileID: 0}
+  castRangePrefab: {fileID: 3299273662854126661, guid: ee30310967d98c04fb16bcfa96cfb3c2,
+    type: 3}
   effectRadiusPrefab: {fileID: 0}
   VFXPrefab: {fileID: 0}
   buffEffects:
-  - stat: 12
-    multiplier: 2
+  - stat: 8
+    multiplier: 1.3
     rawValue: 0
-    duration: 15
-    vfxPrefab: {fileID: 4637046911172921311, guid: c15b3b55bb35f9440bcfd4cba104686b,
+    duration: 60
+    vfxPrefab: {fileID: 5912910924254669819, guid: e31fdca2c82f9ef4ab4ec9420f9e89f2,
       type: 3}
-    vfxOffset: {x: 0, y: 3, z: 0}
+    vfxOffset: {x: 1, y: 3, z: 0}
