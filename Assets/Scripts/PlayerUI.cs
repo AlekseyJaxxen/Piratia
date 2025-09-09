@@ -9,7 +9,6 @@ using System.Collections.Generic;
 public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
     public static PlayerUI Instance { get; private set; }
-
     [Header("UI Elements")]
     public Image healthBar;
     public Image manaBar;
@@ -17,10 +16,8 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     public Slider experienceSlider;
     public TextMeshProUGUI skillPointsText;
     public TextMeshProUGUI characteristicPointsText;
-
     [SerializeField] Transform skillPanel; // Родитель для кнопок навыков в Canvas.
-    [SerializeField] GameObject skillButtonPrefab; // Префаб кнопки: Button с Image (иконка), child Image (cooldown overlay: Type Filled, Radial360)
-
+    [SerializeField] SkillButton[] skillButtons; // Массив кнопок навыков, заданный в инспекторе
     [Header("Attributes Panel")]
     public GameObject attributesPanel;
     public TextMeshProUGUI strengthText;
@@ -44,7 +41,6 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     public Button spiritButton;
     public Button constitutionButton;
     public Button accuracyButton;
-
     [Header("Cooldown UI")]
     public Image globalCooldownImage;
     [System.Serializable]
@@ -54,7 +50,6 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         public Image cooldownImage;
     }
     [SerializeField] private List<SkillCooldownEntry> skillCooldownEntries = new List<SkillCooldownEntry>();
-
     private CharacterStats stats;
     private PlayerCore core;
     private RectTransform attributesPanelRect;
@@ -75,9 +70,7 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             gameObject.SetActive(false);
             return;
         }
-
         Instance = this;
-
         stats = core.GetComponent<CharacterStats>();
         if (stats == null)
         {
@@ -85,13 +78,17 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             gameObject.SetActive(false);
             return;
         }
-
         StartCoroutine(InitializeUI());
     }
 
     private IEnumerator InitializeUI()
     {
         yield return new WaitForSeconds(2f); // Increased delay for network sync
+        if (!core.isLocalPlayer || !core.isClient)
+        {
+            Debug.Log("[PlayerUI] Waiting for client sync...");
+            yield return new WaitUntil(() => core.isLocalPlayer && core.isClient);
+        }
         if (core.Health != null)
         {
             core.Health.OnHealthUpdated += UpdateHealthBar;
@@ -160,45 +157,66 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         {
             yield return new WaitUntil(() => skillsComponent.skills.Count > 0); // Ждать загрузки skills.
             skillCooldownEntries.Clear();
-            foreach (var skill in skillsComponent.skills)
+            for (int i = 0; i < skillButtons.Length && i < skillsComponent.skills.Count; i++)
             {
-                GameObject btn = Instantiate(skillButtonPrefab, skillPanel);
-                btn.GetComponentInChildren<Image>().sprite = skill.Icon;
-                Image cdImage = btn.transform.Find("CooldownOverlay").GetComponent<Image>(); // Имя child.
-                skillCooldownEntries.Add(new SkillCooldownEntry { skillName = skill.SkillName, cooldownImage = cdImage });
-                var skillBtn = btn.AddComponent<SkillButton>();
-                skillBtn.skill = skill;
+                SkillBase skill = skillsComponent.skills[i];
+                if (skill == null)
+                {
+                    Debug.LogError($"[PlayerUI] Skill at index {i} is null in skills list for {skillsComponent.gameObject.name}");
+                    continue;
+                }
+                SkillButton btn = skillButtons[i];
+                Image iconImage = btn.GetComponentInChildren<Image>();
+                if (iconImage != null)
+                {
+                    iconImage.sprite = skill.Icon;
+                }
+                else
+                {
+                    Debug.LogError($"[PlayerUI] Icon Image not found in skill button at index {i} for skill {skill.SkillName}");
+                }
+                Image cdImage = btn.transform.Find("CooldownOverlay")?.GetComponent<Image>();
+                if (cdImage != null)
+                {
+                    skillCooldownEntries.Add(new SkillCooldownEntry { skillName = skill.SkillName, cooldownImage = cdImage });
+                }
+                else
+                {
+                    Debug.LogError($"[PlayerUI] CooldownOverlay Image not found for skill {skill.SkillName}");
+                }
+                btn.Initialize(skillsComponent, core, i); // Передаем индекс
+                btn.skill = skill;
+                Debug.Log($"[PlayerUI] Skill button initialized for {skill.SkillName} at index {i}");
             }
+        }
+        else
+        {
+            Debug.LogError("[PlayerUI] PlayerSkills component not found!");
         }
     }
 
     private void Update()
     {
         if (!core.isLocalPlayer || core.isDead || core.isStunned) return;
-
         if (Input.GetKeyDown(KeyCode.C))
         {
             if (attributesPanel != null)
             {
                 bool newState = !attributesPanel.activeSelf;
                 attributesPanel.SetActive(newState);
-
                 Debug.Log($"[PlayerUI] AttributesPanel set to {newState}. Children: {attributesPanel.transform.childCount}");
                 UpdateAttributesPanel();
             }
         }
-
         if (Input.GetKeyDown(KeyCode.K))
         {
             if (skillPanel != null)
             {
                 bool newState = !skillPanel.gameObject.activeSelf;
                 skillPanel.gameObject.SetActive(newState);
-
                 Debug.Log($"[PlayerUI] SkillPanel set to {newState}. Children: {skillPanel.transform.childCount}");
             }
         }
-
     }
 
     private void OnDestroy()
@@ -216,7 +234,7 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             stats.OnAgilityChangedEvent -= (oldValue, newValue) => UpdateAttribute("agility", newValue);
             stats.OnSpiritChangedEvent -= (oldValue, newValue) => UpdateAttribute("spirit", newValue);
             stats.OnConstitutionChangedEvent -= (oldValue, newValue) => UpdateAttribute("constitution", newValue);
-            stats.OnAccuracyChangedEvent -= (oldValue, newValue) => UpdateAttribute("accuracy", newValue);
+            stats.OnAccuracyChangedEvent += (oldValue, newValue) => UpdateAttribute("accuracy", newValue);
             stats.OnMinAttackChangedEvent -= (oldValue, newValue) => UpdateAttribute("minAttack", newValue);
             stats.OnMaxAttackChangedEvent -= (oldValue, newValue) => UpdateAttribute("maxAttack", newValue);
         }
@@ -232,7 +250,7 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         }
         float fillAmount = maxHealth > 0 ? (float)currentHealth / maxHealth : 0f;
         healthBar.fillAmount = fillAmount;
-       // healthBar.color = Color.Lerp(Color.red, Color.green, fillAmount);
+        // healthBar.color = Color.Lerp(Color.red, Color.green, fillAmount);
         Debug.Log($"[PlayerUI] Health bar updated: {currentHealth}/{maxHealth}, fillAmount={fillAmount}");
     }
 
@@ -301,7 +319,6 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     private void UpdateAttributesPanel()
     {
         if (!core.isLocalPlayer || stats == null) return;
-
         if (strengthText != null)
             strengthText.text = $"{stats.strength}";
         if (agilityText != null)
@@ -334,7 +351,6 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             minAttackText.text = $"{stats.minAttack}";
         if (maxAttackText != null)
             maxAttackText.text = $"{stats.maxAttack}";
-
         bool hasPoints = stats.characteristicPoints > 0;
         if (strengthButton != null)
         {
@@ -397,12 +413,11 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         var entry = skillCooldownEntries.Find(e => e.skillName == skillName);
         if (entry != null && entry.cooldownImage != null)
         {
-            entry.cooldownImage.fillAmount = progress; // Убираем инверсию
-                                                       // Необязательно: можно добавить затемнение иконки
-            Image skillIcon = entry.cooldownImage.GetComponentInParent<Image>(); // Предполагаем, что иконка — родительский Image
+            entry.cooldownImage.fillAmount = progress;
+            Image skillIcon = entry.cooldownImage.GetComponentInParent<Image>();
             if (skillIcon != null)
             {
-                skillIcon.color = progress > 0 ? Color.gray : Color.white; // Затемняем, если на кулдауне
+                skillIcon.color = progress > 0 ? Color.gray : Color.white;
             }
         }
     }
@@ -434,5 +449,71 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     public void OnEndDrag(PointerEventData eventData)
     {
         // Nothing needed here
+    }
+
+    public void SwapSkills(SkillButton firstButton, SkillButton secondButton)
+    {
+        if (firstButton == null || secondButton == null || firstButton.skill == null || secondButton.skill == null)
+        {
+            Debug.LogError("[PlayerUI] Cannot swap skills: one of the buttons or skills is null!");
+            return;
+        }
+        // Обмен иконок
+        Image firstIcon = firstButton.GetComponentInChildren<Image>();
+        Image secondIcon = secondButton.GetComponentInChildren<Image>();
+        if (firstIcon != null && secondIcon != null)
+        {
+            Sprite tempSprite = firstIcon.sprite;
+            firstIcon.sprite = secondIcon.sprite;
+            secondIcon.sprite = tempSprite;
+        }
+        else
+        {
+            Debug.LogError("[PlayerUI] Icon Image not found on one of the buttons!");
+        }
+        // Обмен в skillCooldownEntries
+        var firstEntry = skillCooldownEntries.Find(e => e.skillName == firstButton.skill.SkillName);
+        var secondEntry = skillCooldownEntries.Find(e => e.skillName == secondButton.skill.SkillName);
+        if (firstEntry != null && secondEntry != null)
+        {
+            string tempName = firstEntry.skillName;
+            firstEntry.skillName = secondEntry.skillName;
+            secondEntry.skillName = tempName;
+            Debug.Log($"[PlayerUI] Swapped cooldown entries for {firstEntry.skillName} and {secondEntry.skillName}");
+        }
+        else
+        {
+            Debug.LogError("[PlayerUI] Could not find cooldown entries for swap!");
+        }
+        // Обмен SkillBase в кнопках
+        SkillBase tempSkill = firstButton.skill;
+        firstButton.skill = secondButton.skill;
+        secondButton.skill = tempSkill;
+        // Обмен Hotkey в SkillBase
+        KeyCode tempHotkey = firstButton.skill.Hotkey;
+        firstButton.skill.Hotkey = secondButton.skill.Hotkey;
+        secondButton.skill.Hotkey = tempHotkey;
+        // Обмен в списке skills в PlayerSkills
+        PlayerSkills skillsComponent = core.GetComponent<PlayerSkills>();
+        if (skillsComponent != null)
+        {
+            int firstIndex = skillsComponent.skills.IndexOf(secondButton.skill); // secondButton.skill после обмена содержит tempSkill
+            int secondIndex = skillsComponent.skills.IndexOf(firstButton.skill);
+            if (firstIndex != -1 && secondIndex != -1)
+            {
+                skillsComponent.skills[firstIndex] = firstButton.skill;
+                skillsComponent.skills[secondIndex] = secondButton.skill;
+                Debug.Log($"[PlayerUI] Swapped skills in list: {firstButton.skill.SkillName} (index {firstIndex}) <-> {secondButton.skill.SkillName} (index {secondIndex})");
+                Debug.Log($"[PlayerUI] Swapped hotkeys: {firstButton.skill.SkillName} ({firstButton.skill.Hotkey}) <-> {secondButton.skill.SkillName} ({secondButton.skill.Hotkey})");
+            }
+            else
+            {
+                Debug.LogError($"[PlayerUI] Failed to swap skills in list: indices not found (firstIndex={firstIndex}, secondIndex={secondIndex})");
+            }
+        }
+        else
+        {
+            Debug.LogError("[PlayerUI] PlayerSkills component not found!");
+        }
     }
 }

@@ -312,10 +312,19 @@ public class PlayerSkills : NetworkBehaviour
                 }
                 if (GetRemainingCooldown(skill.SkillName) > 0 || (!skill.ignoreGlobalCooldown && GetGlobalRemainingCooldown() > 0))
                 {
+                    Debug.LogWarning($"[PlayerSkills] Skill {skill.SkillName} on cooldown or global cooldown active.");
                     continue;
                 }
-                if (localCooldowns.ContainsKey(skill.SkillName) && (float)NetworkTime.time < localCooldowns[skill.SkillName]) continue;
-                if (!skill.ignoreGlobalCooldown && (float)NetworkTime.time < localGlobalCooldownEnd) continue;
+                if (localCooldowns.ContainsKey(skill.SkillName) && (float)NetworkTime.time < localCooldowns[skill.SkillName])
+                {
+                    Debug.LogWarning($"[PlayerSkills] Local cooldown active for {skill.SkillName}.");
+                    continue;
+                }
+                if (!skill.ignoreGlobalCooldown && (float)NetworkTime.time < localGlobalCooldownEnd)
+                {
+                    Debug.LogWarning($"[PlayerSkills] Local global cooldown active for {skill.SkillName}.");
+                    continue;
+                }
                 if (skill.SkillCastType == CastType.SelfBuff)
                 {
                     skill.Execute(_core, null, _core.gameObject);
@@ -338,6 +347,7 @@ public class PlayerSkills : NetworkBehaviour
                     return;
                 }
                 SelectSkill(skill);
+                Debug.Log($"[PlayerSkills] Selected skill: {skill.SkillName} with hotkey {skill.Hotkey}");
                 return;
             }
         }
@@ -750,5 +760,42 @@ public class PlayerSkills : NetworkBehaviour
     public float GetGlobalRemainingCooldown()
     {
         return Mathf.Max(0, globalCooldown - ((float)NetworkTime.time - _lastGlobalUseTime));
+    }
+
+    [Command]
+    public void CmdSwapHotkeys(string skillName1, string skillName2, KeyCode hotkey1, KeyCode hotkey2)
+    {
+        Debug.Log($"[PlayerSkills] CmdSwapHotkeys called: {skillName1} ({hotkey1}) <-> {skillName2} ({hotkey2})");
+        SkillBase firstSkill = skills.Find(s => s.SkillName == skillName1);
+        SkillBase secondSkill = skills.Find(s => s.SkillName == skillName2);
+        if (firstSkill != null && secondSkill != null)
+        {
+            firstSkill.Hotkey = hotkey1;
+            secondSkill.Hotkey = hotkey2;
+            RpcSwapHotkeys(skillName1, skillName2, hotkey1, hotkey2);
+            Debug.Log($"[PlayerSkills] Swapped hotkeys on server: {skillName1} ({hotkey1}) <-> {skillName2} ({hotkey2})");
+        }
+        else
+        {
+            Debug.LogError($"[PlayerSkills] Failed to swap hotkeys: {skillName1} or {skillName2} not found!");
+        }
+    }
+
+    [ClientRpc]
+    private void RpcSwapHotkeys(string skillName1, string skillName2, KeyCode hotkey1, KeyCode hotkey2)
+    {
+        Debug.Log($"[PlayerSkills] RpcSwapHotkeys called: {skillName1} ({hotkey1}) <-> {skillName2} ({hotkey2})");
+        SkillBase firstSkill = skills.Find(s => s.SkillName == skillName1);
+        SkillBase secondSkill = skills.Find(s => s.SkillName == skillName2);
+        if (firstSkill != null && secondSkill != null)
+        {
+            firstSkill.Hotkey = hotkey1;
+            secondSkill.Hotkey = hotkey2;
+            Debug.Log($"[PlayerSkills] Swapped hotkeys on client: {skillName1} ({hotkey1}) <-> {skillName2} ({hotkey2})");
+        }
+        else
+        {
+            Debug.LogError($"[PlayerSkills] Failed to swap hotkeys on client: {skillName1} or {skillName2} not found!");
+        }
     }
 }
