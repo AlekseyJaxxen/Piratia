@@ -3299,13 +3299,20 @@ MonoBehaviour:
   syncInterval: 0
   stunVFXPrefab: {fileID: 4637046911172921311, guid: ed6adf846f49efa40917a41cb58e76d9,
     type: 3}
+  stunVFXOffset: {x: 0, y: 1, z: 0}
   silenceVFXPrefab: {fileID: 4637046911172921311, guid: 7188bad9db39adf47b78617a667ba5ef,
     type: 3}
+  silenceVFXOffset: {x: 0, y: 1, z: 0}
   slowVFXPrefab: {fileID: 165538, guid: c560f8ebc8a69634caa1ce24d5eb1a56, type: 3}
+  slowVFXOffset: {x: 0, y: 1, z: 0}
   invisibilityVFXPrefab: {fileID: 0}
+  invisibilityVFXOffset: {x: 0, y: 1, z: 0}
   statBuffVFXPrefab: {fileID: 138498, guid: 6de611fac7985cc4ead881f40862cb4e, type: 3}
+  statBuffVFXOffset: {x: 0, y: 1, z: 0}
   statDebuffVFXPrefab: {fileID: 178478, guid: babbe5be7b93cf74aa2fd133ac36a83c, type: 3}
+  statDebuffVFXOffset: {x: 0, y: 1, z: 0}
   toggleBuffVFXPrefab: {fileID: 0}
+  toggleBuffVFXOffset: {x: 0, y: 1, z: 0}
 --- !u!1 &8623684005865143056
 GameObject:
   m_ObjectHideFlags: 0
@@ -5895,7 +5902,7 @@ PrefabInstance:
     - target: {fileID: 7740642513558285313, guid: 8fb9c39c4d12b2646af12ca3609c1fe1,
         type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7740642513558285313, guid: 8fb9c39c4d12b2646af12ca3609c1fe1,
         type: 3}

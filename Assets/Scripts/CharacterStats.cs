@@ -98,7 +98,8 @@ public class CharacterStats : NetworkBehaviour
         public bool IsToggle;
         public GameObject VFXPrefab;
         public Vector3 VFXOffset;
-        public bool IsActive => IsToggle || EndTime > Time.time; // Добавлено свойство IsActive
+        public int SkillWeight;
+        public bool IsActive => IsToggle || EndTime > Time.time;
     }
 
     private void Awake()
@@ -552,8 +553,17 @@ public class CharacterStats : NetworkBehaviour
     }
 
     [Server]
-    public void ApplyBuff(string stat, float mult, float rawValue, float dur, GameObject vfxPrefab = null, Vector3 vfxOffset = default)
+    public void ApplyBuff(string stat, float mult, float rawValue, float dur, GameObject vfxPrefab = null, Vector3 vfxOffset = default, int skillWeight = 0)
     {
+        // Проверяем существующий бафф для той же характеристики
+        StatEffect existingEffect = activeStatEffects.FirstOrDefault(e => e.Stat == stat && !e.IsToggle);
+        if (existingEffect.IsActive)
+        {
+            Debug.Log($"[CharacterStats] Buff for {stat} not applied: an active buff already exists");
+            return;
+        }
+
+        // Применяем новый бафф
         float original = GetStatValue(stat);
         float newValue = original * (mult == 0 ? 1f : mult) + rawValue;
         if (IsFloatStat(stat))
@@ -564,8 +574,19 @@ public class CharacterStats : NetworkBehaviour
         {
             SetStat(stat, Mathf.RoundToInt(newValue));
         }
-        activeStatEffects.Add(new StatEffect { Stat = stat, Value = newValue, OriginalValue = original, EndTime = Time.time + dur, IsToggle = false, VFXPrefab = vfxPrefab, VFXOffset = vfxOffset });
+        activeStatEffects.Add(new StatEffect
+        {
+            Stat = stat,
+            Value = newValue,
+            OriginalValue = original,
+            EndTime = Time.time + dur,
+            IsToggle = false,
+            VFXPrefab = vfxPrefab,
+            VFXOffset = vfxOffset,
+            SkillWeight = skillWeight
+        });
         StartCoroutine(RemoveBuff(stat, original, dur));
+        Debug.Log($"[CharacterStats] Applied buff for {stat}, value={newValue}, duration={dur}, weight={skillWeight}");
     }
 
     [Server]
