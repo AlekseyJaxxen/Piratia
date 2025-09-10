@@ -13,7 +13,7 @@ public class SkillButton : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
     private Canvas canvas;
     private GameObject dragIcon; // Клон для перетаскивания
     private Image originalIcon; // Оригинальная иконка
-    private int buttonIndex; // Индекс кнопки в skillButtons
+    public int buttonIndex; // Индекс кнопки в массиве
 
     public void Initialize(PlayerSkills skills, PlayerCore core, int index)
     {
@@ -41,7 +41,8 @@ public class SkillButton : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
 
     private void OnSkillButtonClicked()
     {
-        if (skill != null && playerSkills != null && playerCore != null)
+        if (skill == null) return; // Игнорируем клик по пустой кнопке
+        if (playerSkills != null && playerCore != null)
         {
             if (!playerCore.CanCastSkill(skill))
             {
@@ -58,13 +59,12 @@ public class SkillButton : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
                 Debug.LogWarning($"[SkillButton] Global cooldown active for {skill.SkillName}.");
                 return;
             }
-
             playerSkills.SelectSkill(skill);
             Debug.Log($"[SkillButton] Skill selected: {skill.SkillName}");
         }
         else
         {
-            Debug.LogError($"[SkillButton] Skill={skill}, PlayerSkills={playerSkills}, PlayerCore={playerCore} is null!");
+            Debug.LogError($"[SkillButton] PlayerSkills={playerSkills}, PlayerCore={playerCore} is null!");
         }
     }
 
@@ -108,17 +108,16 @@ public class SkillButton : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
 
     public void OnDrop(PointerEventData eventData)
     {
-        if (skill == null || canvas == null || buttonIndex == 0) // Запрет для первого слота
+        if (buttonIndex == 0) // Запрет для первого слота
         {
-            Debug.Log($"[SkillButton] Drop blocked on {skill?.SkillName} (index {buttonIndex})");
+            Debug.Log($"[SkillButton] Drop blocked on index {buttonIndex}");
             return;
         }
-        Debug.Log($"[SkillButton] OnDrop called on {skill.SkillName} (index {buttonIndex}), pointerDrag={eventData.pointerDrag}");
         SkillButton otherButton = eventData.pointerDrag?.GetComponent<SkillButton>();
         if (otherButton != null && otherButton.skill != null && otherButton != this && otherButton.buttonIndex != 0)
         {
-            PlayerUI.Instance.SwapSkills(this, otherButton);
-            Debug.Log($"[SkillButton] Dropped {otherButton.skill.SkillName} (index {otherButton.buttonIndex}) onto {skill.SkillName} (index {buttonIndex})");
+            Debug.Log($"[SkillButton] Dropped {otherButton.skill.SkillName} (index {otherButton.buttonIndex}) onto {(skill != null ? skill.SkillName : "empty")} (index {buttonIndex})");
+            PlayerUI.Instance.SwapSkills(otherButton, this);
         }
     }
 

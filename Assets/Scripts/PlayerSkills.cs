@@ -33,7 +33,7 @@ public class PlayerSkills : NetworkBehaviour
     public ISkill ActiveSkill => _activeSkill;
     private Dictionary<string, float> localCooldowns = new Dictionary<string, float>();
     private float localGlobalCooldownEnd = 0f;
-    [SyncVar(hook = nameof(OnInvisibilityChanged))] public bool _isInvisible; // Для невидимости
+    [SyncVar(hook = nameof(OnInvisibilityChanged))] public bool _isInvisible;
     private Coroutine _invisibilityCoroutine;
 
     private void Awake()
@@ -50,7 +50,6 @@ public class PlayerSkills : NetworkBehaviour
     private void OnInvisibilityChanged(bool oldValue, bool newValue)
     {
         Debug.Log($"[PlayerSkills] Invisibility changed: {oldValue} -> {newValue} on {gameObject.name}, isServer={isServer}, isClient={isClient}, netId={netId}");
-        // Вызываем ApplyInvisibilityEffect для обновления эффекта и видимости
         SkillBase skill = skills.Find(s => s.SkillName == "Invisibility");
         if (skill != null)
         {
@@ -219,14 +218,11 @@ public class PlayerSkills : NetworkBehaviour
             Debug.Log($"[PlayerSkills] Not enough mana for {skillName}: required {skill.ManaCost}, available {stats.currentMana} on {gameObject.name}");
             return;
         }
-
-        // Снимаем невидимость при касте скилла/атаки
         if (_isInvisible)
         {
             Debug.Log($"[PlayerSkills] Interrupting invisibility due to skill cast: {skillName} on {gameObject.name}");
             InterruptInvisibility();
         }
-
         GameObject targetObject = null;
         if (targetNetId != 0 && NetworkServer.spawned.ContainsKey(targetNetId))
         {
@@ -687,11 +683,8 @@ public class PlayerSkills : NetworkBehaviour
     {
         _isInvisible = value;
         Debug.Log($"[PlayerSkills] SetInvisible: {value} on {gameObject.name}");
-        // Вызываем RpcSetInvisibilityVisibility для синхронизации видимости
         RpcSetInvisibilityVisibility(value, _core.team);
     }
-
-
 
     public void InterruptInvisibility()
     {
@@ -700,12 +693,10 @@ public class PlayerSkills : NetworkBehaviour
             Debug.Log($"[PlayerSkills] Attempting to interrupt invisibility on {gameObject.name}, isServer={isServer}");
             if (isServer)
             {
-                // На сервере напрямую снимаем невидимость
                 SetInvisible(false);
             }
             else
             {
-                // На клиенте отправляем команду
                 CmdInterruptInvisibility();
             }
         }
@@ -723,18 +714,16 @@ public class PlayerSkills : NetworkBehaviour
     {
         PlayerCore localPlayer = NetworkClient.localPlayer?.GetComponent<PlayerCore>();
         bool isSameTeam = localPlayer != null && localPlayer.team == _core.team;
-
         Transform modelsTransform = transform.Find("Models");
         if (modelsTransform != null)
         {
-            // Включаем Models для союзников, самого игрока или в зоне раскрытия
             modelsTransform.gameObject.SetActive(isVisible || isSameTeam || this.isLocalPlayer);
         }
         else
         {
             Debug.LogWarning($"[PlayerSkills] GameObject 'Models' not found on {gameObject.name}");
         }
-        gameObject.layer = layer; // Меняем слой игрока
+        gameObject.layer = layer;
     }
 
     [ClientRpc]
@@ -743,10 +732,8 @@ public class PlayerSkills : NetworkBehaviour
         PlayerCore localPlayer = NetworkClient.localPlayer?.GetComponent<PlayerCore>();
         bool isSameTeam = localPlayer != null && localPlayer.team == targetTeam;
         Transform modelsTransform = transform.Find("Models");
-
         if (modelsTransform != null)
         {
-            // Исправленная логика: видим всегда, кроме случаев невидимости для противников
             bool shouldBeVisible = !isInvisible || isSameTeam || this.isLocalPlayer;
             modelsTransform.gameObject.SetActive(shouldBeVisible);
             Debug.Log($"[PlayerSkills] RpcSetInvisibilityVisibility: isInvisible={isInvisible}, isSameTeam={isSameTeam}, isLocalPlayer={this.isLocalPlayer}, shouldBeVisible={shouldBeVisible}, targetTeam={targetTeam}, localPlayerTeam={(localPlayer != null ? localPlayer.team.ToString() : "null")} on {gameObject.name}");
@@ -763,39 +750,35 @@ public class PlayerSkills : NetworkBehaviour
     }
 
     [Command]
-    public void CmdSwapHotkeys(string skillName1, string skillName2, KeyCode hotkey1, KeyCode hotkey2)
+    public void CmdSetHotkey(string skillName, KeyCode hotkey)
     {
-        Debug.Log($"[PlayerSkills] CmdSwapHotkeys called: {skillName1} ({hotkey1}) <-> {skillName2} ({hotkey2})");
-        SkillBase firstSkill = skills.Find(s => s.SkillName == skillName1);
-        SkillBase secondSkill = skills.Find(s => s.SkillName == skillName2);
-        if (firstSkill != null && secondSkill != null)
+        Debug.Log($"[PlayerSkills] CmdSetHotkey called: {skillName} -> {hotkey}");
+        SkillBase skill = skills.Find(s => s.SkillName == skillName);
+        if (skill != null)
         {
-            firstSkill.Hotkey = hotkey1;
-            secondSkill.Hotkey = hotkey2;
-            RpcSwapHotkeys(skillName1, skillName2, hotkey1, hotkey2);
-            Debug.Log($"[PlayerSkills] Swapped hotkeys on server: {skillName1} ({hotkey1}) <-> {skillName2} ({hotkey2})");
+            skill.Hotkey = hotkey;
+            RpcSetHotkey(skillName, hotkey);
+            Debug.Log($"[PlayerSkills] Set hotkey on server: {skillName} -> {hotkey}");
         }
         else
         {
-            Debug.LogError($"[PlayerSkills] Failed to swap hotkeys: {skillName1} or {skillName2} not found!");
+            Debug.LogError($"[PlayerSkills] Failed to set hotkey: {skillName} not found!");
         }
     }
 
     [ClientRpc]
-    private void RpcSwapHotkeys(string skillName1, string skillName2, KeyCode hotkey1, KeyCode hotkey2)
+    private void RpcSetHotkey(string skillName, KeyCode hotkey)
     {
-        Debug.Log($"[PlayerSkills] RpcSwapHotkeys called: {skillName1} ({hotkey1}) <-> {skillName2} ({hotkey2})");
-        SkillBase firstSkill = skills.Find(s => s.SkillName == skillName1);
-        SkillBase secondSkill = skills.Find(s => s.SkillName == skillName2);
-        if (firstSkill != null && secondSkill != null)
+        Debug.Log($"[PlayerSkills] RpcSetHotkey called: {skillName} -> {hotkey}");
+        SkillBase skill = skills.Find(s => s.SkillName == skillName);
+        if (skill != null)
         {
-            firstSkill.Hotkey = hotkey1;
-            secondSkill.Hotkey = hotkey2;
-            Debug.Log($"[PlayerSkills] Swapped hotkeys on client: {skillName1} ({hotkey1}) <-> {skillName2} ({hotkey2})");
+            skill.Hotkey = hotkey;
+            Debug.Log($"[PlayerSkills] Set hotkey on client: {skillName} -> {hotkey}");
         }
         else
         {
-            Debug.LogError($"[PlayerSkills] Failed to swap hotkeys on client: {skillName1} or {skillName2} not found!");
+            Debug.LogError($"[PlayerSkills] Failed to set hotkey on client: {skillName} not found!");
         }
     }
 }
