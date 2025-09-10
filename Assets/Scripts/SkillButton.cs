@@ -39,7 +39,7 @@ public class SkillButton : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         }
     }
 
-    private void OnSkillButtonClicked()
+    public void OnSkillButtonClicked() // Изменено на public
     {
         if (skill == null) return; // Игнорируем клик по пустой кнопке
         if (playerSkills != null && playerCore != null)

@@ -102,6 +102,7 @@ public class PlayerSkills : NetworkBehaviour
                 continue;
             }
             skill.Init(_core);
+            skill.Hotkey = KeyCode.None; // Сбрасываем хоткеи для original
             if (isServer)
             {
                 _skillLastUseTimes[skill.SkillName] = 0f;

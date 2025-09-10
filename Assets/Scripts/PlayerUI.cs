@@ -258,6 +258,21 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
                 Debug.Log($"[PlayerUI] SkillPanel set to {newState}. Children: {skillPanel.transform.childCount}");
             }
         }
+        // Активация хоткеев для panel2 и panel3
+        foreach (var btn in skillButtons2)
+        {
+            if (btn.skill != null && Input.GetKeyDown(btn.skill.Hotkey))
+            {
+                btn.OnSkillButtonClicked();
+            }
+        }
+        foreach (var btn in skillButtons3)
+        {
+            if (btn.skill != null && Input.GetKeyDown(btn.skill.Hotkey))
+            {
+                btn.OnSkillButtonClicked();
+            }
+        }
     }
 
     private void OnDestroy()
@@ -450,14 +465,17 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
 
     public void UpdateSkillCooldown(string skillName, float progress)
     {
-        var entry = skillCooldownEntries.Find(e => e.skillName == skillName);
-        if (entry != null && entry.cooldownImage != null)
+        var entries = skillCooldownEntries.FindAll(e => e.skillName == skillName);
+        foreach (var entry in entries)
         {
-            entry.cooldownImage.fillAmount = progress;
-            Image skillIcon = entry.cooldownImage.GetComponentInParent<Image>();
-            if (skillIcon != null)
+            if (entry.cooldownImage != null)
             {
-                skillIcon.color = progress > 0 ? Color.gray : Color.white;
+                entry.cooldownImage.fillAmount = progress;
+                Image skillIcon = entry.cooldownImage.GetComponentInParent<Image>();
+                if (skillIcon != null)
+                {
+                    skillIcon.color = progress > 0 ? Color.gray : Color.white;
+                }
             }
         }
     }
@@ -509,17 +527,32 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             return;
         }
 
-        PlayerSkills skillsComponent = core.GetComponent<PlayerSkills>();
-        bool isFromSpellBook = Array.IndexOf(skillButtons1, firstButton) != -1;
+        bool isFirstInSpellBook = Array.IndexOf(skillButtons1, firstButton) != -1;
+        bool isSecondInSpellBook = Array.IndexOf(skillButtons1, secondButton) != -1;
+        bool isSamePanel = (Array.IndexOf(skillButtons2, firstButton) != -1 && Array.IndexOf(skillButtons2, secondButton) != -1) ||
+                           (Array.IndexOf(skillButtons3, firstButton) != -1 && Array.IndexOf(skillButtons3, secondButton) != -1);
 
-        if (isFromSpellBook)
+        PlayerSkills skillsComponent = core.GetComponent<PlayerSkills>();
+
+        if (isFirstInSpellBook && isSecondInSpellBook)
         {
-            // Перетаскивание из книги заклинаний: копируем навык
-            SkillBase skillCopy = Instantiate(firstButton.skill); // Создаём копию навыка
-            skillCopy.Init(core); // Инициализируем копию
+            // Перетаскивание внутри книги заклинаний (panel1) запрещено
+            Debug.Log("[PlayerUI] Drag inside spell book (panel1) ignored");
+            return;
+        }
+        else if (isSecondInSpellBook)
+        {
+            // Перетаскивание в книгу заклинаний (panel1) запрещено
+            Debug.Log("[PlayerUI] Drag to spell book (panel1) ignored");
+            return;
+        }
+        else if (isFirstInSpellBook)
+        {
+            // Копирование из книги заклинаний (panel1) в panel2 или panel3
+            SkillBase skillCopy = Instantiate(firstButton.skill);
+            skillCopy.Init(core);
             if (secondButton.skill != null)
             {
-                // Если целевой слот занят, уничтожаем старый навык
                 Destroy(secondButton.skill);
             }
             secondButton.skill = skillCopy;
@@ -532,47 +565,55 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             }
             Debug.Log($"[PlayerUI] Copied skill {skillCopy.SkillName} from spell book (index {firstButton.buttonIndex}) to slot (index {secondButton.buttonIndex}, hotkey {secondHotkey})");
         }
-        else if (secondButton.skill == null)
+        else if (isSamePanel)
         {
-            // Назначение на пустой слот (не из книги заклинаний)
-            secondButton.skill = Instantiate(firstButton.skill); // Копируем навык
-            secondButton.skill.Init(core); // Инициализируем копию
-            firstButton.skill = null;
-            secondIcon.sprite = firstIcon.sprite;
-            firstIcon.sprite = defaultEmptySprite; // Дефолтная иконка для пустого слота
-            var firstEntry = skillCooldownEntries.Find(e => e.skillName == secondButton.skill.SkillName);
-            if (firstEntry != null) firstEntry.skillName = "";
+            // Обмен внутри panel2 или panel3
+            SkillBase tempSkill = firstButton.skill;
+            Sprite tempSprite = firstIcon.sprite;
+            firstButton.skill = secondButton.skill;
+            firstIcon.sprite = secondButton.skill != null ? secondIcon.sprite : defaultEmptySprite;
+            secondButton.skill = tempSkill;
+            secondIcon.sprite = tempSkill != null ? tempSprite : defaultEmptySprite;
+
+            // Обновление skillCooldownEntries
+            var firstEntry = skillCooldownEntries.Find(e => e.cooldownImage == firstButton.transform.Find("CooldownOverlay")?.GetComponent<Image>());
             var secondEntry = skillCooldownEntries.Find(e => e.cooldownImage == secondButton.transform.Find("CooldownOverlay")?.GetComponent<Image>());
-            if (secondEntry != null) secondEntry.skillName = secondButton.skill.SkillName;
+            if (firstEntry != null) firstEntry.skillName = firstButton.skill != null ? firstButton.skill.SkillName : "";
+            if (secondEntry != null) secondEntry.skillName = secondButton.skill != null ? secondButton.skill.SkillName : "";
+
             if (skillsComponent != null)
             {
-                skillsComponent.CmdSetHotkey(secondButton.skill.SkillName, secondHotkey);
+                if (firstButton.skill != null)
+                    skillsComponent.CmdSetHotkey(firstButton.skill.SkillName, firstHotkey);
+                if (secondButton.skill != null)
+                    skillsComponent.CmdSetHotkey(secondButton.skill.SkillName, secondHotkey);
             }
-            Debug.Log($"[PlayerUI] Assigned skill {secondButton.skill.SkillName} to empty slot, hotkey {secondHotkey}, firstButton index={firstButton.buttonIndex}, secondButton index={secondButton.buttonIndex}");
+            Debug.Log($"[PlayerUI] Swapped skills inside panel: {(firstButton.skill != null ? firstButton.skill.SkillName : "empty")} (hotkey {firstHotkey}, index {firstButton.buttonIndex}) <-> {(secondButton.skill != null ? secondButton.skill.SkillName : "empty")} (hotkey {secondHotkey}, index {secondButton.buttonIndex})");
         }
         else
         {
-            // Обмен между заполненными слотами (не из книги заклинаний)
-            SkillBase tempSkill = firstButton.skill;
-            firstButton.skill = secondButton.skill;
-            secondButton.skill = tempSkill;
-            Sprite tempSprite = firstIcon.sprite;
-            firstIcon.sprite = secondIcon.sprite;
-            secondIcon.sprite = tempSprite;
-            var firstEntry = skillCooldownEntries.Find(e => e.skillName == secondButton.skill.SkillName);
-            var secondEntry = skillCooldownEntries.Find(e => e.skillName == firstButton.skill.SkillName);
-            if (firstEntry != null && secondEntry != null)
+            // Перетаскивание между panel2 и panel3
+            SkillBase skillCopy = Instantiate(firstButton.skill);
+            skillCopy.Init(core);
+            if (secondButton.skill != null)
             {
-                string tempName = firstEntry.skillName;
-                firstEntry.skillName = secondEntry.skillName;
-                secondEntry.skillName = tempName;
+                Destroy(secondButton.skill);
             }
+            secondButton.skill = skillCopy;
+            secondIcon.sprite = firstIcon.sprite;
+            firstIcon.sprite = defaultEmptySprite;
+            firstButton.skill = null;
+
+            var firstEntry = skillCooldownEntries.Find(e => e.cooldownImage == firstButton.transform.Find("CooldownOverlay")?.GetComponent<Image>());
+            var secondEntry = skillCooldownEntries.Find(e => e.cooldownImage == secondButton.transform.Find("CooldownOverlay")?.GetComponent<Image>());
+            if (firstEntry != null) firstEntry.skillName = "";
+            if (secondEntry != null) secondEntry.skillName = skillCopy.SkillName;
+
             if (skillsComponent != null)
             {
-                skillsComponent.CmdSetHotkey(firstButton.skill.SkillName, firstHotkey);
-                skillsComponent.CmdSetHotkey(secondButton.skill.SkillName, secondHotkey);
+                skillsComponent.CmdSetHotkey(skillCopy.SkillName, secondHotkey);
             }
-            Debug.Log($"[PlayerUI] Swapped skills: {firstButton.skill.SkillName} (hotkey {firstHotkey}, index {firstButton.buttonIndex}) <-> {secondButton.skill.SkillName} (hotkey {secondHotkey}, index {secondButton.buttonIndex})");
+            Debug.Log($"[PlayerUI] Moved skill {skillCopy.SkillName} from index {firstButton.buttonIndex} to index {secondButton.buttonIndex}, hotkey {secondHotkey}");
         }
     }
 
