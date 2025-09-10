@@ -45,27 +45,29 @@ public class InvisibilitySkill : SkillBase
 
     public override void ApplyInvisibilityEffect(bool isActive)
     {
+        if (_player == null)
+        {
+            Debug.LogWarning($"[InvisibilitySkill] Player is null in ApplyInvisibilityEffect for {SkillName}");
+            return;
+        }
+
         // Меняем слой игрока
         if (isActive)
         {
             _player.gameObject.layer = LayerMask.NameToLayer("Ignore Raycast");
+            Debug.Log($"[InvisibilitySkill] Set layer to Ignore Raycast for {_player.gameObject.name}");
         }
         else
         {
             _player.gameObject.layer = _originalLayer; // Восстанавливаем слой "Player"
+            Debug.Log($"[InvisibilitySkill] Restored layer {_originalLayer} for {_player.gameObject.name}");
         }
 
         // Управляем эффектом частиц, если он есть
         if (_invisibilityEffectInstance != null)
         {
             _invisibilityEffectInstance.SetActive(isActive);
-        }
-
-        // Вызываем RPC для управления видимостью Models
-        PlayerSkills skills = _player.GetComponent<PlayerSkills>();
-        if (skills != null)
-        {
-            skills.RpcSetInvisibilityVisibility(isActive, _player.team);
+            Debug.Log($"[InvisibilitySkill] Invisibility effect {(isActive ? "enabled" : "disabled")} for {_player.gameObject.name}");
         }
     }
 }

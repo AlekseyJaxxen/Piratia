@@ -3001,7 +3001,6 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  modelTransform: {fileID: 6789195532312520456}
 --- !u!114 &6456380351014860765
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3058,13 +3057,14 @@ MonoBehaviour:
   silenceVFXPrefab: {fileID: 4637046911172921311, guid: 7188bad9db39adf47b78617a667ba5ef,
     type: 3}
   silenceVFXOffset: {x: 0, y: 1, z: 0}
-  slowVFXPrefab: {fileID: 165538, guid: c560f8ebc8a69634caa1ce24d5eb1a56, type: 3}
+  slowVFXPrefab: {fileID: 4637046911172921311, guid: 9c9304a4aaf7f8d45bf498861bade450,
+    type: 3}
   slowVFXOffset: {x: 0, y: 1, z: 0}
   invisibilityVFXPrefab: {fileID: 0}
   invisibilityVFXOffset: {x: 0, y: 1, z: 0}
-  statBuffVFXPrefab: {fileID: 138498, guid: 6de611fac7985cc4ead881f40862cb4e, type: 3}
+  statBuffVFXPrefab: {fileID: 0}
   statBuffVFXOffset: {x: 0, y: 1, z: 0}
-  statDebuffVFXPrefab: {fileID: 178478, guid: babbe5be7b93cf74aa2fd133ac36a83c, type: 3}
+  statDebuffVFXPrefab: {fileID: 0}
   statDebuffVFXOffset: {x: 0, y: 1, z: 0}
   toggleBuffVFXPrefab: {fileID: 0}
   toggleBuffVFXOffset: {x: 0, y: 1, z: 0}
@@ -4224,12 +4224,6 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 1207705013028941300}
   m_PrefabAsset: {fileID: 0}
---- !u!4 &6789195532312520456 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 5691054671182187260, guid: aa95e770f43bf25479d227b03395b94a,
-    type: 3}
-  m_PrefabInstance: {fileID: 1207705013028941300}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &7363823372770707744 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 8571246296574977236, guid: aa95e770f43bf25479d227b03395b94a,
@@ -4972,22 +4966,22 @@ PrefabInstance:
         type: 3}
       propertyPath: 'skillButtons.Array.data[9]'
       value: 
-      objectReference: {fileID: 2122423992716188599}
+      objectReference: {fileID: 3823144198891896516}
     - target: {fileID: 5306269297912373776, guid: 2014c56840e29794ab8998d4ce6f61e4,
         type: 3}
       propertyPath: 'skillButtons.Array.data[10]'
       value: 
-      objectReference: {fileID: 3823144198891896516}
+      objectReference: {fileID: 7058608115611150098}
     - target: {fileID: 5306269297912373776, guid: 2014c56840e29794ab8998d4ce6f61e4,
         type: 3}
       propertyPath: 'skillButtons.Array.data[11]'
       value: 
-      objectReference: {fileID: 7058608115611150098}
+      objectReference: {fileID: 6407436444837568430}
     - target: {fileID: 5306269297912373776, guid: 2014c56840e29794ab8998d4ce6f61e4,
         type: 3}
       propertyPath: 'skillButtons.Array.data[12]'
       value: 
-      objectReference: {fileID: 6407436444837568430}
+      objectReference: {fileID: 1565374145109737913}
     - target: {fileID: 5306269297912373776, guid: 2014c56840e29794ab8998d4ce6f61e4,
         type: 3}
       propertyPath: 'skillButtons.Array.data[13]'
@@ -5996,7 +5990,7 @@ PrefabInstance:
     - target: {fileID: 7740642513558285313, guid: 8fb9c39c4d12b2646af12ca3609c1fe1,
         type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7740642513558285313, guid: 8fb9c39c4d12b2646af12ca3609c1fe1,
         type: 3}

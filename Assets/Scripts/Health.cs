@@ -18,6 +18,7 @@ public class Health : NetworkBehaviour
     public GameObject floatingTextPrefab;
     public float damageTextSpawnHeight = 2.5f;
     public float damageTextRandomness = 0.5f;
+
     public int CurrentHealth
     {
         get => _currentHealth;
@@ -97,7 +98,7 @@ public class Health : NetworkBehaviour
             return;
         }
         int finalDamage = CalculateFinalDamage(baseDamage, damageType);
-        finalDamage = Mathf.RoundToInt(finalDamage * damageMultiplier); // Применяем множитель после брони
+        finalDamage = Mathf.RoundToInt(finalDamage * damageMultiplier);
         if (isCritical)
         {
             CharacterStats attackerStats = attacker?.GetComponent<CharacterStats>();
@@ -244,6 +245,7 @@ public class Health : NetworkBehaviour
         {
             PlayerAnimation anim = GetComponent<PlayerAnimation>();
             if (anim != null) anim.PlayDamageFlash();
+            if (healthBarUI != null) healthBarUI.PlayDamageFlash();
         }
     }
 

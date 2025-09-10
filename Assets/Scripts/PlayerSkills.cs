@@ -49,7 +49,13 @@ public class PlayerSkills : NetworkBehaviour
 
     private void OnInvisibilityChanged(bool oldValue, bool newValue)
     {
-        Debug.Log($"[PlayerSkills] Invisibility changed: {oldValue} -> {newValue} on {gameObject.name}, isServer={isServer}, isClient={isClient}");
+        Debug.Log($"[PlayerSkills] Invisibility changed: {oldValue} -> {newValue} on {gameObject.name}, isServer={isServer}, isClient={isClient}, netId={netId}");
+        // Вызываем ApplyInvisibilityEffect для обновления эффекта и видимости
+        SkillBase skill = skills.Find(s => s.SkillName == "Invisibility");
+        if (skill != null)
+        {
+            skill.ApplyInvisibilityEffect(newValue);
+        }
     }
 
     private IEnumerator InitializeSkills()
@@ -681,19 +687,11 @@ public class PlayerSkills : NetworkBehaviour
     {
         _isInvisible = value;
         Debug.Log($"[PlayerSkills] SetInvisible: {value} on {gameObject.name}");
-        RpcSetInvisible(value);
+        // Вызываем RpcSetInvisibilityVisibility для синхронизации видимости
+        RpcSetInvisibilityVisibility(value, _core.team);
     }
 
-    [ClientRpc]
-    private void RpcSetInvisible(bool value)
-    {
-        _isInvisible = value;
-        SkillBase skill = skills.Find(s => s.SkillName == "Invisibility");
-        if (skill != null)
-        {
-            skill.ApplyInvisibilityEffect(value);
-        }
-    }
+
 
     public void InterruptInvisibility()
     {
@@ -744,12 +742,14 @@ public class PlayerSkills : NetworkBehaviour
     {
         PlayerCore localPlayer = NetworkClient.localPlayer?.GetComponent<PlayerCore>();
         bool isSameTeam = localPlayer != null && localPlayer.team == targetTeam;
-
         Transform modelsTransform = transform.Find("Models");
+
         if (modelsTransform != null)
         {
-            // Models видим для союзников и самого игрока, скрыт для врагов
-            modelsTransform.gameObject.SetActive(!isInvisible || isSameTeam || this.isLocalPlayer);
+            // Исправленная логика: видим всегда, кроме случаев невидимости для противников
+            bool shouldBeVisible = !isInvisible || isSameTeam || this.isLocalPlayer;
+            modelsTransform.gameObject.SetActive(shouldBeVisible);
+            Debug.Log($"[PlayerSkills] RpcSetInvisibilityVisibility: isInvisible={isInvisible}, isSameTeam={isSameTeam}, isLocalPlayer={this.isLocalPlayer}, shouldBeVisible={shouldBeVisible}, targetTeam={targetTeam}, localPlayerTeam={(localPlayer != null ? localPlayer.team.ToString() : "null")} on {gameObject.name}");
         }
         else
         {

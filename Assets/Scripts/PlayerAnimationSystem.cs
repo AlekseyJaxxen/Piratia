@@ -47,7 +47,7 @@ public class PlayerAnimationSystem : NetworkBehaviour
         UpdateCharacterModelAndAnimator();
     }
 
-    private void UpdateCharacterModelAndAnimator() // Убрали [Client], чтобы работало на сервере
+    private void UpdateCharacterModelAndAnimator()
     {
         if (_stats == null || characterModels == null || characterModels.Length == 0) return;
         ClassData classData = Resources.Load<ClassData>($"ClassData/{_stats.characterClass}");
@@ -81,6 +81,18 @@ public class PlayerAnimationSystem : NetworkBehaviour
         {
             Debug.LogWarning($"[PlayerAnimationSystem] AnimatorController not set in ClassData for {_stats.characterClass}");
         }
+
+        // Передаём активную модель в PlayerAnimation
+        var playerAnimation = GetComponent<PlayerAnimation>();
+        if (playerAnimation != null)
+        {
+            playerAnimation.SetupRenderer(_activeModel);
+        }
+        else
+        {
+            Debug.LogError("[PlayerAnimationSystem] PlayerAnimation component not found!");
+        }
+
         Debug.Log($"[PlayerAnimationSystem] Set model {_activeModel.name} and animator for {_stats.characterClass}");
     }
 

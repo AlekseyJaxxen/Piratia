@@ -1,22 +1,35 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using System.Collections;
+using DG.Tweening;
 
 public class HealthBarUI : MonoBehaviour
 {
     [SerializeField] private Image fillImage;
     [SerializeField] private TextMeshProUGUI hpText;
     [SerializeField] private Vector3 offset = new Vector3(0, 2f, 0);
-    [SerializeField] private float flashDuration = 0.3f;
+    private Sequence damageFlashSequence;
+    private Color originalColor;
     public Transform target;
     private Camera mainCamera;
-    private int previousHealth = int.MaxValue;
 
     void Start()
     {
         mainCamera = Camera.main;
-        // Убрали UpdateHP(100, 100), так как здоровье будет инициализировано в PlayerCore
+        if (fillImage != null)
+        {
+            originalColor = fillImage.color;
+            // Создаём последовательность для эффекта вспышки
+            damageFlashSequence = DOTween.Sequence();
+            damageFlashSequence.Append(fillImage.DOColor(Color.red, 0.1f));
+            damageFlashSequence.Append(fillImage.DOColor(originalColor, 0.1f));
+            damageFlashSequence.SetAutoKill(false);
+            damageFlashSequence.Pause();
+        }
+        else
+        {
+            Debug.LogError("[HealthBarUI] FillImage not assigned!");
+        }
     }
 
     void LateUpdate()
@@ -42,19 +55,22 @@ public class HealthBarUI : MonoBehaviour
         }
         if (fillImage != null) fillImage.fillAmount = (float)current / max;
         if (hpText != null) hpText.text = $"{current}/{max}";
-        if (current < previousHealth && gameObject.activeSelf)
-        {
-            //StartCoroutine(FlashHealthBar());
-        }
-        previousHealth = current;
     }
 
-    private IEnumerator FlashHealthBar()
+    public void PlayDamageFlash()
     {
-        if (fillImage == null || !gameObject.activeSelf) yield break;
-        Color originalColor = fillImage.color;
-        fillImage.color = Color.red;
-        yield return new WaitForSeconds(flashDuration);
-        fillImage.color = originalColor;
+        if (damageFlashSequence != null && gameObject.activeSelf)
+        {
+            damageFlashSequence.Rewind();
+            damageFlashSequence.Play();
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (damageFlashSequence != null)
+        {
+            damageFlashSequence.Kill();
+        }
     }
 }

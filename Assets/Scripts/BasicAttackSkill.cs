@@ -57,8 +57,7 @@ public class BasicAttackSkill : SkillBase
         }
         Debug.Log($"[BasicAttackSkill] Client requesting attack for skill {_skillName} on target: {targetObject.name}, netId: {targetIdentity.netId}, strength: {stats.strength}, minAttack: {stats.minAttack}, maxAttack: {stats.maxAttack}");
         skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName, 0);
-        caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
-        caster.GetComponent<PlayerAnimation>().PlayAttackAnimation();
+        caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);        
     }
 
     public override void ExecuteOnServer(PlayerCore caster, Vector3? targetPosition, GameObject targetObject, int weight)

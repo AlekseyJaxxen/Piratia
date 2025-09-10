@@ -258,6 +258,13 @@ public class PlayerActionSystem : NetworkBehaviour
         PlayerAnimationSystem animationSystem = GetComponent<PlayerAnimationSystem>();
         while (target != null && targetHealth.CurrentHealth > 0)
         {
+            // Проверка невидимости цели
+            if (targetPlayerCore != null && targetPlayerCore.Skills._isInvisible)
+            {
+                Debug.Log($"[PlayerActionSystem] Attack stopped: target {target.name} is invisible");
+                CompleteAction();
+                yield break;
+            }
             if (_core.isDead || _core.isStunned)
             {
                 Debug.Log("[PlayerActionSystem] Attack stopped: player is dead or stunned");
