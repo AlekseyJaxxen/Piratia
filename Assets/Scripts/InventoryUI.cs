@@ -161,7 +161,7 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         if (!isTooltipActive) return;
         itemTooltip.SetActive(false);
         isTooltipActive = false;
-        Debug.Log("[InventoryUI] Hiding tooltip");
+        Debug.Log($"[InventoryUI] Hiding tooltip, caller={new System.Diagnostics.StackTrace().GetFrame(1).GetMethod().Name}");
     }
 
     private void OnDropButtonClicked()
@@ -279,4 +279,7 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         if (rectTransform == null) return false;
         return RectTransformUtility.RectangleContainsScreenPoint(rectTransform, eventData.position, eventData.pressEventCamera);
     }
+
+
+
 }

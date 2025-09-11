@@ -4879,7 +4879,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &8626981798428534175
 RectTransform:
   m_ObjectHideFlags: 0
@@ -6151,7 +6151,7 @@ MonoBehaviour:
   mainCanvasReference: {fileID: 0}
   interactableLayers:
     serializedVersion: 2
-    m_Bits: 2035
+    m_Bits: 10227
   groundLayer:
     serializedVersion: 2
     m_Bits: 64

@@ -69,7 +69,7 @@ public class PlayerCore : NetworkBehaviour
     [SerializeField] private ReviveRequestUI reviveRequestUI;
     [SyncVar] public float pendingReviveHpFraction = 0f;
     [Header("Dropped Items")]
-    [SerializeField] private GameObject droppedItemPrefab; // Префаб DroppedItem
+    [SerializeField] private GameObject droppedItemPrefab;
 
     protected virtual void Awake()
     {
@@ -596,7 +596,6 @@ public class PlayerCore : NetworkBehaviour
                 this.Inventory.items.RemoveAt(slotIndex);
             RpcUpdateInventoryUI();
             Debug.Log($"[PlayerCore] Dropped item: {item.itemName} (ID: {itemID}) from slot {slotIndex}");
-            // Спавн на земле
             SpawnDroppedItem(itemID, instance.quantity);
         }
     }
@@ -689,14 +688,20 @@ public class PlayerCore : NetworkBehaviour
             Debug.LogError("[PlayerCore] CmdSwapInventoryItems failed: Inventory is null!");
             return;
         }
-        if (slotIndex1 < this.Inventory.items.Count && slotIndex2 < this.Inventory.items.Count)
+        while (Inventory.items.Count <= Mathf.Max(slotIndex1, slotIndex2))
         {
-            var temp = this.Inventory.items[slotIndex1];
-            this.Inventory.items[slotIndex1] = this.Inventory.items[slotIndex2];
-            this.Inventory.items[slotIndex2] = temp;
-            RpcUpdateInventoryUI();
-            Debug.Log($"[PlayerCore] Swapped slots: {slotIndex1} <-> {slotIndex2}");
+            Inventory.items.Add(new ItemInfo());
         }
+        if (slotIndex1 >= Inventory.inventorySize || slotIndex2 >= Inventory.inventorySize)
+        {
+            Debug.LogError($"[PlayerCore] CmdSwapInventoryItems failed: slotIndex1={slotIndex1} or slotIndex2={slotIndex2} exceeds inventorySize={Inventory.inventorySize}");
+            return;
+        }
+        var temp = Inventory.items[slotIndex1];
+        Inventory.items[slotIndex1] = Inventory.items[slotIndex2];
+        Inventory.items[slotIndex2] = temp;
+        RpcUpdateInventoryUI();
+        Debug.Log($"[PlayerCore] Swapped slots: {slotIndex1} <-> {slotIndex2}");
     }
 
     [Command]
@@ -717,7 +722,6 @@ public class PlayerCore : NetworkBehaviour
         {
             Debug.Log($"[PlayerCore] Equipping item: {item.itemName} (ID: {itemInfo.id}) to slot {slotType} from inventory slot {slotIndex}");
             this.Inventory.EquipItem(itemInfo, slotType);
-            // Удаляем предмет из инвентаря (фиксация в слоте)
             this.Inventory.items.RemoveAt(slotIndex);
             RpcUpdateInventoryUI();
             RpcUpdateEquipmentUI();
@@ -740,6 +744,29 @@ public class PlayerCore : NetworkBehaviour
         RpcUpdateInventoryUI();
         RpcUpdateEquipmentUI();
         Debug.Log($"[PlayerCore] Unequipped item from slot: {slotType}");
+    }
+
+    [Command]
+    public void CmdPickupDroppedItem(uint droppedItemNetId)
+    {
+        if (!NetworkServer.spawned.ContainsKey(droppedItemNetId))
+        {
+            Debug.LogWarning($"[PlayerCore] CmdPickupDroppedItem failed: DroppedItem with netId {droppedItemNetId} not found");
+            return;
+        }
+        DroppedItem droppedItem = NetworkServer.spawned[droppedItemNetId].GetComponent<DroppedItem>();
+        if (droppedItem == null)
+        {
+            Debug.LogWarning($"[PlayerCore] CmdPickupDroppedItem failed: DroppedItem component not found for netId {droppedItemNetId}");
+            return;
+        }
+        float distance = Vector3.Distance(transform.position, droppedItem.transform.position);
+        if (distance > droppedItem.GetComponent<DroppedItem>().pickupDistance)
+        {
+            Debug.LogWarning($"[PlayerCore] CmdPickupDroppedItem failed: Player too far from item (distance: {distance}, required: {droppedItem.GetComponent<DroppedItem>().pickupDistance})");
+            return;
+        }
+        droppedItem.Pickup(this);
     }
 
     [ClientRpc]

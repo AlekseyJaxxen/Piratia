@@ -9,9 +9,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1579661304377895112}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: modelParent
-  m_TagString: Untagged
+  m_TagString: DroppedItem
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -44,9 +44,9 @@ GameObject:
   - component: {fileID: 1229034729451141194}
   - component: {fileID: 5405766044932791948}
   - component: {fileID: 5566151229781659400}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Cube
-  m_TagString: Untagged
+  m_TagString: DroppedItem
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -143,6 +143,37 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &5941255826298102731
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4740192942693158091}
+  m_Layer: 13
+  m_Name: empty
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4740192942693158091
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5941255826298102731}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3523393182285819753}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7189712063767850445
 GameObject:
   m_ObjectHideFlags: 0
@@ -156,7 +187,7 @@ GameObject:
   - component: {fileID: 2320621724672086295}
   - component: {fileID: 2575200115310128525}
   - component: {fileID: 7530108712403983310}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -270,7 +301,7 @@ GameObject:
   - component: {fileID: 7286954917911267663}
   - component: {fileID: 3321260244588956980}
   - component: {fileID: 1993963318314442841}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: nameText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -407,9 +438,9 @@ GameObject:
   - component: {fileID: 7371752801489627364}
   - component: {fileID: 4388029383200640811}
   - component: {fileID: 2463562799317338490}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: DroppedItem
-  m_TagString: Untagged
+  m_TagString: DroppedItem
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -429,6 +460,7 @@ Transform:
   m_Children:
   - {fileID: 1579661304377895112}
   - {fileID: 4950878338418429711}
+  - {fileID: 4740192942693158091}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &7371752801489627364
@@ -448,11 +480,12 @@ MonoBehaviour:
   syncInterval: 0
   itemID: 0
   quantity: 0
-  modelParent: {fileID: 0}
+  modelParent: {fileID: 4740192942693158091}
   defaultModelPrefab: {fileID: 5389550834512013721}
   nameCanvas: {fileID: 8926593227507743946}
   nameText: {fileID: 1993963318314442841}
-  pickupDistance: 2
+  pickupDistance: 4
+  despawnTime: 60
 --- !u!114 &4388029383200640811
 MonoBehaviour:
   m_ObjectHideFlags: 0

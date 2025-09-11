@@ -10,6 +10,9 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
     private PlayerCore core;
     private InventoryUI inventoryUI;
     private GameObject dragIcon;
+    private bool isTooltipActive;
+    private float tooltipDelay = 0.5f; // Задержка для tooltip
+    private float pointerEnterTime;
 
     private void Awake()
     {
@@ -37,19 +40,34 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
 
     public void OnPointerEnter(PointerEventData eventData)
     {
-        if (itemInfo.id > 0)
-        {
-            Item item = itemInfo.GetItem();
-            if (item != null)
-            {
-                inventoryUI.ShowTooltip(item, transform.position);
-            }
-        }
+        pointerEnterTime = Time.time;
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        inventoryUI.HideTooltip();
+        if (isTooltipActive)
+        {
+            inventoryUI.HideTooltip();
+            isTooltipActive = false;
+            Debug.Log($"[EquipmentSlotUI] Hiding tooltip for slot {slotType}");
+        }
+    }
+
+    private void Update()
+    {
+        if (!isTooltipActive && Time.time - pointerEnterTime >= tooltipDelay)
+        {
+            if (itemInfo.id > 0)
+            {
+                Item item = itemInfo.GetItem();
+                if (item != null)
+                {
+                    inventoryUI.ShowTooltip(item, transform.position);
+                    isTooltipActive = true;
+                    Debug.Log($"[EquipmentSlotUI] Showing tooltip for {item.itemName} (slot {slotType})");
+                }
+            }
+        }
     }
 
     public void OnBeginDrag(PointerEventData eventData)

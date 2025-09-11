@@ -14,6 +14,8 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
     private Canvas canvas;
     private GameObject dragIcon;
     private bool isTooltipActive;
+    private float tooltipDelay = 0.5f; // Задержка для tooltip
+    private float pointerEnterTime;
 
     private void Awake()
     {
@@ -70,13 +72,7 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
 
     public void OnPointerEnter(PointerEventData eventData)
     {
-        Item item = itemInfo.GetItem();
-        if (item != null && !isTooltipActive)
-        {
-            inventoryUI.ShowTooltip(item, transform.position);
-            isTooltipActive = true;
-            Debug.Log($"[InventorySlot] Showing tooltip for {item.itemName} (slot {slotIndex})");
-        }
+        pointerEnterTime = Time.time;
     }
 
     public void OnPointerExit(PointerEventData eventData)
@@ -86,6 +82,20 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
             inventoryUI.HideTooltip();
             isTooltipActive = false;
             Debug.Log($"[InventorySlot] Hiding tooltip (slot {slotIndex})");
+        }
+    }
+
+    private void Update()
+    {
+        if (!isTooltipActive && Time.time - pointerEnterTime >= tooltipDelay)
+        {
+            Item item = itemInfo.GetItem();
+            if (item != null)
+            {
+                inventoryUI.ShowTooltip(item, transform.position);
+                isTooltipActive = true;
+                Debug.Log($"[InventorySlot] Showing tooltip for {item.itemName} (slot {slotIndex})");
+            }
         }
     }
 
@@ -136,7 +146,7 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         }
         else if (targetEquipSlot != null)
         {
-            Debug.Log($"[InventorySlot] Detected targetEquipSlot: {targetEquipSlot.gameObject.name}, slotType: {targetEquipSlot.slotType}, item slotType: {item.equipmentSlot}, raycastTarget: {(eventData.pointerEnter != null ? eventData.pointerEnter.GetComponent<Image>()?.raycastTarget : "null")}");
+            Debug.Log($"[InventorySlot] Detected targetEquipSlot: {targetEquipSlot.gameObject.name}, slotType: {targetEquipSlot.slotType}, item slotType: {item.equipmentSlot}");
             if (item.equipmentSlot == targetEquipSlot.slotType)
             {
                 Debug.Log($"[InventorySlot] Equipping item: {item.itemName} (ID: {itemInfo.id}) to {targetEquipSlot.slotType} from slot {slotIndex}");
@@ -155,7 +165,6 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         }
         else if (item.canDrop)
         {
-            // Выбрасывание предмета на землю, если нет цели
             Debug.Log($"[InventorySlot] Dropping item: {item.itemName} (ID: {itemInfo.id}) from slot {slotIndex}");
             core.CmdDropItem(item.id, slotIndex);
         }

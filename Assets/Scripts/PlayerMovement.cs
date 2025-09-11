@@ -3,6 +3,7 @@ using UnityEngine.AI;
 using Mirror;
 using UnityEngine.EventSystems;
 using System.Collections.Generic;
+using System.Linq;
 
 public class PlayerMovement : NetworkBehaviour
 {
@@ -14,7 +15,8 @@ public class PlayerMovement : NetworkBehaviour
     private NavMeshAgent _agent;
     public NavMeshAgent Agent => _agent;
     private PlayerCore _core;
-    private GameObject _currentMoveIndicator; // Индикатор точки движения
+    private GameObject _currentMoveIndicator;
+
     public bool IsMoving => _agent != null && _agent.velocity.magnitude > 0.1f;
 
     public void Init(PlayerCore core)
@@ -42,7 +44,7 @@ public class PlayerMovement : NetworkBehaviour
         if (isLocalPlayer)
         {
             HandleMovement();
-            UpdateMoveIndicator(); // Обновляем индикатор точки движения
+            UpdateMoveIndicator();
         }
     }
 
@@ -75,7 +77,6 @@ public class PlayerMovement : NetworkBehaviour
         }
         if (Input.GetMouseButtonDown(0))
         {
-            // Проверяем, находится ли курсор над UI элементом на слое LocalPlayerUI
             if (IsPointerOverPlayerUI())
             {
                 Debug.Log("[PlayerMovement] Click ignored: Pointer is over LocalPlayerUI element");
@@ -100,7 +101,7 @@ public class PlayerMovement : NetworkBehaviour
                 {
                     if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
                     {
-                        Debug.Log($"[PlayerMovement] Raycast hit: {hit.collider.name}, tag={hit.collider.tag}, layer={LayerMask.LayerToName(hit.collider.gameObject.layer)}");
+                        Debug.Log($"[PlayerMovement] Raycast hit: {hit.collider.name}, tag={hit.collider.tag}, layer={LayerMask.LayerToName(hit.collider.gameObject.layer)}, components={string.Join(", ", hit.collider.GetComponents<Component>().Select(c => c.GetType().Name))}");
                         GameObject target = hit.collider.gameObject;
                         bool validTarget = false;
                         PlayerCore targetCore = target.GetComponentInParent<PlayerCore>();
@@ -132,7 +133,7 @@ public class PlayerMovement : NetworkBehaviour
                         Debug.Log("[PlayerMovement] Raycast missed for targeted skill");
                     }
                 }
-                else // GroundAoE*
+                else
                 {
                     if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.groundLayer))
                     {
@@ -151,7 +152,14 @@ public class PlayerMovement : NetworkBehaviour
             {
                 if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
                 {
-                    Debug.Log($"[PlayerMovement] Raycast hit: {hit.collider.name}, tag={hit.collider.tag}, layer={LayerMask.LayerToName(hit.collider.gameObject.layer)}");
+                    Debug.Log($"[PlayerMovement] Raycast hit: {hit.collider.name}, tag={hit.collider.tag}, layer={LayerMask.LayerToName(hit.collider.gameObject.layer)}, components={string.Join(", ", hit.collider.GetComponents<Component>().Select(c => c.GetType().Name))}");
+                    DroppedItem droppedItem = hit.collider.GetComponent<DroppedItem>() ?? hit.collider.GetComponentInParent<DroppedItem>();
+                    if (droppedItem != null)
+                    {
+                        Debug.Log($"[PlayerMovement] Clicked on DroppedItem: {hit.collider.name}");
+                        _core.CmdPickupDroppedItem(droppedItem.netId);
+                        return;
+                    }
                     if (hit.collider.CompareTag("Player"))
                     {
                         PlayerCore targetCore = hit.collider.GetComponentInParent<PlayerCore>();
@@ -180,7 +188,7 @@ public class PlayerMovement : NetworkBehaviour
                     }
                     else
                     {
-                        Debug.Log($"[PlayerMovement] Raycast hit ignored: invalid tag {hit.collider.tag}");
+                        Debug.Log($"[PlayerMovement] Raycast hit ignored: tag={hit.collider.tag}, layer={LayerMask.LayerToName(hit.collider.gameObject.layer)}");
                     }
                 }
                 else
@@ -191,7 +199,6 @@ public class PlayerMovement : NetworkBehaviour
         }
     }
 
-    // Проверка, находится ли курсор над UI элементом на слое LocalPlayerUI
     private bool IsPointerOverPlayerUI()
     {
         if (EventSystem.current == null)
@@ -203,16 +210,15 @@ public class PlayerMovement : NetworkBehaviour
         {
             return false;
         }
-
         PointerEventData eventData = new PointerEventData(EventSystem.current);
         eventData.position = Input.mousePosition;
         List<RaycastResult> results = new List<RaycastResult>();
         EventSystem.current.RaycastAll(eventData, results);
-
         foreach (var result in results)
         {
-            if (result.gameObject.layer == LayerMask.NameToLayer("LocalPlayerUI"))
+            if (result.gameObject.layer == LayerMask.NameToLayer("LocalPlayerUI") || result.gameObject.GetComponent<Canvas>() != null)
             {
+                Debug.Log($"[PlayerMovement] Pointer over UI: {result.gameObject.name}, layer={LayerMask.LayerToName(result.gameObject.layer)}");
                 return true;
             }
         }
