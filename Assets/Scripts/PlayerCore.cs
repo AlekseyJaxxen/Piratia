@@ -13,6 +13,7 @@ public class PlayerCore : NetworkBehaviour
     public PlayerCameraController Camera;
     public Health Health;
     public CharacterStats Stats;
+    [HideInInspector] public Inventory Inventory;
     private HealthBarUI healthBarUI;
     [HideInInspector] public NameTagUI nameTagUI;
     [Header("Respawn")]
@@ -33,8 +34,8 @@ public class PlayerCore : NetworkBehaviour
     private Quaternion initialModelRotation;
     [SerializeField] private BoxCollider boxCollider;
     [Header("Indicators")]
-    [SerializeField] private GameObject targetIndicatorPrefab; // Префаб индикатора цели атаки
-    [SerializeField] private GameObject moveIndicatorPrefab; // Префаб индикатора точки движения
+    [SerializeField] private GameObject targetIndicatorPrefab;
+    [SerializeField] private GameObject moveIndicatorPrefab;
     [SyncVar(hook = nameof(OnTeamChanged))]
     public PlayerTeam team = PlayerTeam.None;
     [SyncVar(hook = nameof(OnNameChanged))]
@@ -46,11 +47,11 @@ public class PlayerCore : NetworkBehaviour
     [SyncVar(hook = nameof(OnSilenceStateChanged))]
     public bool isSilenced = false;
     [SyncVar]
-    public float stunEffectEndTime = 0f; // Изменено на public
+    public float stunEffectEndTime = 0f;
     [SyncVar]
     private int stunEffectWeight = 0;
     [SyncVar]
-    public float silenceEffectEndTime = 0f; // Изменено на public
+    public float silenceEffectEndTime = 0f;
     [SyncVar]
     private int silenceEffectWeight = 0;
     [Header("Mana Regeneration")]
@@ -77,10 +78,12 @@ public class PlayerCore : NetworkBehaviour
         Camera = GetComponent<PlayerCameraController>();
         Health = GetComponent<Health>();
         Stats = GetComponent<CharacterStats>();
+        Inventory = GetComponent<Inventory>();
         if (Movement != null) Movement.Init(this);
         if (Combat != null) Combat.Init(this);
         if (ActionSystem != null) ActionSystem.Init(this);
         if (Camera != null) Camera.Init(this);
+        if (Inventory != null) Inventory.Init(this);
         if (modelTransform != null)
         {
             initialModelRotation = modelTransform.localRotation;
@@ -462,7 +465,6 @@ public class PlayerCore : NetworkBehaviour
     [Server]
     private void ClearSlowEffect()
     {
-        // Замедление очищается через CharacterStats.ClearSlowEffects
     }
 
     [Server]
@@ -562,7 +564,100 @@ public class PlayerCore : NetworkBehaviour
         pendingReviveHpFraction = 0f;
     }
 
-    // Доступ к префабам индикаторов для других компонентов
+    [Command]
+    public void CmdDropItem(Item item, int slotIndex)
+    {
+        if (slotIndex >= 0 && slotIndex < this.Inventory.items.Count && this.Inventory.items[slotIndex].item == item && item.canDrop)
+        {
+            var instance = this.Inventory.items[slotIndex];
+            instance.quantity--;
+            this.Inventory.items[slotIndex] = instance;
+            if (this.Inventory.items[slotIndex].quantity <= 0)
+                this.Inventory.items.RemoveAt(slotIndex);
+            RpcUpdateInventoryUI();
+        }
+    }
+
+    [Command]
+    public void CmdSellItem(Item item, int slotIndex)
+    {
+        if (slotIndex >= 0 && slotIndex < this.Inventory.items.Count && this.Inventory.items[slotIndex].item == item && item.canSell)
+        {
+            var instance = this.Inventory.items[slotIndex];
+            instance.quantity--;
+            this.Inventory.items[slotIndex] = instance;
+            if (this.Inventory.items[slotIndex].quantity <= 0)
+                this.Inventory.items.RemoveAt(slotIndex);
+            RpcUpdateInventoryUI();
+        }
+    }
+
+    [Command]
+    public void CmdUseItem(Item item, int slotIndex)
+    {
+        if (slotIndex >= -1 && (slotIndex == -1 || (slotIndex < this.Inventory.items.Count && this.Inventory.items[slotIndex].item == item)) && item.canUse)
+        {
+            item.Use(this);
+            if (slotIndex >= 0)
+            {
+                var instance = this.Inventory.items[slotIndex];
+                instance.quantity--;
+                this.Inventory.items[slotIndex] = instance;
+                if (this.Inventory.items[slotIndex].quantity <= 0)
+                    this.Inventory.items.RemoveAt(slotIndex);
+                RpcUpdateInventoryUI();
+            }
+        }
+    }
+
+    [Command]
+    public void CmdSwapInventoryItems(int slotIndex1, int slotIndex2)
+    {
+        if (slotIndex1 < this.Inventory.items.Count && slotIndex2 < this.Inventory.items.Count)
+        {
+            var temp = this.Inventory.items[slotIndex1];
+            this.Inventory.items[slotIndex1] = this.Inventory.items[slotIndex2];
+            this.Inventory.items[slotIndex2] = temp;
+            RpcUpdateInventoryUI();
+        }
+    }
+
+    [Command]
+    public void CmdEquipItem(Inventory.ItemInstance itemInstance, int slotIndex, EquipmentSlot slotType)
+    {
+        if (slotIndex < this.Inventory.items.Count && this.Inventory.items[slotIndex].item == itemInstance.item)
+        {
+            this.Inventory.EquipItem(itemInstance, slotType);
+            var instance = this.Inventory.items[slotIndex];
+            instance.quantity--;
+            this.Inventory.items[slotIndex] = instance;
+            if (this.Inventory.items[slotIndex].quantity <= 0)
+                this.Inventory.items.RemoveAt(slotIndex);
+            RpcUpdateInventoryUI();
+            RpcUpdateEquipmentUI();
+        }
+    }
+
+    [Command]
+    public void CmdUnequipItem(EquipmentSlot slotType)
+    {
+        this.Inventory.UnequipItem(slotType);
+        RpcUpdateInventoryUI();
+        RpcUpdateEquipmentUI();
+    }
+
+    [ClientRpc]
+    private void RpcUpdateInventoryUI()
+    {
+        if (InventoryUI.Instance != null) InventoryUI.Instance.UpdateInventoryUI();
+    }
+
+    [ClientRpc]
+    private void RpcUpdateEquipmentUI()
+    {
+        if (InventoryUI.Instance != null) InventoryUI.Instance.UpdateEquipmentUI();
+    }
+
     public GameObject GetTargetIndicatorPrefab() => targetIndicatorPrefab;
     public GameObject GetMoveIndicatorPrefab() => moveIndicatorPrefab;
 }
