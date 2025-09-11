@@ -148,7 +148,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a54b4c98eb34bb048a8c2a810e7e3801, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
+  buttonIndex: 0
   skill: {fileID: 0}
+  item: {fileID: 0}
 --- !u!225 &-2806076559032776187
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -220,7 +222,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
   m_Color: {r: 0, g: 0, b: 0, a: 0.8235294}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:

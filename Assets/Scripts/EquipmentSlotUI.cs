@@ -30,15 +30,19 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
         {
             itemIcon.sprite = null;
             itemIcon.enabled = false;
+            Debug.Log($"[EquipmentSlotUI] Cleared slot {slotType}");
         }
     }
 
     public void OnPointerEnter(PointerEventData eventData)
     {
-        Item item = itemInfo.GetItem();
-        if (item != null)
+        if (itemInfo.id > 0) // Проверка для непустого слота
         {
-            inventoryUI.ShowTooltip(item, transform.position);
+            Item item = itemInfo.GetItem();
+            if (item != null)
+            {
+                inventoryUI.ShowTooltip(item, transform.position);
+            }
         }
     }
 

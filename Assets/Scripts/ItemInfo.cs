@@ -8,7 +8,7 @@ public struct ItemInfo
 
     public Item GetItem()
     {
-        if (id < 0) return null;
+        if (id <= 0) return null; // Проверка для пустого слота
         ItemDatabase database = Resources.Load<ItemDatabase>("ItemDatabase");
         if (database == null)
         {

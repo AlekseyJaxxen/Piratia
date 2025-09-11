@@ -87,32 +87,43 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
     public void OnBeginDrag(PointerEventData eventData)
     {
         if ((skill == null || buttonIndex == 0) && item == null) return;
+        if (iconImage == null)
+        {
+            Debug.LogError("[SkillButton] iconImage is null!");
+            return;
+        }
+        Canvas canvas = inventoryUI.GetComponentInParent<Canvas>();
+        if (canvas == null)
+        {
+            Debug.LogError("[SkillButton] Canvas not found in parent of InventoryUI!");
+            return;
+        }
         dragIcon = new GameObject("DragIcon");
-        dragIcon.transform.SetParent(inventoryUI.GetComponent<Canvas>().transform, false);
+        dragIcon.transform.SetParent(canvas.transform, false);
         Image dragImage = dragIcon.AddComponent<Image>();
         dragImage.sprite = iconImage.sprite;
         dragImage.rectTransform.sizeDelta = iconImage.rectTransform.sizeDelta;
         dragImage.raycastTarget = false;
-        dragImage.rectTransform.position = eventData.position;
+        dragImage.rectTransform.position = eventData.position; // RectTransform уже есть
+        Debug.Log($"[SkillButton] Begin drag: {(skill != null ? skill.SkillName : item != null ? item.itemName : "null")} (index: {buttonIndex})");
     }
 
     public void OnDrag(PointerEventData eventData)
     {
-        if (dragIcon != null)
-        {
-            dragIcon.GetComponent<RectTransform>().position = eventData.position;
-        }
+        if (dragIcon == null) return;
+        dragIcon.GetComponent<RectTransform>().position = eventData.position;
     }
 
     public void OnEndDrag(PointerEventData eventData)
     {
         if (dragIcon == null) return;
-        SkillButton targetButton = eventData.pointerEnter?.GetComponent<SkillButton>();
+        SkillButton targetButton = eventData.pointerEnter?.GetComponent<SkillButton>() ?? eventData.pointerEnter?.GetComponentInParent<SkillButton>();
         InventorySlot targetSlot = eventData.pointerEnter?.GetComponent<InventorySlot>();
 
         if (targetButton != null && targetButton != this)
         {
             PlayerUI.Instance.SwapSkillsOrItems(this, targetButton);
+            Debug.Log($"[SkillButton] Swapped with button {targetButton.buttonIndex}");
         }
         else if (targetSlot != null && item != null)
         {
@@ -138,6 +149,17 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
                 Debug.Log($"[SkillButton] Dropped item from hotbar button {buttonIndex}");
             }
         }
+        else
+        {
+            Debug.LogWarning($"[SkillButton] Drag ended without action: {(skill != null ? skill.SkillName : item != null ? item.itemName : "null")} (index: {buttonIndex}), pointerEnter={eventData.pointerEnter?.name ?? "null"}, components={GetComponentsOnPointerEnter(eventData.pointerEnter)}");
+        }
         Destroy(dragIcon);
+    }
+
+    private string GetComponentsOnPointerEnter(GameObject go)
+    {
+        if (go == null) return "null";
+        var components = go.GetComponents<Component>();
+        return string.Join(", ", System.Linq.Enumerable.Select(components, c => c.GetType().Name));
     }
 }

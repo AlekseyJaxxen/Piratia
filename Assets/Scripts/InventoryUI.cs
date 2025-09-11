@@ -30,6 +30,7 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
     private PlayerCore core;
     private Inventory inventory;
     private RectTransform inventoryPanelRect;
+    private RectTransform characterPanelRect; // Добавлено для CharacterPanel
     private Vector2 dragOffset;
     public InventorySlot draggedSlot;
     private bool isTooltipActive;
@@ -38,6 +39,7 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
     {
         Instance = this;
         if (inventoryPanel != null) inventoryPanelRect = inventoryPanel.GetComponent<RectTransform>();
+        if (characterPanel != null) characterPanelRect = characterPanel.GetComponent<RectTransform>(); // Инициализация RectTransform для CharacterPanel
         inventoryPanel.SetActive(false);
         characterPanel.SetActive(false);
         itemTooltip.SetActive(false);
@@ -145,7 +147,8 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         string newText = $"{skill.SkillName}\n" +
                          $"Description: {skill.Description}\n" +
                          $"Mana Cost: {skill.ManaCost}\n" +
-                         $"Cooldown: {skill.Cooldown}";
+                         $"Cooldown: {skill.Cooldown}\n" +
+                         $"Range: {skill.Range}";
         itemTooltip.SetActive(true);
         tooltipText.text = newText;
         itemTooltip.transform.position = position;
@@ -215,21 +218,65 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
 
     public void OnBeginDrag(PointerEventData eventData)
     {
-        if (inventoryPanelRect != null)
+        // Проверяем, какая панель активна и находится под курсором
+        RectTransform activePanelRect = null;
+        if (inventoryPanel.activeSelf && IsPointerOverRect(eventData, inventoryPanelRect))
         {
-            dragOffset = inventoryPanelRect.position - (Vector3)eventData.position;
+            activePanelRect = inventoryPanelRect;
+        }
+        else if (characterPanel.activeSelf && IsPointerOverRect(eventData, characterPanelRect))
+        {
+            activePanelRect = characterPanelRect;
+        }
+
+        if (activePanelRect != null)
+        {
+            dragOffset = activePanelRect.position - (Vector3)eventData.position;
+            Debug.Log($"[InventoryUI] Begin drag on {(activePanelRect == inventoryPanelRect ? "InventoryPanel" : "CharacterPanel")}");
         }
     }
 
     public void OnDrag(PointerEventData eventData)
     {
-        if (inventoryPanelRect != null)
+        // Перемещаем активную панель
+        RectTransform activePanelRect = null;
+        if (inventoryPanel.activeSelf && IsPointerOverRect(eventData, inventoryPanelRect))
         {
-            inventoryPanelRect.position = eventData.position + dragOffset;
+            activePanelRect = inventoryPanelRect;
+        }
+        else if (characterPanel.activeSelf && IsPointerOverRect(eventData, characterPanelRect))
+        {
+            activePanelRect = characterPanelRect;
+        }
+
+        if (activePanelRect != null)
+        {
+            activePanelRect.position = eventData.position + dragOffset;
         }
     }
 
     public void OnEndDrag(PointerEventData eventData)
     {
+        // Завершаем перетаскивание
+        RectTransform activePanelRect = null;
+        if (inventoryPanel.activeSelf && IsPointerOverRect(eventData, inventoryPanelRect))
+        {
+            activePanelRect = inventoryPanelRect;
+        }
+        else if (characterPanel.activeSelf && IsPointerOverRect(eventData, characterPanelRect))
+        {
+            activePanelRect = characterPanelRect;
+        }
+
+        if (activePanelRect != null)
+        {
+            Debug.Log($"[InventoryUI] End drag on {(activePanelRect == inventoryPanelRect ? "InventoryPanel" : "CharacterPanel")}");
+        }
+    }
+
+    private bool IsPointerOverRect(PointerEventData eventData, RectTransform rectTransform)
+    {
+        if (rectTransform == null) return false;
+        return RectTransformUtility.RectangleContainsScreenPoint(rectTransform, eventData.position, eventData.pressEventCamera);
     }
 }
