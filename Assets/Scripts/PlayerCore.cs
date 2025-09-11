@@ -688,14 +688,18 @@ public class PlayerCore : NetworkBehaviour
             Debug.LogError("[PlayerCore] CmdSwapInventoryItems failed: Inventory is null!");
             return;
         }
+        // Расширяем список до нужного размера
         while (Inventory.items.Count <= Mathf.Max(slotIndex1, slotIndex2))
         {
-            Inventory.items.Add(new ItemInfo());
-        }
-        if (slotIndex1 >= Inventory.inventorySize || slotIndex2 >= Inventory.inventorySize)
-        {
-            Debug.LogError($"[PlayerCore] CmdSwapInventoryItems failed: slotIndex1={slotIndex1} or slotIndex2={slotIndex2} exceeds inventorySize={Inventory.inventorySize}");
-            return;
+            if (Inventory.items.Count < Inventory.inventorySize)
+            {
+                Inventory.items.Add(new ItemInfo());
+            }
+            else
+            {
+                Debug.LogError($"[PlayerCore] CmdSwapInventoryItems failed: max slots reached");
+                return;
+            }
         }
         var temp = Inventory.items[slotIndex1];
         Inventory.items[slotIndex1] = Inventory.items[slotIndex2];
@@ -749,24 +753,13 @@ public class PlayerCore : NetworkBehaviour
     [Command]
     public void CmdPickupDroppedItem(uint droppedItemNetId)
     {
-        if (!NetworkServer.spawned.ContainsKey(droppedItemNetId))
-        {
-            Debug.LogWarning($"[PlayerCore] CmdPickupDroppedItem failed: DroppedItem with netId {droppedItemNetId} not found");
-            return;
-        }
+        if (!NetworkServer.spawned.ContainsKey(droppedItemNetId)) return;
         DroppedItem droppedItem = NetworkServer.spawned[droppedItemNetId].GetComponent<DroppedItem>();
-        if (droppedItem == null)
-        {
-            Debug.LogWarning($"[PlayerCore] CmdPickupDroppedItem failed: DroppedItem component not found for netId {droppedItemNetId}");
-            return;
-        }
+        if (droppedItem == null) return;
         float distance = Vector3.Distance(transform.position, droppedItem.transform.position);
-        if (distance > droppedItem.GetComponent<DroppedItem>().pickupDistance)
-        {
-            Debug.LogWarning($"[PlayerCore] CmdPickupDroppedItem failed: Player too far from item (distance: {distance}, required: {droppedItem.GetComponent<DroppedItem>().pickupDistance})");
-            return;
-        }
+        if (distance > droppedItem.pickupDistance) return;
         droppedItem.Pickup(this);
+        RpcUpdateInventoryUI(); // Добавь это
     }
 
     [ClientRpc]

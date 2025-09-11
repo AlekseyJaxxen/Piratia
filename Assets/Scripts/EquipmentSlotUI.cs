@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using System.Collections; // Добавлено
 
 public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
@@ -10,9 +11,7 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
     private PlayerCore core;
     private InventoryUI inventoryUI;
     private GameObject dragIcon;
-    private bool isTooltipActive;
-    private float tooltipDelay = 0.5f; // Задержка для tooltip
-    private float pointerEnterTime;
+    private Coroutine tooltipCoroutine; // Добавлено
 
     private void Awake()
     {
@@ -40,34 +39,33 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
 
     public void OnPointerEnter(PointerEventData eventData)
     {
-        pointerEnterTime = Time.time;
+        Item item = itemInfo.GetItem();
+        if (item != null && tooltipCoroutine == null)
+        {
+            tooltipCoroutine = StartCoroutine(ShowTooltipAfterDelay(item, eventData.position));
+        }
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        if (isTooltipActive)
+        if (tooltipCoroutine != null)
         {
-            inventoryUI.HideTooltip();
-            isTooltipActive = false;
-            Debug.Log($"[EquipmentSlotUI] Hiding tooltip for slot {slotType}");
+            StopCoroutine(tooltipCoroutine);
+            tooltipCoroutine = null;
         }
+        inventoryUI.HideTooltip();
+        Debug.Log($"[EquipmentSlotUI] Hiding tooltip for slot {slotType}");
     }
 
-    private void Update()
+    private IEnumerator ShowTooltipAfterDelay(Item item, Vector3 position)
     {
-        if (!isTooltipActive && Time.time - pointerEnterTime >= tooltipDelay)
+        yield return new WaitForSeconds(0.5f);
+        if (inventoryUI != null && !inventoryUI.isTooltipActive)
         {
-            if (itemInfo.id > 0)
-            {
-                Item item = itemInfo.GetItem();
-                if (item != null)
-                {
-                    inventoryUI.ShowTooltip(item, transform.position);
-                    isTooltipActive = true;
-                    Debug.Log($"[EquipmentSlotUI] Showing tooltip for {item.itemName} (slot {slotType})");
-                }
-            }
+            inventoryUI.ShowTooltip(item, position);
+            Debug.Log($"[EquipmentSlotUI] Showing tooltip for {item.itemName} (slot {slotType})");
         }
+        tooltipCoroutine = null;
     }
 
     public void OnBeginDrag(PointerEventData eventData)
@@ -75,14 +73,12 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
         if (itemInfo.id <= 0) return;
         Item item = itemInfo.GetItem();
         if (item == null) return;
-
         Canvas canvas = inventoryUI.GetComponentInParent<Canvas>();
         if (canvas == null)
         {
             Debug.LogError("[EquipmentSlotUI] Canvas not found in parent of InventoryUI!");
             return;
         }
-
         dragIcon = new GameObject("DragIcon");
         dragIcon.transform.SetParent(canvas.transform, false);
         Image dragImage = dragIcon.AddComponent<Image>();
@@ -109,7 +105,6 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
             Destroy(dragIcon);
             return;
         }
-
         InventorySlot targetSlot = eventData.pointerEnter?.GetComponent<InventorySlot>();
         if (targetSlot != null)
         {

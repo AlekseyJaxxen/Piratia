@@ -2,8 +2,9 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using TMPro;
+using System.Collections; // Для Coroutine
 
-public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
+public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler
 {
     [SerializeField] private Image itemIcon;
     [SerializeField] private TextMeshProUGUI quantityText;
@@ -13,9 +14,7 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
     private InventoryUI inventoryUI;
     private Canvas canvas;
     private GameObject dragIcon;
-    private bool isTooltipActive;
-    private float tooltipDelay = 0.5f; // Задержка для tooltip
-    private float pointerEnterTime;
+    private Coroutine tooltipCoroutine;
 
     private void Awake()
     {
@@ -63,40 +62,55 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         itemIcon.sprite = null;
         itemIcon.enabled = false;
         quantityText.text = "";
-        if (isTooltipActive)
+        if (tooltipCoroutine != null)
         {
-            inventoryUI.HideTooltip();
-            isTooltipActive = false;
+            StopCoroutine(tooltipCoroutine);
+            tooltipCoroutine = null;
         }
+        if (inventoryUI != null)
+            inventoryUI.HideTooltip();
     }
 
     public void OnPointerEnter(PointerEventData eventData)
     {
-        pointerEnterTime = Time.time;
+        Item item = itemInfo.GetItem();
+        if (item != null && tooltipCoroutine == null)
+        {
+            tooltipCoroutine = StartCoroutine(ShowTooltipAfterDelay(item, eventData.position));
+        }
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        if (isTooltipActive)
+        if (tooltipCoroutine != null)
         {
-            inventoryUI.HideTooltip();
-            isTooltipActive = false;
-            Debug.Log($"[InventorySlot] Hiding tooltip (slot {slotIndex})");
+            StopCoroutine(tooltipCoroutine);
+            tooltipCoroutine = null;
         }
+        tooltipCoroutine = StartCoroutine(DelayedHideTooltip()); // Добавь
     }
 
-    private void Update()
+    private IEnumerator ShowTooltipAfterDelay(Item item, Vector3 position)
     {
-        if (!isTooltipActive && Time.time - pointerEnterTime >= tooltipDelay)
+        yield return new WaitForSeconds(0.5f);
+        if (inventoryUI != null && !inventoryUI.isTooltipActive)
         {
-            Item item = itemInfo.GetItem();
-            if (item != null)
-            {
-                inventoryUI.ShowTooltip(item, transform.position);
-                isTooltipActive = true;
-                Debug.Log($"[InventorySlot] Showing tooltip for {item.itemName} (slot {slotIndex})");
-            }
+            // Offset правее
+            inventoryUI.ShowTooltip(item, transform.position + new Vector3(100f, 0f, 0f));
+            Debug.Log($"[InventorySlot] Showing tooltip for {item.itemName} (slot {slotIndex})");
         }
+        tooltipCoroutine = null;
+    }
+
+    public void OnDrop(PointerEventData eventData)
+    {
+        if (InventoryUI.Instance.draggedSlot == null || InventoryUI.Instance.draggedSlot == this) return;
+        if (itemInfo.id == 0) // Только на пустой
+        {
+            Debug.Log($"[InventorySlot] Dropped on empty slot {slotIndex} from {InventoryUI.Instance.draggedSlot.slotIndex}");
+            core.CmdSwapInventoryItems(InventoryUI.Instance.draggedSlot.slotIndex, slotIndex);
+        }
+        InventoryUI.Instance.draggedSlot = null;
     }
 
     public void OnBeginDrag(PointerEventData eventData)
@@ -135,16 +149,9 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
             inventoryUI.draggedSlot = null;
             return;
         }
-        InventorySlot targetSlot = eventData.pointerEnter?.GetComponent<InventorySlot>();
         EquipmentSlotUI targetEquipSlot = eventData.pointerEnter?.GetComponent<EquipmentSlotUI>() ?? eventData.pointerEnter?.GetComponentInParent<EquipmentSlotUI>();
         SkillButton targetButton = eventData.pointerEnter?.GetComponent<SkillButton>() ?? eventData.pointerEnter?.GetComponentInParent<SkillButton>();
-
-        if (targetSlot != null && targetSlot != this)
-        {
-            Debug.Log($"[InventorySlot] Swapping slots: {slotIndex} <-> {targetSlot.slotIndex}");
-            core.CmdSwapInventoryItems(slotIndex, targetSlot.slotIndex);
-        }
-        else if (targetEquipSlot != null)
+        if (targetEquipSlot != null)
         {
             Debug.Log($"[InventorySlot] Detected targetEquipSlot: {targetEquipSlot.gameObject.name}, slotType: {targetEquipSlot.slotType}, item slotType: {item.equipmentSlot}");
             if (item.equipmentSlot == targetEquipSlot.slotType)
@@ -182,4 +189,14 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         var components = go.GetComponents<Component>();
         return string.Join(", ", System.Linq.Enumerable.Select(components, c => c.GetType().Name));
     }
+
+    private IEnumerator DelayedHideTooltip()
+    {
+        yield return new WaitForSeconds(0.2f); // Задержка
+        if (inventoryUI != null)
+            inventoryUI.HideTooltip();
+        tooltipCoroutine = null;
+    }
+
+
 }

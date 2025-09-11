@@ -8,7 +8,6 @@ using System.Collections.Generic;
 public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
     public static InventoryUI Instance { get; private set; }
-
     [Header("UI Elements")]
     [SerializeField] private GameObject inventoryPanel;
     [SerializeField] private GameObject characterPanel;
@@ -22,24 +21,19 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
     [SerializeField] private EquipmentSlotUI leftHandSlotUI;
     [SerializeField] private GameObject itemTooltip;
     [SerializeField] private TextMeshProUGUI tooltipText;
-    [SerializeField] private Button dropButton;
-    [SerializeField] private Button sellButton;
-    [SerializeField] private Button useButton;
-    [SerializeField] private Button hotbarButton;
-
     private PlayerCore core;
     private Inventory inventory;
     private RectTransform inventoryPanelRect;
-    private RectTransform characterPanelRect; // Добавлено для CharacterPanel
+    private RectTransform characterPanelRect;
     private Vector2 dragOffset;
     public InventorySlot draggedSlot;
-    private bool isTooltipActive;
+    public bool isTooltipActive;
 
     private void Awake()
     {
         Instance = this;
         if (inventoryPanel != null) inventoryPanelRect = inventoryPanel.GetComponent<RectTransform>();
-        if (characterPanel != null) characterPanelRect = characterPanel.GetComponent<RectTransform>(); // Инициализация RectTransform для CharacterPanel
+        if (characterPanel != null) characterPanelRect = characterPanel.GetComponent<RectTransform>();
         inventoryPanel.SetActive(false);
         characterPanel.SetActive(false);
         itemTooltip.SetActive(false);
@@ -60,20 +54,10 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
             gameObject.SetActive(false);
             return;
         }
-
         if (closeInventoryButton != null)
             closeInventoryButton.onClick.AddListener(() => inventoryPanel.SetActive(false));
         if (closeCharacterButton != null)
             closeCharacterButton.onClick.AddListener(() => characterPanel.SetActive(false));
-        if (dropButton != null)
-            dropButton.onClick.AddListener(OnDropButtonClicked);
-        if (sellButton != null)
-            sellButton.onClick.AddListener(OnSellButtonClicked);
-        if (useButton != null)
-            useButton.onClick.AddListener(OnUseButtonClicked);
-        if (hotbarButton != null)
-            hotbarButton.onClick.AddListener(OnHotbarButtonClicked);
-
         UpdateInventoryUI();
         UpdateEquipmentUI();
     }
@@ -101,7 +85,7 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
     {
         for (int i = 0; i < inventorySlots.Length; i++)
         {
-            if (i < inventory.items.Count)
+            if (i < inventory.items.Count && inventory.items[i].id > 0)
             {
                 inventorySlots[i].slotIndex = i;
                 inventorySlots[i].SetItem(inventory.items[i]);
@@ -135,9 +119,9 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
                          $"Accuracy: {item.accuracyMod}\n" +
                          $"Intelligence: {item.intelligenceMod}";
         itemTooltip.SetActive(true);
-        tooltipText.text = newText;
-        itemTooltip.transform.position = position;
+        tooltipText.text = newText;        
         isTooltipActive = true;
+        itemTooltip.transform.position = position + new Vector3(100f, 0f, 0f);
         Debug.Log($"[InventoryUI] Showing tooltip for {item.itemName} at position {position}");
     }
 
@@ -151,7 +135,7 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
                          $"Range: {skill.Range}";
         itemTooltip.SetActive(true);
         tooltipText.text = newText;
-        itemTooltip.transform.position = position;
+        itemTooltip.transform.position = position + new Vector3(100f, 0f, 0f);
         isTooltipActive = true;
         Debug.Log($"[InventoryUI] Showing tooltip for skill {skill.SkillName} at position {position}");
     }
@@ -164,61 +148,8 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         Debug.Log($"[InventoryUI] Hiding tooltip, caller={new System.Diagnostics.StackTrace().GetFrame(1).GetMethod().Name}");
     }
 
-    private void OnDropButtonClicked()
-    {
-        if (draggedSlot == null || draggedSlot.itemInfo.GetItem() == null || !draggedSlot.itemInfo.GetItem().canDrop) return;
-        core.CmdDropItem(draggedSlot.itemInfo.id, draggedSlot.slotIndex);
-        draggedSlot = null;
-    }
-
-    private void OnSellButtonClicked()
-    {
-        if (draggedSlot == null || draggedSlot.itemInfo.GetItem() == null || !draggedSlot.itemInfo.GetItem().canSell) return;
-        core.CmdSellItem(draggedSlot.itemInfo.id, draggedSlot.slotIndex);
-        draggedSlot = null;
-    }
-
-    private void OnUseButtonClicked()
-    {
-        if (draggedSlot == null || draggedSlot.itemInfo.GetItem() == null || !draggedSlot.itemInfo.GetItem().canUse) return;
-        core.CmdUseItem(draggedSlot.itemInfo.id, draggedSlot.slotIndex);
-        draggedSlot = null;
-    }
-
-    private void OnHotbarButtonClicked()
-    {
-        if (draggedSlot == null || draggedSlot.itemInfo.GetItem() == null || !draggedSlot.itemInfo.GetItem().canHotbar) return;
-        SkillButton emptyButton = null;
-        foreach (var btn in PlayerUI.Instance.GetSkillButtons2())
-        {
-            if (btn.skill == null && btn.item == null)
-            {
-                emptyButton = btn;
-                break;
-            }
-        }
-        if (emptyButton == null)
-        {
-            foreach (var btn in PlayerUI.Instance.GetSkillButtons3())
-            {
-                if (btn.skill == null && btn.item == null)
-                {
-                    emptyButton = btn;
-                    break;
-                }
-            }
-        }
-        if (emptyButton != null)
-        {
-            PlayerUI.Instance.AssignItemToHotbar(draggedSlot.itemInfo.GetItem(), emptyButton);
-            core.CmdUseItem(draggedSlot.itemInfo.id, draggedSlot.slotIndex);
-        }
-        draggedSlot = null;
-    }
-
     public void OnBeginDrag(PointerEventData eventData)
     {
-        // Проверяем, какая панель активна и находится под курсором
         RectTransform activePanelRect = null;
         if (inventoryPanel.activeSelf && IsPointerOverRect(eventData, inventoryPanelRect))
         {
@@ -228,7 +159,6 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         {
             activePanelRect = characterPanelRect;
         }
-
         if (activePanelRect != null)
         {
             dragOffset = activePanelRect.position - (Vector3)eventData.position;
@@ -238,7 +168,6 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
 
     public void OnDrag(PointerEventData eventData)
     {
-        // Перемещаем активную панель
         RectTransform activePanelRect = null;
         if (inventoryPanel.activeSelf && IsPointerOverRect(eventData, inventoryPanelRect))
         {
@@ -248,7 +177,6 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         {
             activePanelRect = characterPanelRect;
         }
-
         if (activePanelRect != null)
         {
             activePanelRect.position = eventData.position + dragOffset;
@@ -257,7 +185,6 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
 
     public void OnEndDrag(PointerEventData eventData)
     {
-        // Завершаем перетаскивание
         RectTransform activePanelRect = null;
         if (inventoryPanel.activeSelf && IsPointerOverRect(eventData, inventoryPanelRect))
         {
@@ -267,7 +194,6 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         {
             activePanelRect = characterPanelRect;
         }
-
         if (activePanelRect != null)
         {
             Debug.Log($"[InventoryUI] End drag on {(activePanelRect == inventoryPanelRect ? "InventoryPanel" : "CharacterPanel")}");
@@ -279,7 +205,4 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         if (rectTransform == null) return false;
         return RectTransformUtility.RectangleContainsScreenPoint(rectTransform, eventData.position, eventData.pressEventCamera);
     }
-
-
-
 }

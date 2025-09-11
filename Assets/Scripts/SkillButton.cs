@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using System.Collections; // Äëÿ Coroutine
 
 public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
@@ -12,6 +13,7 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
     private InventoryUI inventoryUI;
     private Image iconImage;
     private GameObject dragIcon;
+    private Coroutine tooltipCoroutine;
 
     private void Awake()
     {
@@ -78,10 +80,12 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        if (inventoryUI != null)
+        if (tooltipCoroutine != null)
         {
-            inventoryUI.HideTooltip();
+            StopCoroutine(tooltipCoroutine);
+            tooltipCoroutine = null;
         }
+        tooltipCoroutine = StartCoroutine(DelayedHideTooltip());
     }
 
     public void OnBeginDrag(PointerEventData eventData)
@@ -161,5 +165,13 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         if (go == null) return "null";
         var components = go.GetComponents<Component>();
         return string.Join(", ", System.Linq.Enumerable.Select(components, c => c.GetType().Name));
+    }
+
+    private IEnumerator DelayedHideTooltip()
+    {
+        yield return new WaitForSeconds(0.2f);
+        if (inventoryUI != null)
+            inventoryUI.HideTooltip();
+        tooltipCoroutine = null;
     }
 }

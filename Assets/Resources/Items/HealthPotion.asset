@@ -12,15 +12,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 17a19ca3fa980d7429832ef83c06e12b, type: 3}
   m_Name: HealthPotion
   m_EditorClassIdentifier: Assembly-CSharp::Item
-  itemName: New Item
-  icon: {fileID: 0}
+  itemName: HealthPotion
+  id: 2
+  icon: {fileID: 21300000, guid: 6548e3d428745774eb25bdf190fe7bd7, type: 3}
+  dropModelPrefab: {fileID: 0}
   itemType: 1
   equipmentSlot: 0
-  maxStack: 1
+  maxStack: 99
   canDrop: 1
   canSell: 1
-  canUse: 0
-  canHotbar: 0
+  canUse: 1
+  canHotbar: 1
   strengthMod: 0
   agilityMod: 0
   spiritMod: 0

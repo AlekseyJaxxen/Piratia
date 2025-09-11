@@ -87,7 +87,7 @@ public class DroppedItem : NetworkBehaviour
 
         // Создаём последовательность анимаций
         Sequence sequence = DOTween.Sequence();
-        sequence.Append(modelInstance.transform.DOMove(endPos, 0.1f).SetEase(Ease.InQuad)); // Падение
+        sequence.Append(modelInstance.transform.DOMove(endPos, 0.7f).SetEase(Ease.InQuad)); // Падение
         sequence.AppendCallback(() =>
         {
             // Циклическое вращение

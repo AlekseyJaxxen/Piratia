@@ -9,6 +9,7 @@ TagManager:
   - Missile
   - SpawnPoint
   - CharacterModel
+  - DroppedItem
   layers:
   - Default
   - TransparentFX
@@ -23,7 +24,7 @@ TagManager:
   - ReviveLayer
   - Ignore Raycast
   - LocalPlayerUI
-  - 
+  - DroppedItem
   - 
   - 
   - 
