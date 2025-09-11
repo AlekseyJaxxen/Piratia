@@ -39,7 +39,7 @@ public class SkillButton : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         }
     }
 
-    public void OnSkillButtonClicked() // Изменено на public
+    public void OnSkillButtonClicked()
     {
         if (skill == null) return; // Игнорируем клик по пустой кнопке
         if (playerSkills != null && playerCore != null)
@@ -95,7 +95,18 @@ public class SkillButton : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
 
     public void OnEndDrag(PointerEventData eventData)
     {
-        if (skill == null || canvas == null || buttonIndex == 0) return;
+        if (skill == null || canvas == null || buttonIndex == 0)
+        {
+            if (dragIcon != null)
+            {
+                Destroy(dragIcon);
+                dragIcon = null;
+            }
+            canvasGroup.blocksRaycasts = true;
+            canvasGroup.alpha = 1f;
+            Debug.Log($"[SkillButton] End drag blocked for {skill?.SkillName} (index {buttonIndex})");
+            return;
+        }
         canvasGroup.blocksRaycasts = true;
         canvasGroup.alpha = 1f;
         if (dragIcon != null)

@@ -22,7 +22,7 @@ TagManager:
   - Enemy
   - ReviveLayer
   - Ignore Raycast
-  - 
+  - LocalPlayerUI
   - 
   - 
   - 

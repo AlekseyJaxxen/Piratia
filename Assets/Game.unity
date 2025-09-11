@@ -42214,7 +42214,7 @@ MonoBehaviour:
   syncInterval: 0
   monsterPrefabs:
   - {fileID: 3774602016594009712, guid: 64fa1db29f590d644ac361ea0f9d871f, type: 3}
-  chestPrefab: {fileID: 3774602016594009712, guid: f7741f402e7e1a043b33c8d5cc5c4c01,
+  chestPrefab: {fileID: 3774602016594009712, guid: 7684dde642174e94580fe0b0677307ae,
     type: 3}
   spawnPoints:
   - {fileID: 691239095}
@@ -42222,7 +42222,7 @@ MonoBehaviour:
   - {fileID: 607002311}
   - {fileID: 1080855209}
   chestSpawnPoint: {fileID: 1456860375}
-  respawnInterval: 5
+  respawnInterval: 20
   maxMonsters: 5
 --- !u!114 &1372684383
 MonoBehaviour:
@@ -64755,7 +64755,7 @@ Camera:
   m_Depth: 1
   m_CullingMask:
     serializedVersion: 2
-    m_Bits: 32
+    m_Bits: 4128
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ClassData
   characterClass: 4
   strength: 5
-  agility: 30
+  agility: 5
   constitution: 5
   spirit: 5
   accuracy: 5

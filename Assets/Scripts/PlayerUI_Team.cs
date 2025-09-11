@@ -14,7 +14,7 @@ public class PlayerUI_Team : MonoBehaviour
     public Button warriorButton;
     public Button mageButton;
     public Button archerButton;
-    public Button tankButton; // Добавляем кнопку для Tank
+    public Button tankButton;
     public TMP_InputField nameInputField;
     public Button hostButton;
     public Button clientButton;
@@ -130,16 +130,36 @@ public class PlayerUI_Team : MonoBehaviour
         MyNetworkManager myNetworkManager = NetworkManager.singleton.GetComponent<MyNetworkManager>();
         if (myNetworkManager != null)
         {
-            myNetworkManager.StartClient();
-            teamSelectionPanel.SetActive(false);
-            StartCoroutine(SendInitialPlayerInfoForClient());
+            StartCoroutine(TryConnectClientWithTimeout(myNetworkManager));
         }
+    }
+
+    private IEnumerator TryConnectClientWithTimeout(MyNetworkManager myNetworkManager)
+    {
+        float timeoutDuration = 10f; // Таймаут 10 секунд
+        myNetworkManager.StartClient();
+        float startTime = Time.time;
+
+        while (!NetworkClient.isConnected && Time.time - startTime < timeoutDuration)
+        {
+            yield return null;
+        }
+
+        if (!NetworkClient.isConnected)
+        {
+            myNetworkManager.StopClient();
+            Debug.LogError("[PlayerUI_Team] Не удалось подключиться к серверу: таймаут.");
+            yield break;
+        }
+
+        teamSelectionPanel.SetActive(false);
+        StartCoroutine(SendInitialPlayerInfoForClient());
     }
 
     private IEnumerator SendInitialPlayerInfoForHost()
     {
         yield return new WaitUntil(() => NetworkServer.active && PlayerCore.localPlayerCoreInstance != null);
-        yield return new WaitForSeconds(0.1f); // Небольшая задержка для синхронизации
+        yield return new WaitForSeconds(0.1f);
         OnTeamSelected(tempPlayerInfo.team);
         PlayerCore.localPlayerCoreInstance.CmdSetClass(tempPlayerInfo.characterClass);
         Debug.Log($"[PlayerUI_Team] Sent initial player info for host: Name={tempPlayerInfo.name}, Team={tempPlayerInfo.team}, Class={tempPlayerInfo.characterClass}");
@@ -148,7 +168,7 @@ public class PlayerUI_Team : MonoBehaviour
     private IEnumerator SendInitialPlayerInfoForClient()
     {
         yield return new WaitUntil(() => NetworkClient.isConnected && PlayerCore.localPlayerCoreInstance != null);
-        yield return new WaitForSeconds(0.1f); // Небольшая задержка для синхронизации
+        yield return new WaitForSeconds(0.1f);
         PlayerCore.localPlayerCoreInstance.CmdChangeTeam(tempPlayerInfo.team);
         PlayerCore.localPlayerCoreInstance.CmdChangeName(tempPlayerInfo.name);
         PlayerCore.localPlayerCoreInstance.CmdSetClass(tempPlayerInfo.characterClass);

@@ -1,17 +1,20 @@
 using UnityEngine;
 using Mirror;
+using DG.Tweening;
 using System.Linq;
 
 public class PlayerAnimationSystem : NetworkBehaviour
 {
     private PlayerActionSystem _actionSystem;
     [SerializeField] private Animator _animator;
-    private bool _wasPerformingAction;
     private PlayerCore _core;
     private CharacterStats _stats;
     [SerializeField] private GameObject[] characterModels;
     private GameObject _activeModel;
-
+    private bool _wasPerformingAction;
+    private Renderer modelRenderer;
+    private Color originalColor;
+    private Sequence damageFlashSequence;
     [SyncVar(hook = nameof(OnIsMovingChanged))]
     private bool syncIsMoving;
     [SyncVar(hook = nameof(OnIsDeadChanged))]
@@ -33,13 +36,13 @@ public class PlayerAnimationSystem : NetworkBehaviour
         {
             model.SetActive(false);
         }
-        _stats.OnCharacterClassChangedEvent += OnCharacterClassChanged; // Подписка в Awake для сервера и клиента
+        _stats.OnCharacterClassChangedEvent += OnCharacterClassChanged;
     }
 
     public override void OnStartClient()
     {
         base.OnStartClient();
-        UpdateCharacterModelAndAnimator(); // Оставляем для начальной инициализации на клиенте
+        UpdateCharacterModelAndAnimator();
     }
 
     private void OnCharacterClassChanged(CharacterClass oldClass, CharacterClass newClass)
@@ -49,7 +52,11 @@ public class PlayerAnimationSystem : NetworkBehaviour
 
     private void UpdateCharacterModelAndAnimator()
     {
-        if (_stats == null || characterModels == null || characterModels.Length == 0) return;
+        if (_stats == null || characterModels == null || characterModels.Length == 0)
+        {
+            Debug.LogError("[PlayerAnimationSystem] Stats or characterModels are null or empty!");
+            return;
+        }
         ClassData classData = Resources.Load<ClassData>($"ClassData/{_stats.characterClass}");
         if (classData == null)
         {
@@ -63,14 +70,14 @@ public class PlayerAnimationSystem : NetworkBehaviour
         _activeModel = characterModels.FirstOrDefault(model => model.name == classData.modelPrefab.name);
         if (_activeModel == null)
         {
-            Debug.LogError($"[PlayerAnimationSystem] Model for {_stats.characterClass} not found!");
+            Debug.LogError($"[PlayerAnimationSystem] Model for {_stats.characterClass} not found! Available models: {string.Join(", ", characterModels.Select(m => m.name))}");
             return;
         }
         _activeModel.SetActive(true);
         _animator = _activeModel.GetComponent<Animator>();
         if (_animator == null)
         {
-            Debug.LogError($"[PlayerAnimationSystem] Animator not found on model for {_stats.characterClass}");
+            Debug.LogError($"[PlayerAnimationSystem] Animator not found on model {_activeModel.name} for {_stats.characterClass}");
             return;
         }
         if (classData.animatorController != null)
@@ -81,19 +88,32 @@ public class PlayerAnimationSystem : NetworkBehaviour
         {
             Debug.LogWarning($"[PlayerAnimationSystem] AnimatorController not set in ClassData for {_stats.characterClass}");
         }
-
-        // Передаём активную модель в PlayerAnimation
-        var playerAnimation = GetComponent<PlayerAnimation>();
-        if (playerAnimation != null)
+        // Поиск Renderer в активной модели или её дочерних объектах
+        modelRenderer = _activeModel.GetComponentInChildren<Renderer>();
+        if (modelRenderer != null)
         {
-            playerAnimation.SetupRenderer(_activeModel);
+            originalColor = modelRenderer.material.color;
+            damageFlashSequence = DOTween.Sequence();
+            damageFlashSequence.Append(modelRenderer.material.DOColor(Color.red, 0.1f));
+            damageFlashSequence.Append(modelRenderer.material.DOColor(originalColor, 0.1f));
+            damageFlashSequence.SetAutoKill(false);
+            damageFlashSequence.Pause();
+            Debug.Log($"[PlayerAnimationSystem] Renderer found on {_activeModel.name} or its children");
         }
         else
         {
-            Debug.LogError("[PlayerAnimationSystem] PlayerAnimation component not found!");
+            Debug.LogError($"[PlayerAnimationSystem] No Renderer found on active model {_activeModel.name} or its children!");
         }
-
         Debug.Log($"[PlayerAnimationSystem] Set model {_activeModel.name} and animator for {_stats.characterClass}");
+    }
+
+    public void PlayDamageFlash()
+    {
+        if (damageFlashSequence != null)
+        {
+            damageFlashSequence.Rewind();
+            damageFlashSequence.Play();
+        }
     }
 
     private void Update()
@@ -122,15 +142,13 @@ public class PlayerAnimationSystem : NetworkBehaviour
     private void UpdateAnimations()
     {
         if (_core.isDead) return;
-
         bool isMoving = _core.Movement.IsMoving;
-
         if (_actionSystem.CurrentAction == PlayerAction.Move)
         {
             CmdResetTrigger("Attack");
             CmdResetTrigger("SkillCast");
             _animator.speed = 1f;
-            isMoving = true; // Движение явно активно
+            isMoving = true;
         }
         else if (_actionSystem.CurrentAction == PlayerAction.Attack && _actionSystem.CurrentTarget != null && _actionSystem.CurrentSkill != null)
         {
@@ -167,7 +185,7 @@ public class PlayerAnimationSystem : NetworkBehaviour
             {
                 CmdSetIsMoving(false);
                 _animator.speed = 1f;
-                CmdSetTrigger("Idle"); // Устанавливаем Idle только если нет цели
+                CmdSetTrigger("Idle");
                 return;
             }
             isMoving = distance > castRange;
@@ -182,13 +200,11 @@ public class PlayerAnimationSystem : NetworkBehaviour
         }
         else
         {
-            // Если нет активного действия, но персонаж движется, не сбрасываем в Idle
             if (!isMoving)
             {
                 CmdSetTrigger("Idle");
             }
         }
-
         if (syncIsMoving != isMoving)
         {
             CmdSetIsMoving(isMoving);
@@ -249,7 +265,7 @@ public class PlayerAnimationSystem : NetworkBehaviour
     [Client]
     public void ResetAnimations()
     {
-        if (_animator != null && !_core.Movement.IsMoving) // Проверяем, что персонаж НЕ движется
+        if (_animator != null && !_core.Movement.IsMoving)
         {
             CmdSetIsMoving(false);
             CmdResetTrigger("Attack");
@@ -266,5 +282,13 @@ public class PlayerAnimationSystem : NetworkBehaviour
     public void TriggerAttackAnimation()
     {
         CmdSetTrigger("Attack");
+    }
+
+    private void OnDisable()
+    {
+        if (damageFlashSequence != null)
+        {
+            damageFlashSequence.Kill();
+        }
     }
 }

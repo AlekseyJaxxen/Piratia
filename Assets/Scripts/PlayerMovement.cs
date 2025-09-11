@@ -1,6 +1,8 @@
 ﻿using UnityEngine;
 using UnityEngine.AI;
 using Mirror;
+using UnityEngine.EventSystems;
+using System.Collections.Generic;
 
 public class PlayerMovement : NetworkBehaviour
 {
@@ -73,6 +75,12 @@ public class PlayerMovement : NetworkBehaviour
         }
         if (Input.GetMouseButtonDown(0))
         {
+            // Проверяем, находится ли курсор над UI элементом на слое LocalPlayerUI
+            if (IsPointerOverPlayerUI())
+            {
+                Debug.Log("[PlayerMovement] Click ignored: Pointer is over LocalPlayerUI element");
+                return;
+            }
             Debug.Log($"[PlayerMovement] Left mouse button clicked at position: {Input.mousePosition}");
             Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
             Debug.Log($"[PlayerMovement] Raycast from mouse position: {Input.mousePosition}, camera: {_core.Camera.CameraInstance.name}");
@@ -181,6 +189,34 @@ public class PlayerMovement : NetworkBehaviour
                 }
             }
         }
+    }
+
+    // Проверка, находится ли курсор над UI элементом на слое LocalPlayerUI
+    private bool IsPointerOverPlayerUI()
+    {
+        if (EventSystem.current == null)
+        {
+            Debug.LogError("[PlayerMovement] EventSystem.current is null!");
+            return false;
+        }
+        if (!EventSystem.current.IsPointerOverGameObject())
+        {
+            return false;
+        }
+
+        PointerEventData eventData = new PointerEventData(EventSystem.current);
+        eventData.position = Input.mousePosition;
+        List<RaycastResult> results = new List<RaycastResult>();
+        EventSystem.current.RaycastAll(eventData, results);
+
+        foreach (var result in results)
+        {
+            if (result.gameObject.layer == LayerMask.NameToLayer("LocalPlayerUI"))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void MoveTo(Vector3 destination)
