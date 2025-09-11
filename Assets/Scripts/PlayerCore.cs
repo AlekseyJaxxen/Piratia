@@ -68,6 +68,8 @@ public class PlayerCore : NetworkBehaviour
     [SyncVar] public Vector3 deathPosition;
     [SerializeField] private ReviveRequestUI reviveRequestUI;
     [SyncVar] public float pendingReviveHpFraction = 0f;
+    [Header("Dropped Items")]
+    [SerializeField] private GameObject droppedItemPrefab; // Префаб DroppedItem
 
     protected virtual void Awake()
     {
@@ -520,12 +522,12 @@ public class PlayerCore : NetworkBehaviour
         if (nameTagUI != null) Destroy(nameTagUI.gameObject);
     }
 
-    public GameObject GetHealthBarPrefab() => null;
-    public void SetHealthBarUI(HealthBarUI ui) => healthBarUI = ui;
-    public HealthBarUI GetHealthBarUI() => healthBarUI;
-    public int GetCurrentHealth() => Health != null ? Health.CurrentHealth : 0;
-    public int GetMaxHealth() => Health != null ? Health.MaxHealth : 0;
-    public NameTagUI GetNameTagUI() => nameTagUI;
+    public GameObject GetHealthBarPrefab() { return null; }
+    public void SetHealthBarUI(HealthBarUI ui) { healthBarUI = ui; }
+    public HealthBarUI GetHealthBarUI() { return healthBarUI; }
+    public int GetCurrentHealth() { return Health != null ? Health.CurrentHealth : 0; }
+    public int GetMaxHealth() { return Health != null ? Health.MaxHealth : 0; }
+    public NameTagUI GetNameTagUI() { return nameTagUI; }
 
     public bool CanCastSkill(ISkill skill = null)
     {
@@ -594,7 +596,28 @@ public class PlayerCore : NetworkBehaviour
                 this.Inventory.items.RemoveAt(slotIndex);
             RpcUpdateInventoryUI();
             Debug.Log($"[PlayerCore] Dropped item: {item.itemName} (ID: {itemID}) from slot {slotIndex}");
+            // Спавн на земле
+            SpawnDroppedItem(itemID, instance.quantity);
         }
+    }
+
+    [Server]
+    private void SpawnDroppedItem(int itemID, int quantity)
+    {
+        if (droppedItemPrefab == null)
+        {
+            Debug.LogError("[PlayerCore] DroppedItemPrefab not set!");
+            return;
+        }
+        GameObject droppedItem = Instantiate(droppedItemPrefab, transform.position + Random.insideUnitSphere * 1f + Vector3.up * 0.5f, Quaternion.identity);
+        DroppedItem droppedScript = droppedItem.GetComponent<DroppedItem>();
+        if (droppedScript != null)
+        {
+            droppedScript.itemID = itemID;
+            droppedScript.quantity = quantity;
+        }
+        NetworkServer.Spawn(droppedItem);
+        Debug.Log($"[PlayerCore] Spawned dropped item: ID {itemID}, quantity {quantity} at {droppedItem.transform.position}");
     }
 
     [Command]
@@ -694,11 +717,8 @@ public class PlayerCore : NetworkBehaviour
         {
             Debug.Log($"[PlayerCore] Equipping item: {item.itemName} (ID: {itemInfo.id}) to slot {slotType} from inventory slot {slotIndex}");
             this.Inventory.EquipItem(itemInfo, slotType);
-            var instance = this.Inventory.items[slotIndex];
-            instance.quantity--;
-            this.Inventory.items[slotIndex] = instance;
-            if (this.Inventory.items[slotIndex].quantity <= 0)
-                this.Inventory.items.RemoveAt(slotIndex);
+            // Удаляем предмет из инвентаря (фиксация в слоте)
+            this.Inventory.items.RemoveAt(slotIndex);
             RpcUpdateInventoryUI();
             RpcUpdateEquipmentUI();
         }

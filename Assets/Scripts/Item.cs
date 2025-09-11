@@ -6,6 +6,7 @@ public class Item : ScriptableObject
     public string itemName = "New Item";
     public int id = -1; // Уникальный ID, задаётся в ItemDatabase
     public Sprite icon;
+    [SerializeField] private GameObject dropModelPrefab; // Модель для спавна на земле
     public ItemType itemType = ItemType.Consumable;
     public EquipmentSlot equipmentSlot = EquipmentSlot.None;
 
@@ -42,6 +43,11 @@ public class Item : ScriptableObject
                 player.Health.Heal(100);
             }
         }
+    }
+
+    public GameObject GetDropModelPrefab()
+    {
+        return dropModelPrefab;
     }
 }
 

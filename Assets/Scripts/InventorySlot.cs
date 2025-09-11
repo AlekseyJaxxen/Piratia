@@ -26,7 +26,7 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
     {
         if (core == null)
         {
-            core = FindObjectOfType<PlayerCore>();
+            core = Object.FindFirstObjectByType<PlayerCore>();
             if (core == null)
             {
                 Debug.LogError("[InventorySlot] PlayerCore not found in hierarchy or scene!");
@@ -100,14 +100,14 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         dragImage.sprite = itemIcon.sprite;
         dragImage.rectTransform.sizeDelta = itemIcon.rectTransform.sizeDelta;
         dragImage.raycastTarget = false;
-        dragImage.rectTransform.position = itemIcon.rectTransform.position;
+        dragImage.rectTransform.position = eventData.position;
         Debug.Log($"[InventorySlot] Begin drag: {item.itemName} (ID: {itemInfo.id}) (slot {slotIndex})");
     }
 
     public void OnDrag(PointerEventData eventData)
     {
         if (itemInfo.id < 0 || dragIcon == null) return;
-        dragIcon.GetComponent<RectTransform>().anchoredPosition += eventData.delta / canvas.scaleFactor;
+        dragIcon.GetComponent<RectTransform>().position = eventData.position;
     }
 
     public void OnEndDrag(PointerEventData eventData)
@@ -127,7 +127,7 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         }
         InventorySlot targetSlot = eventData.pointerEnter?.GetComponent<InventorySlot>();
         EquipmentSlotUI targetEquipSlot = eventData.pointerEnter?.GetComponent<EquipmentSlotUI>() ?? eventData.pointerEnter?.GetComponentInParent<EquipmentSlotUI>();
-        SkillButton hotbarButton = eventData.pointerEnter?.GetComponent<SkillButton>();
+        SkillButton targetButton = eventData.pointerEnter?.GetComponent<SkillButton>() ?? eventData.pointerEnter?.GetComponentInParent<SkillButton>();
 
         if (targetSlot != null && targetSlot != this)
         {
@@ -147,11 +147,17 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
                 Debug.LogWarning($"[InventorySlot] Cannot equip {item.itemName} to {targetEquipSlot.slotType}: incompatible slot type (expected {item.equipmentSlot})");
             }
         }
-        else if (hotbarButton != null && item.canHotbar && hotbarButton.buttonIndex != 0)
+        else if (targetButton != null && item.canHotbar && targetButton.buttonIndex != 0)
         {
-            Debug.Log($"[InventorySlot] Assigning item: {item.itemName} (ID: {itemInfo.id}) to hotbar slot {hotbarButton.buttonIndex}");
-            PlayerUI.Instance.AssignItemToHotbar(item, hotbarButton);
+            Debug.Log($"[InventorySlot] Assigning item: {item.itemName} (ID: {itemInfo.id}) to hotbar slot {targetButton.buttonIndex}");
+            PlayerUI.Instance.AssignItemToHotbar(item, targetButton);
             core.CmdUseItem(item.id, slotIndex);
+        }
+        else if (item.canDrop)
+        {
+            // Выбрасывание предмета на землю, если нет цели
+            Debug.Log($"[InventorySlot] Dropping item: {item.itemName} (ID: {itemInfo.id}) from slot {slotIndex}");
+            core.CmdDropItem(item.id, slotIndex);
         }
         else
         {

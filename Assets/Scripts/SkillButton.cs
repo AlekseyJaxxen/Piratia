@@ -15,7 +15,7 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
 
     private void Awake()
     {
-        inventoryUI = FindObjectOfType<InventoryUI>();
+        inventoryUI = Object.FindFirstObjectByType<InventoryUI>();
         iconImage = GetComponentInChildren<Image>();
     }
 
@@ -104,7 +104,7 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         dragImage.sprite = iconImage.sprite;
         dragImage.rectTransform.sizeDelta = iconImage.rectTransform.sizeDelta;
         dragImage.raycastTarget = false;
-        dragImage.rectTransform.position = eventData.position; // RectTransform уже есть
+        dragImage.rectTransform.position = eventData.position;
         Debug.Log($"[SkillButton] Begin drag: {(skill != null ? skill.SkillName : item != null ? item.itemName : "null")} (index: {buttonIndex})");
     }
 

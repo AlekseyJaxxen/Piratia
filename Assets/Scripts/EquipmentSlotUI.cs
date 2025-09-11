@@ -2,13 +2,14 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 
-public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IBeginDragHandler
+public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
     [SerializeField] private Image itemIcon;
     [SerializeField] public EquipmentSlot slotType;
     public ItemInfo itemInfo;
     private PlayerCore core;
     private InventoryUI inventoryUI;
+    private GameObject dragIcon;
 
     private void Awake()
     {
@@ -36,7 +37,7 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
 
     public void OnPointerEnter(PointerEventData eventData)
     {
-        if (itemInfo.id > 0) // Проверка для непустого слота
+        if (itemInfo.id > 0)
         {
             Item item = itemInfo.GetItem();
             if (item != null)
@@ -53,10 +54,60 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
 
     public void OnBeginDrag(PointerEventData eventData)
     {
+        if (itemInfo.id <= 0) return;
         Item item = itemInfo.GetItem();
-        if (item != null)
+        if (item == null) return;
+
+        Canvas canvas = inventoryUI.GetComponentInParent<Canvas>();
+        if (canvas == null)
         {
+            Debug.LogError("[EquipmentSlotUI] Canvas not found in parent of InventoryUI!");
+            return;
+        }
+
+        dragIcon = new GameObject("DragIcon");
+        dragIcon.transform.SetParent(canvas.transform, false);
+        Image dragImage = dragIcon.AddComponent<Image>();
+        dragImage.sprite = itemIcon.sprite;
+        dragImage.rectTransform.sizeDelta = itemIcon.rectTransform.sizeDelta;
+        dragImage.raycastTarget = false;
+        dragImage.rectTransform.position = eventData.position;
+        Debug.Log($"[EquipmentSlotUI] Begin drag: {item.itemName} (ID: {itemInfo.id}) from slot {slotType}");
+    }
+
+    public void OnDrag(PointerEventData eventData)
+    {
+        if (dragIcon == null) return;
+        dragIcon.GetComponent<RectTransform>().position = eventData.position;
+    }
+
+    public void OnEndDrag(PointerEventData eventData)
+    {
+        if (dragIcon == null) return;
+        if (itemInfo.id <= 0) return;
+        Item item = itemInfo.GetItem();
+        if (item == null)
+        {
+            Destroy(dragIcon);
+            return;
+        }
+
+        InventorySlot targetSlot = eventData.pointerEnter?.GetComponent<InventorySlot>();
+        if (targetSlot != null)
+        {
+            Debug.Log($"[EquipmentSlotUI] Unequipping item: {item.itemName} (ID: {itemInfo.id}) from slot {slotType} to inventory slot {targetSlot.slotIndex}");
             core.CmdUnequipItem(slotType);
         }
+        else if (item.canDrop)
+        {
+            Debug.Log($"[EquipmentSlotUI] Dropping item: {item.itemName} (ID: {itemInfo.id}) from slot {slotType}");
+            core.CmdDropItem(itemInfo.id, -1);
+            core.CmdUnequipItem(slotType);
+        }
+        else
+        {
+            Debug.LogWarning($"[EquipmentSlotUI] Drag ended without action: {item.itemName} (ID: {itemInfo.id}) from slot {slotType}, pointerEnter={eventData.pointerEnter?.name ?? "null"}");
+        }
+        Destroy(dragIcon);
     }
 }

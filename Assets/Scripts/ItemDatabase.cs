@@ -5,12 +5,13 @@ using System.Linq;
 [CreateAssetMenu(fileName = "ItemDatabase", menuName = "Inventory/ItemDatabase")]
 public class ItemDatabase : ScriptableObject
 {
+    public static ItemDatabase Instance { get; private set; }
     [SerializeField] private Item[] items;
-
     private Dictionary<int, Item> itemMap;
 
     private void OnEnable()
     {
+        Instance = this;
         itemMap = new Dictionary<int, Item>();
         for (int i = 0; i < items.Length; i++)
         {
@@ -27,12 +28,14 @@ public class ItemDatabase : ScriptableObject
                     continue;
                 }
                 itemMap[items[i].id] = items[i];
+                Debug.Log($"[ItemDatabase] Registered item: {items[i].itemName} (ID: {items[i].id})");
             }
         }
     }
 
     public Item GetItem(int id)
     {
+        if (id <= 0) return null;
         if (itemMap == null)
         {
             Debug.LogError("[ItemDatabase] Item map not initialized!");
@@ -40,6 +43,7 @@ public class ItemDatabase : ScriptableObject
         }
         if (itemMap.TryGetValue(id, out Item item))
         {
+            Debug.Log($"[ItemDatabase] Loaded item: {item.itemName} (ID: {id})");
             return item;
         }
         Debug.LogError($"[ItemDatabase] Item with ID {id} not found");
