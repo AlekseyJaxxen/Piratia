@@ -9,11 +9,6 @@ public enum CharacterClass
     Tank
 }
 
-public enum DamageType
-{
-    Physical,
-    Magic
-}
 
 public enum PlayerTeam
 {

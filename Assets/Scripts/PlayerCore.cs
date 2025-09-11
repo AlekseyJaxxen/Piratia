@@ -79,11 +79,18 @@ public class PlayerCore : NetworkBehaviour
         Health = GetComponent<Health>();
         Stats = GetComponent<CharacterStats>();
         Inventory = GetComponent<Inventory>();
+        if (Inventory == null)
+        {
+            Debug.LogError("[PlayerCore] Inventory component not found on this GameObject!");
+        }
+        else
+        {
+            Inventory.Init(this);
+        }
         if (Movement != null) Movement.Init(this);
         if (Combat != null) Combat.Init(this);
         if (ActionSystem != null) ActionSystem.Init(this);
         if (Camera != null) Camera.Init(this);
-        if (Inventory != null) Inventory.Init(this);
         if (modelTransform != null)
         {
             initialModelRotation = modelTransform.localRotation;
@@ -513,12 +520,12 @@ public class PlayerCore : NetworkBehaviour
         if (nameTagUI != null) Destroy(nameTagUI.gameObject);
     }
 
-    public GameObject GetHealthBarPrefab() { return null; }
-    public void SetHealthBarUI(HealthBarUI ui) { healthBarUI = ui; }
-    public HealthBarUI GetHealthBarUI() { return healthBarUI; }
-    public int GetCurrentHealth() { return Health != null ? Health.CurrentHealth : 0; }
-    public int GetMaxHealth() { return Health != null ? Health.MaxHealth : 0; }
-    public NameTagUI GetNameTagUI() { return nameTagUI; }
+    public GameObject GetHealthBarPrefab() => null;
+    public void SetHealthBarUI(HealthBarUI ui) => healthBarUI = ui;
+    public HealthBarUI GetHealthBarUI() => healthBarUI;
+    public int GetCurrentHealth() => Health != null ? Health.CurrentHealth : 0;
+    public int GetMaxHealth() => Health != null ? Health.MaxHealth : 0;
+    public NameTagUI GetNameTagUI() => nameTagUI;
 
     public bool CanCastSkill(ISkill skill = null)
     {
@@ -565,9 +572,20 @@ public class PlayerCore : NetworkBehaviour
     }
 
     [Command]
-    public void CmdDropItem(Item item, int slotIndex)
+    public void CmdDropItem(int itemID, int slotIndex)
     {
-        if (slotIndex >= 0 && slotIndex < this.Inventory.items.Count && this.Inventory.items[slotIndex].item == item && item.canDrop)
+        if (Inventory == null)
+        {
+            Debug.LogError("[PlayerCore] CmdDropItem failed: Inventory is null!");
+            return;
+        }
+        Item item = Resources.Load<ItemDatabase>("ItemDatabase")?.GetItem(itemID);
+        if (item == null)
+        {
+            Debug.LogError($"[PlayerCore] CmdDropItem failed: Item with ID {itemID} not found");
+            return;
+        }
+        if (slotIndex >= 0 && slotIndex < this.Inventory.items.Count && this.Inventory.items[slotIndex].id == itemID && item.canDrop)
         {
             var instance = this.Inventory.items[slotIndex];
             instance.quantity--;
@@ -575,13 +593,25 @@ public class PlayerCore : NetworkBehaviour
             if (this.Inventory.items[slotIndex].quantity <= 0)
                 this.Inventory.items.RemoveAt(slotIndex);
             RpcUpdateInventoryUI();
+            Debug.Log($"[PlayerCore] Dropped item: {item.itemName} (ID: {itemID}) from slot {slotIndex}");
         }
     }
 
     [Command]
-    public void CmdSellItem(Item item, int slotIndex)
+    public void CmdSellItem(int itemID, int slotIndex)
     {
-        if (slotIndex >= 0 && slotIndex < this.Inventory.items.Count && this.Inventory.items[slotIndex].item == item && item.canSell)
+        if (Inventory == null)
+        {
+            Debug.LogError("[PlayerCore] CmdSellItem failed: Inventory is null!");
+            return;
+        }
+        Item item = Resources.Load<ItemDatabase>("ItemDatabase")?.GetItem(itemID);
+        if (item == null)
+        {
+            Debug.LogError($"[PlayerCore] CmdSellItem failed: Item with ID {itemID} not found");
+            return;
+        }
+        if (slotIndex >= 0 && slotIndex < this.Inventory.items.Count && this.Inventory.items[slotIndex].id == itemID && item.canSell)
         {
             var instance = this.Inventory.items[slotIndex];
             instance.quantity--;
@@ -589,14 +619,31 @@ public class PlayerCore : NetworkBehaviour
             if (this.Inventory.items[slotIndex].quantity <= 0)
                 this.Inventory.items.RemoveAt(slotIndex);
             RpcUpdateInventoryUI();
+            Debug.Log($"[PlayerCore] Sold item: {item.itemName} (ID: {itemID}) from slot {slotIndex}");
         }
     }
 
     [Command]
-    public void CmdUseItem(Item item, int slotIndex)
+    public void CmdUseItem(int itemID, int slotIndex)
     {
-        if (slotIndex >= -1 && (slotIndex == -1 || (slotIndex < this.Inventory.items.Count && this.Inventory.items[slotIndex].item == item)) && item.canUse)
+        if (Inventory == null)
         {
+            Debug.LogError("[PlayerCore] CmdUseItem failed: Inventory is null!");
+            return;
+        }
+        Item item = Resources.Load<ItemDatabase>("ItemDatabase")?.GetItem(itemID);
+        if (item == null)
+        {
+            Debug.LogError($"[PlayerCore] CmdUseItem failed: Item with ID {itemID} not found");
+            return;
+        }
+        if (slotIndex >= -1 && (slotIndex == -1 || (slotIndex < this.Inventory.items.Count && this.Inventory.items[slotIndex].id == itemID)) && item.canUse)
+        {
+            if (isDead || isStunned)
+            {
+                Debug.LogWarning($"[PlayerCore] Cannot use item {item.itemName}: player is dead or stunned");
+                return;
+            }
             item.Use(this);
             if (slotIndex >= 0)
             {
@@ -607,27 +654,46 @@ public class PlayerCore : NetworkBehaviour
                     this.Inventory.items.RemoveAt(slotIndex);
                 RpcUpdateInventoryUI();
             }
+            Debug.Log($"[PlayerCore] Used item: {item.itemName} (ID: {itemID}) (slot {slotIndex})");
         }
     }
 
     [Command]
     public void CmdSwapInventoryItems(int slotIndex1, int slotIndex2)
     {
+        if (Inventory == null)
+        {
+            Debug.LogError("[PlayerCore] CmdSwapInventoryItems failed: Inventory is null!");
+            return;
+        }
         if (slotIndex1 < this.Inventory.items.Count && slotIndex2 < this.Inventory.items.Count)
         {
             var temp = this.Inventory.items[slotIndex1];
             this.Inventory.items[slotIndex1] = this.Inventory.items[slotIndex2];
             this.Inventory.items[slotIndex2] = temp;
             RpcUpdateInventoryUI();
+            Debug.Log($"[PlayerCore] Swapped slots: {slotIndex1} <-> {slotIndex2}");
         }
     }
 
     [Command]
-    public void CmdEquipItem(Inventory.ItemInstance itemInstance, int slotIndex, EquipmentSlot slotType)
+    public void CmdEquipItem(ItemInfo itemInfo, int slotIndex, EquipmentSlot slotType)
     {
-        if (slotIndex < this.Inventory.items.Count && this.Inventory.items[slotIndex].item == itemInstance.item)
+        if (Inventory == null)
         {
-            this.Inventory.EquipItem(itemInstance, slotType);
+            Debug.LogError("[PlayerCore] CmdEquipItem failed: Inventory is null!");
+            return;
+        }
+        Item item = Resources.Load<ItemDatabase>("ItemDatabase")?.GetItem(itemInfo.id);
+        if (item == null)
+        {
+            Debug.LogError($"[PlayerCore] CmdEquipItem failed: Item with ID {itemInfo.id} not found");
+            return;
+        }
+        if (slotIndex < this.Inventory.items.Count && this.Inventory.items[slotIndex].id == itemInfo.id && item.equipmentSlot == slotType)
+        {
+            Debug.Log($"[PlayerCore] Equipping item: {item.itemName} (ID: {itemInfo.id}) to slot {slotType} from inventory slot {slotIndex}");
+            this.Inventory.EquipItem(itemInfo, slotType);
             var instance = this.Inventory.items[slotIndex];
             instance.quantity--;
             this.Inventory.items[slotIndex] = instance;
@@ -636,14 +702,24 @@ public class PlayerCore : NetworkBehaviour
             RpcUpdateInventoryUI();
             RpcUpdateEquipmentUI();
         }
+        else
+        {
+            Debug.LogError($"[PlayerCore] Failed to equip item: {item?.itemName} (ID: {itemInfo.id}, slot {slotIndex}, type {slotType}), inventory count: {this.Inventory.items.Count}, slot match: {(slotIndex < this.Inventory.items.Count ? this.Inventory.items[slotIndex].id == itemInfo.id : false)}, slot type match: {item?.equipmentSlot == slotType}");
+        }
     }
 
     [Command]
     public void CmdUnequipItem(EquipmentSlot slotType)
     {
+        if (Inventory == null)
+        {
+            Debug.LogError("[PlayerCore] CmdUnequipItem failed: Inventory is null!");
+            return;
+        }
         this.Inventory.UnequipItem(slotType);
         RpcUpdateInventoryUI();
         RpcUpdateEquipmentUI();
+        Debug.Log($"[PlayerCore] Unequipped item from slot: {slotType}");
     }
 
     [ClientRpc]

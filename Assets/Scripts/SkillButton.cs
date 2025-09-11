@@ -2,152 +2,142 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 
-public class SkillButton : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler
+public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
-    public SkillBase skill; // Навык
-    public Item item; // Предмет (для hotbar)
-    private Button button;
-    private PlayerSkills playerSkills;
-    private PlayerCore playerCore;
-    private RectTransform rectTransform;
-    private CanvasGroup canvasGroup;
-    private Canvas canvas;
-    private GameObject dragIcon; // Клон для перетаскивания
-    private Image originalIcon; // Оригинальная иконка
-    public int buttonIndex; // Индекс кнопки в массиве
+    public int buttonIndex;
+    public SkillBase skill;
+    public Item item;
+    private PlayerSkills skillsComponent;
+    private PlayerCore core;
+    private InventoryUI inventoryUI;
+    private Image iconImage;
+    private GameObject dragIcon;
 
-    public void Initialize(PlayerSkills skills, PlayerCore core, int index)
+    private void Awake()
     {
-        playerSkills = skills;
-        playerCore = core;
+        inventoryUI = FindObjectOfType<InventoryUI>();
+        iconImage = GetComponentInChildren<Image>();
+    }
+
+    public void Initialize(PlayerSkills skills, PlayerCore playerCore, int index)
+    {
+        skillsComponent = skills;
+        core = playerCore;
         buttonIndex = index;
-        button = GetComponent<Button>();
-        rectTransform = GetComponent<RectTransform>();
-        canvas = GetComponentInParent<Canvas>();
-        canvasGroup = GetComponent<CanvasGroup>() ?? gameObject.AddComponent<CanvasGroup>();
-        originalIcon = GetComponentInChildren<Image>();
-        if (button != null && playerSkills != null && playerCore != null && canvas != null && originalIcon != null)
+        Button button = GetComponent<Button>();
+        if (button != null)
         {
             button.onClick.AddListener(OnButtonClicked);
-        }
-        else
-        {
-            Debug.LogError($"[SkillButton] Initialization failed: Button={button}, PlayerSkills={playerSkills}, PlayerCore={playerCore}, Canvas={canvas}, OriginalIcon={originalIcon}");
         }
     }
 
     public void OnButtonClicked()
     {
+        if (core == null)
+        {
+            Debug.LogError("[SkillButton] PlayerCore is null!");
+            return;
+        }
         if (skill != null)
         {
-            if (!playerCore.CanCastSkill(skill))
+            if (core.isDead || core.isStunned || (core.isSilenced && !(skill is BasicAttackSkill)))
             {
-                Debug.LogWarning($"[SkillButton] Cannot cast skill {skill.SkillName}: invalid conditions.");
+                Debug.Log($"[SkillButton] Cannot select skill {skill.SkillName}: Player is dead, stunned, or silenced");
                 return;
             }
-            if (playerSkills.GetRemainingCooldown(skill.SkillName) > 0)
+            if (skillsComponent != null)
             {
-                Debug.LogWarning($"[SkillButton] Skill {skill.SkillName} is on cooldown.");
-                return;
+                skillsComponent.SelectSkill(skill);
+                Debug.Log($"[SkillButton] Skill {skill.SkillName} selected, index: {buttonIndex}");
             }
-            if (!skill.ignoreGlobalCooldown && playerSkills.GetGlobalRemainingCooldown() > 0)
-            {
-                Debug.LogWarning($"[SkillButton] Global cooldown active for {skill.SkillName}.");
-                return;
-            }
-            playerSkills.SelectSkill(skill);
-            Debug.Log($"[SkillButton] Skill selected: {skill.SkillName}");
         }
-        else if (item != null && item.canUse)
+        else if (item != null)
         {
-            playerCore.CmdUseItem(item, -1); // -1, так как предмет в hotbar
-            Debug.Log($"[SkillButton] Used item: {item.itemName}");
+            if (core.isDead || core.isStunned)
+            {
+                Debug.Log($"[SkillButton] Cannot use item {item.itemName}: Player is dead or stunned");
+                return;
+            }
+            core.CmdUseItem(item.id, -1);
+            Debug.Log($"[SkillButton] Item used: {item.itemName} (ID: {item.id}), index: {buttonIndex}");
+        }
+    }
+
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        if (inventoryUI == null) return;
+        if (skill != null)
+        {
+            inventoryUI.ShowSkillTooltip(skill, transform.position);
+        }
+        else if (item != null)
+        {
+            inventoryUI.ShowTooltip(item, transform.position);
+        }
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        if (inventoryUI != null)
+        {
+            inventoryUI.HideTooltip();
         }
     }
 
     public void OnBeginDrag(PointerEventData eventData)
     {
-        if ((skill == null && item == null) || canvas == null || originalIcon == null || buttonIndex == 0)
-        {
-            Debug.Log($"[SkillButton] Drag blocked for {(skill != null ? skill.SkillName : item != null ? item.itemName : "empty")} (index {buttonIndex})");
-            return;
-        }
-        canvasGroup.blocksRaycasts = false;
-        canvasGroup.alpha = 0.3f;
+        if ((skill == null || buttonIndex == 0) && item == null) return;
         dragIcon = new GameObject("DragIcon");
-        dragIcon.transform.SetParent(canvas.transform, false);
+        dragIcon.transform.SetParent(inventoryUI.GetComponent<Canvas>().transform, false);
         Image dragImage = dragIcon.AddComponent<Image>();
-        dragImage.sprite = originalIcon.sprite;
-        dragImage.rectTransform.sizeDelta = originalIcon.rectTransform.sizeDelta;
+        dragImage.sprite = iconImage.sprite;
+        dragImage.rectTransform.sizeDelta = iconImage.rectTransform.sizeDelta;
         dragImage.raycastTarget = false;
-        dragImage.rectTransform.position = originalIcon.rectTransform.position;
-        Debug.Log($"[SkillButton] Begin drag: {(skill != null ? skill.SkillName : item != null ? item.itemName : "empty")} (index {buttonIndex})");
+        dragImage.rectTransform.position = eventData.position;
     }
 
     public void OnDrag(PointerEventData eventData)
     {
-        if ((skill == null && item == null) || canvas == null || dragIcon == null || buttonIndex == 0) return;
-        dragIcon.GetComponent<RectTransform>().anchoredPosition += eventData.delta / canvas.scaleFactor;
+        if (dragIcon != null)
+        {
+            dragIcon.GetComponent<RectTransform>().position = eventData.position;
+        }
     }
 
     public void OnEndDrag(PointerEventData eventData)
     {
-        if ((skill == null && item == null) || canvas == null || buttonIndex == 0)
+        if (dragIcon == null) return;
+        SkillButton targetButton = eventData.pointerEnter?.GetComponent<SkillButton>();
+        InventorySlot targetSlot = eventData.pointerEnter?.GetComponent<InventorySlot>();
+
+        if (targetButton != null && targetButton != this)
         {
-            if (dragIcon != null)
+            PlayerUI.Instance.SwapSkillsOrItems(this, targetButton);
+        }
+        else if (targetSlot != null && item != null)
+        {
+            if (targetSlot.itemInfo.id >= 0)
             {
-                Destroy(dragIcon);
-                dragIcon = null;
+                Item targetItem = targetSlot.itemInfo.GetItem();
+                if (targetItem?.canHotbar == true)
+                {
+                    PlayerUI.Instance.AssignItemToHotbar(targetItem, this);
+                    core.CmdUseItem(targetSlot.itemInfo.id, targetSlot.slotIndex);
+                    Debug.Log($"[SkillButton] Assigned item from slot {targetSlot.slotIndex} to hotbar button {buttonIndex}");
+                }
+                else
+                {
+                    Debug.LogWarning($"[SkillButton] Cannot assign item from slot {targetSlot.slotIndex} to hotbar: canHotbar is false or item is null");
+                }
             }
-            canvasGroup.blocksRaycasts = true;
-            canvasGroup.alpha = 1f;
-            Debug.Log($"[SkillButton] End drag blocked for {(skill != null ? skill.SkillName : item != null ? item.itemName : "empty")} (index {buttonIndex})");
-            return;
+            else
+            {
+                core.CmdDropItem(item.id, -1);
+                item = null;
+                iconImage.sprite = PlayerUI.Instance.GetDefaultEmptySprite();
+                Debug.Log($"[SkillButton] Dropped item from hotbar button {buttonIndex}");
+            }
         }
-        canvasGroup.blocksRaycasts = true;
-        canvasGroup.alpha = 1f;
-        if (dragIcon != null)
-        {
-            Destroy(dragIcon);
-            dragIcon = null;
-        }
-        SkillButton otherButton = eventData.pointerEnter?.GetComponent<SkillButton>();
-        if (otherButton != null && otherButton.buttonIndex != 0)
-        {
-            PlayerUI.Instance.SwapSkillsOrItems(this, otherButton);
-        }
-        Debug.Log($"[SkillButton] End drag: {(skill != null ? skill.SkillName : item != null ? item.itemName : "empty")} (index {buttonIndex})");
-    }
-
-    public void OnDrop(PointerEventData eventData)
-    {
-        if (buttonIndex == 0)
-        {
-            Debug.Log($"[SkillButton] Drop blocked on index {buttonIndex}");
-            return;
-        }
-        SkillButton otherButton = eventData.pointerDrag?.GetComponent<SkillButton>();
-        InventorySlot inventorySlot = eventData.pointerDrag?.GetComponent<InventorySlot>();
-        if (otherButton != null && otherButton != this && otherButton.buttonIndex != 0)
-        {
-            PlayerUI.Instance.SwapSkillsOrItems(otherButton, this);
-        }
-        else if (inventorySlot != null && inventorySlot.itemInstance.item != null && inventorySlot.itemInstance.item.canHotbar)
-        {
-            PlayerUI.Instance.AssignItemToHotbar(inventorySlot.itemInstance.item, this);
-        }
-    }
-
-    private void OnDestroy()
-    {
-        if (dragIcon != null)
-        {
-            Destroy(dragIcon);
-            dragIcon = null;
-        }
-        if (button != null)
-        {
-            button.onClick.RemoveListener(OnButtonClicked);
-        }
+        Destroy(dragIcon);
     }
 }

@@ -1,6 +1,38 @@
 using UnityEngine;
 using Mirror;
 
+public interface ISkill
+{
+    float Cooldown { get; }
+    float Range { get; }
+    float CastTime { get; }
+    KeyCode Hotkey { get; set; }
+    Texture2D CastCursor { get; }
+    int ManaCost { get; }
+    DamageType SkillDamageType { get; }
+    float RemainingCooldown { get; }
+    float CooldownProgressNormalized { get; }
+    string SkillName { get; }
+    string Description { get; }
+    int Weight { get; }
+    float EffectRadius { get; }
+    bool ignoreGlobalCooldown { get; }
+    void Init(PlayerCore core);
+    bool IsOnCooldown();
+    void StartCooldown();
+    void SetIndicatorVisibility(bool isVisible);
+    void Execute(PlayerCore player, Vector3? targetPosition, GameObject targetObject);
+    void CleanupIndicators();
+    void SetEffectRadiusPosition(Vector3 position);
+    void ApplyInvisibilityEffect(bool isActive);
+}
+
+public enum DamageType
+{
+    Physical,
+    Magic
+}
+
 public abstract class SkillBase : ScriptableObject, ISkill
 {
     public enum CastType
@@ -25,14 +57,18 @@ public abstract class SkillBase : ScriptableObject, ISkill
     public float RemainingCooldown => _playerSkills != null ? _playerSkills.GetRemainingCooldown(SkillName) : 0f;
     public float CooldownProgressNormalized => Cooldown > 0 ? 1f - (RemainingCooldown / Cooldown) : 1f;
     public string SkillName => _skillName;
+    public string Description => _description;
     public int Weight => _weight;
     public float EffectRadius => _effectRadius;
-    public bool ignoreGlobalCooldown = false;
+    public bool ignoreGlobalCooldown => _ignoreGlobalCooldown;
     protected PlayerCore _player;
     protected PlayerSkills _playerSkills;
-    [SerializeField] protected Sprite _icon; public Sprite Icon => _icon;
+    [SerializeField] protected Sprite _icon;
+    public Sprite Icon => _icon;
+
     [Header("Base Skill Settings")]
     [SerializeField] protected string _skillName;
+    [SerializeField] protected string _description;
     [SerializeField] protected KeyCode _hotkey;
     [SerializeField] protected float _range;
     [SerializeField] protected float _cooldown;
@@ -43,6 +79,7 @@ public abstract class SkillBase : ScriptableObject, ISkill
     [SerializeField] protected DamageType _damageType = DamageType.Physical;
     [SerializeField] protected int _weight = 1;
     [SerializeField] protected float _effectRadius;
+    [SerializeField] protected bool _ignoreGlobalCooldown = false;
     [Header("Indicator Prefabs")]
     [SerializeField] public GameObject castRangePrefab;
     [SerializeField] public GameObject effectRadiusPrefab;

@@ -18,9 +18,9 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     public TextMeshProUGUI characteristicPointsText;
     [SerializeField] Transform skillPanel;
     [SerializeField] private SkillButton[] skillButtons1;
-    [SerializeField] private SkillButton[] skillButtons2; // Теперь private, используем методы доступа
+    [SerializeField] private SkillButton[] skillButtons2;
     [SerializeField] private SkillButton[] skillButtons3;
-    [SerializeField] Sprite defaultEmptySprite;
+    [SerializeField] private Sprite defaultEmptySprite;
     [SerializeField] private Button closeButton;
     [Header("Attributes Panel")]
     public GameObject attributesPanel;
@@ -63,7 +63,8 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     private readonly KeyCode[] hotkeys2 = { KeyCode.None, KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.Alpha4, KeyCode.Alpha5, KeyCode.Alpha6, KeyCode.Alpha7, KeyCode.Alpha8, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.Minus, KeyCode.Equals };
     private readonly KeyCode[] hotkeys3 = { KeyCode.None, KeyCode.Q, KeyCode.W, KeyCode.E, KeyCode.R, KeyCode.T, KeyCode.Y, KeyCode.U, KeyCode.I, KeyCode.O, KeyCode.P, KeyCode.LeftBracket, KeyCode.RightBracket };
 
-    // Методы доступа к skillButtons
+    public Sprite GetDefaultEmptySprite() => defaultEmptySprite; // Публичный метод для доступа
+
     public SkillButton[] GetSkillButtons2() => skillButtons2;
     public SkillButton[] GetSkillButtons3() => skillButtons3;
 
@@ -301,6 +302,12 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         {
             if (btn.skill != null && Input.GetKeyDown(btn.skill.Hotkey))
             {
+                Debug.Log($"[PlayerUI] Hotkey pressed for skill: {btn.skill.SkillName} (hotkey {btn.skill.Hotkey})");
+                btn.OnButtonClicked();
+            }
+            else if (btn.item != null && Input.GetKeyDown(GetHotkeyForButton(btn)))
+            {
+                Debug.Log($"[PlayerUI] Hotkey pressed for item: {btn.item.itemName} (hotkey {GetHotkeyForButton(btn)})");
                 btn.OnButtonClicked();
             }
         }
@@ -308,6 +315,12 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         {
             if (btn.skill != null && Input.GetKeyDown(btn.skill.Hotkey))
             {
+                Debug.Log($"[PlayerUI] Hotkey pressed for skill: {btn.skill.SkillName} (hotkey {btn.skill.Hotkey})");
+                btn.OnButtonClicked();
+            }
+            else if (btn.item != null && Input.GetKeyDown(GetHotkeyForButton(btn)))
+            {
+                Debug.Log($"[PlayerUI] Hotkey pressed for item: {btn.item.itemName} (hotkey {GetHotkeyForButton(btn)})");
                 btn.OnButtonClicked();
             }
         }

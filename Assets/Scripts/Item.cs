@@ -4,6 +4,7 @@ using UnityEngine;
 public class Item : ScriptableObject
 {
     public string itemName = "New Item";
+    public int id = -1; // ”никальный ID, задаЄтс€ в ItemDatabase
     public Sprite icon;
     public ItemType itemType = ItemType.Consumable;
     public EquipmentSlot equipmentSlot = EquipmentSlot.None;
@@ -23,6 +24,14 @@ public class Item : ScriptableObject
     public int accuracyMod;
     public int intelligenceMod;
 
+    private void OnEnable()
+    {
+        if (id < 0)
+        {
+            Debug.LogWarning($"[Item] ID not set for {itemName}, defaulting to -1");
+        }
+    }
+
     public virtual void Use(PlayerCore player)
     {
         if (canUse)
@@ -30,7 +39,7 @@ public class Item : ScriptableObject
             Debug.Log($"Used {itemName}");
             if (player.Health != null)
             {
-                player.Health.Heal(100); // »спользуем метод Heal из Health.cs
+                player.Health.Heal(100);
             }
         }
     }

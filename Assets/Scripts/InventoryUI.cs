@@ -31,7 +31,8 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
     private Inventory inventory;
     private RectTransform inventoryPanelRect;
     private Vector2 dragOffset;
-    public InventorySlot draggedSlot; // Изменено на public
+    public InventorySlot draggedSlot;
+    private bool isTooltipActive;
 
     private void Awake()
     {
@@ -121,51 +122,71 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
 
     public void ShowTooltip(Item item, Vector3 position)
     {
-        if (item == null) return;
+        if (item == null || isTooltipActive) return;
+        string newText = $"{item.itemName}\n" +
+                         $"Type: {item.itemType}\n" +
+                         (item.equipmentSlot != EquipmentSlot.None ? $"Slot: {item.equipmentSlot}\n" : "") +
+                         $"Strength: {item.strengthMod}\n" +
+                         $"Agility: {item.agilityMod}\n" +
+                         $"Spirit: {item.spiritMod}\n" +
+                         $"Constitution: {item.constitutionMod}\n" +
+                         $"Accuracy: {item.accuracyMod}\n" +
+                         $"Intelligence: {item.intelligenceMod}";
         itemTooltip.SetActive(true);
-        tooltipText.text = $"{item.itemName}\n" +
-                          $"Type: {item.itemType}\n" +
-                          (item.equipmentSlot != EquipmentSlot.None ? $"Slot: {item.equipmentSlot}\n" : "") +
-                          $"Strength: {item.strengthMod}\n" +
-                          $"Agility: {item.agilityMod}\n" +
-                          $"Spirit: {item.spiritMod}\n" +
-                          $"Constitution: {item.constitutionMod}\n" +
-                          $"Accuracy: {item.accuracyMod}\n" +
-                          $"Intelligence: {item.intelligenceMod}";
+        tooltipText.text = newText;
         itemTooltip.transform.position = position;
+        isTooltipActive = true;
+        Debug.Log($"[InventoryUI] Showing tooltip for {item.itemName} at position {position}");
+    }
+
+    public void ShowSkillTooltip(SkillBase skill, Vector3 position)
+    {
+        if (skill == null || isTooltipActive) return;
+        string newText = $"{skill.SkillName}\n" +
+                         $"Description: {skill.Description}\n" +
+                         $"Mana Cost: {skill.ManaCost}\n" +
+                         $"Cooldown: {skill.Cooldown}";
+        itemTooltip.SetActive(true);
+        tooltipText.text = newText;
+        itemTooltip.transform.position = position;
+        isTooltipActive = true;
+        Debug.Log($"[InventoryUI] Showing tooltip for skill {skill.SkillName} at position {position}");
     }
 
     public void HideTooltip()
     {
+        if (!isTooltipActive) return;
         itemTooltip.SetActive(false);
+        isTooltipActive = false;
+        Debug.Log("[InventoryUI] Hiding tooltip");
     }
 
     private void OnDropButtonClicked()
     {
-        if (draggedSlot == null || draggedSlot.itemInstance.item == null || !draggedSlot.itemInstance.item.canDrop) return;
-        core.CmdDropItem(draggedSlot.itemInstance.item, draggedSlot.slotIndex);
+        if (draggedSlot == null || draggedSlot.itemInfo.GetItem() == null || !draggedSlot.itemInfo.GetItem().canDrop) return;
+        core.CmdDropItem(draggedSlot.itemInfo.id, draggedSlot.slotIndex);
         draggedSlot = null;
     }
 
     private void OnSellButtonClicked()
     {
-        if (draggedSlot == null || draggedSlot.itemInstance.item == null || !draggedSlot.itemInstance.item.canSell) return;
-        core.CmdSellItem(draggedSlot.itemInstance.item, draggedSlot.slotIndex);
+        if (draggedSlot == null || draggedSlot.itemInfo.GetItem() == null || !draggedSlot.itemInfo.GetItem().canSell) return;
+        core.CmdSellItem(draggedSlot.itemInfo.id, draggedSlot.slotIndex);
         draggedSlot = null;
     }
 
     private void OnUseButtonClicked()
     {
-        if (draggedSlot == null || draggedSlot.itemInstance.item == null || !draggedSlot.itemInstance.item.canUse) return;
-        core.CmdUseItem(draggedSlot.itemInstance.item, draggedSlot.slotIndex);
+        if (draggedSlot == null || draggedSlot.itemInfo.GetItem() == null || !draggedSlot.itemInfo.GetItem().canUse) return;
+        core.CmdUseItem(draggedSlot.itemInfo.id, draggedSlot.slotIndex);
         draggedSlot = null;
     }
 
     private void OnHotbarButtonClicked()
     {
-        if (draggedSlot == null || draggedSlot.itemInstance.item == null || !draggedSlot.itemInstance.item.canHotbar) return;
+        if (draggedSlot == null || draggedSlot.itemInfo.GetItem() == null || !draggedSlot.itemInfo.GetItem().canHotbar) return;
         SkillButton emptyButton = null;
-        foreach (var btn in PlayerUI.Instance.GetSkillButtons2()) // Используем метод доступа
+        foreach (var btn in PlayerUI.Instance.GetSkillButtons2())
         {
             if (btn.skill == null && btn.item == null)
             {
@@ -186,8 +207,8 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         }
         if (emptyButton != null)
         {
-            PlayerUI.Instance.AssignItemToHotbar(draggedSlot.itemInstance.item, emptyButton);
-            core.CmdUseItem(draggedSlot.itemInstance.item, draggedSlot.slotIndex);
+            PlayerUI.Instance.AssignItemToHotbar(draggedSlot.itemInfo.GetItem(), emptyButton);
+            core.CmdUseItem(draggedSlot.itemInfo.id, draggedSlot.slotIndex);
         }
         draggedSlot = null;
     }

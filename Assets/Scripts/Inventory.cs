@@ -6,12 +6,12 @@ public class Inventory : NetworkBehaviour
 {
     public PlayerCore playerCore;
     public int inventorySize = 20;
-    [SyncVar] public List<ItemInstance> items = new List<ItemInstance>();
-    [SyncVar] public ItemInstance headSlot;
-    [SyncVar] public ItemInstance bodySlot;
-    [SyncVar] public ItemInstance legsSlot;
-    [SyncVar] public ItemInstance rightHandSlot;
-    [SyncVar] public ItemInstance leftHandSlot;
+    [SyncVar] public List<ItemInfo> items = new List<ItemInfo>();
+    [SyncVar] public ItemInfo headSlot;
+    [SyncVar] public ItemInfo bodySlot;
+    [SyncVar] public ItemInfo legsSlot;
+    [SyncVar] public ItemInfo rightHandSlot;
+    [SyncVar] public ItemInfo leftHandSlot;
 
     public void Init(PlayerCore core)
     {
@@ -19,57 +19,73 @@ public class Inventory : NetworkBehaviour
     }
 
     [Server]
-    private void Start()
-    {
-        if (isServer)
-        {
-            Item healthPotion = Resources.Load<Item>("Items/HealthPotion");
-            if (healthPotion != null) AddItem(healthPotion, 5);
-            Item helmet = Resources.Load<Item>("Items/Helmet");
-            if (helmet != null) AddItem(helmet, 1);
-        }
-    }
-
-    [Server]
     public bool AddItem(Item item, int quantity = 1)
     {
+        if (item == null || item.id < 0)
+        {
+            Debug.LogError("[Inventory] Cannot add item: Item is null or ID is invalid");
+            return false;
+        }
         for (int i = 0; i < items.Count; i++)
         {
-            if (items[i].item == item && items[i].quantity < item.maxStack)
+            if (items[i].id == item.id && items[i].quantity < item.maxStack)
             {
                 var instance = items[i];
                 instance.quantity += quantity;
-                items[i] = instance; // Обновляем элемент в списке
+                items[i] = instance;
+                Debug.Log($"[Inventory] Added {quantity} {item.itemName} to stack at slot {i}, new quantity: {items[i].quantity}");
                 return true;
             }
         }
         if (items.Count < inventorySize)
         {
-            items.Add(new ItemInstance { item = item, quantity = quantity });
+            items.Add(new ItemInfo { id = item.id, quantity = quantity });
+            Debug.Log($"[Inventory] Added new item: {item.itemName} (ID: {item.id}, quantity: {quantity}) to slot {items.Count - 1}");
             return true;
         }
+        Debug.LogWarning($"[Inventory] Cannot add item: {item.itemName}, inventory full");
         return false;
     }
 
     [Server]
-    public void EquipItem(ItemInstance itemInst, EquipmentSlot slot)
+    public void EquipItem(ItemInfo itemInfo, EquipmentSlot slot)
     {
-        ItemInstance oldItem = GetEquipped(slot);
-        if (oldItem.item != null) UnequipItem(slot);
-
-        SetEquipped(slot, itemInst);
-        ApplyItemStats(itemInst.item, true);
+        Item item = itemInfo.GetItem();
+        if (item == null)
+        {
+            Debug.LogError($"[Inventory] Cannot equip item: Item with ID {itemInfo.id} not found");
+            return;
+        }
+        Debug.Log($"[Inventory] Equipping item: {item.itemName} (ID: {itemInfo.id}) to {slot}");
+        ItemInfo oldItem = GetEquipped(slot);
+        if (oldItem.id >= 0)
+        {
+            Item oldItemObj = oldItem.GetItem();
+            if (oldItemObj != null)
+            {
+                Debug.Log($"[Inventory] Unequipping old item: {oldItemObj.itemName} from {slot}");
+                UnequipItem(slot);
+            }
+        }
+        SetEquipped(slot, itemInfo);
+        ApplyItemStats(item, true);
     }
 
     [Server]
     public void UnequipItem(EquipmentSlot slot)
     {
-        ItemInstance itemInst = GetEquipped(slot);
-        if (itemInst.item == null) return;
-
-        ApplyItemStats(itemInst.item, false);
-        AddItem(itemInst.item, itemInst.quantity);
-        SetEquipped(slot, new ItemInstance());
+        ItemInfo itemInfo = GetEquipped(slot);
+        if (itemInfo.id < 0) return;
+        Item item = itemInfo.GetItem();
+        if (item == null)
+        {
+            Debug.LogError($"[Inventory] Cannot unequip item: Item with ID {itemInfo.id} not found");
+            return;
+        }
+        Debug.Log($"[Inventory] Unequipping item: {item.itemName} from {slot}");
+        ApplyItemStats(item, false);
+        AddItem(item, itemInfo.quantity);
+        SetEquipped(slot, new ItemInfo());
     }
 
     private void ApplyItemStats(Item item, bool apply)
@@ -83,9 +99,10 @@ public class Inventory : NetworkBehaviour
         stats.accuracy += item.accuracyMod * mod;
         stats.intelligence += item.intelligenceMod * mod;
         stats.CalculateDerivedStats();
+        Debug.Log($"[Inventory] Applied stats for {item.itemName} (apply={apply}): strength={item.strengthMod * mod}, agility={item.agilityMod * mod}, spirit={item.spiritMod * mod}, constitution={item.constitutionMod * mod}, accuracy={item.accuracyMod * mod}, intelligence={item.intelligenceMod * mod}");
     }
 
-    private ItemInstance GetEquipped(EquipmentSlot slot)
+    private ItemInfo GetEquipped(EquipmentSlot slot)
     {
         switch (slot)
         {
@@ -94,26 +111,21 @@ public class Inventory : NetworkBehaviour
             case EquipmentSlot.Legs: return legsSlot;
             case EquipmentSlot.RightHand: return rightHandSlot;
             case EquipmentSlot.LeftHand: return leftHandSlot;
-            default: return new ItemInstance();
+            default: return new ItemInfo();
         }
     }
 
-    private void SetEquipped(EquipmentSlot slot, ItemInstance inst)
+    private void SetEquipped(EquipmentSlot slot, ItemInfo info)
     {
+        Item item = info.GetItem();
         switch (slot)
         {
-            case EquipmentSlot.Head: headSlot = inst; break;
-            case EquipmentSlot.Body: bodySlot = inst; break;
-            case EquipmentSlot.Legs: legsSlot = inst; break;
-            case EquipmentSlot.RightHand: rightHandSlot = inst; break;
-            case EquipmentSlot.LeftHand: leftHandSlot = inst; break;
+            case EquipmentSlot.Head: headSlot = info; break;
+            case EquipmentSlot.Body: bodySlot = info; break;
+            case EquipmentSlot.Legs: legsSlot = info; break;
+            case EquipmentSlot.RightHand: rightHandSlot = info; break;
+            case EquipmentSlot.LeftHand: leftHandSlot = info; break;
         }
-    }
-
-    [System.Serializable]
-    public struct ItemInstance
-    {
-        public Item item;
-        public int quantity;
+        Debug.Log($"[Inventory] Set equipped item: {(item != null ? item.itemName : "none")} (ID: {info.id}) to {slot}");
     }
 }

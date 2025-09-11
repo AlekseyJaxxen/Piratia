@@ -6,23 +6,25 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
 {
     [SerializeField] private Image itemIcon;
     [SerializeField] public EquipmentSlot slotType;
-    public Inventory.ItemInstance itemInstance;
-    private PlayerCore core; // Добавляем поле
+    public ItemInfo itemInfo;
+    private PlayerCore core;
     private InventoryUI inventoryUI;
 
     private void Awake()
     {
         inventoryUI = GetComponentInParent<InventoryUI>();
-        core = GetComponentInParent<PlayerCore>(); // Инициализируем core
+        core = GetComponentInParent<PlayerCore>();
     }
 
-    public void SetItem(Inventory.ItemInstance instance)
+    public void SetItem(ItemInfo info)
     {
-        itemInstance = instance;
-        if (instance.item != null)
+        itemInfo = info;
+        Item item = info.GetItem();
+        if (item != null)
         {
-            itemIcon.sprite = instance.item.icon;
+            itemIcon.sprite = item.icon;
             itemIcon.enabled = true;
+            Debug.Log($"[EquipmentSlotUI] Set item: {item.itemName} (ID: {info.id}) in slot {slotType}");
         }
         else
         {
@@ -33,9 +35,10 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
 
     public void OnPointerEnter(PointerEventData eventData)
     {
-        if (itemInstance.item != null)
+        Item item = itemInfo.GetItem();
+        if (item != null)
         {
-            inventoryUI.ShowTooltip(itemInstance.item, transform.position);
+            inventoryUI.ShowTooltip(item, transform.position);
         }
     }
 
@@ -46,7 +49,8 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
 
     public void OnBeginDrag(PointerEventData eventData)
     {
-        if (itemInstance.item != null)
+        Item item = itemInfo.GetItem();
+        if (item != null)
         {
             core.CmdUnequipItem(slotType);
         }
