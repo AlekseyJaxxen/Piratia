@@ -697,10 +697,16 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             Debug.LogError($"[PlayerUI] Cannot swap: firstButton={firstButton}, firstSkill={(firstButton?.skill?.SkillName)}, firstItem={(firstButton?.item?.itemName)}, firstIndex={firstButton?.buttonIndex}, secondIndex={secondButton?.buttonIndex}");
             return;
         }
-
+        // Ранний расчёт для проверки на очистку
+        bool isFirstInSpellBook = Array.IndexOf(skillButtons1, firstButton) != -1;
         // Очистка при drop мимо
         if (secondButton == null)
         {
+            if (isFirstInSpellBook)
+            {
+                Debug.Log("[PlayerUI] Cannot clear spellbook slot on drop outside");
+                return;
+            }
             string oldSkillName = "";
             if (firstButton.skill != null)
             {
@@ -720,22 +726,16 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             Debug.Log($"[PlayerUI] Cleared hotbar slot {firstButton.buttonIndex} (skill: {oldSkillName})");
             return;
         }
-
         KeyCode firstHotkey = GetHotkeyForButton(firstButton);
         KeyCode secondHotkey = GetHotkeyForButton(secondButton);
-
         Image firstIcon = firstButton.GetComponentInChildren<Image>();
         Image secondIcon = secondButton.GetComponentInChildren<Image>();
-
         if (firstIcon == null || secondIcon == null)
         {
             Debug.LogError("[PlayerUI] Icon Image not found on one of the buttons!");
             return;
         }
-
-        bool isFirstInSpellBook = Array.IndexOf(skillButtons1, firstButton) != -1;
         bool isSecondInSpellBook = Array.IndexOf(skillButtons1, secondButton) != -1;
-
         if (isFirstInSpellBook && isSecondInSpellBook)
         {
             Debug.Log("[PlayerUI] Drag inside spell book (panel1) ignored");
@@ -776,27 +776,22 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             int tempSlotIndex = firstButton.itemSlotIndex;
             Sprite tempSprite = firstIcon.sprite;
             KeyCode tempHotkey = firstButton.skill?.Hotkey ?? KeyCode.None;
-
             // Assign second to first
             firstButton.skill = secondButton.skill;
             firstButton.item = secondButton.item;
             firstButton.itemSlotIndex = secondButton.itemSlotIndex;
             firstIcon.sprite = secondButton.skill != null ? secondIcon.sprite : (secondButton.item != null ? secondButton.item.icon : defaultEmptySprite);
             if (firstButton.skill != null) firstButton.skill.Hotkey = firstHotkey;
-
             // Assign first to second
             secondButton.skill = tempSkill;
             secondButton.item = tempItem;
             secondButton.itemSlotIndex = tempSlotIndex;
             secondIcon.sprite = tempSkill != null ? tempSprite : (tempItem != null ? tempItem.icon : defaultEmptySprite);
             if (secondButton.skill != null) secondButton.skill.Hotkey = secondHotkey;
-
             var firstEntry = skillCooldownEntries.Find(e => e.cooldownImage == firstButton.transform.Find("CooldownOverlay")?.GetComponent<Image>());
             var secondEntry = skillCooldownEntries.Find(e => e.cooldownImage == secondButton.transform.Find("CooldownOverlay")?.GetComponent<Image>());
-
             if (firstEntry != null) firstEntry.skillName = firstButton.skill != null ? firstButton.skill.SkillName : (firstButton.item != null ? firstButton.item.itemName : "");
             if (secondEntry != null) secondEntry.skillName = secondButton.skill != null ? secondButton.skill.SkillName : (secondButton.item != null ? secondButton.item.itemName : "");
-
             Debug.Log($"[PlayerUI] Swapped: {(firstButton.skill != null ? firstButton.skill.SkillName : (firstButton.item != null ? firstButton.item.itemName : "empty"))} (hotkey {firstHotkey}) <-> {(secondButton.skill != null ? secondButton.skill.SkillName : (secondButton.item != null ? secondButton.item.itemName : "empty"))} (hotkey {secondHotkey})");
         }
     }
