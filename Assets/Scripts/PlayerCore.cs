@@ -556,9 +556,9 @@ public class PlayerCore : NetworkBehaviour
             var instance = this.Inventory.items[slotIndex];
             int dropQuantity = instance.quantity; // Drop весь stack
             if (dropQuantity <= 0) return;
-            this.Inventory.items.RemoveAt(slotIndex); // Удалить весь slot
+            this.Inventory.ClearItemSlot(slotIndex); // Изменено: ClearItemSlot вместо RemoveAt
             RpcUpdateInventoryUI();
-            RpcUpdateHotbarSlotIndices(slotIndex); // Новый вызов
+            RpcClearHotbarItem(itemID); // Добавлено для очистки hotbar
             Debug.Log($"[PlayerCore] Dropped item: {item.itemName} (ID: {itemID}) from slot {slotIndex}, quantity: {dropQuantity}");
             SpawnDroppedItem(itemID, dropQuantity);
         }
@@ -640,39 +640,53 @@ public class PlayerCore : NetworkBehaviour
         }
     }
 
+    // Замените существующий CmdConsumeItem
     [Command]
     public void CmdConsumeItem(int itemID, int slotIndex)
     {
         if (slotIndex >= 0)
         {
             var instance = this.Inventory.items[slotIndex];
+
+            // Проверяем, что ID совпадает перед уменьшением количества
+            if (instance.id != itemID) return;
+
             instance.quantity--;
             this.Inventory.items[slotIndex] = instance;
+
             if (this.Inventory.items[slotIndex].quantity <= 0)
             {
-                this.Inventory.items.RemoveAt(slotIndex);
+                // Здесь заменяем RemoveAt на вызов Inventory.ClearItemSlot
+                this.Inventory.ClearItemSlot(slotIndex);
                 RpcClearHotbarItem(itemID);
-                RpcUpdateHotbarSlotIndices(slotIndex);
             }
+
             RpcUpdateInventoryUI();
         }
         Debug.Log($"[PlayerCore] Consumed item {itemID} from slot {slotIndex}");
     }
 
+    // Замените существующий ConsumeItem (приватный метод)
     [Server]
     private void ConsumeItem(int slotIndex, int itemID)
     {
         if (slotIndex >= 0)
         {
             var instance = this.Inventory.items[slotIndex];
+
+            // Проверяем, что ID совпадает перед уменьшением количества
+            if (instance.id != itemID) return;
+
             instance.quantity--;
             this.Inventory.items[slotIndex] = instance;
+
             if (this.Inventory.items[slotIndex].quantity <= 0)
             {
-                this.Inventory.items.RemoveAt(slotIndex);
+                // Здесь заменяем RemoveAt на вызов Inventory.ClearItemSlot
+                this.Inventory.ClearItemSlot(slotIndex);
                 RpcClearHotbarItem(itemID);
-                RpcUpdateHotbarSlotIndices(slotIndex);
             }
+
             RpcUpdateInventoryUI();
         }
     }
@@ -708,6 +722,7 @@ public class PlayerCore : NetworkBehaviour
         RpcUpdateInventoryUI();
         Debug.Log($"[PlayerCore] Swapped slots: {slotIndex1} <-> {slotIndex2}");
     }
+    // Измените CmdEquipItem
     [Command]
     public void CmdEquipItem(ItemInfo itemInfo, int slotIndex, EquipmentSlot slotType)
     {
@@ -728,7 +743,9 @@ public class PlayerCore : NetworkBehaviour
         {
             Debug.Log($"[PlayerCore] Equipping item: {item.itemName} (ID: {itemInfo.id}) to slot {slotType} from inventory slot {slotIndex}");
             this.Inventory.EquipItem(itemInfo, slotType);
-            this.Inventory.items.RemoveAt(slotIndex);
+
+            // Здесь заменяем RemoveAt на вызов Inventory.ClearItemSlot
+            this.Inventory.ClearItemSlot(slotIndex);
         }
         else
         {
@@ -783,6 +800,7 @@ public class PlayerCore : NetworkBehaviour
         RpcUpdateInventoryUI();
     }
 
+    // Измените RpcSelectItemSkill
     [ClientRpc]
     private void RpcSelectItemSkill(int itemID, int slotIndex)
     {
@@ -811,50 +829,41 @@ public class PlayerCore : NetworkBehaviour
                         targetPos = transform.position + transform.forward * item.castRange;
                     }
                     Skills.CmdExecuteSkill(this, targetPos, 0, item.skillEffect.SkillName, 0);
+
+                    // Мы переносим логику уменьшения количества на сервер
                     if (slotIndex >= 0)
                     {
-                        var instance = Inventory.items[slotIndex];
-                        instance.quantity--;
-                        Inventory.items[slotIndex] = instance;
-                        if (Inventory.items[slotIndex].quantity <= 0)
-                        {
-                            Inventory.items.RemoveAt(slotIndex);
-                            PlayerUI.Instance?.ClearHotbarItem(itemID);
-                            RpcUpdateHotbarSlotIndices(slotIndex);
-                        }
-                        InventoryUI.Instance?.UpdateInventoryUI();
+                        CmdConsumeItem(itemID, slotIndex);
                     }
                 }
             }
         }
     }
 
+    // Измените CmdStackItems
     [Command]
     public void CmdStackItems(int fromSlot, int toSlot, int maxTransfer)
     {
         if (fromSlot < 0 || toSlot < 0 || fromSlot >= Inventory.items.Count || toSlot >= Inventory.items.Count) return;
-
         var fromItem = Inventory.items[fromSlot];
         var toItem = Inventory.items[toSlot];
-
         if (fromItem.id != toItem.id || fromItem.id <= 0 || toItem.quantity >= toItem.GetItem().maxStack) return;
-
         Item item = toItem.GetItem();
         int transfer = Mathf.Min(fromItem.quantity, maxTransfer);
         toItem.quantity += transfer;
         fromItem.quantity -= transfer;
-
         Inventory.items[toSlot] = toItem;
         if (fromItem.quantity <= 0)
         {
-            Inventory.items.RemoveAt(fromSlot);
-            RpcUpdateHotbarSlotIndices(fromSlot); // Новый вызов
+            // Здесь заменяем RemoveAt на вызов Inventory.ClearItemSlot
+            this.Inventory.ClearItemSlot(fromSlot);
+            // Убрано: RpcUpdateHotbarSlotIndices(fromSlot); - сдвига нет
+            RpcClearHotbarItem(fromItem.id); // Добавлено для hotbar
         }
         else
         {
             Inventory.items[fromSlot] = fromItem;
         }
-
         RpcUpdateInventoryUI();
         Debug.Log($"[PlayerCore] Stacked {transfer} from slot {fromSlot} to {toSlot}");
     }
