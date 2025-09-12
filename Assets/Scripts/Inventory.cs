@@ -1,50 +1,106 @@
+// Inventory.cs - полный, фикс AddItem (quantity <=0 return) + свободный слот
 using UnityEngine;
 using Mirror;
 using System.Collections.Generic;
+using UnityEngine.Events;
 
 public class Inventory : NetworkBehaviour
 {
     public PlayerCore playerCore;
     public int inventorySize = 20;
-    [SyncVar] public List<ItemInfo> items = new List<ItemInfo>();
-    [SyncVar] public ItemInfo headSlot;
-    [SyncVar] public ItemInfo bodySlot;
-    [SyncVar] public ItemInfo legsSlot;
-    [SyncVar] public ItemInfo rightHandSlot;
-    [SyncVar] public ItemInfo leftHandSlot;
+    public readonly SyncList<ItemInfo> items = new SyncList<ItemInfo>();
+    [SyncVar(hook = nameof(OnHeadChanged))] public ItemInfo headSlot;
+    [SyncVar(hook = nameof(OnBodyChanged))] public ItemInfo bodySlot;
+    [SyncVar(hook = nameof(OnLegsChanged))] public ItemInfo legsSlot;
+    [SyncVar(hook = nameof(OnRightHandChanged))] public ItemInfo rightHandSlot;
+    [SyncVar(hook = nameof(OnLeftHandChanged))] public ItemInfo leftHandSlot;
+    [SyncVar(hook = nameof(OnInventoryGoldChanged))] public int gold = 0;
+    [HideInInspector] public UnityEvent OnInventoryChanged = new UnityEvent();
+    [HideInInspector] public UnityEvent OnGoldChanged = new UnityEvent();
+    [HideInInspector] public UnityEvent OnEquipmentChanged = new UnityEvent();
+
+    public void OnItemsListChanged(SyncList<ItemInfo>.Operation op, int index, ItemInfo oldItem, ItemInfo newItem)
+    {
+        Debug.Log($"[Inventory] Items list changed: op={op}, index={index}");
+        OnInventoryChanged.Invoke();
+    }
 
     public void Init(PlayerCore core)
     {
         playerCore = core;
+        items.Callback += OnItemsListChanged;
+    }
+
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+        if (isClient)
+        {
+            OnInventoryChanged.Invoke();
+            OnEquipmentChanged.Invoke();
+            OnGoldChanged.Invoke();
+        }
     }
 
     [Server]
     public bool AddItem(Item item, int quantity = 1)
     {
-        if (item == null || item.id < 0)
+        if (item == null || item.id < 0 || quantity <= 0)
         {
-            Debug.LogError("[Inventory] Cannot add item: Item is null or ID is invalid");
+            Debug.LogError($"[Inventory] Cannot add item: Item is null or ID is invalid or quantity <=0 ({quantity})");
             return false;
         }
         for (int i = 0; i < items.Count; i++)
         {
             if (items[i].id == item.id && items[i].quantity < item.maxStack)
             {
-                var instance = items[i];
+                ItemInfo instance = items[i];
                 instance.quantity += quantity;
                 items[i] = instance;
                 Debug.Log($"[Inventory] Added {quantity} {item.itemName} to stack at slot {i}, new quantity: {items[i].quantity}");
                 return true;
             }
         }
-        if (items.Count < inventorySize)
+        int freeSlot = -1;
+        for (int i = 0; i < inventorySize; i++)
         {
-            items.Add(new ItemInfo { id = item.id, quantity = quantity });
-            Debug.Log($"[Inventory] Added new item: {item.itemName} (ID: {item.id}, quantity: {quantity}) to slot {items.Count - 1}");
+            if (i >= items.Count)
+            {
+                items.Add(new ItemInfo());
+            }
+            if (items[i].id == 0)
+            {
+                freeSlot = i;
+                break;
+            }
+        }
+        if (freeSlot >= 0)
+        {
+            items[freeSlot] = new ItemInfo { id = item.id, quantity = quantity };
+            Debug.Log($"[Inventory] Added new item: {item.itemName} (ID: {item.id}, quantity: {quantity}) to free slot {freeSlot}");
             return true;
         }
         Debug.LogWarning($"[Inventory] Cannot add item: {item.itemName}, inventory full");
         return false;
+    }
+
+    [Server]
+    public void AddGold(int amount)
+    {
+        if (amount <= 0) return;
+        gold += amount;
+        OnGoldChanged.Invoke();
+        Debug.Log($"[Inventory] Added {amount} gold, total: {gold}");
+    }
+
+    [Server]
+    public bool SpendGold(int amount)
+    {
+        if (amount <= 0 || gold < amount) return false;
+        gold -= amount;
+        OnGoldChanged.Invoke();
+        Debug.Log($"[Inventory] Spent {amount} gold, remaining: {gold}");
+        return true;
     }
 
     [Server]
@@ -75,14 +131,19 @@ public class Inventory : NetworkBehaviour
     public void UnequipItem(EquipmentSlot slot)
     {
         ItemInfo itemInfo = GetEquipped(slot);
-        if (itemInfo.id < 0) return;
+        if (itemInfo.id < 0 || itemInfo.quantity <= 0)
+        {
+            SetEquipped(slot, new ItemInfo());
+            return;
+        }
         Item item = itemInfo.GetItem();
         if (item == null)
         {
             Debug.LogError($"[Inventory] Cannot unequip item: Item with ID {itemInfo.id} not found");
+            SetEquipped(slot, new ItemInfo());
             return;
         }
-        Debug.Log($"[Inventory] Unequipping item: {item.itemName} from {slot}");
+        Debug.Log($"[Inventory] Unequipping item: {item.itemName} from {slot}, quantity: {itemInfo.quantity}");
         ApplyItemStats(item, false);
         AddItem(item, itemInfo.quantity);
         SetEquipped(slot, new ItemInfo());
@@ -126,6 +187,14 @@ public class Inventory : NetworkBehaviour
             case EquipmentSlot.RightHand: rightHandSlot = info; break;
             case EquipmentSlot.LeftHand: leftHandSlot = info; break;
         }
+        OnEquipmentChanged.Invoke();
         Debug.Log($"[Inventory] Set equipped item: {(item != null ? item.itemName : "none")} (ID: {info.id}) to {slot}");
     }
+
+    private void OnHeadChanged(ItemInfo oldItem, ItemInfo newItem) { OnEquipmentChanged.Invoke(); }
+    private void OnBodyChanged(ItemInfo oldItem, ItemInfo newItem) { OnEquipmentChanged.Invoke(); }
+    private void OnLegsChanged(ItemInfo oldItem, ItemInfo newItem) { OnEquipmentChanged.Invoke(); }
+    private void OnRightHandChanged(ItemInfo oldItem, ItemInfo newItem) { OnEquipmentChanged.Invoke(); }
+    private void OnLeftHandChanged(ItemInfo oldItem, ItemInfo newItem) { OnEquipmentChanged.Invoke(); }
+    private void OnInventoryGoldChanged(int oldGold, int newGold) { OnGoldChanged.Invoke(); }
 }

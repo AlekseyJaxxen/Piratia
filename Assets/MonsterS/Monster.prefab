@@ -65,6 +65,13 @@ MonoBehaviour:
   canAttack: 1
   slowEffectPrefab: {fileID: 4637046911172921311, guid: 9c9304a4aaf7f8d45bf498861bade450,
     type: 3}
+  aggroTargetNetId: 0
+  experienceReward: 1000
+  dropTable:
+  - item: {fileID: 11400000, guid: 6ffb45c650aabde4bb286e3c122f114a, type: 2}
+    dropChance: 0.1
+  droppedItemPrefab: {fileID: 8686491603925156450, guid: 133a99e109889094299eec33717cff52,
+    type: 3}
   IsDead: 0
   IsStunned: 0
   IsSilenced: 0

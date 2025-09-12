@@ -48,7 +48,7 @@ public class PlayerMovement : NetworkBehaviour
         }
     }
 
-    public void HandleMovement()
+    private void HandleMovement()
     {
         if (_core == null)
         {
@@ -153,11 +153,21 @@ public class PlayerMovement : NetworkBehaviour
                 if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
                 {
                     Debug.Log($"[PlayerMovement] Raycast hit: {hit.collider.name}, tag={hit.collider.tag}, layer={LayerMask.LayerToName(hit.collider.gameObject.layer)}, components={string.Join(", ", hit.collider.GetComponents<Component>().Select(c => c.GetType().Name))}");
+                    // Добавлено: DroppedItem
                     DroppedItem droppedItem = hit.collider.GetComponent<DroppedItem>() ?? hit.collider.GetComponentInParent<DroppedItem>();
                     if (droppedItem != null)
                     {
-                        Debug.Log($"[PlayerMovement] Clicked on DroppedItem: {hit.collider.name}");
-                        _core.CmdPickupDroppedItem(droppedItem.netId);
+                        float distance = Vector3.Distance(transform.position, hit.point);
+                        if (distance <= droppedItem.pickupDistance)
+                        {
+                            Debug.Log($"[PlayerMovement] Pickup item: {droppedItem.itemID}");
+                            _core.CmdPickupDroppedItem(droppedItem.netId);
+                        }
+                        else
+                        {
+                            Debug.Log($"[PlayerMovement] Moving to item: {droppedItem.itemID}");
+                            _core.ActionSystem.TryStartAction(PlayerAction.Move, hit.point);
+                        }
                         return;
                     }
                     if (hit.collider.CompareTag("Player"))

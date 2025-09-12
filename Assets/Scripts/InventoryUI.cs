@@ -1,10 +1,11 @@
+// InventoryUI.cs - полная версия, исправил дубликаты хуков + изменил listener для gold
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using UnityEngine.EventSystems;
 using Mirror;
 using System.Collections.Generic;
-
+using System.Collections;
 public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
     public static InventoryUI Instance { get; private set; }
@@ -21,6 +22,7 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
     [SerializeField] private EquipmentSlotUI leftHandSlotUI;
     [SerializeField] private GameObject itemTooltip;
     [SerializeField] private TextMeshProUGUI tooltipText;
+    [SerializeField] private TextMeshProUGUI goldText;
     private PlayerCore core;
     private Inventory inventory;
     private RectTransform inventoryPanelRect;
@@ -28,7 +30,6 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
     private Vector2 dragOffset;
     public InventorySlot draggedSlot;
     public bool isTooltipActive;
-
     private void Awake()
     {
         Instance = this;
@@ -38,7 +39,6 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         characterPanel.SetActive(false);
         itemTooltip.SetActive(false);
     }
-
     private void Start()
     {
         core = GetComponentInParent<PlayerCore>();
@@ -54,20 +54,30 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
             gameObject.SetActive(false);
             return;
         }
+        if (inventory != null)
+        {
+            inventory.OnInventoryChanged.AddListener(UpdateInventoryUI);
+            inventory.OnGoldChanged.AddListener(OnGoldUIChanged); // Используем метод
+            inventory.OnEquipmentChanged.AddListener(UpdateEquipmentUI);
+        }
         if (closeInventoryButton != null)
             closeInventoryButton.onClick.AddListener(() => inventoryPanel.SetActive(false));
         if (closeCharacterButton != null)
             closeCharacterButton.onClick.AddListener(() => characterPanel.SetActive(false));
+        if (goldText != null)
+            goldText.text = $"Gold: {inventory.gold}";
         UpdateInventoryUI();
         UpdateEquipmentUI();
+        StartCoroutine(WaitForSyncAndUpdate());
     }
-
     private void Update()
     {
         if (!core.isLocalPlayer || core.isDead || core.isStunned) return;
         if (Input.GetKeyDown(KeyCode.I))
         {
             bool newState = !inventoryPanel.activeSelf;
+            UpdateInventoryUI();
+            UpdateEquipmentUI();
             inventoryPanel.SetActive(newState);
             UpdateInventoryUI();
             Debug.Log($"[InventoryUI] InventoryPanel set to {newState}");
@@ -80,11 +90,12 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
             Debug.Log($"[InventoryUI] CharacterPanel set to {newState}");
         }
     }
-
     public void UpdateInventoryUI()
     {
+        if (inventorySlots == null || inventory == null) return;
         for (int i = 0; i < inventorySlots.Length; i++)
         {
+            if (inventorySlots[i] == null) continue;
             if (i < inventory.items.Count && inventory.items[i].id > 0)
             {
                 inventorySlots[i].slotIndex = i;
@@ -96,7 +107,6 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
             }
         }
     }
-
     public void UpdateEquipmentUI()
     {
         headSlotUI.SetItem(inventory.headSlot);
@@ -105,7 +115,6 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         rightHandSlotUI.SetItem(inventory.rightHandSlot);
         leftHandSlotUI.SetItem(inventory.leftHandSlot);
     }
-
     public void ShowTooltip(Item item, Vector3 position)
     {
         if (item == null || isTooltipActive) return;
@@ -119,12 +128,11 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
                          $"Accuracy: {item.accuracyMod}\n" +
                          $"Intelligence: {item.intelligenceMod}";
         itemTooltip.SetActive(true);
-        tooltipText.text = newText;        
+        tooltipText.text = newText;
+        itemTooltip.transform.position = position;
         isTooltipActive = true;
-        itemTooltip.transform.position = position + new Vector3(100f, 0f, 0f);
         Debug.Log($"[InventoryUI] Showing tooltip for {item.itemName} at position {position}");
     }
-
     public void ShowSkillTooltip(SkillBase skill, Vector3 position)
     {
         if (skill == null || isTooltipActive) return;
@@ -139,7 +147,6 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         isTooltipActive = true;
         Debug.Log($"[InventoryUI] Showing tooltip for skill {skill.SkillName} at position {position}");
     }
-
     public void HideTooltip()
     {
         if (!isTooltipActive) return;
@@ -147,7 +154,6 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         isTooltipActive = false;
         Debug.Log($"[InventoryUI] Hiding tooltip, caller={new System.Diagnostics.StackTrace().GetFrame(1).GetMethod().Name}");
     }
-
     public void OnBeginDrag(PointerEventData eventData)
     {
         RectTransform activePanelRect = null;
@@ -165,7 +171,6 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
             Debug.Log($"[InventoryUI] Begin drag on {(activePanelRect == inventoryPanelRect ? "InventoryPanel" : "CharacterPanel")}");
         }
     }
-
     public void OnDrag(PointerEventData eventData)
     {
         RectTransform activePanelRect = null;
@@ -182,7 +187,6 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
             activePanelRect.position = eventData.position + dragOffset;
         }
     }
-
     public void OnEndDrag(PointerEventData eventData)
     {
         RectTransform activePanelRect = null;
@@ -199,10 +203,51 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
             Debug.Log($"[InventoryUI] End drag on {(activePanelRect == inventoryPanelRect ? "InventoryPanel" : "CharacterPanel")}");
         }
     }
-
     private bool IsPointerOverRect(PointerEventData eventData, RectTransform rectTransform)
     {
         if (rectTransform == null) return false;
         return RectTransformUtility.RectangleContainsScreenPoint(rectTransform, eventData.position, eventData.pressEventCamera);
+    }
+    private void RpcUpdateInventoryUI()
+    {
+        if (Instance != null && Instance.inventory != null)
+        {
+            Instance.UpdateInventoryUI();
+        }
+        else
+        {
+            StartCoroutine(DelayedUpdateInventoryUI());
+        }
+    }
+    private IEnumerator DelayedUpdateInventoryUI()
+    {
+        yield return new WaitForSeconds(0.1f);
+        if (Instance != null && Instance.inventory != null)
+        {
+            Instance.UpdateInventoryUI();
+        }
+    }
+    public void UpdateEquipmentSlot(EquipmentSlot slot, ItemInfo itemInfo)
+    {
+        switch (slot)
+        {
+            case EquipmentSlot.Head: headSlotUI.SetItem(itemInfo); break;
+            case EquipmentSlot.Body: bodySlotUI.SetItem(itemInfo); break;
+            case EquipmentSlot.Legs: legsSlotUI.SetItem(itemInfo); break;
+            case EquipmentSlot.RightHand: rightHandSlotUI.SetItem(itemInfo); break;
+            case EquipmentSlot.LeftHand: leftHandSlotUI.SetItem(itemInfo); break;
+        }
+        Debug.Log($"[InventoryUI] Updated equipment slot {slot}");
+    }
+    private IEnumerator WaitForSyncAndUpdate()
+    {
+        yield return new WaitForSeconds(0.5f);
+        UpdateInventoryUI();
+        UpdateEquipmentUI();
+        Debug.Log("[InventoryUI] Forced UI update after sync");
+    }
+    private void OnGoldUIChanged() // Новый метод для gold
+    {
+        if (goldText != null) goldText.text = $"Gold: {inventory.gold}";
     }
 }

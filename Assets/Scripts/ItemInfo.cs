@@ -3,12 +3,11 @@ using UnityEngine;
 [System.Serializable]
 public struct ItemInfo
 {
-    public int id; // Уникальный ID предмета
+    public int id;
     public int quantity;
-
     public Item GetItem()
     {
-        if (id <= 0) return null; // Проверка для пустого слота
+        if (id <= 0) return null;
         ItemDatabase database = Resources.Load<ItemDatabase>("ItemDatabase");
         if (database == null)
         {

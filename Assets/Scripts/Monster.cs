@@ -1,7 +1,15 @@
 using UnityEngine;
 using Mirror;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine.AI;
+
+[System.Serializable]
+public class DropEntry
+{
+    public Item item;
+    [Range(0f, 1f)] public float dropChance = 0.1f;
+}
 
 public class Monster : NetworkBehaviour
 {
@@ -12,7 +20,13 @@ public class Monster : NetworkBehaviour
     [SerializeField] private GameObject deathVFXPrefab;
     [SerializeField] private bool canMove = true;
     [SerializeField] private bool canAttack = true;
-    [SerializeField] private GameObject slowEffectPrefab; // Префаб частиц для замедления
+    [SerializeField] private GameObject slowEffectPrefab;
+    [Header("Aggro & Experience")] // Добавлено
+    [SyncVar] public uint aggroTargetNetId = 0;
+    [SerializeField] private int experienceReward = 50;
+    [Header("Drop Settings")]
+    [SerializeField] private List<DropEntry> dropTable = new List<DropEntry>();
+    [SerializeField] private GameObject droppedItemPrefab;
     private GameObject _slowEffectInstance;
     private NavMeshAgent _agent;
     private MonsterUI _monsterUI;
@@ -34,7 +48,6 @@ public class Monster : NetworkBehaviour
     [SyncVar] public bool IsCooldown = false;
     private SkinnedMeshRenderer _renderer;
     private Health _health;
-
     private void Awake()
     {
         if (basicAttackSkill == null) Debug.LogError("Skill not assigned");
@@ -85,15 +98,15 @@ public class Monster : NetworkBehaviour
         {
             Debug.LogWarning($"[Monster] SkinnedMeshRenderer not found on {monsterName}");
         }
+        if (droppedItemPrefab == null)
+            Debug.LogWarning("[Monster] DroppedItemPrefab not set!");
     }
-
     public override void OnStartServer()
     {
         base.OnStartServer();
         Debug.Log($"[Monster] Initialized health on server to: {_health.CurrentHealth}/{_health.MaxHealth}");
         StartCoroutine(CheckControlEffectExpiration());
     }
-
     public override void OnStartClient()
     {
         base.OnStartClient();
@@ -108,14 +121,12 @@ public class Monster : NetworkBehaviour
         Debug.Log($"[Monster] OnStartClient called. UI initialized with currentHealth: {_health.CurrentHealth}. IsHost={isServer}");
         _health.OnHealthUpdated += OnHealthUpdatedHandler;
     }
-
     public override void OnStopClient()
     {
         base.OnStopClient();
         _health.OnHealthUpdated -= OnHealthUpdatedHandler;
         if (_monsterUI != null) Destroy(_monsterUI.gameObject);
     }
-
     private void OnNameChanged(string _, string newName)
     {
         if (_monsterUI != null)
@@ -123,7 +134,6 @@ public class Monster : NetworkBehaviour
             _monsterUI.SetData(newName, _health.CurrentHealth, _health.MaxHealth);
         }
     }
-
     private void OnStunStateChanged(bool _, bool newValue)
     {
         Debug.Log($"[Monster] Stun state changed: {newValue}, isClient={isClient}, isServer={isServer}");
@@ -132,12 +142,10 @@ public class Monster : NetworkBehaviour
             _agent.isStopped = newValue;
         }
     }
-
     private void OnSilenceStateChanged(bool _, bool newValue)
     {
         Debug.Log($"[Monster] Silence state changed: {newValue}, isClient={isClient}, isServer={isServer}");
     }
-
     private void OnHealthUpdatedHandler(int currentHP, int maxHP)
     {
         if (_monsterUI != null)
@@ -154,7 +162,6 @@ public class Monster : NetworkBehaviour
             Die();
         }
     }
-
     [ClientRpc]
     public void RpcUpdateMonsterUI(int currentHealth, int maxHealth)
     {
@@ -164,7 +171,16 @@ public class Monster : NetworkBehaviour
             Debug.Log($"[Monster] RpcUpdateMonsterUI called: {currentHealth}/{maxHealth}");
         }
     }
-
+    [Server]
+    public void UpdateAggro(uint attackerNetId, int damage)
+    {
+        Debug.Log($"[Monster] UpdateAggro called: attackerNetId={attackerNetId}, damage={damage}, current aggro={aggroTargetNetId}"); // Добавь
+        if (aggroTargetNetId == 0 || damage > 0)
+        {
+            aggroTargetNetId = attackerNetId;
+            Debug.Log($"[Monster] Aggro updated to {attackerNetId} (damage: {damage})");
+        }
+    }
     [Server]
     public void ApplyControlEffect(ControlEffectType effectType, float duration, int skillWeight)
     {
@@ -188,12 +204,12 @@ public class Monster : NetworkBehaviour
         }
         else if (effectType == ControlEffectType.Slow)
         {
-            _slowPercentage = skillWeight / 100f; // Используем weight как процент замедления (будет исправлено в скиллах)
+            _slowPercentage = skillWeight / 100f;
             _originalSpeed = moveSpeed;
             if (_agent != null && _agent.isOnNavMesh)
             {
                 float newSpeed = moveSpeed * (1f - _slowPercentage);
-                _agent.speed = Mathf.Max(0.1f, newSpeed); // Минимальная скорость, чтобы не остановиться
+                _agent.speed = Mathf.Max(0.1f, newSpeed);
                 Debug.Log($"[Monster] Applied slow effect to {monsterName}, weight={skillWeight}, percentage={_slowPercentage}, newSpeed={_agent.speed}, duration={duration}");
             }
             RpcApplySlowEffect(true);
@@ -204,7 +220,6 @@ public class Monster : NetworkBehaviour
             Debug.Log($"[Monster] Applied silence effect to {monsterName}, weight={skillWeight}, duration={duration}");
         }
     }
-
     [Server]
     public void ApplySlow(float percentage, float duration, int skillWeight)
     {
@@ -224,13 +239,12 @@ public class Monster : NetworkBehaviour
         if (_agent != null && _agent.isOnNavMesh)
         {
             float newSpeed = moveSpeed * (1f - _slowPercentage);
-            _agent.speed = Mathf.Max(0.1f, newSpeed); // Минимальная скорость, чтобы не остановиться
+            _agent.speed = Mathf.Max(0.1f, newSpeed);
             Debug.Log($"[Monster] Applied slow to {monsterName}: percentage={percentage}, duration={duration}, weight={skillWeight}, newSpeed={_agent.speed}");
         }
         _controlEffectEndTime = Time.time + duration;
         RpcApplySlowEffect(true);
     }
-
     [Server]
     private void ClearControlEffect()
     {
@@ -258,7 +272,6 @@ public class Monster : NetworkBehaviour
         _controlEffectEndTime = 0f;
         Debug.Log($"[Monster] Cleared control effect for {monsterName}");
     }
-
     [ClientRpc]
     private void RpcApplySlowEffect(bool isActive)
     {
@@ -290,13 +303,40 @@ public class Monster : NetworkBehaviour
             }
         }
     }
-
     [Server]
     public void Die()
     {
         if (IsDead) return;
         IsDead = true;
-        Debug.Log($"[Monster] Die called for {monsterName}, Health: {_health.CurrentHealth}");
+        Debug.Log($"[Monster] Die called for {monsterName}, Health: {_health.CurrentHealth}, aggroTargetNetId={aggroTargetNetId}");
+        // Опыт аггро-игроку
+        Debug.Log($"[Monster] Die: aggroTargetNetId={aggroTargetNetId}, NetworkServer.spawned.Count={NetworkServer.spawned.Count}");
+        if (aggroTargetNetId != 0 && NetworkServer.spawned.TryGetValue(aggroTargetNetId, out var identity))
+        {
+            PlayerCore killer = identity.GetComponent<PlayerCore>();
+            if (killer != null && killer.Stats != null)
+            {
+                killer.Stats.AddExperience(experienceReward);
+                Debug.Log($"[Monster] Gave {experienceReward} XP to killer {killer.playerName}, level before: {killer.Stats.level}");
+            }
+            else
+            {
+                Debug.LogWarning($"[Monster] Killer null: identity={identity?.gameObject?.name}");
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"[Monster] No aggroTarget or not spawned: {aggroTargetNetId}");
+        }
+        // Дропы с owner
+        foreach (var entry in dropTable)
+        {
+            if (entry.item != null && Random.value <= entry.dropChance)
+            {
+                SpawnDroppedItem(entry.item.id, 1);
+                Debug.Log($"[Monster] Dropped item: {entry.item.itemName} (chance: {entry.dropChance})");
+            }
+        }
         if (_agent != null && _agent.isOnNavMesh)
         {
             _agent.isStopped = true;
@@ -331,7 +371,26 @@ public class Monster : NetworkBehaviour
         RpcHideMonsterUI();
         StartCoroutine(DespawnAfterDelay(2f));
     }
-
+    [Server]
+    private void SpawnDroppedItem(int itemID, int quantity)
+    {
+        if (droppedItemPrefab == null)
+        {
+            Debug.LogError("[Monster] DroppedItemPrefab not set!");
+            return;
+        }
+        GameObject droppedItem = Instantiate(droppedItemPrefab, transform.position + Random.insideUnitSphere * 1f + Vector3.up * 0.5f, Quaternion.identity);
+        DroppedItem droppedScript = droppedItem.GetComponent<DroppedItem>(); // Объявление перед использованием
+        if (droppedScript != null)
+        {
+            droppedScript.itemID = itemID;
+            droppedScript.quantity = quantity;
+            droppedScript.ownerNetId = aggroTargetNetId;
+            droppedScript.dropTime = Time.time; // Если есть
+        }
+        NetworkServer.Spawn(droppedItem);
+        Debug.Log($"[Monster] Spawned dropped item: ID {itemID}, quantity {quantity} at {droppedItem.transform.position}, owner={aggroTargetNetId}");
+    }
     [ClientRpc]
     private void RpcDie()
     {
@@ -353,7 +412,6 @@ public class Monster : NetworkBehaviour
         }
         gameObject.layer = LayerMask.NameToLayer("Ignore Raycast");
     }
-
     [ClientRpc]
     private void RpcHideMonsterUI()
     {
@@ -363,7 +421,6 @@ public class Monster : NetworkBehaviour
             Debug.Log($"[Monster] RpcHideMonsterUI called for {gameObject.name}");
         }
     }
-
     private IEnumerator DespawnAfterDelay(float delay)
     {
         yield return new WaitForSeconds(delay);
@@ -373,12 +430,10 @@ public class Monster : NetworkBehaviour
             Debug.Log($"[Monster] Destroyed {monsterName}");
         }
     }
-
     private void OnDestroy()
     {
         if (_monsterUI != null) Destroy(_monsterUI.gameObject);
     }
-
     [Server]
     public void ExecuteAttack(uint targetNetId, string skillName, int damage, bool isCritical)
     {
@@ -405,7 +460,6 @@ public class Monster : NetworkBehaviour
         IsCooldown = true;
         StartCoroutine(EndCooldown(attackCooldown));
     }
-
     [ClientRpc]
     private void RpcPlayVFX(Vector3 startPosition, Quaternion startRotation, Vector3 endPosition, bool isCritical)
     {
@@ -414,7 +468,6 @@ public class Monster : NetworkBehaviour
             basicAttackSkill.PlayVFX(startPosition, startRotation, endPosition, isCritical, this);
         }
     }
-
     private IEnumerator EndCooldown(float cooldown)
     {
         yield return new WaitForSeconds(cooldown);
@@ -424,13 +477,11 @@ public class Monster : NetworkBehaviour
             _agent.isStopped = false;
         }
     }
-
     [Server]
     public void ReceiveControlEffect(ControlEffectType effectType, float duration, int skillWeight)
     {
         ApplyControlEffect(effectType, duration, skillWeight);
     }
-
     private IEnumerator CheckControlEffectExpiration()
     {
         while (true)
@@ -442,4 +493,6 @@ public class Monster : NetworkBehaviour
             yield return new WaitForSeconds(0.5f);
         }
     }
+
+
 }

@@ -1,8 +1,9 @@
+// InventorySlot.cs - полный, фикс OnDrop (убрал if empty)
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using TMPro;
-using System.Collections; // Для Coroutine
+using System.Collections;
 
 public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler
 {
@@ -87,7 +88,7 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
             StopCoroutine(tooltipCoroutine);
             tooltipCoroutine = null;
         }
-        tooltipCoroutine = StartCoroutine(DelayedHideTooltip()); // Добавь
+        tooltipCoroutine = StartCoroutine(DelayedHideTooltip());
     }
 
     private IEnumerator ShowTooltipAfterDelay(Item item, Vector3 position)
@@ -95,7 +96,6 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         yield return new WaitForSeconds(0.5f);
         if (inventoryUI != null && !inventoryUI.isTooltipActive)
         {
-            // Offset правее
             inventoryUI.ShowTooltip(item, transform.position + new Vector3(100f, 0f, 0f));
             Debug.Log($"[InventorySlot] Showing tooltip for {item.itemName} (slot {slotIndex})");
         }
@@ -105,11 +105,8 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
     public void OnDrop(PointerEventData eventData)
     {
         if (InventoryUI.Instance.draggedSlot == null || InventoryUI.Instance.draggedSlot == this) return;
-        if (itemInfo.id == 0) // Только на пустой
-        {
-            Debug.Log($"[InventorySlot] Dropped on empty slot {slotIndex} from {InventoryUI.Instance.draggedSlot.slotIndex}");
-            core.CmdSwapInventoryItems(InventoryUI.Instance.draggedSlot.slotIndex, slotIndex);
-        }
+        Debug.Log($"[InventorySlot] Dropped on slot {slotIndex} from {InventoryUI.Instance.draggedSlot.slotIndex}");
+        core.CmdSwapInventoryItems(InventoryUI.Instance.draggedSlot.slotIndex, slotIndex);
         InventoryUI.Instance.draggedSlot = null;
     }
 
@@ -167,8 +164,7 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         else if (targetButton != null && item.canHotbar && targetButton.buttonIndex != 0)
         {
             Debug.Log($"[InventorySlot] Assigning item: {item.itemName} (ID: {itemInfo.id}) to hotbar slot {targetButton.buttonIndex}");
-            PlayerUI.Instance.AssignItemToHotbar(item, targetButton);
-            core.CmdUseItem(item.id, slotIndex);
+            PlayerUI.Instance.AssignItemToHotbar(item, targetButton, slotIndex);
         }
         else if (item.canDrop)
         {
@@ -192,11 +188,9 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
 
     private IEnumerator DelayedHideTooltip()
     {
-        yield return new WaitForSeconds(0.2f); // Задержка
+        yield return new WaitForSeconds(0.2f);
         if (inventoryUI != null)
             inventoryUI.HideTooltip();
         tooltipCoroutine = null;
     }
-
-
 }

@@ -480,12 +480,15 @@ MonoBehaviour:
   syncInterval: 0
   itemID: 0
   quantity: 0
+  ownerNetId: 0
+  dropTime: 0
   modelParent: {fileID: 4740192942693158091}
   defaultModelPrefab: {fileID: 5389550834512013721}
   nameCanvas: {fileID: 8926593227507743946}
   nameText: {fileID: 1993963318314442841}
   pickupDistance: 4
   despawnTime: 60
+  pickupCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
 --- !u!114 &4388029383200640811
 MonoBehaviour:
   m_ObjectHideFlags: 0

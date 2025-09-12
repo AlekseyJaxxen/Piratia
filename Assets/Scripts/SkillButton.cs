@@ -1,13 +1,15 @@
+// SkillButton.cs - полный, добавил itemSlotIndex
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
-using System.Collections; // Для Coroutine
+using System.Collections;
 
 public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
     public int buttonIndex;
     public SkillBase skill;
     public Item item;
+    public int itemSlotIndex = -1; // Добавлено
     private PlayerSkills skillsComponent;
     private PlayerCore core;
     private InventoryUI inventoryUI;
@@ -26,6 +28,7 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         skillsComponent = skills;
         core = playerCore;
         buttonIndex = index;
+        itemSlotIndex = -1; // Добавлено
         Button button = GetComponent<Button>();
         if (button != null)
         {
@@ -60,8 +63,8 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
                 Debug.Log($"[SkillButton] Cannot use item {item.itemName}: Player is dead or stunned");
                 return;
             }
-            core.CmdUseItem(item.id, -1);
-            Debug.Log($"[SkillButton] Item used: {item.itemName} (ID: {item.id}), index: {buttonIndex}");
+            core.CmdUseItem(item.id, itemSlotIndex);
+            Debug.Log($"[SkillButton] Item used: {item.itemName} (ID: {item.id}), slot: {itemSlotIndex}, index: {buttonIndex}");
         }
     }
 
@@ -70,11 +73,11 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         if (inventoryUI == null) return;
         if (skill != null)
         {
-            inventoryUI.ShowSkillTooltip(skill, transform.position);
+            inventoryUI.ShowSkillTooltip(skill, transform.position + new Vector3(100f, 0f, 0f));
         }
         else if (item != null)
         {
-            inventoryUI.ShowTooltip(item, transform.position);
+            inventoryUI.ShowTooltip(item, transform.position + new Vector3(100f, 0f, 0f));
         }
     }
 
@@ -123,7 +126,6 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         if (dragIcon == null) return;
         SkillButton targetButton = eventData.pointerEnter?.GetComponent<SkillButton>() ?? eventData.pointerEnter?.GetComponentInParent<SkillButton>();
         InventorySlot targetSlot = eventData.pointerEnter?.GetComponent<InventorySlot>();
-
         if (targetButton != null && targetButton != this)
         {
             PlayerUI.Instance.SwapSkillsOrItems(this, targetButton);
@@ -136,8 +138,7 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
                 Item targetItem = targetSlot.itemInfo.GetItem();
                 if (targetItem?.canHotbar == true)
                 {
-                    PlayerUI.Instance.AssignItemToHotbar(targetItem, this);
-                    core.CmdUseItem(targetSlot.itemInfo.id, targetSlot.slotIndex);
+                    PlayerUI.Instance.AssignItemToHotbar(targetItem, this, targetSlot.slotIndex);
                     Debug.Log($"[SkillButton] Assigned item from slot {targetSlot.slotIndex} to hotbar button {buttonIndex}");
                 }
                 else
@@ -149,6 +150,7 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
             {
                 core.CmdDropItem(item.id, -1);
                 item = null;
+                itemSlotIndex = -1;
                 iconImage.sprite = PlayerUI.Instance.GetDefaultEmptySprite();
                 Debug.Log($"[SkillButton] Dropped item from hotbar button {buttonIndex}");
             }

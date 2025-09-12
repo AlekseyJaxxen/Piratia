@@ -4,19 +4,17 @@ using UnityEngine;
 public class Item : ScriptableObject
 {
     public string itemName = "New Item";
-    public int id = -1; // Уникальный ID, задаётся в ItemDatabase
+    public int id = -1;
     public Sprite icon;
-    [SerializeField] private GameObject dropModelPrefab; // Модель для спавна на земле
+    [SerializeField] private GameObject dropModelPrefab;
     public ItemType itemType = ItemType.Consumable;
     public EquipmentSlot equipmentSlot = EquipmentSlot.None;
-
     [Header("Flags")]
     public int maxStack = 1;
     public bool canDrop = true;
     public bool canSell = true;
     public bool canUse = false;
     public bool canHotbar = false;
-
     [Header("Stats Modifiers")]
     public int strengthMod;
     public int agilityMod;

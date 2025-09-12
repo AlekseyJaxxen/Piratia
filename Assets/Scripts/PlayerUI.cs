@@ -1,10 +1,12 @@
-﻿using UnityEngine;
+﻿// PlayerUI.cs - полный, изменения AssignItemToHotbar + ClearHotbarItem
+using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using UnityEngine.EventSystems;
 using System.Collections;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
@@ -62,9 +64,7 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     private readonly KeyCode[] hotkeys1 = { KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None };
     private readonly KeyCode[] hotkeys2 = { KeyCode.None, KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.Alpha4, KeyCode.Alpha5, KeyCode.Alpha6, KeyCode.Alpha7, KeyCode.Alpha8, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.Minus, KeyCode.Equals };
     private readonly KeyCode[] hotkeys3 = { KeyCode.None, KeyCode.Q, KeyCode.W, KeyCode.E, KeyCode.R, KeyCode.T, KeyCode.Y, KeyCode.U, KeyCode.I, KeyCode.O, KeyCode.P, KeyCode.LeftBracket, KeyCode.RightBracket };
-
-    public Sprite GetDefaultEmptySprite() => defaultEmptySprite; // Публичный метод для доступа
-
+    public Sprite GetDefaultEmptySprite() => defaultEmptySprite;
     public SkillButton[] GetSkillButtons2() => skillButtons2;
     public SkillButton[] GetSkillButtons3() => skillButtons3;
 
@@ -559,12 +559,11 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     {
     }
 
-    public void AssignItemToHotbar(Item item, SkillButton hotbarButton)
+    public void AssignItemToHotbar(Item item, SkillButton hotbarButton, int slotIndex)
     {
         int index2 = Array.IndexOf(skillButtons2, hotbarButton);
         int index3 = Array.IndexOf(skillButtons3, hotbarButton);
         if (index2 == -1 && index3 == -1) return;
-
         Image iconImage = hotbarButton.GetComponentInChildren<Image>();
         if (iconImage != null)
         {
@@ -576,7 +575,26 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             cooldownEntry.skillName = item.itemName;
         }
         hotbarButton.item = item;
-        Debug.Log($"[PlayerUI] Assigned item {item.itemName} to hotbar slot (index {(index2 != -1 ? index2 : index3)})");
+        hotbarButton.itemSlotIndex = slotIndex;
+        Debug.Log($"[PlayerUI] Assigned item {item.itemName} to hotbar slot (index {(index2 != -1 ? index2 : index3)}), slotIndex: {slotIndex}");
+    }
+
+    public void ClearHotbarItem(int itemId)
+    {
+        foreach (var btn in skillButtons2.Concat(skillButtons3))
+        {
+            if (btn.item != null && btn.item.id == itemId)
+            {
+                btn.item = null;
+                btn.itemSlotIndex = -1;
+                Image iconImage = btn.GetComponentInChildren<Image>();
+                if (iconImage != null) iconImage.sprite = defaultEmptySprite;
+                var entry = skillCooldownEntries.Find(e => e.cooldownImage == btn.transform.Find("CooldownOverlay")?.GetComponent<Image>());
+                if (entry != null) entry.skillName = "";
+                Debug.Log($"[PlayerUI] Cleared hotbar item {itemId} from button {btn.buttonIndex}");
+                break;
+            }
+        }
     }
 
     public void SwapSkillsOrItems(SkillButton firstButton, SkillButton secondButton)
@@ -586,7 +604,6 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             Debug.LogError($"[PlayerUI] Cannot swap: firstButton={firstButton}, secondButton={secondButton}, firstSkill={(firstButton?.skill?.SkillName)}, firstItem={(firstButton?.item?.itemName)}, firstIndex={firstButton?.buttonIndex}, secondIndex={secondButton?.buttonIndex}");
             return;
         }
-
         KeyCode firstHotkey = GetHotkeyForButton(firstButton);
         KeyCode secondHotkey = GetHotkeyForButton(secondButton);
         Image firstIcon = firstButton.GetComponentInChildren<Image>();
@@ -596,14 +613,11 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             Debug.LogError("[PlayerUI] Icon Image not found on one of the buttons!");
             return;
         }
-
         bool isFirstInSpellBook = Array.IndexOf(skillButtons1, firstButton) != -1;
         bool isSecondInSpellBook = Array.IndexOf(skillButtons1, secondButton) != -1;
         bool isSamePanel = (Array.IndexOf(skillButtons2, firstButton) != -1 && Array.IndexOf(skillButtons2, secondButton) != -1) ||
                            (Array.IndexOf(skillButtons3, firstButton) != -1 && Array.IndexOf(skillButtons3, secondButton) != -1);
-
         PlayerSkills skillsComponent = core.GetComponent<PlayerSkills>();
-
         if (isFirstInSpellBook && isSecondInSpellBook)
         {
             Debug.Log("[PlayerUI] Drag inside spell book (panel1) ignored");
@@ -640,19 +654,20 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         {
             SkillBase tempSkill = firstButton.skill;
             Item tempItem = firstButton.item;
+            int tempSlotIndex = firstButton.itemSlotIndex;
             Sprite tempSprite = firstIcon.sprite;
             firstButton.skill = secondButton.skill;
             firstButton.item = secondButton.item;
+            firstButton.itemSlotIndex = secondButton.itemSlotIndex;
             firstIcon.sprite = secondButton.skill != null ? secondIcon.sprite : secondButton.item != null ? secondButton.item.icon : defaultEmptySprite;
             secondButton.skill = tempSkill;
             secondButton.item = tempItem;
+            secondButton.itemSlotIndex = tempSlotIndex;
             secondIcon.sprite = tempSkill != null ? tempSprite : tempItem != null ? tempItem.icon : defaultEmptySprite;
-
             var firstEntry = skillCooldownEntries.Find(e => e.cooldownImage == firstButton.transform.Find("CooldownOverlay")?.GetComponent<Image>());
             var secondEntry = skillCooldownEntries.Find(e => e.cooldownImage == secondButton.transform.Find("CooldownOverlay")?.GetComponent<Image>());
             if (firstEntry != null) firstEntry.skillName = firstButton.skill != null ? firstButton.skill.SkillName : firstButton.item != null ? firstButton.item.itemName : "";
             if (secondEntry != null) secondEntry.skillName = secondButton.skill != null ? secondButton.skill.SkillName : secondButton.item != null ? secondButton.item.itemName : "";
-
             if (skillsComponent != null)
             {
                 if (firstButton.skill != null)

@@ -1,7 +1,9 @@
-﻿using UnityEngine;
+﻿// PlayerCore.cs - полный, фикс CmdEquipItem (force quantity=1) + CmdDropItem (drop original quantity)
+using UnityEngine;
 using Mirror;
 using TMPro;
 using System.Collections;
+using System.Linq;
 
 public class PlayerCore : NetworkBehaviour
 {
@@ -70,7 +72,6 @@ public class PlayerCore : NetworkBehaviour
     [SyncVar] public float pendingReviveHpFraction = 0f;
     [Header("Dropped Items")]
     [SerializeField] private GameObject droppedItemPrefab;
-
     protected virtual void Awake()
     {
         Movement = GetComponent<PlayerMovement>();
@@ -102,7 +103,6 @@ public class PlayerCore : NetworkBehaviour
         if (reviveCollider != null) reviveCollider.enabled = false;
         reviveRequestUI = GetComponentInChildren<ReviveRequestUI>();
     }
-
     private void Update()
     {
         if (isLocalPlayer)
@@ -110,7 +110,6 @@ public class PlayerCore : NetworkBehaviour
         }
         if (NetworkServer.active) ServerUpdate();
     }
-
     [Server]
     protected virtual void ServerUpdate()
     {
@@ -128,7 +127,6 @@ public class PlayerCore : NetworkBehaviour
             _lastManaRegenTime = Time.time;
         }
     }
-
     public override void OnStartLocalPlayer()
     {
         localPlayerCoreInstance = this;
@@ -159,8 +157,8 @@ public class PlayerCore : NetworkBehaviour
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
         reviveRequestUI = GetComponentInChildren<ReviveRequestUI>();
+        StartCoroutine(DelayedInventorySync());
     }
-
     public override void OnStartClient()
     {
         base.OnStartClient();
@@ -196,7 +194,6 @@ public class PlayerCore : NetworkBehaviour
             ui.gameObject.SetActive(false);
         }
     }
-
     private void UpdateUI()
     {
         if (nameTagUI != null)
@@ -204,7 +201,6 @@ public class PlayerCore : NetworkBehaviour
             nameTagUI.UpdateNameAndTeam(playerName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
         }
     }
-
     private IEnumerator DelayedUIUpdate()
     {
         float delay = Random.Range(2f, 3f);
@@ -214,7 +210,6 @@ public class PlayerCore : NetworkBehaviour
             UpdateUI();
         }
     }
-
     private IEnumerator InitializeUIWithRetry()
     {
         int maxRetries = 5;
@@ -232,7 +227,6 @@ public class PlayerCore : NetworkBehaviour
         }
         Debug.LogWarning($"[PlayerCore] UI initialization failed after {maxRetries} retries");
     }
-
     [Server]
     public void ServerRespawnPlayer(Vector3 newPosition, float hpFraction = 1f)
     {
@@ -249,7 +243,6 @@ public class PlayerCore : NetworkBehaviour
         transform.position = newPosition;
         RpcOnRespawned(newPosition);
     }
-
     [ClientRpc]
     private void RpcOnRespawned(Vector3 newPosition)
     {
@@ -274,7 +267,6 @@ public class PlayerCore : NetworkBehaviour
             GetComponent<PlayerAnimationSystem>()?.ResetAnimations();
         }
     }
-
     [Command]
     private void CmdRequestTeamAssignment()
     {
@@ -283,7 +275,6 @@ public class PlayerCore : NetworkBehaviour
         team = newTeam;
         playerName = uiInfo.name;
     }
-
     [Command]
     public void CmdChangeName(string newName)
     {
@@ -293,7 +284,6 @@ public class PlayerCore : NetworkBehaviour
         }
         playerName = newName;
     }
-
     [Command]
     public void CmdChangeTeam(PlayerTeam newTeam)
     {
@@ -303,7 +293,6 @@ public class PlayerCore : NetworkBehaviour
         }
         team = newTeam;
     }
-
     [Command]
     public void CmdAddExperience(int amount)
     {
@@ -312,7 +301,6 @@ public class PlayerCore : NetworkBehaviour
             Stats.AddExperience(amount);
         }
     }
-
     [Command]
     public void CmdIncreaseStat(string statName)
     {
@@ -321,7 +309,6 @@ public class PlayerCore : NetworkBehaviour
             Stats.IncreaseStat(statName);
         }
     }
-
     [Command]
     public void CmdRequestRespawn()
     {
@@ -330,7 +317,6 @@ public class PlayerCore : NetworkBehaviour
             ServerRespawnPlayer(_initialSpawnPosition);
         }
     }
-
     [Command]
     public void CmdSetClass(CharacterClass newClass)
     {
@@ -339,7 +325,6 @@ public class PlayerCore : NetworkBehaviour
             Stats.CmdSetClass(newClass);
         }
     }
-
     private void OnTeamChanged(PlayerTeam oldTeam, PlayerTeam newTeam)
     {
         UpdateTeamIndicatorColor();
@@ -348,7 +333,6 @@ public class PlayerCore : NetworkBehaviour
             nameTagUI.UpdateNameAndTeam(playerName, newTeam, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
         }
     }
-
     private void OnNameChanged(string oldName, string newName)
     {
         if (_nameText != null)
@@ -360,7 +344,6 @@ public class PlayerCore : NetworkBehaviour
             nameTagUI.UpdateNameAndTeam(newName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
         }
     }
-
     private void UpdateTeamIndicatorColor()
     {
         if (_teamIndicator == null) return;
@@ -382,7 +365,6 @@ public class PlayerCore : NetworkBehaviour
             }
         }
     }
-
     private void OnDeathStateChanged(bool oldValue, bool newValue)
     {
         if (newValue)
@@ -411,18 +393,15 @@ public class PlayerCore : NetworkBehaviour
             }
         }
     }
-
     private void OnStunStateChanged(bool oldValue, bool newValue)
     {
         if (Skills != null) Skills.HandleStunEffect(newValue);
         if (newValue && ActionSystem != null) ActionSystem.CompleteAction();
     }
-
     private void OnSilenceStateChanged(bool oldValue, bool newValue)
     {
         if (Skills != null) Skills.HandleSilenceEffect(newValue);
     }
-
     [Server]
     public void ApplyControlEffect(ControlEffectType effectType, float duration, int skillWeight, float slowPercentage = 0f)
     {
@@ -453,13 +432,11 @@ public class PlayerCore : NetworkBehaviour
             silenceEffectWeight = skillWeight;
         }
     }
-
     [Server]
     public void ApplySlow(float percentage, float duration, int skillWeight)
     {
         Stats.ApplySlow(percentage, duration, "ApplySlow");
     }
-
     [Server]
     private void ClearStunEffect()
     {
@@ -470,12 +447,10 @@ public class PlayerCore : NetworkBehaviour
             stunEffectWeight = 0;
         }
     }
-
     [Server]
     private void ClearSlowEffect()
     {
     }
-
     [Server]
     private void ClearSilenceEffect()
     {
@@ -486,7 +461,6 @@ public class PlayerCore : NetworkBehaviour
             silenceEffectWeight = 0;
         }
     }
-
     [Server]
     public void ClearNegativeEffectsExceptStun()
     {
@@ -496,39 +470,33 @@ public class PlayerCore : NetworkBehaviour
             Stats.ClearSlowEffects();
         }
     }
-
     [Command]
     private void CmdDie()
     {
         SetDeathState(true);
     }
-
     [Server]
     public void SetDeathState(bool state)
     {
         isDead = state;
         if (state) deathPosition = transform.position;
     }
-
     public override void OnStopClient()
     {
         if (healthBarUI != null) Destroy(healthBarUI.gameObject);
         if (nameTagUI != null) Destroy(nameTagUI.gameObject);
     }
-
     public void OnDestroy()
     {
         if (healthBarUI != null) Destroy(healthBarUI.gameObject);
         if (nameTagUI != null) Destroy(nameTagUI.gameObject);
     }
-
     public GameObject GetHealthBarPrefab() { return null; }
     public void SetHealthBarUI(HealthBarUI ui) { healthBarUI = ui; }
     public HealthBarUI GetHealthBarUI() { return healthBarUI; }
     public int GetCurrentHealth() { return Health != null ? Health.CurrentHealth : 0; }
     public int GetMaxHealth() { return Health != null ? Health.MaxHealth : 0; }
     public NameTagUI GetNameTagUI() { return nameTagUI; }
-
     public bool CanCastSkill(ISkill skill = null)
     {
         if (skill != null && skill is BasicAttackSkill)
@@ -537,7 +505,6 @@ public class PlayerCore : NetworkBehaviour
         }
         return !isDead && !isStunned && !isSilenced;
     }
-
     [Command]
     public void CmdRequestRevive(uint targetNetId)
     {
@@ -547,7 +514,6 @@ public class PlayerCore : NetworkBehaviour
         if (target == null || !target.isDead || target.team != team) return;
         target.RpcShowReviveRequest(netId);
     }
-
     [ClientRpc]
     public void RpcShowReviveRequest(uint casterNetId)
     {
@@ -564,7 +530,6 @@ public class PlayerCore : NetworkBehaviour
         }
         reviveRequestUI.Show(casterName);
     }
-
     [Command]
     public void CmdAcceptRevive()
     {
@@ -572,7 +537,6 @@ public class PlayerCore : NetworkBehaviour
         ServerRespawnPlayer(deathPosition, pendingReviveHpFraction);
         pendingReviveHpFraction = 0f;
     }
-
     [Command]
     public void CmdDropItem(int itemID, int slotIndex)
     {
@@ -590,22 +554,23 @@ public class PlayerCore : NetworkBehaviour
         if (slotIndex >= 0 && slotIndex < this.Inventory.items.Count && this.Inventory.items[slotIndex].id == itemID && item.canDrop)
         {
             var instance = this.Inventory.items[slotIndex];
+            int dropQuantity = instance.quantity; // Фикс: drop original
+            if (dropQuantity <= 0) return; // Не drop если 0
             instance.quantity--;
             this.Inventory.items[slotIndex] = instance;
             if (this.Inventory.items[slotIndex].quantity <= 0)
                 this.Inventory.items.RemoveAt(slotIndex);
             RpcUpdateInventoryUI();
-            Debug.Log($"[PlayerCore] Dropped item: {item.itemName} (ID: {itemID}) from slot {slotIndex}");
-            SpawnDroppedItem(itemID, instance.quantity);
+            Debug.Log($"[PlayerCore] Dropped item: {item.itemName} (ID: {itemID}) from slot {slotIndex}, quantity: {dropQuantity}");
+            SpawnDroppedItem(itemID, dropQuantity);
         }
     }
-
     [Server]
     private void SpawnDroppedItem(int itemID, int quantity)
     {
-        if (droppedItemPrefab == null)
+        if (quantity <= 0 || droppedItemPrefab == null)
         {
-            Debug.LogError("[PlayerCore] DroppedItemPrefab not set!");
+            Debug.LogError($"[PlayerCore] Cannot spawn dropped item: quantity {quantity} or prefab null");
             return;
         }
         GameObject droppedItem = Instantiate(droppedItemPrefab, transform.position + Random.insideUnitSphere * 1f + Vector3.up * 0.5f, Quaternion.identity);
@@ -618,7 +583,6 @@ public class PlayerCore : NetworkBehaviour
         NetworkServer.Spawn(droppedItem);
         Debug.Log($"[PlayerCore] Spawned dropped item: ID {itemID}, quantity {quantity} at {droppedItem.transform.position}");
     }
-
     [Command]
     public void CmdSellItem(int itemID, int slotIndex)
     {
@@ -644,7 +608,6 @@ public class PlayerCore : NetworkBehaviour
             Debug.Log($"[PlayerCore] Sold item: {item.itemName} (ID: {itemID}) from slot {slotIndex}");
         }
     }
-
     [Command]
     public void CmdUseItem(int itemID, int slotIndex)
     {
@@ -673,13 +636,15 @@ public class PlayerCore : NetworkBehaviour
                 instance.quantity--;
                 this.Inventory.items[slotIndex] = instance;
                 if (this.Inventory.items[slotIndex].quantity <= 0)
+                {
                     this.Inventory.items.RemoveAt(slotIndex);
+                    RpcClearHotbarItem(itemID);
+                }
                 RpcUpdateInventoryUI();
             }
             Debug.Log($"[PlayerCore] Used item: {item.itemName} (ID: {itemID}) (slot {slotIndex})");
         }
     }
-
     [Command]
     public void CmdSwapInventoryItems(int slotIndex1, int slotIndex2)
     {
@@ -688,12 +653,11 @@ public class PlayerCore : NetworkBehaviour
             Debug.LogError("[PlayerCore] CmdSwapInventoryItems failed: Inventory is null!");
             return;
         }
-        // Расширяем список до нужного размера
-        while (Inventory.items.Count <= Mathf.Max(slotIndex1, slotIndex2))
+        while (Inventory.items.Count < Mathf.Max(slotIndex1, slotIndex2) + 1)
         {
             if (Inventory.items.Count < Inventory.inventorySize)
             {
-                Inventory.items.Add(new ItemInfo());
+                Inventory.items.Add(new ItemInfo { id = 0 });
             }
             else
             {
@@ -701,13 +665,17 @@ public class PlayerCore : NetworkBehaviour
                 return;
             }
         }
+        if (slotIndex1 >= Inventory.items.Count || slotIndex2 >= Inventory.items.Count)
+        {
+            Debug.LogError($"[PlayerCore] Invalid slot indices: {slotIndex1}/{slotIndex2}, count={Inventory.items.Count}");
+            return;
+        }
         var temp = Inventory.items[slotIndex1];
         Inventory.items[slotIndex1] = Inventory.items[slotIndex2];
         Inventory.items[slotIndex2] = temp;
         RpcUpdateInventoryUI();
         Debug.Log($"[PlayerCore] Swapped slots: {slotIndex1} <-> {slotIndex2}");
     }
-
     [Command]
     public void CmdEquipItem(ItemInfo itemInfo, int slotIndex, EquipmentSlot slotType)
     {
@@ -722,20 +690,19 @@ public class PlayerCore : NetworkBehaviour
             Debug.LogError($"[PlayerCore] CmdEquipItem failed: Item with ID {itemInfo.id} not found");
             return;
         }
+        itemInfo.quantity = 1; // Фикс: force quantity=1 for equip
+        Debug.Log($"[PlayerCore] CmdEquipItem quantity forced to 1 for {item.itemName}");
         if (slotIndex < this.Inventory.items.Count && this.Inventory.items[slotIndex].id == itemInfo.id && item.equipmentSlot == slotType)
         {
             Debug.Log($"[PlayerCore] Equipping item: {item.itemName} (ID: {itemInfo.id}) to slot {slotType} from inventory slot {slotIndex}");
             this.Inventory.EquipItem(itemInfo, slotType);
             this.Inventory.items.RemoveAt(slotIndex);
-            RpcUpdateInventoryUI();
-            RpcUpdateEquipmentUI();
         }
         else
         {
             Debug.LogError($"[PlayerCore] Failed to equip item: {item?.itemName} (ID: {itemInfo.id}, slot {slotIndex}, type {slotType}), inventory count: {this.Inventory.items.Count}, slot match: {(slotIndex < this.Inventory.items.Count ? this.Inventory.items[slotIndex].id == itemInfo.id : false)}, slot type match: {item?.equipmentSlot == slotType}");
         }
     }
-
     [Command]
     public void CmdUnequipItem(EquipmentSlot slotType)
     {
@@ -749,7 +716,6 @@ public class PlayerCore : NetworkBehaviour
         RpcUpdateEquipmentUI();
         Debug.Log($"[PlayerCore] Unequipped item from slot: {slotType}");
     }
-
     [Command]
     public void CmdPickupDroppedItem(uint droppedItemNetId)
     {
@@ -759,21 +725,29 @@ public class PlayerCore : NetworkBehaviour
         float distance = Vector3.Distance(transform.position, droppedItem.transform.position);
         if (distance > droppedItem.pickupDistance) return;
         droppedItem.Pickup(this);
-        RpcUpdateInventoryUI(); // Добавь это
     }
-
     [ClientRpc]
     private void RpcUpdateInventoryUI()
     {
-        if (InventoryUI.Instance != null) InventoryUI.Instance.UpdateInventoryUI();
+        if (InventoryUI.Instance != null)
+            InventoryUI.Instance.UpdateInventoryUI();
     }
-
     [ClientRpc]
     private void RpcUpdateEquipmentUI()
     {
         if (InventoryUI.Instance != null) InventoryUI.Instance.UpdateEquipmentUI();
     }
-
+    [ClientRpc]
+    private void RpcClearHotbarItem(int itemId)
+    {
+        if (PlayerUI.Instance != null)
+            PlayerUI.Instance.ClearHotbarItem(itemId);
+    }
     public GameObject GetTargetIndicatorPrefab() => targetIndicatorPrefab;
     public GameObject GetMoveIndicatorPrefab() => moveIndicatorPrefab;
+    private IEnumerator DelayedInventorySync()
+    {
+        yield return new WaitForEndOfFrame();
+        RpcUpdateInventoryUI();
+    }
 }

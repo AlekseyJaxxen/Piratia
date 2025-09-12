@@ -7,7 +7,6 @@ public class HealthMonster : Health
     private Monster _monster;
     [SerializeField] int _health;
     [SerializeField] private MonsterAnimation monsterAnimation;
-
     public override void OnStartServer()
     {
         base.OnStartServer();
@@ -24,7 +23,6 @@ public class HealthMonster : Health
     public new void TakeDamage(int damage, DamageType damageType, bool isCritical, NetworkIdentity attacker)
     {
         if (CurrentHealth <= 0) return;
-        base.TakeDamage(damage, damageType, isCritical, attacker);
         if (_monster == null)
         {
             _monster = GetComponent<Monster>();
@@ -34,6 +32,9 @@ public class HealthMonster : Health
                 return;
             }
         }
+        // Aggro перед уроном
+        _monster.UpdateAggro(attacker.netId, damage);
+        base.TakeDamage(damage, damageType, isCritical, attacker);
         Debug.Log($"[HealthMonster] Damage taken: {damage}, Current health: {CurrentHealth}, Monster health: {CurrentHealth}/{MaxHealth}");
         _monster.RpcUpdateMonsterUI(CurrentHealth, MaxHealth);
         RpcShowDamageNumber(damage, isCritical);

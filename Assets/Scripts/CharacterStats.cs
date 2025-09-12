@@ -21,6 +21,8 @@ public class CharacterStats : NetworkBehaviour
     public int skillPoints = 0;
     [SyncVar(hook = nameof(OnCharacteristicPointsChanged))]
     public int characteristicPoints = 0;
+    [Header("VFX")] // Добавлено
+    [SerializeField] private GameObject levelUpVFXPrefab;
     [Header("Base Attributes")]
     [SyncVar(hook = nameof(OnStrengthChanged))]
     public int strength = 5;
@@ -101,19 +103,16 @@ public class CharacterStats : NetworkBehaviour
         public int SkillWeight;
         public bool IsActive => IsToggle || EndTime > Time.time;
     }
-
     private void Awake()
     {
         healthComponent = GetComponent<Health>();
     }
-
     public override void OnStartServer()
     {
         base.OnStartServer();
         InitializeExperienceTable();
         StartCoroutine(WaitForClassInitialization());
     }
-
     private IEnumerator WaitForClassInitialization()
     {
         float timeout = 10f;
@@ -131,12 +130,10 @@ public class CharacterStats : NetworkBehaviour
         StartCoroutine(InitializeSkills());
         Debug.Log($"[Server] Character initialized: class={characterClass}, strength={strength}, minAttack={minAttack}, maxAttack={maxAttack}");
     }
-
     public override void OnStartClient()
     {
         base.OnStartClient();
     }
-
     [Server]
     public void LoadClassData()
     {
@@ -154,7 +151,6 @@ public class CharacterStats : NetworkBehaviour
         intelligence = classData.intelligence;
         Debug.Log($"[CharacterStats] Loaded ClassData: class={characterClass}, strength={strength}, maxHealth={maxHealth}, maxMana={maxMana}");
     }
-
     private IEnumerator InitializeSkills()
     {
         PlayerSkills skills = GetComponent<PlayerSkills>();
@@ -168,7 +164,6 @@ public class CharacterStats : NetworkBehaviour
             Debug.LogWarning("[CharacterStats] PlayerSkills component not found");
         }
     }
-
     private void OnCharacterClassChanged(CharacterClass oldClass, CharacterClass newClass)
     {
         Debug.Log($"[CharacterStats] Class changed via SyncVar: {oldClass} -> {newClass}");
@@ -178,7 +173,6 @@ public class CharacterStats : NetworkBehaviour
         StartCoroutine(InitializeSkills());
         OnCharacterClassChangedEvent?.Invoke(oldClass, newClass);
     }
-
     [Command]
     public void CmdSetClass(CharacterClass newClass)
     {
@@ -205,13 +199,11 @@ public class CharacterStats : NetworkBehaviour
         RpcSyncSkills(newClass);
         Debug.Log($"[CharacterStats] Server set class: {newClass}, strength={strength}, maxHealth={maxHealth}, maxMana={maxMana}");
     }
-
     [ClientRpc]
     private void RpcSyncSkills(CharacterClass newClass)
     {
         StartCoroutine(InitializeSkills());
     }
-
     private void InitializeExperienceTable()
     {
         for (int i = 0; i < 100; i++)
@@ -219,7 +211,6 @@ public class CharacterStats : NetworkBehaviour
             ExperiencePerLevel[i] = 10 + (i * i * 5);
         }
     }
-
     private int CalculateTotalExperience()
     {
         int total = 0;
@@ -229,7 +220,6 @@ public class CharacterStats : NetworkBehaviour
         }
         return total;
     }
-
     private int CalculateCharacteristicPoints()
     {
         int points = 0;
@@ -239,7 +229,6 @@ public class CharacterStats : NetworkBehaviour
         }
         return points;
     }
-
     [Server]
     public void AddExperience(int amount)
     {
@@ -259,7 +248,6 @@ public class CharacterStats : NetworkBehaviour
             currentExperience = 0;
         }
     }
-
     [Server]
     public void CalculateDerivedStats()
     {
@@ -297,7 +285,6 @@ public class CharacterStats : NetworkBehaviour
         }
         Debug.Log($"[Server] CalculateDerivedStats: class={characterClass}, strength={strength}, minAttack={minAttack}, maxAttack={maxAttack}, maxHealth={maxHealth}, maxMana={maxMana}, armor={armor}, movementSpeed={movementSpeed}, attackSpeed={attackSpeed}");
     }
-
     [Server]
     public bool IncreaseStat(string statName)
     {
@@ -331,7 +318,6 @@ public class CharacterStats : NetworkBehaviour
         Debug.Log($"[Server] Increased {statName} to {GetStatValue(statName)}. minAttack={minAttack}, maxAttack={maxAttack}, characteristicPoints={characteristicPoints}");
         return true;
     }
-
     [Server]
     private float GetStatValue(string statName)
     {
@@ -361,7 +347,6 @@ public class CharacterStats : NetworkBehaviour
                 return 0;
         }
     }
-
     [Server]
     private void SetStat(string stat, int value)
     {
@@ -384,7 +369,6 @@ public class CharacterStats : NetworkBehaviour
             default: Debug.LogWarning($"[CharacterStats] Cannot set int for stat: {stat}"); break;
         }
     }
-
     [Server]
     private void SetStat(string stat, float value)
     {
@@ -405,12 +389,10 @@ public class CharacterStats : NetworkBehaviour
             default: Debug.LogWarning($"[CharacterStats] Cannot set float for stat: {stat}"); break;
         }
     }
-
     public bool HasEnoughMana(int amount)
     {
         return currentMana >= amount;
     }
-
     [Server]
     public bool ConsumeMana(int amount)
     {
@@ -421,13 +403,11 @@ public class CharacterStats : NetworkBehaviour
         }
         return false;
     }
-
     [Server]
     public void RestoreMana(int amount)
     {
         currentMana = Mathf.Min(currentMana + amount, maxMana);
     }
-
     [Client]
     public void OnManaChanged(int oldMana, int newMana)
     {
@@ -437,7 +417,6 @@ public class CharacterStats : NetworkBehaviour
         }
         OnManaChangedEvent?.Invoke(oldMana, newMana);
     }
-
     [Client]
     public void OnLevelChanged(int oldLevel, int newLevel)
     {
@@ -446,8 +425,21 @@ public class CharacterStats : NetworkBehaviour
             Debug.Log($"Level changed: {oldLevel} -> {newLevel}");
         }
         OnLevelChangedEvent?.Invoke(oldLevel, newLevel);
+        if (newLevel > oldLevel && levelUpVFXPrefab != null) // Добавлено
+        {
+            RpcSpawnLevelUpVFX();
+        }
     }
-
+    [ClientRpc]
+    private void RpcSpawnLevelUpVFX() // Добавлено
+    {
+        if (levelUpVFXPrefab != null)
+        {
+            GameObject vfx = Instantiate(levelUpVFXPrefab, transform.position + Vector3.up * 2f, Quaternion.identity);
+            Destroy(vfx, 2f);
+            Debug.Log($"[CharacterStats] Spawned level up VFX for {gameObject.name}");
+        }
+    }
     [Client]
     public void OnCharacteristicPointsChanged(int oldPoints, int newPoints)
     {
@@ -457,7 +449,6 @@ public class CharacterStats : NetworkBehaviour
         }
         OnCharacteristicPointsChangedEvent?.Invoke(oldPoints, newPoints);
     }
-
     [Client]
     public void OnStrengthChanged(int oldValue, int newValue)
     {
@@ -467,7 +458,6 @@ public class CharacterStats : NetworkBehaviour
         }
         OnStrengthChangedEvent?.Invoke(oldValue, newValue);
     }
-
     [Client]
     public void OnAgilityChanged(int oldValue, int newValue)
     {
@@ -477,7 +467,6 @@ public class CharacterStats : NetworkBehaviour
         }
         OnAgilityChangedEvent?.Invoke(oldValue, newValue);
     }
-
     [Client]
     public void OnSpiritChanged(int oldValue, int newValue)
     {
@@ -487,7 +476,6 @@ public class CharacterStats : NetworkBehaviour
         }
         OnSpiritChangedEvent?.Invoke(oldValue, newValue);
     }
-
     [Client]
     public void OnConstitutionChanged(int oldValue, int newValue)
     {
@@ -497,7 +485,6 @@ public class CharacterStats : NetworkBehaviour
         }
         OnConstitutionChangedEvent?.Invoke(oldValue, newValue);
     }
-
     [Client]
     public void OnAccuracyChanged(int oldValue, int newValue)
     {
@@ -507,7 +494,6 @@ public class CharacterStats : NetworkBehaviour
         }
         OnAccuracyChangedEvent?.Invoke(oldValue, newValue);
     }
-
     [Client]
     private void OnMinAttackChangedHook(int oldValue, int newValue)
     {
@@ -517,7 +503,6 @@ public class CharacterStats : NetworkBehaviour
         }
         OnMinAttackChangedEvent?.Invoke(oldValue, newValue);
     }
-
     [Client]
     private void OnMaxAttackChangedHook(int oldValue, int newValue)
     {
@@ -527,14 +512,12 @@ public class CharacterStats : NetworkBehaviour
         }
         OnMaxAttackChangedEvent?.Invoke(oldValue, newValue);
     }
-
     [Server]
     public bool TryCriticalHit()
     {
         float randomValue = UnityEngine.Random.Range(0f, 100f);
         return randomValue <= criticalHitChance;
     }
-
     [Server]
     public int CalculateDamageWithCrit(int baseDamage, out bool isCritical)
     {
@@ -545,25 +528,20 @@ public class CharacterStats : NetworkBehaviour
         }
         return baseDamage;
     }
-
     public void SpendMana(int amount)
     {
         currentMana = Mathf.Max(0, currentMana - amount);
         OnManaChangedEvent?.Invoke(currentMana, maxMana);
     }
-
     [Server]
     public void ApplyBuff(string stat, float mult, float rawValue, float dur, GameObject vfxPrefab = null, Vector3 vfxOffset = default, int skillWeight = 0)
     {
-        // Проверяем существующий бафф для той же характеристики
         StatEffect existingEffect = activeStatEffects.FirstOrDefault(e => e.Stat == stat && !e.IsToggle);
         if (existingEffect.IsActive)
         {
             Debug.Log($"[CharacterStats] Buff for {stat} not applied: an active buff already exists");
             return;
         }
-
-        // Применяем новый бафф
         float original = GetStatValue(stat);
         float newValue = original * (mult == 0 ? 1f : mult) + rawValue;
         if (IsFloatStat(stat))
@@ -588,7 +566,6 @@ public class CharacterStats : NetworkBehaviour
         StartCoroutine(RemoveBuff(stat, original, dur));
         Debug.Log($"[CharacterStats] Applied buff for {stat}, value={newValue}, duration={dur}, weight={skillWeight}");
     }
-
     [Server]
     public void ApplyDebuff(string stat, float mult, float rawValue, float dur, GameObject vfxPrefab = null, Vector3 vfxOffset = default)
     {
@@ -605,7 +582,6 @@ public class CharacterStats : NetworkBehaviour
         activeStatEffects.Add(new StatEffect { Stat = stat, Value = newValue, OriginalValue = original, EndTime = Time.time + dur, IsToggle = false, VFXPrefab = vfxPrefab, VFXOffset = vfxOffset });
         StartCoroutine(RemoveBuff(stat, original, dur));
     }
-
     [Server]
     public void ToggleBuff(string stat, float value)
     {
@@ -669,7 +645,6 @@ public class CharacterStats : NetworkBehaviour
         }
         CalculateDerivedStats();
     }
-
     private IEnumerator RemoveBuff(string stat, float original, float dur)
     {
         yield return new WaitForSeconds(dur);
@@ -684,7 +659,6 @@ public class CharacterStats : NetworkBehaviour
         }
         CalculateDerivedStats();
     }
-
     private bool IsFloatStat(string stat)
     {
         switch (stat.ToLower())
@@ -702,7 +676,6 @@ public class CharacterStats : NetworkBehaviour
                 return false;
         }
     }
-
     [Server]
     public void ApplySlow(float slowPercentage, float duration, string source = "Unknown")
     {
@@ -736,7 +709,6 @@ public class CharacterStats : NetworkBehaviour
         StartCoroutine(RemoveSlow(effect));
         Debug.Log($"[CharacterStats] Applied slow from {source}: percentage={slowPercentage}, duration={duration}, total slowMultiplier={slowMultiplier}, new movementSpeed={movementSpeed}");
     }
-
     private float CalculateSlowMultiplier()
     {
         activeSlowEffects.RemoveAll(effect => Time.time >= effect.EndTime);
@@ -747,7 +719,6 @@ public class CharacterStats : NetworkBehaviour
         }
         return Mathf.Max(0.1f, slowMultiplier);
     }
-
     private IEnumerator RemoveSlow(SlowEffect effect)
     {
         yield return new WaitForSeconds(effect.Duration);
@@ -762,7 +733,6 @@ public class CharacterStats : NetworkBehaviour
         }
         Debug.Log($"[CharacterStats] Slow removed from {effect.Source}: total slowMultiplier={slowMultiplier}, movementSpeed restored to {movementSpeed}");
     }
-
     [Server]
     public void ClearSlowEffects()
     {

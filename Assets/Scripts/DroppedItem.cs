@@ -1,26 +1,30 @@
+// DroppedItem.cs - полный, фикс Pickup (quantity >0) + SpawnModel/UpdateNameText (quantity max(1,quantity))
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using Mirror;
 using DG.Tweening;
+using UnityEngine.EventSystems;
 
-public class DroppedItem : NetworkBehaviour
+public class DroppedItem : NetworkBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
     [Header("Settings")]
     [SyncVar] public int itemID;
     [SyncVar] public int quantity;
+    [SyncVar] public uint ownerNetId = 0;
+    [SyncVar] public float dropTime = 0f;
     [SerializeField] private Transform modelParent;
-    [SerializeField] private GameObject defaultModelPrefab; // По умолчанию, если модели нет
-    [SerializeField] private Canvas nameCanvas; // World Space Canvas для названия
-    [SerializeField] private TextMeshProUGUI nameText; // TextMeshPro для названия
-    [SerializeField] public float pickupDistance = 2f; // Радиус подбора
-    [SerializeField] private float despawnTime = 300f; // 5 минут до уничтожения
+    [SerializeField] private GameObject defaultModelPrefab;
+    [SerializeField] private Canvas nameCanvas;
+    [SerializeField] private TextMeshProUGUI nameText;
+    [SerializeField] public float pickupDistance = 2f;
+    [SerializeField] private float despawnTime = 300f;
+    [SerializeField] private Texture2D pickupCursor;
     private Item item;
     private GameObject modelInstance;
-
+    private Sequence tweenSequence;
     private void Awake()
     {
-        // Автоматическая привязка modelParent
         if (modelParent == null)
         {
             modelParent = transform.Find("Empty");
@@ -31,39 +35,42 @@ public class DroppedItem : NetworkBehaviour
             }
         }
     }
-
     private void Start()
     {
         if (isServer)
         {
-            Invoke(nameof(DestroySelf), despawnTime); // Уничтожить через 5 минут
+            Invoke(nameof(DestroySelf), despawnTime);
         }
     }
-
     public override void OnStartClient()
     {
         base.OnStartClient();
-        item = ItemDatabase.Instance.GetItem(itemID);
+        ItemDatabase db = Resources.Load<ItemDatabase>("ItemDatabase");
+        if (db == null)
+        {
+            Debug.LogError($"[DroppedItem] ItemDatabase not found at Resources/ItemDatabase");
+            return;
+        }
+        item = db.GetItem(itemID);
         if (item == null)
         {
             Debug.LogError($"[DroppedItem] Item with ID {itemID} not found");
             return;
         }
+        quantity = Mathf.Max(1, quantity); // Фикс: min 1
         SpawnModel();
         UpdateNameText();
         AnimateDrop();
     }
-
     [Client]
     private void UpdateNameText()
     {
         if (item != null && nameText != null)
         {
-            nameText.text = $"{item.itemName} x{quantity}";
-            Debug.Log($"[DroppedItem] Name text set to: {item.itemName} x{quantity}");
+            nameText.text = $"{item.itemName} x{Mathf.Max(1, quantity)}"; // Фикс: max 1
+            Debug.Log($"[DroppedItem] Name text set to: {item.itemName} x{Mathf.Max(1, quantity)}");
         }
     }
-
     [Client]
     private void SpawnModel()
     {
@@ -76,33 +83,33 @@ public class DroppedItem : NetworkBehaviour
             Debug.Log($"[DroppedItem] Spawned model for item: {item.itemName} (ID: {itemID})");
         }
     }
-
     [Client]
     private void AnimateDrop()
     {
         if (modelInstance == null || modelParent == null) return;
-        Vector3 startPos = modelParent.position + Vector3.up * 2f;
-        Vector3 endPos = modelParent.position;
+        Vector3 startPos = transform.position + Vector3.up * 3f;
+        Vector3 endPos = transform.position;
         modelInstance.transform.position = startPos;
-
-        // Создаём последовательность анимаций
-        Sequence sequence = DOTween.Sequence();
-        sequence.Append(modelInstance.transform.DOMove(endPos, 0.7f).SetEase(Ease.InQuad)); // Падение
-        sequence.AppendCallback(() =>
+        tweenSequence = DOTween.Sequence();
+        tweenSequence.Append(modelInstance.transform.DOMove(endPos, 0.7f).SetEase(Ease.InQuad));
+        tweenSequence.AppendCallback(() =>
         {
-            // Циклическое вращение
-            modelInstance.transform.DORotate(new Vector3(0f, 360f, 0f), 2f, RotateMode.FastBeyond360)
-                .SetEase(Ease.Linear)
-                .SetLoops(-1, LoopType.Incremental);
-            // Циклическая пульсация вверх-вниз
-            modelInstance.transform.DOMoveY(modelParent.position.y + 0.2f, 1f)
-                .SetEase(Ease.InOutSine)
-                .SetLoops(-1, LoopType.Yoyo);
+            if (modelInstance != null)
+            {
+                modelInstance.transform.DORotate(new Vector3(0f, 360f, 0f), 2f, RotateMode.FastBeyond360)
+                    .SetEase(Ease.Linear)
+                    .SetLoops(-1, LoopType.Incremental);
+                modelInstance.transform.DOMoveY(modelParent.position.y + 0.2f, 1f)
+                    .SetEase(Ease.InOutSine)
+                    .SetLoops(-1, LoopType.Yoyo);
+            }
         });
-
-        Debug.Log($"[DroppedItem] Animated drop for item: {item.itemName} (ID: {itemID}) with rotation and pulsation");
+        Debug.Log($"[DroppedItem] Animated drop for item: {item.itemName} (ID: {itemID}) falling from above position");
     }
-
+    private void OnDestroy()
+    {
+        if (tweenSequence != null) tweenSequence.Kill();
+    }
     [Client]
     public void OnMouseDown()
     {
@@ -124,17 +131,62 @@ public class DroppedItem : NetworkBehaviour
             Debug.LogWarning($"[DroppedItem] Player too far to pickup item: {item.itemName} (ID: {itemID}, distance: {distance}, required: {pickupDistance})");
         }
     }
-
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        if (pickupCursor != null)
+        {
+            Cursor.SetCursor(pickupCursor, Vector2.zero, CursorMode.Auto);
+            Debug.Log("[DroppedItem] Cursor changed to pickup");
+        }
+    }
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
+        Debug.Log("[DroppedItem] Cursor reset to default");
+    }
     [Server]
     public void Pickup(PlayerCore player)
     {
-        if (player.Inventory.AddItem(item, quantity))
+        if (quantity <= 0)
         {
-            Debug.Log($"[DroppedItem] Item picked up: {item.itemName} (ID: {itemID}, quantity: {quantity}) by player {player.playerName}");
-            NetworkServer.Destroy(gameObject);
+            Debug.LogError($"[DroppedItem] Cannot pickup: quantity {quantity} <=0");
+            return;
+        }
+        ItemDatabase db = Resources.Load<ItemDatabase>("ItemDatabase");
+        if (db == null)
+        {
+            Debug.LogError("[DroppedItem] ItemDatabase not found on server");
+            return;
+        }
+        Item item = db.GetItem(itemID);
+        if (item == null)
+        {
+            Debug.LogError($"[DroppedItem] Item with ID {itemID} not found on server");
+            return;
+        }
+        if (ownerNetId == 0 || player.netId == ownerNetId || Time.time - dropTime >= 30f)
+        {
+            if (player.Inventory.AddItem(item, quantity))
+            {
+                Debug.Log($"[DroppedItem] Item picked up: {item.itemName} (ID: {itemID}, quantity: {quantity}) by player {player.playerName}");
+                NetworkServer.Destroy(gameObject);
+                return;
+            }
+        }
+        else
+        {
+            Debug.Log($"[DroppedItem] Pickup denied: Protected for 30s. Owner: {ownerNetId}, Player: {player.netId}, Time elapsed: {Time.time - dropTime}");
+            RpcShowProtectedMessage(player);
         }
     }
-
+    [ClientRpc]
+    private void RpcShowProtectedMessage(PlayerCore player)
+    {
+        if (player == PlayerCore.localPlayerCoreInstance)
+        {
+            Debug.LogWarning("[DroppedItem] Этот предмет защищён от подбора 30 секунд!");
+        }
+    }
     [Server]
     private void DestroySelf()
     {
