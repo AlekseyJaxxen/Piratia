@@ -12,22 +12,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 17a19ca3fa980d7429832ef83c06e12b, type: 3}
   m_Name: FlashBomb
   m_EditorClassIdentifier: Assembly-CSharp::Item
-  itemName: New Item
-  id: -1
-  icon: {fileID: 0}
-  dropModelPrefab: {fileID: 0}
+  itemName: FlashBomb
+  id: 3
+  icon: {fileID: 21300000, guid: 9e368a4a52e3b3e41bf2c3bd7ed697b5, type: 3}
+  dropModelPrefab: {fileID: 919132149155446097, guid: 8e71ada036ebdbe4fb10b443d2935af1,
+    type: 3}
   itemType: 1
   equipmentSlot: 0
-  maxStack: 1
+  maxStack: 99
   canDrop: 1
   canSell: 1
-  canUse: 0
-  canHotbar: 0
+  canUse: 1
+  canHotbar: 1
   strengthMod: 0
   agilityMod: 0
   spiritMod: 0
   constitutionMod: 0
   accuracyMod: 0
   intelligenceMod: 0
-  skillEffect: {fileID: 0}
+  skillEffect: {fileID: 11400000, guid: 701db164e762e8d4eb55ee37444ee209, type: 2}
   castRange: 5

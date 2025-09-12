@@ -39,24 +39,37 @@ public class Item : ScriptableObject
         if (canUse)
         {
             Debug.Log($"Used {itemName}");
-            if (player.Health != null)
+            if (skillEffect == null)
             {
-                player.Health.Heal(100);
+                // Heal убран как тест, оставляем заглушку
+                Debug.Log($"[Item] No skill effect for {itemName}, no default action");
             }
-            if (skillEffect != null)
+            else
             {
                 skillEffect.Init(player);
-                Ray ray = player.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition); // Фикс
-                Vector3? targetPos = null;
-                if (Physics.Raycast(ray, out RaycastHit hit, castRange, LayerMask.GetMask("Ground")))
+                PlayerSkills skills = player.GetComponent<PlayerSkills>();
+                if (skills != null)
                 {
-                    targetPos = hit.point;
+                    if (skillEffect.CastTime > 0)
+                    {
+                        skills.SelectSkill(skillEffect);
+                        Debug.Log($"[Item] Selected skill {skillEffect.SkillName} for casting from item {itemName}");
+                    }
+                    else
+                    {
+                        Ray ray = player.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
+                        Vector3? targetPos = null;
+                        if (Physics.Raycast(ray, out RaycastHit hit, castRange, LayerMask.GetMask("Ground")))
+                        {
+                            targetPos = hit.point;
+                        }
+                        else
+                        {
+                            targetPos = player.transform.position + player.transform.forward * castRange;
+                        }
+                        skills.CmdExecuteSkill(player, targetPos, 0, skillEffect.SkillName, 0);
+                    }
                 }
-                else
-                {
-                    targetPos = player.transform.position + player.transform.forward * castRange;
-                }
-                skillEffect.Execute(player, targetPos, null);
             }
         }
     }

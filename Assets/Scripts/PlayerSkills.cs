@@ -3,24 +3,27 @@ using Mirror;
 using System.Collections.Generic;
 using System.Linq;
 using System.Collections;
-using static SkillBase;
 
 public class PlayerSkills : NetworkBehaviour
 {
     [Header("Skills")]
     public List<SkillBase> skills = new List<SkillBase>();
+
     [Header("Stun Effect")]
     public GameObject stunEffectPrefab;
     private GameObject _stunEffectInstance;
+
     [Header("Silence Effect")]
     public GameObject silenceEffectPrefab;
     private GameObject _silenceEffectInstance;
+
     [Header("Cursor Settings")]
     public Texture2D defaultCursor;
     public Texture2D castCursor;
     public Texture2D attackCursor;
     public float cursorUpdateInterval = 0.1f;
     private float _lastCursorUpdate = 0f;
+
     private PlayerCore _core;
     private bool _isCasting;
     private ISkill _activeSkill;
@@ -68,21 +71,25 @@ public class PlayerSkills : NetworkBehaviour
                 yield break;
             }
         }
+
         if (stunEffectPrefab != null)
         {
             _stunEffectInstance = Instantiate(stunEffectPrefab, transform);
             _stunEffectInstance.SetActive(false);
         }
+
         if (silenceEffectPrefab != null)
         {
             _silenceEffectInstance = Instantiate(silenceEffectPrefab, transform);
             _silenceEffectInstance.SetActive(false);
         }
+
         CharacterStats stats = GetComponent<CharacterStats>();
         if (stats == null)
         {
             yield break;
         }
+
         int maxWaitFrames = 100;
         int currentFrame = 0;
         while (SkillManager.Instance == null && currentFrame < maxWaitFrames)
@@ -90,10 +97,12 @@ public class PlayerSkills : NetworkBehaviour
             yield return null;
             currentFrame++;
         }
+
         if (SkillManager.Instance == null)
         {
             yield break;
         }
+
         skills = SkillManager.Instance.GetSkillsForClass(stats.characterClass).Select(s => Instantiate(s)).ToList();
         foreach (var skill in skills)
         {
@@ -102,12 +111,13 @@ public class PlayerSkills : NetworkBehaviour
                 continue;
             }
             skill.Init(_core);
-            skill.Hotkey = KeyCode.None; // Сбрасываем хоткеи для original
+            skill.Hotkey = KeyCode.None; // Сбрасываем hotkeys для оригиналов
             if (isServer)
             {
                 _skillLastUseTimes[skill.SkillName] = 0f;
             }
         }
+
         if (isLocalPlayer)
         {
             SetCursor(defaultCursor);
@@ -304,61 +314,14 @@ public class PlayerSkills : NetworkBehaviour
     private void HandleSkills()
     {
         if (skills == null || skills.Count == 0) return;
-        foreach (var skill in skills.Where(s => s.Hotkey != KeyCode.None))
-        {
-            if (Input.GetKeyDown(skill.Hotkey))
-            {
-                if (!_core.CanCastSkill(skill))
-                {
-                    Debug.LogWarning($"[PlayerSkills] Cannot select skill {skill.SkillName}: player is dead, stunned, or silenced (and not BasicAttackSkill) on {gameObject.name}");
-                    continue;
-                }
-                if (GetRemainingCooldown(skill.SkillName) > 0 || (!skill.ignoreGlobalCooldown && GetGlobalRemainingCooldown() > 0))
-                {
-                    Debug.LogWarning($"[PlayerSkills] Skill {skill.SkillName} on cooldown or global cooldown active.");
-                    continue;
-                }
-                if (localCooldowns.ContainsKey(skill.SkillName) && (float)NetworkTime.time < localCooldowns[skill.SkillName])
-                {
-                    Debug.LogWarning($"[PlayerSkills] Local cooldown active for {skill.SkillName}.");
-                    continue;
-                }
-                if (!skill.ignoreGlobalCooldown && (float)NetworkTime.time < localGlobalCooldownEnd)
-                {
-                    Debug.LogWarning($"[PlayerSkills] Local global cooldown active for {skill.SkillName}.");
-                    continue;
-                }
-                if (skill.SkillCastType == CastType.SelfBuff)
-                {
-                    skill.Execute(_core, null, _core.gameObject);
-                    CancelSkillSelection();
-                    return;
-                }
-                if (skill.SkillCastType == CastType.ToggleBuff)
-                {
-                    if (skill.SkillName == "Invisibility")
-                    {
-                        if (_isInvisible)
-                        {
-                            CmdToggleInvisibility(false, skill.SkillName);
-                        }
-                        else
-                        {
-                            CmdToggleInvisibility(true, skill.SkillName);
-                        }
-                    }
-                    return;
-                }
-                SelectSkill(skill);
-                Debug.Log($"[PlayerSkills] Selected skill: {skill.SkillName} with hotkey {skill.Hotkey}");
-                return;
-            }
-        }
+
         if (_isCasting) return;
+
         if (Input.GetMouseButtonDown(1))
         {
             CancelSkillSelection();
         }
+
         if (_activeSkill != null)
         {
             UpdateTargetIndicator();
@@ -748,38 +711,5 @@ public class PlayerSkills : NetworkBehaviour
     public float GetGlobalRemainingCooldown()
     {
         return Mathf.Max(0, globalCooldown - ((float)NetworkTime.time - _lastGlobalUseTime));
-    }
-
-    [Command]
-    public void CmdSetHotkey(string skillName, KeyCode hotkey)
-    {
-        Debug.Log($"[PlayerSkills] CmdSetHotkey called: {skillName} -> {hotkey}");
-        SkillBase skill = skills.Find(s => s.SkillName == skillName);
-        if (skill != null)
-        {
-            skill.Hotkey = hotkey;
-            RpcSetHotkey(skillName, hotkey);
-            Debug.Log($"[PlayerSkills] Set hotkey on server: {skillName} -> {hotkey}");
-        }
-        else
-        {
-            Debug.LogError($"[PlayerSkills] Failed to set hotkey: {skillName} not found!");
-        }
-    }
-
-    [ClientRpc]
-    private void RpcSetHotkey(string skillName, KeyCode hotkey)
-    {
-        Debug.Log($"[PlayerSkills] RpcSetHotkey called: {skillName} -> {hotkey}");
-        SkillBase skill = skills.Find(s => s.SkillName == skillName);
-        if (skill != null)
-        {
-            skill.Hotkey = hotkey;
-            Debug.Log($"[PlayerSkills] Set hotkey on client: {skillName} -> {hotkey}");
-        }
-        else
-        {
-            Debug.LogError($"[PlayerSkills] Failed to set hotkey on client: {skillName} not found!");
-        }
     }
 }

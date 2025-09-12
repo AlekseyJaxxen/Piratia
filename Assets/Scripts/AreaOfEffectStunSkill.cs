@@ -24,12 +24,11 @@ public class AreaOfEffectStunSkill : SkillBase
         }
         Debug.Log($"[AreaOfEffectStunSkill] Attempting to AOE stun at position: {targetPosition.Value}, weight: {Weight}");
         skills.CmdExecuteSkill(caster, targetPosition, 0, _skillName, Weight);
-        skills.StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
     }
 
     public override void ExecuteOnServer(PlayerCore caster, Vector3? targetPosition, GameObject targetObject, int weight)
     {
-        int aoeLayerMask = LayerMask.GetMask("Player", "Ignore Raycast", "Enemy"); // Изменено на "Enemy"
+        int aoeLayerMask = LayerMask.GetMask("Player", "Ignore Raycast", "Enemy");
         Collider[] hitColliders = Physics.OverlapSphere(targetPosition.Value, aoeRadius, aoeLayerMask);
         foreach (Collider col in hitColliders)
         {

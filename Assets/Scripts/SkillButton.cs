@@ -1,15 +1,16 @@
-// SkillButton.cs - полный, добавил itemSlotIndex
+// SkillButton.cs - полный, фикс OnEndDrag (clear no target) + OnButtonClicked (item > skill)
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using System.Collections;
+using System.Linq;
 
 public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
     public int buttonIndex;
     public SkillBase skill;
     public Item item;
-    public int itemSlotIndex = -1; // Добавлено
+    public int itemSlotIndex = -1;
     private PlayerSkills skillsComponent;
     private PlayerCore core;
     private InventoryUI inventoryUI;
@@ -28,7 +29,7 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         skillsComponent = skills;
         core = playerCore;
         buttonIndex = index;
-        itemSlotIndex = -1; // Добавлено
+        itemSlotIndex = -1;
         Button button = GetComponent<Button>();
         if (button != null)
         {
@@ -43,7 +44,17 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
             Debug.LogError("[SkillButton] PlayerCore is null!");
             return;
         }
-        if (skill != null)
+        if (item != null) // Item first
+        {
+            if (core.isDead || core.isStunned)
+            {
+                Debug.Log($"[SkillButton] Cannot use item {item.itemName}: Player is dead or stunned");
+                return;
+            }
+            core.CmdUseItem(item.id, itemSlotIndex);
+            Debug.Log($"[SkillButton] Item used: {item.itemName} (ID: {item.id}), slot: {itemSlotIndex}, index: {buttonIndex}");
+        }
+        else if (skill != null) // Then skill
         {
             if (core.isDead || core.isStunned || (core.isSilenced && !(skill is BasicAttackSkill)))
             {
@@ -55,16 +66,6 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
                 skillsComponent.SelectSkill(skill);
                 Debug.Log($"[SkillButton] Skill {skill.SkillName} selected, index: {buttonIndex}");
             }
-        }
-        else if (item != null)
-        {
-            if (core.isDead || core.isStunned)
-            {
-                Debug.Log($"[SkillButton] Cannot use item {item.itemName}: Player is dead or stunned");
-                return;
-            }
-            core.CmdUseItem(item.id, itemSlotIndex);
-            Debug.Log($"[SkillButton] Item used: {item.itemName} (ID: {item.id}), slot: {itemSlotIndex}, index: {buttonIndex}");
         }
     }
 
@@ -155,9 +156,26 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
                 Debug.Log($"[SkillButton] Dropped item from hotbar button {buttonIndex}");
             }
         }
-        else
+        else // Clear если no target
         {
-            Debug.LogWarning($"[SkillButton] Drag ended without action: {(skill != null ? skill.SkillName : item != null ? item.itemName : "null")} (index: {buttonIndex}), pointerEnter={eventData.pointerEnter?.name ?? "null"}, components={GetComponentsOnPointerEnter(eventData.pointerEnter)}");
+            if (skill != null)
+            {
+                Destroy(skill);
+                skill = null;
+                iconImage.sprite = PlayerUI.Instance.GetDefaultEmptySprite();
+                Debug.Log($"[SkillButton] Cleared skill from hotbar button {buttonIndex}");
+            }
+            else if (item != null)
+            {
+                if (item.canDrop)
+                {
+                    core.CmdDropItem(item.id, -1);
+                }
+                item = null;
+                itemSlotIndex = -1;
+                iconImage.sprite = PlayerUI.Instance.GetDefaultEmptySprite();
+                Debug.Log($"[SkillButton] Cleared item from hotbar button {buttonIndex}");
+            }
         }
         Destroy(dragIcon);
     }
@@ -166,7 +184,7 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
     {
         if (go == null) return "null";
         var components = go.GetComponents<Component>();
-        return string.Join(", ", System.Linq.Enumerable.Select(components, c => c.GetType().Name));
+        return string.Join(", ", Enumerable.Select(components, c => c.GetType().Name));
     }
 
     private IEnumerator DelayedHideTooltip()

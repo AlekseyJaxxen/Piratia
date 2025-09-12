@@ -15,7 +15,8 @@ MonoBehaviour:
   itemName: HealthPotion
   id: 2
   icon: {fileID: 21300000, guid: 6548e3d428745774eb25bdf190fe7bd7, type: 3}
-  dropModelPrefab: {fileID: 0}
+  dropModelPrefab: {fileID: 919132149155446097, guid: 8e71ada036ebdbe4fb10b443d2935af1,
+    type: 3}
   itemType: 1
   equipmentSlot: 0
   maxStack: 99
@@ -29,3 +30,5 @@ MonoBehaviour:
   constitutionMod: 0
   accuracyMod: 0
   intelligenceMod: 0
+  skillEffect: {fileID: 0}
+  castRange: 5
