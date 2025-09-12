@@ -4,6 +4,8 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using System.Collections;
 using System.Linq;
+using static SkillBase;
+
 
 public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
@@ -51,7 +53,7 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
                 Debug.Log($"[SkillButton] Cannot use item {item.itemName}: Player is dead or stunned");
                 return;
             }
-            core.CmdUseItem(item.id, itemSlotIndex);
+            core.CmdSelectItem(item.id, itemSlotIndex);// select без траты
             Debug.Log($"[SkillButton] Item used: {item.itemName} (ID: {item.id}), slot: {itemSlotIndex}, index: {buttonIndex}");
         }
         else if (skill != null) // Then skill
@@ -63,8 +65,25 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
             }
             if (skillsComponent != null)
             {
-                skillsComponent.SelectSkill(skill);
-                Debug.Log($"[SkillButton] Skill {skill.SkillName} selected, index: {buttonIndex}");
+                if (skill.SkillCastType == SkillBase.CastType.SelfBuff || skill.SkillCastType == SkillBase.CastType.ToggleBuff)
+                {
+                    if (skill.SkillCastType == SkillBase.CastType.ToggleBuff && skill.SkillName == "Invisibility")
+                    {
+                        bool enable = !core.Skills._isInvisible;
+                        core.Skills.CmdToggleInvisibility(enable, skill.SkillName);
+                    }
+                    else
+                    {
+                        skill.Execute(core, null, core.gameObject);
+                    }
+                    skillsComponent.CancelSkillSelection();
+                    Debug.Log($"[SkillButton] Instant {skill.SkillCastType}: {skill.SkillName}, index: {buttonIndex}");
+                }
+                else
+                {
+                    skillsComponent.SelectSkill(skill);
+                    Debug.Log($"[SkillButton] Skill {skill.SkillName} selected, index: {buttonIndex}");
+                }
             }
         }
     }
@@ -158,24 +177,8 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         }
         else // Clear если no target
         {
-            if (skill != null)
-            {
-                Destroy(skill);
-                skill = null;
-                iconImage.sprite = PlayerUI.Instance.GetDefaultEmptySprite();
-                Debug.Log($"[SkillButton] Cleared skill from hotbar button {buttonIndex}");
-            }
-            else if (item != null)
-            {
-                if (item.canDrop)
-                {
-                    core.CmdDropItem(item.id, -1);
-                }
-                item = null;
-                itemSlotIndex = -1;
-                iconImage.sprite = PlayerUI.Instance.GetDefaultEmptySprite();
-                Debug.Log($"[SkillButton] Cleared item from hotbar button {buttonIndex}");
-            }
+            PlayerUI.Instance.SwapSkillsOrItems(this, null); // Вызов для clear
+            Debug.Log($"[SkillButton] Cleared hotbar button {buttonIndex} (no target)");
         }
         Destroy(dragIcon);
     }

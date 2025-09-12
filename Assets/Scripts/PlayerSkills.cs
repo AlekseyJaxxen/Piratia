@@ -275,6 +275,7 @@ public class PlayerSkills : NetworkBehaviour
             if (!(skill is BasicAttackSkill))
             {
                 RpcCancelSkillSelection();
+                RpcConsumeItemFromSkill(skillName);
             }
         }
     }
@@ -288,6 +289,29 @@ public class PlayerSkills : NetworkBehaviour
         StartSkillCooldown(skill.SkillName);
         if (!skill.ignoreGlobalCooldown) StartGlobalCooldown();
         RpcCancelSkillSelection();
+        RpcConsumeItemFromSkill(skill.SkillName); // Новый вызов после cast
+    }
+
+
+
+    [ClientRpc]
+    private void RpcConsumeItemFromSkill(string skillName)
+    {
+        if (!isLocalPlayer) return;
+        var ui = GetComponentInChildren<PlayerUI>();
+        if (ui != null)
+        {
+            var hotbarButtons = ui.GetSkillButtons2().Concat(ui.GetSkillButtons3());
+            foreach (var btn in hotbarButtons)
+            {
+                if (btn.item != null && btn.item.skillEffect != null && btn.item.skillEffect.SkillName == skillName)
+                {
+                    _core.CmdConsumeItem(btn.item.id, btn.itemSlotIndex); // CmdConsumeItem
+                    Debug.Log($"[PlayerSkills] Consumed item {btn.item.itemName} after {skillName} cast");
+                    break;
+                }
+            }
+        }
     }
 
     public float GetRemainingCooldown(string skillName)
@@ -337,6 +361,12 @@ public class PlayerSkills : NetworkBehaviour
         if (!_core.CanCastSkill(skill))
         {
             Debug.LogWarning($"[PlayerSkills] Cannot select skill {((SkillBase)skill).SkillName}: player is dead, stunned, or silenced (and not BasicAttackSkill) on {gameObject.name}");
+            return;
+        }
+        SkillBase s = (SkillBase)skill;
+        if (GetRemainingCooldown(s.SkillName) > 0 || (!s.ignoreGlobalCooldown && GetGlobalRemainingCooldown() > 0))
+        {
+            Debug.LogWarning($"[PlayerSkills] Cannot select {s.SkillName}: on cooldown");
             return;
         }
         if (_activeSkill != null)
@@ -608,7 +638,7 @@ public class PlayerSkills : NetworkBehaviour
     }
 
     [Command]
-    private void CmdToggleInvisibility(bool enable, string skillName)
+    public void CmdToggleInvisibility(bool enable, string skillName)
     {
         if (enable)
         {

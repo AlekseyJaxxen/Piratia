@@ -6,6 +6,9 @@ using System.Collections;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using static SkillBase;
+
+
 
 public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
@@ -345,8 +348,35 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         {
             if (btn.skill != null && Input.GetKeyDown(btn.skill.Hotkey))
             {
-                Debug.Log($"[PlayerUI] Hotkey pressed for skill: {btn.skill.SkillName} (hotkey {btn.skill.Hotkey})");
-                btn.OnButtonClicked();
+                if (core.isDead || core.isStunned || (core.isSilenced && !(btn.skill is BasicAttackSkill)))
+                {
+                    Debug.Log($"[PlayerUI] Cannot use skill {btn.skill.SkillName}: dead/stunned/silenced");
+                    continue;
+                }
+                PlayerSkills skillsComp = core.GetComponent<PlayerSkills>();
+                if (skillsComp != null)
+                {
+                    if (btn.skill.SkillCastType == SkillBase.CastType.SelfBuff || btn.skill.SkillCastType == SkillBase.CastType.ToggleBuff)
+                    {
+                        if (btn.skill.SkillCastType == SkillBase.CastType.ToggleBuff && btn.skill.SkillName == "Invisibility")
+                        {
+                            bool enable = !core.Skills._isInvisible;
+                            core.Skills.CmdToggleInvisibility(enable, btn.skill.SkillName);
+                        }
+                        else
+                        {
+                            btn.skill.Execute(core, null, core.gameObject);
+                        }
+                        skillsComp.CancelSkillSelection();
+                        Debug.Log($"[PlayerUI] Instant {btn.skill.SkillCastType}: {btn.skill.SkillName}");
+                    }
+                    else
+                    {
+                        skillsComp.SelectSkill(btn.skill);
+                        Debug.Log($"[PlayerUI] Selected skill: {btn.skill.SkillName} (hotkey {btn.skill.Hotkey})");
+                    }
+                }
+                continue;
             }
             else if (btn.item != null && Input.GetKeyDown(GetHotkeyForButton(btn)))
             {
@@ -359,8 +389,35 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         {
             if (btn.skill != null && Input.GetKeyDown(btn.skill.Hotkey))
             {
-                Debug.Log($"[PlayerUI] Hotkey pressed for skill: {btn.skill.SkillName} (hotkey {btn.skill.Hotkey})");
-                btn.OnButtonClicked();
+                if (core.isDead || core.isStunned || (core.isSilenced && !(btn.skill is BasicAttackSkill)))
+                {
+                    Debug.Log($"[PlayerUI] Cannot use skill {btn.skill.SkillName}: dead/stunned/silenced");
+                    continue;
+                }
+                PlayerSkills skillsComp = core.GetComponent<PlayerSkills>();
+                if (skillsComp != null)
+                {
+                    if (btn.skill.SkillCastType == SkillBase.CastType.SelfBuff || btn.skill.SkillCastType == SkillBase.CastType.ToggleBuff)
+                    {
+                        if (btn.skill.SkillCastType == SkillBase.CastType.ToggleBuff && btn.skill.SkillName == "Invisibility")
+                        {
+                            bool enable = !core.Skills._isInvisible;
+                            core.Skills.CmdToggleInvisibility(enable, btn.skill.SkillName);
+                        }
+                        else
+                        {
+                            btn.skill.Execute(core, null, core.gameObject);
+                        }
+                        skillsComp.CancelSkillSelection();
+                        Debug.Log($"[PlayerUI] Instant {btn.skill.SkillCastType}: {btn.skill.SkillName}");
+                    }
+                    else
+                    {
+                        skillsComp.SelectSkill(btn.skill);
+                        Debug.Log($"[PlayerUI] Selected skill: {btn.skill.SkillName} (hotkey {btn.skill.Hotkey})");
+                    }
+                }
+                continue;
             }
             else if (btn.item != null && Input.GetKeyDown(GetHotkeyForButton(btn)))
             {

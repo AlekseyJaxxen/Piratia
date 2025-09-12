@@ -105,8 +105,21 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
     public void OnDrop(PointerEventData eventData)
     {
         if (InventoryUI.Instance.draggedSlot == null || InventoryUI.Instance.draggedSlot == this) return;
-        Debug.Log($"[InventorySlot] Dropped on slot {slotIndex} from {InventoryUI.Instance.draggedSlot.slotIndex}");
-        core.CmdSwapInventoryItems(InventoryUI.Instance.draggedSlot.slotIndex, slotIndex);
+
+        Item draggedItem = InventoryUI.Instance.draggedSlot.itemInfo.GetItem();
+        Item thisItem = itemInfo.GetItem();
+
+        if (draggedItem != null && thisItem != null && draggedItem.id == thisItem.id && itemInfo.quantity < thisItem.maxStack) // itemInfo.quantity
+        {
+            // Stack: ...
+            core.CmdStackItems(InventoryUI.Instance.draggedSlot.slotIndex, slotIndex, thisItem.maxStack - itemInfo.quantity); // itemInfo.quantity
+            Debug.Log($"[InventorySlot] Stacked {draggedItem.itemName} from slot {InventoryUI.Instance.draggedSlot.slotIndex} to {slotIndex}");
+        }
+        else
+        {
+            Debug.Log($"[InventorySlot] Swapped slots {InventoryUI.Instance.draggedSlot.slotIndex} <-> {slotIndex}");
+            core.CmdSwapInventoryItems(InventoryUI.Instance.draggedSlot.slotIndex, slotIndex);
+        }
         InventoryUI.Instance.draggedSlot = null;
     }
 

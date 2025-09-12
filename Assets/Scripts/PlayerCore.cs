@@ -554,13 +554,11 @@ public class PlayerCore : NetworkBehaviour
         if (slotIndex >= 0 && slotIndex < this.Inventory.items.Count && this.Inventory.items[slotIndex].id == itemID && item.canDrop)
         {
             var instance = this.Inventory.items[slotIndex];
-            int dropQuantity = instance.quantity; // Фикс: drop original
-            if (dropQuantity <= 0) return; // Не drop если 0
-            instance.quantity--;
-            this.Inventory.items[slotIndex] = instance;
-            if (this.Inventory.items[slotIndex].quantity <= 0)
-                this.Inventory.items.RemoveAt(slotIndex);
+            int dropQuantity = instance.quantity; // Drop весь stack
+            if (dropQuantity <= 0) return;
+            this.Inventory.items.RemoveAt(slotIndex); // Удалить весь slot
             RpcUpdateInventoryUI();
+            RpcUpdateHotbarSlotIndices(slotIndex); // Новый вызов
             Debug.Log($"[PlayerCore] Dropped item: {item.itemName} (ID: {itemID}) from slot {slotIndex}, quantity: {dropQuantity}");
             SpawnDroppedItem(itemID, dropQuantity);
         }
@@ -609,42 +607,76 @@ public class PlayerCore : NetworkBehaviour
         }
     }
     [Command]
-    public void CmdUseItem(int itemID, int slotIndex)
+    public void CmdSelectItem(int itemID, int slotIndex)
     {
         if (Inventory == null)
         {
-            Debug.LogError("[PlayerCore] CmdUseItem failed: Inventory is null!");
+            Debug.LogError("[PlayerCore] CmdSelectItem failed: Inventory is null!");
             return;
         }
         Item item = Resources.Load<ItemDatabase>("ItemDatabase")?.GetItem(itemID);
         if (item == null)
         {
-            Debug.LogError($"[PlayerCore] CmdUseItem failed: Item with ID {itemID} not found");
+            Debug.LogError($"[PlayerCore] CmdSelectItem failed: Item with ID {itemID} not found");
             return;
         }
         if (slotIndex >= -1 && (slotIndex == -1 || (slotIndex < this.Inventory.items.Count && this.Inventory.items[slotIndex].id == itemID)) && item.canUse)
         {
             if (isDead || isStunned)
             {
-                Debug.LogWarning($"[PlayerCore] Cannot use item {item.itemName}: player is dead or stunned");
+                Debug.LogWarning($"[PlayerCore] Cannot select item {item.itemName}: player is dead or stunned");
                 return;
             }
-            item.Use(this);
-            if (slotIndex >= 0)
+            if (item.skillEffect != null)
             {
-                var instance = this.Inventory.items[slotIndex];
-                instance.quantity--;
-                this.Inventory.items[slotIndex] = instance;
-                if (this.Inventory.items[slotIndex].quantity <= 0)
-                {
-                    this.Inventory.items.RemoveAt(slotIndex);
-                    RpcClearHotbarItem(itemID);
-                }
-                RpcUpdateInventoryUI();
+                RpcSelectItemSkill(itemID, slotIndex);
+                Debug.Log($"[PlayerCore] Selected skill from item {item.itemName} (ID: {itemID}) (slot {slotIndex})");
+                return;
             }
+            // Обычный use без skillEffect
+            item.Use(this);
+            ConsumeItem(slotIndex, itemID); // Вспомогательный метод
             Debug.Log($"[PlayerCore] Used item: {item.itemName} (ID: {itemID}) (slot {slotIndex})");
         }
     }
+
+    [Command]
+    public void CmdConsumeItem(int itemID, int slotIndex)
+    {
+        if (slotIndex >= 0)
+        {
+            var instance = this.Inventory.items[slotIndex];
+            instance.quantity--;
+            this.Inventory.items[slotIndex] = instance;
+            if (this.Inventory.items[slotIndex].quantity <= 0)
+            {
+                this.Inventory.items.RemoveAt(slotIndex);
+                RpcClearHotbarItem(itemID);
+                RpcUpdateHotbarSlotIndices(slotIndex);
+            }
+            RpcUpdateInventoryUI();
+        }
+        Debug.Log($"[PlayerCore] Consumed item {itemID} from slot {slotIndex}");
+    }
+
+    [Server]
+    private void ConsumeItem(int slotIndex, int itemID)
+    {
+        if (slotIndex >= 0)
+        {
+            var instance = this.Inventory.items[slotIndex];
+            instance.quantity--;
+            this.Inventory.items[slotIndex] = instance;
+            if (this.Inventory.items[slotIndex].quantity <= 0)
+            {
+                this.Inventory.items.RemoveAt(slotIndex);
+                RpcClearHotbarItem(itemID);
+                RpcUpdateHotbarSlotIndices(slotIndex);
+            }
+            RpcUpdateInventoryUI();
+        }
+    }
+
     [Command]
     public void CmdSwapInventoryItems(int slotIndex1, int slotIndex2)
     {
@@ -750,4 +782,96 @@ public class PlayerCore : NetworkBehaviour
         yield return new WaitForEndOfFrame();
         RpcUpdateInventoryUI();
     }
+
+    [ClientRpc]
+    private void RpcSelectItemSkill(int itemID, int slotIndex)
+    {
+        if (!isLocalPlayer) return;
+        Item item = Resources.Load<ItemDatabase>("ItemDatabase")?.GetItem(itemID);
+        if (item != null && item.skillEffect != null)
+        {
+            item.skillEffect.Init(this);
+            if (Skills != null)
+            {
+                if (item.skillEffect.CastTime > 0)
+                {
+                    Skills.SelectSkill(item.skillEffect);
+                    Debug.Log($"[PlayerCore] Selected skill {item.skillEffect.SkillName} for casting from item {item.itemName}");
+                }
+                else
+                {
+                    Ray ray = Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
+                    Vector3? targetPos = null;
+                    if (Physics.Raycast(ray, out RaycastHit hit, item.castRange, LayerMask.GetMask("Ground")))
+                    {
+                        targetPos = hit.point;
+                    }
+                    else
+                    {
+                        targetPos = transform.position + transform.forward * item.castRange;
+                    }
+                    Skills.CmdExecuteSkill(this, targetPos, 0, item.skillEffect.SkillName, 0);
+                    if (slotIndex >= 0)
+                    {
+                        var instance = Inventory.items[slotIndex];
+                        instance.quantity--;
+                        Inventory.items[slotIndex] = instance;
+                        if (Inventory.items[slotIndex].quantity <= 0)
+                        {
+                            Inventory.items.RemoveAt(slotIndex);
+                            PlayerUI.Instance?.ClearHotbarItem(itemID);
+                            RpcUpdateHotbarSlotIndices(slotIndex);
+                        }
+                        InventoryUI.Instance?.UpdateInventoryUI();
+                    }
+                }
+            }
+        }
+    }
+
+    [Command]
+    public void CmdStackItems(int fromSlot, int toSlot, int maxTransfer)
+    {
+        if (fromSlot < 0 || toSlot < 0 || fromSlot >= Inventory.items.Count || toSlot >= Inventory.items.Count) return;
+
+        var fromItem = Inventory.items[fromSlot];
+        var toItem = Inventory.items[toSlot];
+
+        if (fromItem.id != toItem.id || fromItem.id <= 0 || toItem.quantity >= toItem.GetItem().maxStack) return;
+
+        Item item = toItem.GetItem();
+        int transfer = Mathf.Min(fromItem.quantity, maxTransfer);
+        toItem.quantity += transfer;
+        fromItem.quantity -= transfer;
+
+        Inventory.items[toSlot] = toItem;
+        if (fromItem.quantity <= 0)
+        {
+            Inventory.items.RemoveAt(fromSlot);
+            RpcUpdateHotbarSlotIndices(fromSlot); // Новый вызов
+        }
+        else
+        {
+            Inventory.items[fromSlot] = fromItem;
+        }
+
+        RpcUpdateInventoryUI();
+        Debug.Log($"[PlayerCore] Stacked {transfer} from slot {fromSlot} to {toSlot}");
+    }
+
+    [ClientRpc]
+    private void RpcUpdateHotbarSlotIndices(int removedSlot)
+    {
+        if (PlayerUI.Instance == null) return;
+        var hotbarButtons = PlayerUI.Instance.GetSkillButtons2().Concat(PlayerUI.Instance.GetSkillButtons3());
+        foreach (var btn in hotbarButtons)
+        {
+            if (btn.item != null && btn.itemSlotIndex > removedSlot)
+            {
+                btn.itemSlotIndex--;
+                Debug.Log($"[PlayerCore] Updated hotbar {btn.buttonIndex} slotIndex: {btn.itemSlotIndex + 1} -> {btn.itemSlotIndex}");
+            }
+        }
+    }
+
 }

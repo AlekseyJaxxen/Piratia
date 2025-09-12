@@ -50,38 +50,15 @@ public class Inventory : NetworkBehaviour
             Debug.LogError($"[Inventory] Cannot add item: Item is null or ID is invalid or quantity <=0 ({quantity})");
             return false;
         }
-        for (int i = 0; i < items.Count; i++)
+        // Append в конец, без stack/search - фиксированные слоты
+        if (items.Count >= inventorySize)
         {
-            if (items[i].id == item.id && items[i].quantity < item.maxStack)
-            {
-                ItemInfo instance = items[i];
-                instance.quantity += quantity;
-                items[i] = instance;
-                Debug.Log($"[Inventory] Added {quantity} {item.itemName} to stack at slot {i}, new quantity: {items[i].quantity}");
-                return true;
-            }
+            Debug.LogWarning($"[Inventory] Cannot add item: {item.itemName}, inventory full");
+            return false;
         }
-        int freeSlot = -1;
-        for (int i = 0; i < inventorySize; i++)
-        {
-            if (i >= items.Count)
-            {
-                items.Add(new ItemInfo());
-            }
-            if (items[i].id == 0)
-            {
-                freeSlot = i;
-                break;
-            }
-        }
-        if (freeSlot >= 0)
-        {
-            items[freeSlot] = new ItemInfo { id = item.id, quantity = quantity };
-            Debug.Log($"[Inventory] Added new item: {item.itemName} (ID: {item.id}, quantity: {quantity}) to free slot {freeSlot}");
-            return true;
-        }
-        Debug.LogWarning($"[Inventory] Cannot add item: {item.itemName}, inventory full");
-        return false;
+        items.Add(new ItemInfo { id = item.id, quantity = quantity });
+        Debug.Log($"[Inventory] Added new item: {item.itemName} (ID: {item.id}, quantity: {quantity}) to end");
+        return true;
     }
 
     [Server]
