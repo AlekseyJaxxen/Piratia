@@ -22,6 +22,9 @@ public class Item : ScriptableObject
     public int constitutionMod;
     public int accuracyMod;
     public int intelligenceMod;
+    [Header("Skill Effect (Optional)")]
+    public SkillBase skillEffect;
+    public float castRange = 5f;
 
     private void OnEnable()
     {
@@ -39,6 +42,21 @@ public class Item : ScriptableObject
             if (player.Health != null)
             {
                 player.Health.Heal(100);
+            }
+            if (skillEffect != null)
+            {
+                skillEffect.Init(player);
+                Ray ray = player.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition); // ิ่๊๑
+                Vector3? targetPos = null;
+                if (Physics.Raycast(ray, out RaycastHit hit, castRange, LayerMask.GetMask("Ground")))
+                {
+                    targetPos = hit.point;
+                }
+                else
+                {
+                    targetPos = player.transform.position + player.transform.forward * castRange;
+                }
+                skillEffect.Execute(player, targetPos, null);
             }
         }
     }

@@ -70,6 +70,8 @@ MonoBehaviour:
   dropTable:
   - item: {fileID: 11400000, guid: 6ffb45c650aabde4bb286e3c122f114a, type: 2}
     dropChance: 0.1
+  - item: {fileID: 11400000, guid: 9421be2e35934f940b518c516057cd91, type: 2}
+    dropChance: 0.2
   droppedItemPrefab: {fileID: 8686491603925156450, guid: 133a99e109889094299eec33717cff52,
     type: 3}
   IsDead: 0
