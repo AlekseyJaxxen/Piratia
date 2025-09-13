@@ -15,7 +15,7 @@ MonoBehaviour:
   itemName: Helmet
   id: 1
   icon: {fileID: 21300000, guid: ba38f88fc0d64734382abdc691e9658a, type: 3}
-  dropModelPrefab: {fileID: 919132149155446097, guid: e0e7d02815b16cb4da1fcd9cc8ce0e66,
+  dropModelPrefab: {fileID: 1416556264988855144, guid: 274b635ff68d8d146b63d3fac539c60a,
     type: 3}
   itemType: 0
   equipmentSlot: 1

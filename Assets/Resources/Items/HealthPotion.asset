@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Item
   itemName: HealthPotion
   id: 2
-  icon: {fileID: 21300000, guid: 6548e3d428745774eb25bdf190fe7bd7, type: 3}
+  icon: {fileID: 21300000, guid: 6313135f7c304af40bc7349631070463, type: 3}
   dropModelPrefab: {fileID: 919132149155446097, guid: 8e71ada036ebdbe4fb10b443d2935af1,
     type: 3}
   itemType: 1
@@ -30,5 +30,5 @@ MonoBehaviour:
   constitutionMod: 0
   accuracyMod: 0
   intelligenceMod: 0
-  skillEffect: {fileID: 0}
-  castRange: 5
+  skillEffect: {fileID: 11400000, guid: 6868d31a6d0b8224cb68c823c502008b, type: 2}
+  castRange: 0
