@@ -61,9 +61,8 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
             inventory.OnEquipmentChanged.AddListener(UpdateEquipmentUI);
         }
         if (closeInventoryButton != null)
-            closeInventoryButton.onClick.AddListener(() => inventoryPanel.SetActive(false));
-        if (closeCharacterButton != null)
-            closeCharacterButton.onClick.AddListener(() => characterPanel.SetActive(false));
+            closeInventoryButton.onClick.AddListener(() => { inventoryPanel.SetActive(false); characterPanel.SetActive(false); }); // Объединили: закрытие обеих
+                                                                                                                                   // Убрали listener для closeCharacterButton
         if (goldText != null)
             goldText.text = $"Gold: {inventory.gold}";
         UpdateInventoryUI();
@@ -76,19 +75,13 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         if (Input.GetKeyDown(KeyCode.I))
         {
             bool newState = !inventoryPanel.activeSelf;
-            UpdateInventoryUI();
-            UpdateEquipmentUI();
             inventoryPanel.SetActive(newState);
-            UpdateInventoryUI();
-            Debug.Log($"[InventoryUI] InventoryPanel set to {newState}");
-        }
-        if (Input.GetKeyDown(KeyCode.H))
-        {
-            bool newState = !characterPanel.activeSelf;
             characterPanel.SetActive(newState);
+            UpdateInventoryUI();
             UpdateEquipmentUI();
-            Debug.Log($"[InventoryUI] CharacterPanel set to {newState}");
+            Debug.Log($"[InventoryUI] Panels set to {newState}");
         }
+        // Убрали Input.GetKeyDown(KeyCode.H)
     }
     public void UpdateInventoryUI()
     {
