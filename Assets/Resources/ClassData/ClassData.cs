@@ -1,11 +1,5 @@
 using UnityEngine;
 
-public enum AttackAttributeType
-{
-    Strength,
-    Accuracy
-}
-
 [CreateAssetMenu(fileName = "ClassData", menuName = "SO/ClassData")]
 public class ClassData : ScriptableObject
 {
@@ -17,6 +11,7 @@ public class ClassData : ScriptableObject
     public int spirit = 5;
     public int accuracy = 5;
     public int intelligence = 5;
+    public int luck = 5;
     [Header("Base Stats")]
     public int baseHealth = 1000;
     public int baseMana = 100;
@@ -33,8 +28,10 @@ public class ClassData : ScriptableObject
     public float accuracyMultiplier = 1f;
     public float intelligenceMultiplier = 1f;
     [Header("Attack Settings")]
-    public AttackAttributeType attackAttribute = AttackAttributeType.Strength; // Атрибут для расчета атаки
+    public AttackAttributeType attackAttribute = AttackAttributeType.Strength;
     [Header("Visuals")]
     public GameObject modelPrefab;
     public RuntimeAnimatorController animatorController;
 }
+
+public enum AttackAttributeType { Strength, Accuracy }

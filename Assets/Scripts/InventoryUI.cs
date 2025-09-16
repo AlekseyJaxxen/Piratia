@@ -18,6 +18,12 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
     [SerializeField] private EquipmentSlotUI legsSlotUI;
     [SerializeField] private EquipmentSlotUI rightHandSlotUI;
     [SerializeField] private EquipmentSlotUI leftHandSlotUI;
+    [SerializeField] private EquipmentSlotUI ringSlotUI;
+    [SerializeField] private EquipmentSlotUI necklaceSlotUI;
+    [SerializeField] private EquipmentSlotUI bootsSlotUI;
+    [SerializeField] private EquipmentSlotUI glovesSlotUI;
+    [SerializeField] private EquipmentSlotUI weaponSlotUI;
+    [SerializeField] private EquipmentSlotUI offHandSlotUI;
     [SerializeField] private GameObject itemTooltip;
     [SerializeField] private TextMeshProUGUI tooltipText;
     [SerializeField] private TextMeshProUGUI goldText;
@@ -103,30 +109,71 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
 
     public void UpdateEquipmentUI()
     {
-        headSlotUI.SetItem(inventory.headSlot);
-        bodySlotUI.SetItem(inventory.bodySlot);
-        legsSlotUI.SetItem(inventory.legsSlot);
-        rightHandSlotUI.SetItem(inventory.rightHandSlot);
-        leftHandSlotUI.SetItem(inventory.leftHandSlot);
+        if (headSlotUI != null) headSlotUI.SetItem(inventory.headSlot);
+        else Debug.LogWarning("[InventoryUI] headSlotUI is not assigned!");
+        if (bodySlotUI != null) bodySlotUI.SetItem(inventory.bodySlot);
+        else Debug.LogWarning("[InventoryUI] bodySlotUI is not assigned!");
+        if (legsSlotUI != null) legsSlotUI.SetItem(inventory.legsSlot);
+        else Debug.LogWarning("[InventoryUI] legsSlotUI is not assigned!");
+        if (rightHandSlotUI != null) rightHandSlotUI.SetItem(inventory.rightHandSlot);
+        else Debug.LogWarning("[InventoryUI] rightHandSlotUI is not assigned!");
+        if (leftHandSlotUI != null) leftHandSlotUI.SetItem(inventory.leftHandSlot);
+        else Debug.LogWarning("[InventoryUI] leftHandSlotUI is not assigned!");
+        if (ringSlotUI != null) ringSlotUI.SetItem(inventory.ringSlot);
+        else Debug.LogWarning("[InventoryUI] ringSlotUI is not assigned!");
+        if (necklaceSlotUI != null) necklaceSlotUI.SetItem(inventory.necklaceSlot);
+        else Debug.LogWarning("[InventoryUI] necklaceSlotUI is not assigned!");
+        if (bootsSlotUI != null) bootsSlotUI.SetItem(inventory.bootsSlot);
+        else Debug.LogWarning("[InventoryUI] bootsSlotUI is not assigned!");
+        if (glovesSlotUI != null) glovesSlotUI.SetItem(inventory.glovesSlot);
+        else Debug.LogWarning("[InventoryUI] glovesSlotUI is not assigned!");
+        if (weaponSlotUI != null) weaponSlotUI.SetItem(inventory.weaponSlot);
+        else Debug.LogWarning("[InventoryUI] weaponSlotUI is not assigned!");
+        if (offHandSlotUI != null) offHandSlotUI.SetItem(inventory.offHandSlot);
+        else Debug.LogWarning("[InventoryUI] offHandSlotUI is not assigned!");
     }
 
     public void ShowTooltip(Item item, Vector3 position)
     {
         if (item == null || isTooltipActive) return;
-        string newText = $"<b>{item.itemName ?? "Unknown Item"}</b>\n" +
-                         $"Type: {item.itemType.ToString()}\n"; // ”брано ?. и ?? "None"
+        bool canEquip = item.IsEquipable(core.Stats.level);
+        string color = canEquip ? "#FFFFFF" : "#FF0000";
+        string newText = $"<b>{item.itemName}</b>\n" +
+                         $"Type: {item.itemType}\n" +
+                         $"Rarity: {item.rarity}\n" +
+                         $"<color={color}>Required Level: {item.requiredLevel}</color>\n";
         if (item.equipmentSlot != EquipmentSlot.None) newText += $"Slot: {item.equipmentSlot}\n";
-        if (item.strengthMod != 0) newText += $"<color=#FFD700>Strength: {item.strengthMod}</color>\n";
-        if (item.agilityMod != 0) newText += $"<color=#00FF00>Agility: {item.agilityMod}</color>\n";
-        if (item.spiritMod != 0) newText += $"<color=#00FFFF>Spirit: {item.spiritMod}</color>\n";
-        if (item.constitutionMod != 0) newText += $"<color=#FF4500>Constitution: {item.constitutionMod}</color>\n";
-        if (item.accuracyMod != 0) newText += $"<color=#FFFF00>Accuracy: {item.accuracyMod}</color>\n";
-        if (item.intelligenceMod != 0) newText += $"<color=#FF00FF>Intelligence: {item.intelligenceMod}</color>\n";
+        if (item.strengthMod != 0 || item.strModulusBonus != 0 || item.strConstantBonus != 0)
+            newText += $"<color=#FFD700>Strength: +{item.strengthMod + item.strModulusBonus + item.strConstantBonus}</color>\n";
+        if (item.agilityMod != 0 || item.agiModulusBonus != 0 || item.agiConstantBonus != 0)
+            newText += $"<color=#00FF00>Agility: +{item.agilityMod + item.agiModulusBonus + item.agiConstantBonus}</color>\n";
+        if (item.spiritMod != 0 || item.sprModulusBonus != 0)
+            newText += $"<color=#00FFFF>Spirit: +{item.spiritMod + item.sprModulusBonus}</color>\n";
+        if (item.constitutionMod != 0 || item.conModulusBonus != 0 || item.conConstantBonus != 0)
+            newText += $"<color=#FF4500>Constitution: +{item.constitutionMod + item.conModulusBonus + item.conConstantBonus}</color>\n";
+        if (item.accuracyMod != 0 || item.hitRateModulusBonus != 0 || item.hitModulusBonus != 0 || item.hitConstantBonus != 0)
+            newText += $"<color=#FFFF00>Accuracy: +{item.accuracyMod + item.hitRateModulusBonus + item.hitModulusBonus + item.hitConstantBonus}</color>\n";
+        if (item.intelligenceMod != 0 || item.agiModulusBonus != 0 || item.agiConstantBonus != 0)
+            newText += $"<color=#FF00FF>Intelligence: +{item.intelligenceMod + item.agiModulusBonus + item.agiConstantBonus}</color>\n";
+        if (item.minAttackConstantBonus != 0) newText += $"Min Attack: {item.minAttackConstantBonus}\n";
+        if (item.maxAttackConstantBonus != 0) newText += $"Max Attack: {item.maxAttackConstantBonus}\n";
+        if (item.maxHpModulusBonus != 0 || item.maxHpConstantBonus != 0)
+            newText += $"Max Health: +{item.maxHpModulusBonus + item.maxHpConstantBonus}\n";
+        if (item.maxSpModulusBonus != 0 || item.maxSpConstantBonus != 0)
+            newText += $"Max Mana: +{item.maxSpModulusBonus + item.maxSpConstantBonus}\n";
+        if (item.defenseModulusBonus != 0 || item.physicalResist != 0)
+            newText += $"Defense: +{item.defenseModulusBonus + item.physicalResist}\n";
+        if (item.crtModulusBonus != 0 || item.crtConstantBonus != 0)
+            newText += $"Critical Chance: +{item.crtModulusBonus + item.crtConstantBonus}%\n";
+        if (item.mspdModulusBonus != 0 || item.mspdConstantBonus != 0)
+            newText += $"Movement Speed: +{item.mspdModulusBonus + item.mspdConstantBonus}\n";
+        if (item.durability > 0) newText += $"Durability: {item.durability}\n";
+        if (item.description != "0") newText += $"\n{item.description}";
         itemTooltip.SetActive(true);
         tooltipText.text = newText.TrimEnd('\n');
         itemTooltip.transform.position = position + new Vector3(100f, 0f, 0f);
         isTooltipActive = true;
-        Debug.Log($"[InventoryUI] Showing tooltip for {item.itemName ?? "null"} at position {position}, Mods: S:{item.strengthMod}, A:{item.agilityMod}, Sp:{item.spiritMod}, C:{item.constitutionMod}, Ac:{item.accuracyMod}, I:{item.intelligenceMod}");
+        Debug.Log($"[InventoryUI] Showing tooltip for {item.itemName} at position {position}, Rarity: {item.rarity}, Level: {item.requiredLevel}, Stats: {newText}");
     }
 
     public void ShowSkillTooltip(SkillBase skill, Vector3 position)
@@ -212,13 +259,71 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
     {
         switch (slot)
         {
-            case EquipmentSlot.Head: headSlotUI.SetItem(itemInfo); break;
-            case EquipmentSlot.Body: bodySlotUI.SetItem(itemInfo); break;
-            case EquipmentSlot.Legs: legsSlotUI.SetItem(itemInfo); break;
-            case EquipmentSlot.RightHand: rightHandSlotUI.SetItem(itemInfo); break;
-            case EquipmentSlot.LeftHand: leftHandSlotUI.SetItem(itemInfo); break;
+            case EquipmentSlot.Head:
+                if (headSlotUI != null) headSlotUI.SetItem(itemInfo);
+                else Debug.LogWarning("[InventoryUI] headSlotUI is not assigned!");
+                break;
+            case EquipmentSlot.Body:
+                if (bodySlotUI != null) bodySlotUI.SetItem(itemInfo);
+                else Debug.LogWarning("[InventoryUI] bodySlotUI is not assigned!");
+                break;
+            case EquipmentSlot.Legs:
+                if (legsSlotUI != null) legsSlotUI.SetItem(itemInfo);
+                else Debug.LogWarning("[InventoryUI] legsSlotUI is not assigned!");
+                break;
+            case EquipmentSlot.RightHand:
+                if (rightHandSlotUI != null) rightHandSlotUI.SetItem(itemInfo);
+                else Debug.LogWarning("[InventoryUI] rightHandSlotUI is not assigned!");
+                break;
+            case EquipmentSlot.LeftHand:
+                if (leftHandSlotUI != null) leftHandSlotUI.SetItem(itemInfo);
+                else Debug.LogWarning("[InventoryUI] leftHandSlotUI is not assigned!");
+                break;
+            case EquipmentSlot.Ring:
+                if (ringSlotUI != null) ringSlotUI.SetItem(itemInfo);
+                else Debug.LogWarning("[InventoryUI] ringSlotUI is not assigned!");
+                break;
+            case EquipmentSlot.Necklace:
+                if (necklaceSlotUI != null) necklaceSlotUI.SetItem(itemInfo);
+                else Debug.LogWarning("[InventoryUI] necklaceSlotUI is not assigned!");
+                break;
+            case EquipmentSlot.Boots:
+                if (bootsSlotUI != null) bootsSlotUI.SetItem(itemInfo);
+                else Debug.LogWarning("[InventoryUI] bootsSlotUI is not assigned!");
+                break;
+            case EquipmentSlot.Gloves:
+                if (glovesSlotUI != null) glovesSlotUI.SetItem(itemInfo);
+                else Debug.LogWarning("[InventoryUI] glovesSlotUI is not assigned!");
+                break;
+            case EquipmentSlot.Weapon:
+                if (weaponSlotUI != null) weaponSlotUI.SetItem(itemInfo);
+                else Debug.LogWarning("[InventoryUI] weaponSlotUI is not assigned!");
+                break;
+            case EquipmentSlot.OffHand:
+                if (offHandSlotUI != null) offHandSlotUI.SetItem(itemInfo);
+                else Debug.LogWarning("[InventoryUI] offHandSlotUI is not assigned!");
+                break;
         }
         Debug.Log($"[InventoryUI] Updated equipment slot {slot}");
+    }
+
+    public EquipmentSlotUI FindMatchingEquipmentSlot(EquipmentSlot slotType)
+    {
+        switch (slotType)
+        {
+            case EquipmentSlot.Head: return headSlotUI != null ? headSlotUI : null;
+            case EquipmentSlot.Body: return bodySlotUI != null ? bodySlotUI : null;
+            case EquipmentSlot.Legs: return legsSlotUI != null ? legsSlotUI : null;
+            case EquipmentSlot.RightHand: return rightHandSlotUI != null ? rightHandSlotUI : null;
+            case EquipmentSlot.LeftHand: return leftHandSlotUI != null ? leftHandSlotUI : null;
+            case EquipmentSlot.Ring: return ringSlotUI != null ? ringSlotUI : null;
+            case EquipmentSlot.Necklace: return necklaceSlotUI != null ? necklaceSlotUI : null;
+            case EquipmentSlot.Boots: return bootsSlotUI != null ? bootsSlotUI : null;
+            case EquipmentSlot.Gloves: return glovesSlotUI != null ? glovesSlotUI : null;
+            case EquipmentSlot.Weapon: return weaponSlotUI != null ? weaponSlotUI : null;
+            case EquipmentSlot.OffHand: return offHandSlotUI != null ? offHandSlotUI : null;
+            default: return null;
+        }
     }
 
     private IEnumerator WaitForSyncAndUpdate()
@@ -232,18 +337,5 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
     private void OnGoldUIChanged()
     {
         if (goldText != null) goldText.text = $"Gold: {inventory.gold}";
-    }
-
-    public EquipmentSlotUI FindMatchingEquipmentSlot(EquipmentSlot slotType)
-    {
-        switch (slotType)
-        {
-            case EquipmentSlot.Head: return headSlotUI;
-            case EquipmentSlot.Body: return bodySlotUI;
-            case EquipmentSlot.Legs: return legsSlotUI;
-            case EquipmentSlot.RightHand: return rightHandSlotUI;
-            case EquipmentSlot.LeftHand: return leftHandSlotUI;
-            default: return null;
-        }
     }
 }

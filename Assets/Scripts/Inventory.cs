@@ -2,6 +2,7 @@ using UnityEngine;
 using Mirror;
 using System.Collections.Generic;
 using UnityEngine.Events;
+
 public class Inventory : NetworkBehaviour
 {
     public PlayerCore playerCore;
@@ -12,20 +13,29 @@ public class Inventory : NetworkBehaviour
     [SyncVar(hook = nameof(OnLegsChanged))] public ItemInfo legsSlot;
     [SyncVar(hook = nameof(OnRightHandChanged))] public ItemInfo rightHandSlot;
     [SyncVar(hook = nameof(OnLeftHandChanged))] public ItemInfo leftHandSlot;
+    [SyncVar(hook = nameof(OnRingChanged))] public ItemInfo ringSlot;
+    [SyncVar(hook = nameof(OnNecklaceChanged))] public ItemInfo necklaceSlot;
+    [SyncVar(hook = nameof(OnBootsChanged))] public ItemInfo bootsSlot;
+    [SyncVar(hook = nameof(OnGlovesChanged))] public ItemInfo glovesSlot;
+    [SyncVar(hook = nameof(OnWeaponChanged))] public ItemInfo weaponSlot;
+    [SyncVar(hook = nameof(OnOffHandChanged))] public ItemInfo offHandSlot;
     [SyncVar(hook = nameof(OnInventoryGoldChanged))] public int gold = 0;
     [HideInInspector] public UnityEvent OnInventoryChanged = new UnityEvent();
     [HideInInspector] public UnityEvent OnGoldChanged = new UnityEvent();
     [HideInInspector] public UnityEvent OnEquipmentChanged = new UnityEvent();
+
     public void OnItemsListChanged(SyncList<ItemInfo>.Operation op, int index, ItemInfo oldItem, ItemInfo newItem)
     {
         Debug.Log($"[Inventory] Items list changed: op={op}, index={index}");
         OnInventoryChanged.Invoke();
     }
+
     public void Init(PlayerCore core)
     {
         playerCore = core;
         items.Callback += OnItemsListChanged;
     }
+
     public override void OnStartClient()
     {
         base.OnStartClient();
@@ -36,6 +46,7 @@ public class Inventory : NetworkBehaviour
             OnGoldChanged.Invoke();
         }
     }
+
     [Server]
     public bool AddItem(Item item, int quantity = 1)
     {
@@ -45,19 +56,16 @@ public class Inventory : NetworkBehaviour
             return false;
         }
         bool added = false;
-        // Check if the item is stackable based on its maxStack value
-        bool isStackable = item.maxStack > 1;
+        bool isStackable = item.stackable && item.maxStack > 1;
         if (isStackable)
         {
             for (int i = 0; i < items.Count; i++)
             {
-                // Find an existing stack of the same item
                 if (items[i].id == item.id)
                 {
                     int newQuantity = items[i].quantity + quantity;
                     if (newQuantity <= item.maxStack)
                     {
-                        // Update the existing stack
                         ItemInfo updatedItemInfo = items[i];
                         updatedItemInfo.quantity = newQuantity;
                         items[i] = updatedItemInfo;
@@ -68,10 +76,8 @@ public class Inventory : NetworkBehaviour
                 }
             }
         }
-        // If not added (not stackable or no space in stack), find empty slot or add to end
         if (!added)
         {
-            // Find first empty slot (id == 0)
             int emptyIndex = -1;
             for (int i = 0; i < items.Count; i++)
             {
@@ -83,7 +89,6 @@ public class Inventory : NetworkBehaviour
             }
             if (emptyIndex >= 0)
             {
-                // Use empty slot
                 ItemInfo newInfo = new ItemInfo { id = item.id, quantity = quantity };
                 items[emptyIndex] = newInfo;
                 Debug.Log($"[Inventory] Added new item: {item.itemName} (ID: {item.id}, quantity: {quantity}) to empty slot {emptyIndex}");
@@ -91,7 +96,6 @@ public class Inventory : NetworkBehaviour
             }
             else if (items.Count < inventorySize)
             {
-                // Add to end if space
                 items.Add(new ItemInfo { id = item.id, quantity = quantity });
                 Debug.Log($"[Inventory] Added new item: {item.itemName} (ID: {item.id}, quantity: {quantity}) to new slot");
                 added = true;
@@ -103,6 +107,7 @@ public class Inventory : NetworkBehaviour
         }
         return added;
     }
+
     [Server]
     public void AddGold(int amount)
     {
@@ -111,6 +116,7 @@ public class Inventory : NetworkBehaviour
         OnGoldChanged.Invoke();
         Debug.Log($"[Inventory] Added {amount} gold, total: {gold}");
     }
+
     [Server]
     public bool SpendGold(int amount)
     {
@@ -120,6 +126,7 @@ public class Inventory : NetworkBehaviour
         Debug.Log($"[Inventory] Spent {amount} gold, remaining: {gold}");
         return true;
     }
+
     [Server]
     public void EquipItem(ItemInfo itemInfo, EquipmentSlot slot, int slotIndex)
     {
@@ -129,9 +136,17 @@ public class Inventory : NetworkBehaviour
             Debug.LogError($"[Inventory] Cannot equip item: Item with ID {itemInfo.id} not found");
             return;
         }
+        if (item.equipmentSlot != slot)
+        {
+            Debug.LogError($"[Inventory] Cannot equip item: {item.itemName} slot {item.equipmentSlot} does not match {slot}");
+            return;
+        }
+        if (!item.IsEquipable(playerCore.Stats.level))
+        {
+            Debug.LogError($"[Inventory] Cannot equip item: {item.itemName}, player level {playerCore.Stats.level} is less than required level {item.requiredLevel}");
+            return;
+        }
         Debug.Log($"[Inventory] Equipping item: {item.itemName} (ID: {itemInfo.id}) to {slot} from slot {slotIndex}");
-
-        // Проверяем, есть ли уже предмет в слоте
         ItemInfo oldItem = GetEquipped(slot);
         if (oldItem.id > 0)
         {
@@ -140,19 +155,19 @@ public class Inventory : NetworkBehaviour
             {
                 Debug.Log($"[Inventory] Unequipping old item: {oldItemObj.itemName} from {slot} to inventory");
                 ApplyItemStats(oldItemObj, false);
-                AddItem(oldItemObj, oldItem.quantity); // Возвращаем старый предмет в инвентарь
+                AddItem(oldItemObj, oldItem.quantity);
             }
         }
-
-        // Экипируем новый предмет
         SetEquipped(slot, itemInfo);
         ApplyItemStats(item, true);
+        ClearItemSlot(slotIndex);
     }
+
     [Server]
     public void UnequipItem(EquipmentSlot slot)
     {
         ItemInfo itemInfo = GetEquipped(slot);
-        if (itemInfo.id < 0 || itemInfo.quantity <= 0)
+        if (itemInfo.id <= 0 || itemInfo.quantity <= 0)
         {
             SetEquipped(slot, new ItemInfo());
             return;
@@ -169,19 +184,26 @@ public class Inventory : NetworkBehaviour
         AddItem(item, itemInfo.quantity);
         SetEquipped(slot, new ItemInfo());
     }
+
     private void ApplyItemStats(Item item, bool apply)
     {
         int mod = apply ? 1 : -1;
         CharacterStats stats = playerCore.Stats;
-        stats.strength += item.strengthMod * mod;
-        stats.agility += item.agilityMod * mod;
-        stats.spirit += item.spiritMod * mod;
-        stats.constitution += item.constitutionMod * mod;
-        stats.accuracy += item.accuracyMod * mod;
-        stats.intelligence += item.intelligenceMod * mod;
+        stats.strength += (item.strengthMod + item.strModulusBonus + item.strConstantBonus) * mod;
+        stats.agility += (item.agilityMod + item.agiModulusBonus + item.agiConstantBonus) * mod;
+        stats.spirit += (item.spiritMod + item.sprModulusBonus) * mod;
+        stats.constitution += (item.constitutionMod + item.conModulusBonus + item.conConstantBonus) * mod;
+        stats.accuracy += (item.accuracyMod + item.hitRateModulusBonus + item.hitModulusBonus + item.hitConstantBonus) * mod;
+        stats.intelligence += (item.intelligenceMod + item.agiModulusBonus + item.agiConstantBonus) * mod;
+        stats.maxHealth += (item.maxHpModulusBonus + item.maxHpConstantBonus) * mod;
+        stats.maxMana += (item.maxSpModulusBonus + item.maxSpConstantBonus) * mod;
+        stats.armor += (item.defenseModulusBonus + item.physicalResist) * mod;
+        stats.criticalHitChance += (item.crtModulusBonus + item.crtConstantBonus) * mod;
+        stats.movementSpeed += (item.mspdModulusBonus + item.mspdConstantBonus) * mod;
         stats.CalculateDerivedStats();
-        Debug.Log($"[Inventory] Applied stats for {item.itemName} (apply={apply}): strength={item.strengthMod * mod}, agility={item.agilityMod * mod}, spirit={item.spiritMod * mod}, constitution={item.constitutionMod * mod}, accuracy={item.accuracyMod * mod}, intelligence={item.intelligenceMod * mod}");
+        Debug.Log($"[Inventory] Applied stats for {item.itemName} (apply={apply}): strength={item.strengthMod + item.strModulusBonus + item.strConstantBonus}, agility={item.agilityMod + item.agiModulusBonus + item.agiConstantBonus}, spirit={item.spiritMod + item.sprModulusBonus}, constitution={item.constitutionMod + item.conModulusBonus + item.conConstantBonus}, accuracy={item.accuracyMod + item.hitRateModulusBonus + item.hitModulusBonus + item.hitConstantBonus}, intelligence={item.intelligenceMod + item.agiModulusBonus + item.agiConstantBonus}, maxHealth={item.maxHpModulusBonus + item.maxHpConstantBonus}, maxMana={item.maxSpModulusBonus + item.maxSpConstantBonus}, armor={item.defenseModulusBonus + item.physicalResist}, criticalHitChance={item.crtModulusBonus + item.crtConstantBonus}, movementSpeed={item.mspdModulusBonus + item.mspdConstantBonus}");
     }
+
     private ItemInfo GetEquipped(EquipmentSlot slot)
     {
         switch (slot)
@@ -191,9 +213,16 @@ public class Inventory : NetworkBehaviour
             case EquipmentSlot.Legs: return legsSlot;
             case EquipmentSlot.RightHand: return rightHandSlot;
             case EquipmentSlot.LeftHand: return leftHandSlot;
+            case EquipmentSlot.Ring: return ringSlot;
+            case EquipmentSlot.Necklace: return necklaceSlot;
+            case EquipmentSlot.Boots: return bootsSlot;
+            case EquipmentSlot.Gloves: return glovesSlot;
+            case EquipmentSlot.Weapon: return weaponSlot;
+            case EquipmentSlot.OffHand: return offHandSlot;
             default: return new ItemInfo();
         }
     }
+
     private void SetEquipped(EquipmentSlot slot, ItemInfo info)
     {
         Item item = info.GetItem();
@@ -204,16 +233,45 @@ public class Inventory : NetworkBehaviour
             case EquipmentSlot.Legs: legsSlot = info; break;
             case EquipmentSlot.RightHand: rightHandSlot = info; break;
             case EquipmentSlot.LeftHand: leftHandSlot = info; break;
+            case EquipmentSlot.Ring: ringSlot = info; break;
+            case EquipmentSlot.Necklace: necklaceSlot = info; break;
+            case EquipmentSlot.Boots: bootsSlot = info; break;
+            case EquipmentSlot.Gloves: glovesSlot = info; break;
+            case EquipmentSlot.Weapon: weaponSlot = info; break;
+            case EquipmentSlot.OffHand: offHandSlot = info; break;
         }
         OnEquipmentChanged.Invoke();
         Debug.Log($"[Inventory] Set equipped item: {(item != null ? item.itemName : "none")} (ID: {info.id}) to {slot}");
     }
+
+    public Item[] GetEquippedItems()
+    {
+        List<Item> equippedItems = new List<Item>();
+        ItemInfo[] slots = { headSlot, bodySlot, legsSlot, rightHandSlot, leftHandSlot, ringSlot, necklaceSlot, bootsSlot, glovesSlot, weaponSlot, offHandSlot };
+        foreach (var slot in slots)
+        {
+            Item item = slot.GetItem();
+            if (item != null)
+            {
+                equippedItems.Add(item);
+            }
+        }
+        return equippedItems.ToArray();
+    }
+
     private void OnHeadChanged(ItemInfo oldItem, ItemInfo newItem) { OnEquipmentChanged.Invoke(); }
     private void OnBodyChanged(ItemInfo oldItem, ItemInfo newItem) { OnEquipmentChanged.Invoke(); }
     private void OnLegsChanged(ItemInfo oldItem, ItemInfo newItem) { OnEquipmentChanged.Invoke(); }
     private void OnRightHandChanged(ItemInfo oldItem, ItemInfo newItem) { OnEquipmentChanged.Invoke(); }
     private void OnLeftHandChanged(ItemInfo oldItem, ItemInfo newItem) { OnEquipmentChanged.Invoke(); }
+    private void OnRingChanged(ItemInfo oldItem, ItemInfo newItem) { OnEquipmentChanged.Invoke(); }
+    private void OnNecklaceChanged(ItemInfo oldItem, ItemInfo newItem) { OnEquipmentChanged.Invoke(); }
+    private void OnBootsChanged(ItemInfo oldItem, ItemInfo newItem) { OnEquipmentChanged.Invoke(); }
+    private void OnGlovesChanged(ItemInfo oldItem, ItemInfo newItem) { OnEquipmentChanged.Invoke(); }
+    private void OnWeaponChanged(ItemInfo oldItem, ItemInfo newItem) { OnEquipmentChanged.Invoke(); }
+    private void OnOffHandChanged(ItemInfo oldItem, ItemInfo newItem) { OnEquipmentChanged.Invoke(); }
     private void OnInventoryGoldChanged(int oldGold, int newGold) { OnGoldChanged.Invoke(); }
+
     [Server]
     public void ClearItemSlot(int index)
     {
@@ -222,8 +280,7 @@ public class Inventory : NetworkBehaviour
             Debug.LogError($"[Inventory] Cannot clear item slot: Index {index} is out of bounds.");
             return;
         }
-        // Заменяем предмет на пустой ItemInfo
         items[index] = new ItemInfo { id = 0, quantity = 0 };
-        Debug.Log($"[Inventory] Cleared item slot at index: {index}.");
+        Debug.Log($"[Inventory] Cleared item slot at index: {index}");
     }
 }

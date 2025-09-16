@@ -16,7 +16,7 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
     private GameObject dragIcon;
     private Coroutine tooltipCoroutine;
     private float lastClickTime;
-    private const float DOUBLE_CLICK_TIME = 0.3f; // Время для двойного клика
+    private const float DOUBLE_CLICK_TIME = 0.3f;
 
     private void Awake()
     {
@@ -161,15 +161,14 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         SkillButton targetButton = eventData.pointerEnter?.GetComponent<SkillButton>() ?? eventData.pointerEnter?.GetComponentInParent<SkillButton>();
         if (targetEquipSlot != null)
         {
-            EquipmentSlotUI matchingSlot = inventoryUI.FindMatchingEquipmentSlot(item.equipmentSlot);
-            if (matchingSlot != null)
+            if (item.equipmentSlot == targetEquipSlot.slotType && item.IsEquipable(core.Stats.level))
             {
-                Debug.Log($"[InventorySlot] Equipping item: {item.itemName} (ID: {itemInfo.id}) to {matchingSlot.slotType} from slot {slotIndex}");
-                core.CmdEquipItem(itemInfo, slotIndex, matchingSlot.slotType);
+                Debug.Log($"[InventorySlot] Equipping item: {item.itemName} (ID: {itemInfo.id}) to {targetEquipSlot.slotType} from slot {slotIndex}");
+                core.CmdEquipItem(itemInfo, slotIndex, targetEquipSlot.slotType);
             }
             else
             {
-                Debug.LogWarning($"[InventorySlot] Cannot equip {item.itemName}: no matching slot for {item.equipmentSlot}");
+                Debug.LogWarning($"[InventorySlot] Cannot equip {item.itemName}: slot {item.equipmentSlot} does not match {targetEquipSlot.slotType} or level {core.Stats.level} < {item.requiredLevel}");
             }
         }
         else if (targetButton != null && item.canHotbar && targetButton.buttonIndex != 0)
@@ -195,7 +194,7 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         if (eventData.clickCount == 2 && itemInfo.id > 0)
         {
             Item item = itemInfo.GetItem();
-            if (item != null && item.equipmentSlot != EquipmentSlot.None)
+            if (item != null && item.equipmentSlot != EquipmentSlot.None && item.IsEquipable(core.Stats.level))
             {
                 EquipmentSlotUI matchingSlot = inventoryUI.FindMatchingEquipmentSlot(item.equipmentSlot);
                 if (matchingSlot != null)
@@ -205,7 +204,7 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
                 }
                 else
                 {
-                    Debug.LogWarning($"[InventorySlot] Cannot equip {item.itemName} on double-click: no matching slot for {item.equipmentSlot}");
+                    Debug.LogWarning($"[InventorySlot] Cannot equip {item.itemName} on double-click: no matching slot for {item.equipmentSlot} or level {core.Stats.level} < {item.requiredLevel}");
                 }
             }
         }

@@ -139,17 +139,21 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
             inventoryUI.draggedSlot = null;
             return;
         }
+        // Проверка, соответствует ли слот предмету и уровню игрока
+        if (item.equipmentSlot != slotType)
+        {
+            Debug.LogWarning($"[EquipmentSlotUI] Cannot equip {item.itemName}: slot {slotType} does not match item slot {item.equipmentSlot}");
+            inventoryUI.draggedSlot = null;
+            return;
+        }
+        if (!item.IsEquipable(core.Stats.level))
+        {
+            Debug.LogWarning($"[EquipmentSlotUI] Cannot equip {item.itemName}: player level {core.Stats.level} is less than required level {item.requiredLevel}");
+            inventoryUI.draggedSlot = null;
+            return;
+        }
         Debug.Log($"[EquipmentSlotUI] OnDrop: Attempting to equip {item.itemName} (ID: {inventoryUI.draggedSlot.itemInfo.id}) from slot {inventoryUI.draggedSlot.slotIndex} to {slotType}");
-        EquipmentSlotUI matchingSlot = inventoryUI.FindMatchingEquipmentSlot(item.equipmentSlot);
-        if (matchingSlot != null)
-        {
-            Debug.Log($"[EquipmentSlotUI] Equipping item: {item.itemName} (ID: {inventoryUI.draggedSlot.itemInfo.id}) to {matchingSlot.slotType} from slot {inventoryUI.draggedSlot.slotIndex}");
-            core.CmdEquipItem(inventoryUI.draggedSlot.itemInfo, inventoryUI.draggedSlot.slotIndex, matchingSlot.slotType);
-        }
-        else
-        {
-            Debug.LogWarning($"[EquipmentSlotUI] Cannot equip {item.itemName}: no matching slot for {item.equipmentSlot}");
-        }
+        core.CmdEquipItem(inventoryUI.draggedSlot.itemInfo, inventoryUI.draggedSlot.slotIndex, slotType);
         inventoryUI.draggedSlot = null;
     }
 }
