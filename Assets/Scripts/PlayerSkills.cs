@@ -707,7 +707,7 @@ public class PlayerSkills : NetworkBehaviour
         SetToggleBuff("Invisibility", value);
     }
     [Command]
-    private void CmdInterruptInvisibility()
+    public void CmdInterruptInvisibility()
     {
         Debug.Log($"[PlayerSkills] CmdInterruptInvisibility called on {gameObject.name}, _isInvisible={_isInvisible}");
         SetToggleBuff("Invisibility", false);

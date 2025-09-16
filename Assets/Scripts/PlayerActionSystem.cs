@@ -111,6 +111,12 @@ public class PlayerActionSystem : NetworkBehaviour
             Debug.LogWarning($"[PlayerActionSystem] Cannot start action {actionType}: invalid parameters or configuration");
             return false;
         }
+        // Добавь: прерывание невидимости при начале атаки/каста
+        if ((actionType == PlayerAction.Attack || actionType == PlayerAction.SkillCast) && _core.Skills.toggleBuffStates.ContainsKey("Invisibility") && _core.Skills.toggleBuffStates["Invisibility"])
+        {
+            _core.Skills.CmdInterruptInvisibility();
+            Debug.Log("[PlayerActionSystem] Interrupted invisibility for attack/skill cast");
+        }
         if (_isPerformingAction)
         {
             int newPriority = GetPriority(actionType);
