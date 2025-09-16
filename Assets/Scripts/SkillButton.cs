@@ -1,11 +1,9 @@
-// SkillButton.cs - полный, фикс OnEndDrag (clear no target) + OnButtonClicked (item > skill)
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using System.Collections;
 using System.Linq;
 using static SkillBase;
-
 
 public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
@@ -19,11 +17,17 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
     private Image iconImage;
     private GameObject dragIcon;
     private Coroutine tooltipCoroutine;
+    [SerializeField] private GameObject buffIndicator;
 
     private void Awake()
     {
         inventoryUI = Object.FindFirstObjectByType<InventoryUI>();
         iconImage = GetComponentInChildren<Image>();
+        buffIndicator = transform.Find("BuffIndicator")?.gameObject;
+        if (buffIndicator == null)
+        {
+            Debug.LogWarning($"[SkillButton] BuffIndicator not found for button {buttonIndex}");
+        }
     }
 
     public void Initialize(PlayerSkills skills, PlayerCore playerCore, int index)
@@ -37,6 +41,26 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         {
             button.onClick.AddListener(OnButtonClicked);
         }
+        // Подписываемся на изменение состояния тоггл-баффов
+        if (skills != null && skillsComponent != null)
+        {
+            skillsComponent.OnToggleBuffChanged.AddListener(UpdateBuffIndicator);
+            // Проверяем начальное состояние баффа
+            if (skill != null && skill.SkillCastType == CastType.ToggleBuff)
+            {
+                bool isActive = skillsComponent.toggleBuffStates.ContainsKey(skill.SkillName) && skillsComponent.toggleBuffStates[skill.SkillName];
+                UpdateBuffIndicator(skill.SkillName, isActive);
+            }
+        }
+    }
+
+    private void OnDestroy()
+    {
+        // Отписываемся от события
+        if (skillsComponent != null)
+        {
+            skillsComponent.OnToggleBuffChanged.RemoveListener(UpdateBuffIndicator);
+        }
     }
 
     public void OnButtonClicked()
@@ -46,17 +70,17 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
             Debug.LogError("[SkillButton] PlayerCore is null!");
             return;
         }
-        if (item != null) // Item first
+        if (item != null)
         {
             if (core.isDead || core.isStunned)
             {
                 Debug.Log($"[SkillButton] Cannot use item {item.itemName}: Player is dead or stunned");
                 return;
             }
-            core.CmdSelectItem(item.id, itemSlotIndex);// select без траты
+            core.CmdSelectItem(item.id, itemSlotIndex);
             Debug.Log($"[SkillButton] Item used: {item.itemName} (ID: {item.id}), slot: {itemSlotIndex}, index: {buttonIndex}");
         }
-        else if (skill != null) // Then skill
+        else if (skill != null)
         {
             if (core.isDead || core.isStunned || (core.isSilenced && !(skill is BasicAttackSkill)))
             {
@@ -65,19 +89,23 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
             }
             if (skillsComponent != null)
             {
-                if (skill.SkillCastType == SkillBase.CastType.SelfBuff || skill.SkillCastType == SkillBase.CastType.ToggleBuff)
+                if (skill.SkillCastType == SkillBase.CastType.SelfBuff)
                 {
-                    if (skill.SkillCastType == SkillBase.CastType.ToggleBuff && skill.SkillName == "Invisibility")
-                    {
-                        bool enable = !core.Skills._isInvisible;
-                        core.Skills.CmdToggleInvisibility(enable, skill.SkillName);
-                    }
-                    else
-                    {
-                        skill.Execute(core, null, core.gameObject);
-                    }
+                    skill.Execute(core, null, core.gameObject);
                     skillsComponent.CancelSkillSelection();
-                    Debug.Log($"[SkillButton] Instant {skill.SkillCastType}: {skill.SkillName}, index: {buttonIndex}");
+                    Debug.Log($"[SkillButton] Instant SelfBuff: {skill.SkillName}, index: {buttonIndex}");
+                }
+                else if (skill.SkillCastType == SkillBase.CastType.ToggleBuff)
+                {
+                    bool isActive = skillsComponent.toggleBuffStates.ContainsKey(skill.SkillName) && skillsComponent.toggleBuffStates[skill.SkillName];
+                    bool targetState = !isActive;
+                    if (isActive == targetState)
+                    {
+                        Debug.Log($"[SkillButton] ToggleBuff {skill.SkillName} already in state {isActive}, skipping CmdToggleBuff, index: {buttonIndex}");
+                        return;
+                    }
+                    core.Skills.CmdToggleBuff(skill.SkillName, targetState);
+                    Debug.Log($"[SkillButton] ToggleBuff {skill.SkillName} requesting state {targetState}, index: {buttonIndex}");
                 }
                 else
                 {
@@ -175,9 +203,9 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
                 Debug.Log($"[SkillButton] Dropped item from hotbar button {buttonIndex}");
             }
         }
-        else // Clear если no target
+        else
         {
-            PlayerUI.Instance.SwapSkillsOrItems(this, null); // Вызов для clear
+            PlayerUI.Instance.SwapSkillsOrItems(this, null);
             Debug.Log($"[SkillButton] Cleared hotbar button {buttonIndex} (no target)");
         }
         Destroy(dragIcon);
@@ -196,5 +224,14 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         if (inventoryUI != null)
             inventoryUI.HideTooltip();
         tooltipCoroutine = null;
+    }
+
+    public void UpdateBuffIndicator(string skillName, bool isActive)
+    {
+        if (buffIndicator != null && skill != null && skill.SkillCastType == CastType.ToggleBuff && skill.SkillName == skillName)
+        {
+            buffIndicator.SetActive(isActive);
+            Debug.Log($"[SkillButton] BuffIndicator for {skill.SkillName} set to {isActive} on button {buttonIndex}");
+        }
     }
 }

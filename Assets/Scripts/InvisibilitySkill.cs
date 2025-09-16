@@ -8,7 +8,7 @@ public class InvisibilitySkill : SkillBase
     public float duration = 10f; // Настраиваемая длительность
     public GameObject invisibilityEffectPrefab; // Эффект частиц для невидимости (опционально)
     private GameObject _invisibilityEffectInstance;
-    private int _originalLayer; // Для сохранения слоя игрока
+    public int originalLayer { get; private set; } // Для сохранения слоя игрока
 
     public override void Init(PlayerCore core)
     {
@@ -19,7 +19,8 @@ public class InvisibilitySkill : SkillBase
             _invisibilityEffectInstance = Object.Instantiate(invisibilityEffectPrefab, core.transform);
             _invisibilityEffectInstance.SetActive(false);
         }
-        _originalLayer = core.gameObject.layer; // Сохраняем слой "Player"
+        originalLayer = core.gameObject.layer; // Сохраняем слой "Player"
+        Debug.Log($"[InvisibilitySkill] Initialized with originalLayer={originalLayer} for {core.gameObject.name}");
     }
 
     protected override void ExecuteSkillImplementation(PlayerCore player, Vector3? targetPosition, GameObject targetObject)
@@ -50,20 +51,7 @@ public class InvisibilitySkill : SkillBase
             Debug.LogWarning($"[InvisibilitySkill] Player is null in ApplyInvisibilityEffect for {SkillName}");
             return;
         }
-
-        // Меняем слой игрока
-        if (isActive)
-        {
-            _player.gameObject.layer = LayerMask.NameToLayer("Ignore Raycast");
-            Debug.Log($"[InvisibilitySkill] Set layer to Ignore Raycast for {_player.gameObject.name}");
-        }
-        else
-        {
-            _player.gameObject.layer = _originalLayer; // Восстанавливаем слой "Player"
-            Debug.Log($"[InvisibilitySkill] Restored layer {_originalLayer} for {_player.gameObject.name}");
-        }
-
-        // Управляем эффектом частиц, если он есть
+        // Управляем только эффектом частиц на клиенте
         if (_invisibilityEffectInstance != null)
         {
             _invisibilityEffectInstance.SetActive(isActive);

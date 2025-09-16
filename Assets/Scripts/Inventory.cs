@@ -121,7 +121,7 @@ public class Inventory : NetworkBehaviour
         return true;
     }
     [Server]
-    public void EquipItem(ItemInfo itemInfo, EquipmentSlot slot)
+    public void EquipItem(ItemInfo itemInfo, EquipmentSlot slot, int slotIndex)
     {
         Item item = itemInfo.GetItem();
         if (item == null)
@@ -129,17 +129,22 @@ public class Inventory : NetworkBehaviour
             Debug.LogError($"[Inventory] Cannot equip item: Item with ID {itemInfo.id} not found");
             return;
         }
-        Debug.Log($"[Inventory] Equipping item: {item.itemName} (ID: {itemInfo.id}) to {slot}");
+        Debug.Log($"[Inventory] Equipping item: {item.itemName} (ID: {itemInfo.id}) to {slot} from slot {slotIndex}");
+
+        // Проверяем, есть ли уже предмет в слоте
         ItemInfo oldItem = GetEquipped(slot);
-        if (oldItem.id >= 0)
+        if (oldItem.id > 0)
         {
             Item oldItemObj = oldItem.GetItem();
             if (oldItemObj != null)
             {
-                Debug.Log($"[Inventory] Unequipping old item: {oldItemObj.itemName} from {slot}");
-                UnequipItem(slot);
+                Debug.Log($"[Inventory] Unequipping old item: {oldItemObj.itemName} from {slot} to inventory");
+                ApplyItemStats(oldItemObj, false);
+                AddItem(oldItemObj, oldItem.quantity); // Возвращаем старый предмет в инвентарь
             }
         }
+
+        // Экипируем новый предмет
         SetEquipped(slot, itemInfo);
         ApplyItemStats(item, true);
     }

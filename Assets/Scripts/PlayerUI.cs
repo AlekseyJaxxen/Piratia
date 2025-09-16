@@ -8,12 +8,9 @@ using System.Collections.Generic;
 using System.Linq;
 using static SkillBase;
 
-
-
 public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
     public static PlayerUI Instance { get; private set; }
-
     [Header("UI Elements")]
     public Image healthBar;
     public Image manaBar;
@@ -21,14 +18,12 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     public Slider experienceSlider;
     public TextMeshProUGUI skillPointsText;
     public TextMeshProUGUI characteristicPointsText;
-
     [SerializeField] Transform skillPanel;
     [SerializeField] private SkillButton[] skillButtons1;
     [SerializeField] private SkillButton[] skillButtons2;
     [SerializeField] private SkillButton[] skillButtons3;
     [SerializeField] private Sprite defaultEmptySprite;
     [SerializeField] private Button closeButton;
-
     [Header("Attributes Panel")]
     public GameObject attributesPanel;
     [SerializeField] private Button closeAttributesButton;
@@ -53,32 +48,24 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     public Button spiritButton;
     public Button constitutionButton;
     public Button accuracyButton;
-
     [Header("Cooldown UI")]
     public Image globalCooldownImage;
-
     [System.Serializable]
     public class SkillCooldownEntry
     {
         public string skillName;
         public Image cooldownImage;
     }
-
     [SerializeField] private List<SkillCooldownEntry> skillCooldownEntries = new List<SkillCooldownEntry>();
-
     private CharacterStats stats;
     private PlayerCore core;
     private RectTransform attributesPanelRect;
     private Vector2 dragOffset;
-
     private readonly KeyCode[] hotkeys1 = { KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None };
     private readonly KeyCode[] hotkeys2 = { KeyCode.None, KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.Alpha4, KeyCode.Alpha5, KeyCode.Alpha6, KeyCode.Alpha7, KeyCode.Alpha8, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.Minus, KeyCode.Equals };
     private readonly KeyCode[] hotkeys3 = { KeyCode.None, KeyCode.Q, KeyCode.W, KeyCode.E, KeyCode.R, KeyCode.T, KeyCode.Y, KeyCode.U, KeyCode.I, KeyCode.O, KeyCode.P, KeyCode.LeftBracket, KeyCode.RightBracket };
-
     public Sprite GetDefaultEmptySprite() => defaultEmptySprite;
-
     public SkillButton[] GetSkillButtons2() => skillButtons2;
-
     public SkillButton[] GetSkillButtons3() => skillButtons3;
 
     private void Start()
@@ -90,14 +77,12 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             gameObject.SetActive(false);
             return;
         }
-
         if (!core.isLocalPlayer)
         {
             Debug.Log("[PlayerUI] Not local player, disabling UI.");
             gameObject.SetActive(false);
             return;
         }
-
         Instance = this;
         stats = core.GetComponent<CharacterStats>();
         if (stats == null)
@@ -106,20 +91,17 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             gameObject.SetActive(false);
             return;
         }
-
         StartCoroutine(InitializeUI());
     }
 
     private IEnumerator InitializeUI()
     {
         yield return new WaitForSeconds(2f);
-
         if (!core.isLocalPlayer || !core.isClient)
         {
             Debug.Log("[PlayerUI] Waiting for client sync...");
             yield return new WaitUntil(() => core.isLocalPlayer && core.isClient);
         }
-
         if (core.Health != null)
         {
             core.Health.OnHealthUpdated += UpdateHealthBar;
@@ -130,14 +112,12 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         {
             Debug.LogError("[PlayerUI] Health component not found!");
         }
-
         UpdateLevel(stats.level);
         UpdateExperience(stats.currentExperience, stats.level);
         UpdateManaBar(stats.currentMana, stats.maxMana);
         UpdateSkillPoints(stats.skillPoints);
         UpdateCharacteristicPoints(0, stats.characteristicPoints);
         UpdateAttributesPanel();
-
         stats.OnManaChangedEvent += UpdateManaBar;
         stats.OnLevelChangedEvent += UpdateLevelAndExperience;
         stats.OnCharacteristicPointsChangedEvent += UpdateCharacteristicPoints;
@@ -148,38 +128,31 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         stats.OnAccuracyChangedEvent += (oldValue, newValue) => UpdateAttribute("accuracy", newValue);
         stats.OnMinAttackChangedEvent += (oldValue, newValue) => UpdateAttribute("minAttack", newValue);
         stats.OnMaxAttackChangedEvent += (oldValue, newValue) => UpdateAttribute("maxAttack", newValue);
-
         if (strengthButton != null)
         {
             strengthButton.onClick.AddListener(() => { core.CmdIncreaseStat("strength"); Debug.Log("[PlayerUI] Strength button clicked"); });
         }
-
         if (agilityButton != null)
         {
             agilityButton.onClick.AddListener(() => { core.CmdIncreaseStat("agility"); Debug.Log("[PlayerUI] Agility button clicked"); });
         }
-
         if (spiritButton != null)
         {
             spiritButton.onClick.AddListener(() => { core.CmdIncreaseStat("spirit"); Debug.Log("[PlayerUI] Spirit button clicked"); });
         }
-
         if (constitutionButton != null)
         {
             constitutionButton.onClick.AddListener(() => { core.CmdIncreaseStat("constitution"); Debug.Log("[PlayerUI] Constitution button clicked"); });
         }
-
         if (accuracyButton != null)
         {
             accuracyButton.onClick.AddListener(() => { core.CmdIncreaseStat("accuracy"); Debug.Log("[PlayerUI] Accuracy button clicked"); });
         }
-
         if (attributesPanel != null)
         {
             attributesPanelRect = attributesPanel.GetComponent<RectTransform>();
             attributesPanel.SetActive(false);
         }
-
         if (closeButton != null)
         {
             closeButton.onClick.AddListener(() =>
@@ -195,7 +168,6 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         {
             Debug.LogWarning("[PlayerUI] CloseButton not assigned in Inspector!");
         }
-
         if (closeAttributesButton != null)
         {
             closeAttributesButton.onClick.AddListener(() =>
@@ -211,10 +183,8 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         {
             Debug.LogWarning("[PlayerUI] CloseAttributesButton not assigned in Inspector!");
         }
-
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
-
         EventSystem[] eventSystems = FindObjectsByType<EventSystem>(FindObjectsSortMode.None);
         if (eventSystems.Length > 1)
         {
@@ -224,14 +194,11 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
                 Debug.LogWarning("[PlayerUI] Destroyed duplicate EventSystem to prevent input conflicts.");
             }
         }
-
         PlayerSkills skillsComponent = core.GetComponent<PlayerSkills>();
         if (skillsComponent != null)
         {
             yield return new WaitUntil(() => skillsComponent.skills.Count > 0);
-
             skillCooldownEntries.Clear();
-
             for (int i = 0; i < skillButtons1.Length && i < skillsComponent.skills.Count; i++)
             {
                 SkillButton btn = skillButtons1[i];
@@ -241,11 +208,9 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
                     Debug.LogError($"[PlayerUI] Skill at index {i} is null in skills list for {skillsComponent.gameObject.name}");
                     continue;
                 }
-
                 SkillBase skillCopy = Instantiate(originalSkill);
                 skillCopy.Init(core);
                 btn.skill = skillCopy;
-
                 Image iconImage = btn.GetComponentInChildren<Image>();
                 if (iconImage != null)
                 {
@@ -255,7 +220,6 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
                 {
                     Debug.LogError($"[PlayerUI] Icon Image not found in skill button at index {i} for skill {skillCopy.SkillName}");
                 }
-
                 Image cdImage = btn.transform.Find("CooldownOverlay")?.GetComponent<Image>();
                 if (cdImage != null)
                 {
@@ -265,41 +229,34 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
                 {
                     Debug.LogError($"[PlayerUI] CooldownOverlay Image not found for skill {skillCopy.SkillName}");
                 }
-
                 btn.Initialize(skillsComponent, core, i);
                 skillCopy.Hotkey = KeyCode.None;
                 Debug.Log($"[PlayerUI] Skill button1 initialized for {skillCopy.SkillName} at index {i}, no hotkey");
             }
-
             for (int i = 0; i < skillButtons2.Length; i++)
             {
                 SkillButton btn = skillButtons2[i];
                 Image iconImage = btn.GetComponentInChildren<Image>();
                 if (iconImage != null) iconImage.sprite = defaultEmptySprite;
-
                 Image cdImage = btn.transform.Find("CooldownOverlay")?.GetComponent<Image>();
                 if (cdImage != null)
                 {
                     skillCooldownEntries.Add(new SkillCooldownEntry { skillName = "", cooldownImage = cdImage });
                 }
-
                 btn.Initialize(skillsComponent, core, i);
                 btn.skill = null;
                 Debug.Log($"[PlayerUI] Empty skill button2 at index {i} initialized, hotkey {hotkeys2[i]}");
             }
-
             for (int i = 0; i < skillButtons3.Length; i++)
             {
                 SkillButton btn = skillButtons3[i];
                 Image iconImage = btn.GetComponentInChildren<Image>();
                 if (iconImage != null) iconImage.sprite = defaultEmptySprite;
-
                 Image cdImage = btn.transform.Find("CooldownOverlay")?.GetComponent<Image>();
                 if (cdImage != null)
                 {
                     skillCooldownEntries.Add(new SkillCooldownEntry { skillName = "", cooldownImage = cdImage });
                 }
-
                 btn.Initialize(skillsComponent, core, i);
                 btn.skill = null;
                 Debug.Log($"[PlayerUI] Empty skill button3 at index {i} initialized, hotkey {hotkeys3[i]}");
@@ -314,7 +271,6 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     private void Update()
     {
         if (!core.isLocalPlayer || core.isDead || core.isStunned) return;
-
         if (Input.GetKeyDown(KeyCode.C))
         {
             if (attributesPanel != null)
@@ -329,7 +285,6 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
                 Debug.LogError("[PlayerUI] AttributesPanel is null! Ensure it is assigned in the Inspector.");
             }
         }
-
         if (Input.GetKeyDown(KeyCode.K))
         {
             if (skillPanel != null)
@@ -343,7 +298,6 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
                 Debug.LogError("[PlayerUI] SkillPanel is null! Ensure it is assigned in the Inspector.");
             }
         }
-
         foreach (var btn in skillButtons2)
         {
             if (btn.skill != null && Input.GetKeyDown(btn.skill.Hotkey))
@@ -356,19 +310,18 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
                 PlayerSkills skillsComp = core.GetComponent<PlayerSkills>();
                 if (skillsComp != null)
                 {
-                    if (btn.skill.SkillCastType == SkillBase.CastType.SelfBuff || btn.skill.SkillCastType == SkillBase.CastType.ToggleBuff)
+                    if (btn.skill.SkillCastType == SkillBase.CastType.SelfBuff)
                     {
-                        if (btn.skill.SkillCastType == SkillBase.CastType.ToggleBuff && btn.skill.SkillName == "Invisibility")
-                        {
-                            bool enable = !core.Skills._isInvisible;
-                            core.Skills.CmdToggleInvisibility(enable, btn.skill.SkillName);
-                        }
-                        else
-                        {
-                            btn.skill.Execute(core, null, core.gameObject);
-                        }
+                        btn.skill.Execute(core, null, core.gameObject);
                         skillsComp.CancelSkillSelection();
-                        Debug.Log($"[PlayerUI] Instant {btn.skill.SkillCastType}: {btn.skill.SkillName}");
+                        Debug.Log($"[PlayerUI] Instant SelfBuff: {btn.skill.SkillName}");
+                    }
+                    else if (btn.skill.SkillCastType == SkillBase.CastType.ToggleBuff)
+                    {
+                        bool isActive = skillsComp.toggleBuffStates.ContainsKey(btn.skill.SkillName) && skillsComp.toggleBuffStates[btn.skill.SkillName];
+                        bool targetState = !isActive;
+                        skillsComp.CmdToggleBuff(btn.skill.SkillName, targetState);
+                        Debug.Log($"[PlayerUI] Instant ToggleBuff: {btn.skill.SkillName}, requesting state {targetState}");
                     }
                     else
                     {
@@ -384,7 +337,6 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
                 btn.OnButtonClicked();
             }
         }
-
         foreach (var btn in skillButtons3)
         {
             if (btn.skill != null && Input.GetKeyDown(btn.skill.Hotkey))
@@ -397,19 +349,18 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
                 PlayerSkills skillsComp = core.GetComponent<PlayerSkills>();
                 if (skillsComp != null)
                 {
-                    if (btn.skill.SkillCastType == SkillBase.CastType.SelfBuff || btn.skill.SkillCastType == SkillBase.CastType.ToggleBuff)
+                    if (btn.skill.SkillCastType == SkillBase.CastType.SelfBuff)
                     {
-                        if (btn.skill.SkillCastType == SkillBase.CastType.ToggleBuff && btn.skill.SkillName == "Invisibility")
-                        {
-                            bool enable = !core.Skills._isInvisible;
-                            core.Skills.CmdToggleInvisibility(enable, btn.skill.SkillName);
-                        }
-                        else
-                        {
-                            btn.skill.Execute(core, null, core.gameObject);
-                        }
+                        btn.skill.Execute(core, null, core.gameObject);
                         skillsComp.CancelSkillSelection();
-                        Debug.Log($"[PlayerUI] Instant {btn.skill.SkillCastType}: {btn.skill.SkillName}");
+                        Debug.Log($"[PlayerUI] Instant SelfBuff: {btn.skill.SkillName}");
+                    }
+                    else if (btn.skill.SkillCastType == SkillBase.CastType.ToggleBuff)
+                    {
+                        bool isActive = skillsComp.toggleBuffStates.ContainsKey(btn.skill.SkillName) && skillsComp.toggleBuffStates[btn.skill.SkillName];
+                        bool targetState = !isActive;
+                        skillsComp.CmdToggleBuff(btn.skill.SkillName, targetState);
+                        Debug.Log($"[PlayerUI] Instant ToggleBuff: {btn.skill.SkillName}, requesting state {targetState}");
                     }
                     else
                     {
@@ -435,7 +386,6 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             {
                 core.Health.OnHealthUpdated -= UpdateHealthBar;
             }
-
             stats.OnManaChangedEvent -= UpdateManaBar;
             stats.OnLevelChangedEvent -= UpdateLevelAndExperience;
             stats.OnCharacteristicPointsChangedEvent -= UpdateCharacteristicPoints;
@@ -452,13 +402,11 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     public void UpdateHealthBar(int currentHealth, int maxHealth)
     {
         if (!core.isLocalPlayer) return;
-
         if (healthBar == null)
         {
             Debug.LogError("[PlayerUI] healthBar is null! Ensure it is assigned in the Inspector.");
             return;
         }
-
         float fillAmount = maxHealth > 0 ? (float)currentHealth / maxHealth : 0f;
         healthBar.fillAmount = fillAmount;
         Debug.Log($"[PlayerUI] Health bar updated: {currentHealth}/{maxHealth}, fillAmount={fillAmount}");
@@ -467,13 +415,11 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     public void UpdateManaBar(int currentMana, int maxMana)
     {
         if (!core.isLocalPlayer) return;
-
         if (manaBar == null)
         {
             Debug.LogError("[PlayerUI] manaBar is null! Ensure it is assigned in the Inspector.");
             return;
         }
-
         float fillAmount = maxMana > 0 ? (float)currentMana / maxMana : 0f;
         manaBar.fillAmount = fillAmount;
         manaBar.color = Color.Lerp(new Color(0, 0, 0.5f), Color.blue, fillAmount);
@@ -483,7 +429,6 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     public void UpdateLevel(int level)
     {
         if (!core.isLocalPlayer) return;
-
         if (levelText != null)
         {
             levelText.text = $"{level}";
@@ -493,7 +438,6 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     public void UpdateExperience(int currentExperience, int level)
     {
         if (!core.isLocalPlayer) return;
-
         if (experienceSlider != null && level <= 100)
         {
             int expNeeded = 10 + ((level - 1) * (level - 1) * 5);
@@ -505,7 +449,6 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     public void UpdateSkillPoints(int skillPoints)
     {
         if (!core.isLocalPlayer) return;
-
         if (skillPointsText != null)
         {
             skillPointsText.text = $"{skillPoints}";
@@ -515,19 +458,16 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     public void UpdateCharacteristicPoints(int oldPoints, int newPoints)
     {
         if (!core.isLocalPlayer) return;
-
         if (characteristicPointsText != null)
         {
             characteristicPointsText.text = $"{newPoints}";
         }
-
         UpdateAttributesPanel();
     }
 
     private void UpdateLevelAndExperience(int oldLevel, int newLevel)
     {
         if (!core.isLocalPlayer) return;
-
         UpdateLevel(newLevel);
         UpdateExperience(stats.currentExperience, newLevel);
         UpdateSkillPoints(stats.skillPoints);
@@ -537,7 +477,6 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     private void UpdateAttributesPanel()
     {
         if (!core.isLocalPlayer || stats == null) return;
-
         if (strengthText != null) strengthText.text = $"{stats.strength}";
         if (agilityText != null) agilityText.text = $"{stats.agility}";
         if (spiritText != null) spiritText.text = $"{stats.spirit}";
@@ -554,9 +493,7 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         if (criticalHitMultiplierText != null) criticalHitMultiplierText.text = $"{stats.criticalHitMultiplier:F2}x";
         if (minAttackText != null) minAttackText.text = $"{stats.minAttack}";
         if (maxAttackText != null) maxAttackText.text = $"{stats.maxAttack}";
-
         bool hasPoints = stats.characteristicPoints > 0;
-
         if (strengthButton != null) { strengthButton.gameObject.SetActive(hasPoints); Debug.Log($"[PlayerUI] StrengthButton active: {hasPoints}"); }
         if (agilityButton != null) { agilityButton.gameObject.SetActive(hasPoints); Debug.Log($"[PlayerUI] AgilityButton active: {hasPoints}"); }
         if (spiritButton != null) { spiritButton.gameObject.SetActive(hasPoints); Debug.Log($"[PlayerUI] SpiritButton active: {hasPoints}"); }
@@ -567,7 +504,6 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     private void UpdateAttribute(string statName, int value)
     {
         if (!core.isLocalPlayer) return;
-
         switch (statName.ToLower())
         {
             case "strength":
@@ -644,8 +580,6 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         int index2 = Array.IndexOf(skillButtons2, hotbarButton);
         int index3 = Array.IndexOf(skillButtons3, hotbarButton);
         if (index2 == -1 && index3 == -1) return;
-
-        // Очистка скилла, если есть
         string oldSkillName = "";
         if (hotbarButton.skill != null)
         {
@@ -653,22 +587,18 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             Destroy(hotbarButton.skill);
             hotbarButton.skill = null;
         }
-
         Image iconImage = hotbarButton.GetComponentInChildren<Image>();
         if (iconImage != null)
         {
             iconImage.sprite = item.icon;
         }
-
         var cooldownEntry = skillCooldownEntries.Find(e => e.cooldownImage == hotbarButton.transform.Find("CooldownOverlay")?.GetComponent<Image>());
         if (cooldownEntry != null)
         {
             cooldownEntry.skillName = item.itemName;
         }
-
         hotbarButton.item = item;
         hotbarButton.itemSlotIndex = slotIndex;
-
         Debug.Log($"[PlayerUI] Assigned item {item.itemName} to hotbar slot (index {(index2 != -1 ? index2 : index3)}), slotIndex: {slotIndex}, cleared skill: {oldSkillName}");
     }
 
@@ -697,9 +627,7 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             Debug.LogError($"[PlayerUI] Cannot swap: firstButton={firstButton}, firstSkill={(firstButton?.skill?.SkillName)}, firstItem={(firstButton?.item?.itemName)}, firstIndex={firstButton?.buttonIndex}, secondIndex={secondButton?.buttonIndex}");
             return;
         }
-        // Ранний расчёт для проверки на очистку
         bool isFirstInSpellBook = Array.IndexOf(skillButtons1, firstButton) != -1;
-        // Очистка при drop мимо
         if (secondButton == null)
         {
             if (isFirstInSpellBook)
@@ -750,7 +678,7 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         {
             SkillBase skillCopy = Instantiate(firstButton.skill);
             skillCopy.Init(core);
-            skillCopy.Hotkey = secondHotkey; // Set на копии
+            skillCopy.Hotkey = secondHotkey;
             if (secondButton.skill != null)
             {
                 string oldSecondSkillName = secondButton.skill.SkillName;
@@ -770,19 +698,16 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         }
         else
         {
-            // Swap между hotbar
             SkillBase tempSkill = firstButton.skill;
             Item tempItem = firstButton.item;
             int tempSlotIndex = firstButton.itemSlotIndex;
             Sprite tempSprite = firstIcon.sprite;
             KeyCode tempHotkey = firstButton.skill?.Hotkey ?? KeyCode.None;
-            // Assign second to first
             firstButton.skill = secondButton.skill;
             firstButton.item = secondButton.item;
             firstButton.itemSlotIndex = secondButton.itemSlotIndex;
             firstIcon.sprite = secondButton.skill != null ? secondIcon.sprite : (secondButton.item != null ? secondButton.item.icon : defaultEmptySprite);
             if (firstButton.skill != null) firstButton.skill.Hotkey = firstHotkey;
-            // Assign first to second
             secondButton.skill = tempSkill;
             secondButton.item = tempItem;
             secondButton.itemSlotIndex = tempSlotIndex;
@@ -800,13 +725,10 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     {
         int index = Array.IndexOf(skillButtons1, button);
         if (index != -1) return hotkeys1[index];
-
         index = Array.IndexOf(skillButtons2, button);
         if (index != -1) return hotkeys2[index];
-
         index = Array.IndexOf(skillButtons3, button);
         if (index != -1) return hotkeys3[index];
-
         return KeyCode.None;
     }
 }

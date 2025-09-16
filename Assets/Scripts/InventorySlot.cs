@@ -1,11 +1,10 @@
-// InventorySlot.cs - полный, фикс OnDrop (убрал if empty)
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using TMPro;
 using System.Collections;
 
-public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler
+public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler, IPointerClickHandler
 {
     [SerializeField] private Image itemIcon;
     [SerializeField] private TextMeshProUGUI quantityText;
@@ -16,6 +15,8 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
     private Canvas canvas;
     private GameObject dragIcon;
     private Coroutine tooltipCoroutine;
+    private float lastClickTime;
+    private const float DOUBLE_CLICK_TIME = 0.3f; // Время для двойного клика
 
     private void Awake()
     {
@@ -104,23 +105,20 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
 
     public void OnDrop(PointerEventData eventData)
     {
-        if (InventoryUI.Instance.draggedSlot == null || InventoryUI.Instance.draggedSlot == this) return;
-
-        Item draggedItem = InventoryUI.Instance.draggedSlot.itemInfo.GetItem();
+        if (inventoryUI.draggedSlot == null || inventoryUI.draggedSlot == this) return;
+        Item draggedItem = inventoryUI.draggedSlot.itemInfo.GetItem();
         Item thisItem = itemInfo.GetItem();
-
-        if (draggedItem != null && thisItem != null && draggedItem.id == thisItem.id && itemInfo.quantity < thisItem.maxStack) // itemInfo.quantity
+        if (draggedItem != null && thisItem != null && draggedItem.id == thisItem.id && itemInfo.quantity < thisItem.maxStack)
         {
-            // Stack: ...
-            core.CmdStackItems(InventoryUI.Instance.draggedSlot.slotIndex, slotIndex, thisItem.maxStack - itemInfo.quantity); // itemInfo.quantity
-            Debug.Log($"[InventorySlot] Stacked {draggedItem.itemName} from slot {InventoryUI.Instance.draggedSlot.slotIndex} to {slotIndex}");
+            core.CmdStackItems(inventoryUI.draggedSlot.slotIndex, slotIndex, thisItem.maxStack - itemInfo.quantity);
+            Debug.Log($"[InventorySlot] Stacked {draggedItem.itemName} from slot {inventoryUI.draggedSlot.slotIndex} to {slotIndex}");
         }
         else
         {
-            Debug.Log($"[InventorySlot] Swapped slots {InventoryUI.Instance.draggedSlot.slotIndex} <-> {slotIndex}");
-            core.CmdSwapInventoryItems(InventoryUI.Instance.draggedSlot.slotIndex, slotIndex);
+            Debug.Log($"[InventorySlot] Swapped slots {inventoryUI.draggedSlot.slotIndex} <-> {slotIndex}");
+            core.CmdSwapInventoryItems(inventoryUI.draggedSlot.slotIndex, slotIndex);
         }
-        InventoryUI.Instance.draggedSlot = null;
+        inventoryUI.draggedSlot = null;
     }
 
     public void OnBeginDrag(PointerEventData eventData)
@@ -163,15 +161,15 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         SkillButton targetButton = eventData.pointerEnter?.GetComponent<SkillButton>() ?? eventData.pointerEnter?.GetComponentInParent<SkillButton>();
         if (targetEquipSlot != null)
         {
-            Debug.Log($"[InventorySlot] Detected targetEquipSlot: {targetEquipSlot.gameObject.name}, slotType: {targetEquipSlot.slotType}, item slotType: {item.equipmentSlot}");
-            if (item.equipmentSlot == targetEquipSlot.slotType)
+            EquipmentSlotUI matchingSlot = inventoryUI.FindMatchingEquipmentSlot(item.equipmentSlot);
+            if (matchingSlot != null)
             {
-                Debug.Log($"[InventorySlot] Equipping item: {item.itemName} (ID: {itemInfo.id}) to {targetEquipSlot.slotType} from slot {slotIndex}");
-                core.CmdEquipItem(itemInfo, slotIndex, targetEquipSlot.slotType);
+                Debug.Log($"[InventorySlot] Equipping item: {item.itemName} (ID: {itemInfo.id}) to {matchingSlot.slotType} from slot {slotIndex}");
+                core.CmdEquipItem(itemInfo, slotIndex, matchingSlot.slotType);
             }
             else
             {
-                Debug.LogWarning($"[InventorySlot] Cannot equip {item.itemName} to {targetEquipSlot.slotType}: incompatible slot type (expected {item.equipmentSlot})");
+                Debug.LogWarning($"[InventorySlot] Cannot equip {item.itemName}: no matching slot for {item.equipmentSlot}");
             }
         }
         else if (targetButton != null && item.canHotbar && targetButton.buttonIndex != 0)
@@ -190,6 +188,27 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         }
         if (dragIcon != null) Destroy(dragIcon);
         inventoryUI.draggedSlot = null;
+    }
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (eventData.clickCount == 2 && itemInfo.id > 0)
+        {
+            Item item = itemInfo.GetItem();
+            if (item != null && item.equipmentSlot != EquipmentSlot.None)
+            {
+                EquipmentSlotUI matchingSlot = inventoryUI.FindMatchingEquipmentSlot(item.equipmentSlot);
+                if (matchingSlot != null)
+                {
+                    Debug.Log($"[InventorySlot] Double-click equipping item: {item.itemName} (ID: {itemInfo.id}) to {matchingSlot.slotType} from slot {slotIndex}");
+                    core.CmdEquipItem(itemInfo, slotIndex, matchingSlot.slotType);
+                }
+                else
+                {
+                    Debug.LogWarning($"[InventorySlot] Cannot equip {item.itemName} on double-click: no matching slot for {item.equipmentSlot}");
+                }
+            }
+        }
     }
 
     private string GetComponentsOnPointerEnter(GameObject go)

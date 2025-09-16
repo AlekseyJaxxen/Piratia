@@ -3,27 +3,24 @@ using Mirror;
 using System.Collections.Generic;
 using System.Linq;
 using System.Collections;
+using UnityEngine.Events;
 
 public class PlayerSkills : NetworkBehaviour
 {
     [Header("Skills")]
     public List<SkillBase> skills = new List<SkillBase>();
-
     [Header("Stun Effect")]
     public GameObject stunEffectPrefab;
     private GameObject _stunEffectInstance;
-
     [Header("Silence Effect")]
     public GameObject silenceEffectPrefab;
     private GameObject _silenceEffectInstance;
-
     [Header("Cursor Settings")]
     public Texture2D defaultCursor;
     public Texture2D castCursor;
     public Texture2D attackCursor;
     public float cursorUpdateInterval = 0.1f;
     private float _lastCursorUpdate = 0f;
-
     private PlayerCore _core;
     private bool _isCasting;
     private ISkill _activeSkill;
@@ -38,10 +35,13 @@ public class PlayerSkills : NetworkBehaviour
     private float localGlobalCooldownEnd = 0f;
     [SyncVar(hook = nameof(OnInvisibilityChanged))] public bool _isInvisible;
     private Coroutine _invisibilityCoroutine;
+    public readonly SyncDictionary<string, bool> toggleBuffStates = new SyncDictionary<string, bool>();
+    [HideInInspector] public UnityEvent<string, bool> OnToggleBuffChanged = new UnityEvent<string, bool>();
 
     private void Awake()
     {
         _skillLastUseTimes.OnChange += OnCooldownChanged;
+        toggleBuffStates.OnChange += OnToggleBuffStateChanged;
     }
 
     private void Start()
@@ -60,6 +60,21 @@ public class PlayerSkills : NetworkBehaviour
         }
     }
 
+    private void OnToggleBuffStateChanged(SyncDictionary<string, bool>.Operation op, string skillName, bool isActive)
+    {
+        Debug.Log($"[PlayerSkills] ToggleBuff changed: {skillName} -> {isActive} on {gameObject.name}, op={op}, toggleBuffStates: {string.Join(", ", toggleBuffStates.Select(kv => $"{kv.Key}: {kv.Value}"))}");
+        OnToggleBuffChanged.Invoke(skillName, isActive);
+        if (skillName == "Invisibility")
+        {
+            _isInvisible = isActive;
+            SkillBase skill = skills.Find(s => s.SkillName == skillName);
+            if (skill != null)
+            {
+                skill.ApplyInvisibilityEffect(isActive);
+            }
+        }
+    }
+
     private IEnumerator InitializeSkills()
     {
         yield return new WaitForEndOfFrame();
@@ -71,25 +86,21 @@ public class PlayerSkills : NetworkBehaviour
                 yield break;
             }
         }
-
         if (stunEffectPrefab != null)
         {
             _stunEffectInstance = Instantiate(stunEffectPrefab, transform);
             _stunEffectInstance.SetActive(false);
         }
-
         if (silenceEffectPrefab != null)
         {
             _silenceEffectInstance = Instantiate(silenceEffectPrefab, transform);
             _silenceEffectInstance.SetActive(false);
         }
-
         CharacterStats stats = GetComponent<CharacterStats>();
         if (stats == null)
         {
             yield break;
         }
-
         int maxWaitFrames = 100;
         int currentFrame = 0;
         while (SkillManager.Instance == null && currentFrame < maxWaitFrames)
@@ -97,12 +108,10 @@ public class PlayerSkills : NetworkBehaviour
             yield return null;
             currentFrame++;
         }
-
         if (SkillManager.Instance == null)
         {
             yield break;
         }
-
         skills = SkillManager.Instance.GetSkillsForClass(stats.characterClass).Select(s => Instantiate(s)).ToList();
         foreach (var skill in skills)
         {
@@ -111,13 +120,12 @@ public class PlayerSkills : NetworkBehaviour
                 continue;
             }
             skill.Init(_core);
-            skill.Hotkey = KeyCode.None; // Сбрасываем hotkeys для оригиналов
+            skill.Hotkey = KeyCode.None;
             if (isServer)
             {
                 _skillLastUseTimes[skill.SkillName] = 0f;
             }
         }
-
         if (isLocalPlayer)
         {
             SetCursor(defaultCursor);
@@ -229,10 +237,10 @@ public class PlayerSkills : NetworkBehaviour
             Debug.Log($"[PlayerSkills] Not enough mana for {skillName}: required {skill.ManaCost}, available {stats.currentMana} on {gameObject.name}");
             return;
         }
-        if (_isInvisible)
+        if (toggleBuffStates.ContainsKey("Invisibility") && toggleBuffStates["Invisibility"])
         {
             Debug.Log($"[PlayerSkills] Interrupting invisibility due to skill cast: {skillName} on {gameObject.name}");
-            InterruptInvisibility();
+            SetToggleBuff("Invisibility", false);
         }
         GameObject targetObject = null;
         if (targetNetId != 0 && NetworkServer.spawned.ContainsKey(targetNetId))
@@ -289,10 +297,8 @@ public class PlayerSkills : NetworkBehaviour
         StartSkillCooldown(skill.SkillName);
         if (!skill.ignoreGlobalCooldown) StartGlobalCooldown();
         RpcCancelSkillSelection();
-        RpcConsumeItemFromSkill(skill.SkillName); // Новый вызов после cast
+        RpcConsumeItemFromSkill(skill.SkillName);
     }
-
-
 
     [ClientRpc]
     private void RpcConsumeItemFromSkill(string skillName)
@@ -306,7 +312,7 @@ public class PlayerSkills : NetworkBehaviour
             {
                 if (btn.item != null && btn.item.skillEffect != null && btn.item.skillEffect.SkillName == skillName)
                 {
-                    _core.CmdConsumeItem(btn.item.id, btn.itemSlotIndex); // CmdConsumeItem
+                    _core.CmdConsumeItem(btn.item.id, btn.itemSlotIndex);
                     Debug.Log($"[PlayerSkills] Consumed item {btn.item.itemName} after {skillName} cast");
                     break;
                 }
@@ -338,14 +344,11 @@ public class PlayerSkills : NetworkBehaviour
     private void HandleSkills()
     {
         if (skills == null || skills.Count == 0) return;
-
         if (_isCasting) return;
-
         if (Input.GetMouseButtonDown(1))
         {
             CancelSkillSelection();
         }
-
         if (_activeSkill != null)
         {
             UpdateTargetIndicator();
@@ -637,13 +640,49 @@ public class PlayerSkills : NetworkBehaviour
         }
     }
 
+    [ClientRpc]
+    private void RpcUpdateBuffIndicator(string skillName, bool isActive)
+    {
+        if (!isLocalPlayer) return;
+        var ui = GetComponentInChildren<PlayerUI>();
+        if (ui != null)
+        {
+            var hotbarButtons = ui.GetSkillButtons2().Concat(ui.GetSkillButtons3());
+            foreach (var btn in hotbarButtons)
+            {
+                if (btn.skill != null && btn.skill.SkillName == skillName && btn.skill.SkillCastType == SkillBase.CastType.ToggleBuff)
+                {
+                    btn.UpdateBuffIndicator(skillName, isActive);
+                    Debug.Log($"[PlayerSkills] RpcUpdateBuffIndicator: {skillName} set to {isActive} for button {btn.buttonIndex}");
+                    break;
+                }
+            }
+        }
+    }
+
     [Command]
     public void CmdToggleInvisibility(bool enable, string skillName)
     {
+        CmdToggleBuff(skillName, enable);
+    }
+
+    [Command]
+    public void CmdToggleBuff(string skillName, bool enable)
+    {
+        SkillBase skill = skills.Find(s => s.SkillName == skillName);
+        if (skill == null || skill.SkillCastType != SkillBase.CastType.ToggleBuff)
+        {
+            Debug.LogWarning($"[PlayerSkills] Cannot toggle {skillName}: skill not found or not a ToggleBuff on {gameObject.name}");
+            return;
+        }
         if (enable)
         {
+            if (GetRemainingCooldown(skillName) > 0)
+            {
+                Debug.Log($"[PlayerSkills] Cannot enable {skillName}: on cooldown {GetRemainingCooldown(skillName)}s on {gameObject.name}");
+                return;
+            }
             CharacterStats stats = GetComponent<CharacterStats>();
-            SkillBase skill = skills.Find(s => s.SkillName == skillName);
             if (stats != null && !stats.HasEnoughMana(skill.ManaCost))
             {
                 Debug.Log($"[PlayerSkills] Not enough mana for {skillName}: required {skill.ManaCost}, available {stats.currentMana} on {gameObject.name}");
@@ -651,56 +690,49 @@ public class PlayerSkills : NetworkBehaviour
             }
             if (stats != null) stats.SpendMana(skill.ManaCost);
             StartSkillCooldown(skillName);
-            if (_invisibilityCoroutine != null) StopCoroutine(_invisibilityCoroutine);
-            if (skill != null && skill.SkillName == "Invisibility")
+            float duration = 10f;
+            var durationField = skill.GetType().GetField("duration");
+            if (durationField != null)
             {
-                float duration = 10f; // Значение по умолчанию
-                var durationField = skill.GetType().GetField("duration");
-                if (durationField != null)
-                {
-                    duration = (float)durationField.GetValue(skill);
-                }
-                _invisibilityCoroutine = StartCoroutine(InvisibilityDuration(duration));
+                duration = (float)durationField.GetValue(skill);
             }
+            if (_invisibilityCoroutine != null) StopCoroutine(_invisibilityCoroutine);
+            _invisibilityCoroutine = StartCoroutine(ToggleBuffDuration(skillName, duration));
         }
-        SetInvisible(enable);
+        SetToggleBuff(skillName, enable);
     }
 
-    private IEnumerator InvisibilityDuration(float duration)
+    [Server]
+    public void SetToggleBuff(string skillName, bool value)
+    {
+        toggleBuffStates[skillName] = value;
+        Debug.Log($"[PlayerSkills] SetToggleBuff: {skillName} = {value} on {gameObject.name}, toggleBuffStates: {string.Join(", ", toggleBuffStates.Select(kv => $"{kv.Key}: {kv.Value}"))}");
+        RpcUpdateBuffIndicator(skillName, value);
+        if (skillName == "Invisibility")
+        {
+            InvisibilitySkill invisSkill = skills.Find(s => s.SkillName == skillName) as InvisibilitySkill;
+            int originalLayer = invisSkill != null ? invisSkill.originalLayer : LayerMask.NameToLayer("Player");
+            RpcSetInvisibilityVisibility(value, _core.team, originalLayer);
+        }
+    }
+
+    private IEnumerator ToggleBuffDuration(string skillName, float duration)
     {
         yield return new WaitForSeconds(duration);
-        SetInvisible(false);
+        SetToggleBuff(skillName, false);
     }
 
     [Server]
     private void SetInvisible(bool value)
     {
-        _isInvisible = value;
-        Debug.Log($"[PlayerSkills] SetInvisible: {value} on {gameObject.name}");
-        RpcSetInvisibilityVisibility(value, _core.team);
-    }
-
-    public void InterruptInvisibility()
-    {
-        if (_isInvisible)
-        {
-            Debug.Log($"[PlayerSkills] Attempting to interrupt invisibility on {gameObject.name}, isServer={isServer}");
-            if (isServer)
-            {
-                SetInvisible(false);
-            }
-            else
-            {
-                CmdInterruptInvisibility();
-            }
-        }
+        SetToggleBuff("Invisibility", value);
     }
 
     [Command]
     private void CmdInterruptInvisibility()
     {
         Debug.Log($"[PlayerSkills] CmdInterruptInvisibility called on {gameObject.name}, _isInvisible={_isInvisible}");
-        SetInvisible(false);
+        SetToggleBuff("Invisibility", false);
     }
 
     [ClientRpc]
@@ -718,10 +750,11 @@ public class PlayerSkills : NetworkBehaviour
             Debug.LogWarning($"[PlayerSkills] GameObject 'Models' not found on {gameObject.name}");
         }
         gameObject.layer = layer;
+        Debug.Log($"[PlayerSkills] RpcRevealPlayer: isVisible={isVisible}, layer={layer}, isSameTeam={isSameTeam}, isLocalPlayer={this.isLocalPlayer} on {gameObject.name}");
     }
 
     [ClientRpc]
-    public void RpcSetInvisibilityVisibility(bool isInvisible, PlayerTeam targetTeam)
+    public void RpcSetInvisibilityVisibility(bool isInvisible, PlayerTeam targetTeam, int originalLayer)
     {
         PlayerCore localPlayer = NetworkClient.localPlayer?.GetComponent<PlayerCore>();
         bool isSameTeam = localPlayer != null && localPlayer.team == targetTeam;
@@ -730,7 +763,8 @@ public class PlayerSkills : NetworkBehaviour
         {
             bool shouldBeVisible = !isInvisible || isSameTeam || this.isLocalPlayer;
             modelsTransform.gameObject.SetActive(shouldBeVisible);
-            Debug.Log($"[PlayerSkills] RpcSetInvisibilityVisibility: isInvisible={isInvisible}, isSameTeam={isSameTeam}, isLocalPlayer={this.isLocalPlayer}, shouldBeVisible={shouldBeVisible}, targetTeam={targetTeam}, localPlayerTeam={(localPlayer != null ? localPlayer.team.ToString() : "null")} on {gameObject.name}");
+            gameObject.layer = isInvisible ? LayerMask.NameToLayer("Ignore Raycast") : originalLayer;
+            Debug.Log($"[PlayerSkills] RpcSetInvisibilityVisibility: isInvisible={isInvisible}, layer={gameObject.layer}, isSameTeam={isSameTeam}, isLocalPlayer={this.isLocalPlayer}, targetTeam={targetTeam}, localPlayerTeam={(localPlayer != null ? localPlayer.team.ToString() : "null")} on {gameObject.name}");
         }
         else
         {

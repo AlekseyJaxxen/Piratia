@@ -114,7 +114,10 @@ public class Health : NetworkBehaviour
         if (skills != null)
         {
             Debug.Log($"[Health] Player {gameObject.name} took damage, isInvisible={skills._isInvisible}");
-            skills.InterruptInvisibility();
+            if (skills._isInvisible)
+            {
+                skills.SetToggleBuff("Invisibility", false); // Замена InterruptInvisibility
+            }
         }
         else
         {

@@ -1,9 +1,9 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
-using System.Collections; // Добавлено
+using System.Collections;
 
-public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
+public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler
 {
     [SerializeField] private Image itemIcon;
     [SerializeField] public EquipmentSlot slotType;
@@ -11,7 +11,7 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
     private PlayerCore core;
     private InventoryUI inventoryUI;
     private GameObject dragIcon;
-    private Coroutine tooltipCoroutine; // Добавлено
+    private Coroutine tooltipCoroutine;
 
     private void Awake()
     {
@@ -122,5 +122,34 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
             Debug.LogWarning($"[EquipmentSlotUI] Drag ended without action: {item.itemName} (ID: {itemInfo.id}) from slot {slotType}, pointerEnter={eventData.pointerEnter?.name ?? "null"}");
         }
         Destroy(dragIcon);
+    }
+
+    public void OnDrop(PointerEventData eventData)
+    {
+        if (inventoryUI.draggedSlot == null || inventoryUI.draggedSlot.itemInfo.id <= 0)
+        {
+            Debug.LogWarning($"[EquipmentSlotUI] OnDrop failed: draggedSlot is null or invalid (ID: {(inventoryUI.draggedSlot?.itemInfo.id ?? -1)})");
+            inventoryUI.draggedSlot = null;
+            return;
+        }
+        Item item = inventoryUI.draggedSlot.itemInfo.GetItem();
+        if (item == null)
+        {
+            Debug.LogWarning($"[EquipmentSlotUI] OnDrop failed: Item with ID {inventoryUI.draggedSlot.itemInfo.id} not found");
+            inventoryUI.draggedSlot = null;
+            return;
+        }
+        Debug.Log($"[EquipmentSlotUI] OnDrop: Attempting to equip {item.itemName} (ID: {inventoryUI.draggedSlot.itemInfo.id}) from slot {inventoryUI.draggedSlot.slotIndex} to {slotType}");
+        EquipmentSlotUI matchingSlot = inventoryUI.FindMatchingEquipmentSlot(item.equipmentSlot);
+        if (matchingSlot != null)
+        {
+            Debug.Log($"[EquipmentSlotUI] Equipping item: {item.itemName} (ID: {inventoryUI.draggedSlot.itemInfo.id}) to {matchingSlot.slotType} from slot {inventoryUI.draggedSlot.slotIndex}");
+            core.CmdEquipItem(inventoryUI.draggedSlot.itemInfo, inventoryUI.draggedSlot.slotIndex, matchingSlot.slotType);
+        }
+        else
+        {
+            Debug.LogWarning($"[EquipmentSlotUI] Cannot equip {item.itemName}: no matching slot for {item.equipmentSlot}");
+        }
+        inventoryUI.draggedSlot = null;
     }
 }
