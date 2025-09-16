@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Collections;
 using UnityEngine.Events;
-
 public class PlayerSkills : NetworkBehaviour
 {
     [Header("Skills")]
@@ -37,19 +36,30 @@ public class PlayerSkills : NetworkBehaviour
     private Coroutine _invisibilityCoroutine;
     public readonly SyncDictionary<string, bool> toggleBuffStates = new SyncDictionary<string, bool>();
     [HideInInspector] public UnityEvent<string, bool> OnToggleBuffChanged = new UnityEvent<string, bool>();
-
+    [SyncVar(hook = nameof(OnPlayerLayerChanged))] private int _playerLayer;
+    [SyncVar] public int _originalLayer;
     private void Awake()
     {
         _skillLastUseTimes.OnChange += OnCooldownChanged;
         toggleBuffStates.OnChange += OnToggleBuffStateChanged;
     }
-
     private void Start()
     {
         _core = GetComponent<PlayerCore>();
+        _playerLayer = gameObject.layer;
+        _originalLayer = gameObject.layer;
         StartCoroutine(InitializeSkills());
     }
-
+    private void OnPlayerLayerChanged(int oldLayer, int newLayer)
+    {
+        Debug.Log($"[PlayerSkills] Player layer changed: {oldLayer} -> {newLayer} on {gameObject.name}, isServer={isServer}, isClient={isClient}, netId={netId}");
+        gameObject.layer = newLayer;
+        if (isServer)  // Force-сет на сервере (hook не всегда срабатывает)
+        {
+            gameObject.layer = newLayer;
+            Debug.Log($"[PlayerSkills] Server force layer: {newLayer} on {gameObject.name}");
+        }
+    }
     private void OnInvisibilityChanged(bool oldValue, bool newValue)
     {
         Debug.Log($"[PlayerSkills] Invisibility changed: {oldValue} -> {newValue} on {gameObject.name}, isServer={isServer}, isClient={isClient}, netId={netId}");
@@ -59,14 +69,12 @@ public class PlayerSkills : NetworkBehaviour
             skill.ApplyInvisibilityEffect(newValue);
         }
     }
-
     private void OnToggleBuffStateChanged(SyncDictionary<string, bool>.Operation op, string skillName, bool isActive)
     {
         Debug.Log($"[PlayerSkills] ToggleBuff changed: {skillName} -> {isActive} on {gameObject.name}, op={op}, toggleBuffStates: {string.Join(", ", toggleBuffStates.Select(kv => $"{kv.Key}: {kv.Value}"))}");
         OnToggleBuffChanged.Invoke(skillName, isActive);
         if (skillName == "Invisibility")
         {
-            _isInvisible = isActive;
             SkillBase skill = skills.Find(s => s.SkillName == skillName);
             if (skill != null)
             {
@@ -74,7 +82,6 @@ public class PlayerSkills : NetworkBehaviour
             }
         }
     }
-
     private IEnumerator InitializeSkills()
     {
         yield return new WaitForEndOfFrame();
@@ -131,7 +138,6 @@ public class PlayerSkills : NetworkBehaviour
             SetCursor(defaultCursor);
         }
     }
-
     private void OnDisable()
     {
         if (_castSkillCoroutine != null)
@@ -155,7 +161,6 @@ public class PlayerSkills : NetworkBehaviour
         if (_invisibilityCoroutine != null) StopCoroutine(_invisibilityCoroutine);
         SetInvisible(false);
     }
-
     public override void OnStopClient()
     {
         base.OnStopClient();
@@ -180,7 +185,6 @@ public class PlayerSkills : NetworkBehaviour
         if (_invisibilityCoroutine != null) StopCoroutine(_invisibilityCoroutine);
         SetInvisible(false);
     }
-
     public void HandleStunEffect(bool isStunned)
     {
         if (_stunEffectInstance != null)
@@ -188,7 +192,6 @@ public class PlayerSkills : NetworkBehaviour
             _stunEffectInstance.SetActive(isStunned);
         }
     }
-
     public void HandleSilenceEffect(bool isSilenced)
     {
         if (_silenceEffectInstance != null)
@@ -196,7 +199,6 @@ public class PlayerSkills : NetworkBehaviour
             _silenceEffectInstance.SetActive(isSilenced);
         }
     }
-
     private void UpdateTargetIndicator()
     {
         if (_activeSkill == null || ((SkillBase)_activeSkill).effectRadiusPrefab == null) return;
@@ -206,7 +208,6 @@ public class PlayerSkills : NetworkBehaviour
             ((SkillBase)_activeSkill).SetEffectRadiusPosition(hit.point + Vector3.up * 0.01f);
         }
     }
-
     [Command]
     public void CmdExecuteSkill(PlayerCore caster, Vector3? targetPosition, uint targetNetId, string skillName, int weight)
     {
@@ -241,6 +242,7 @@ public class PlayerSkills : NetworkBehaviour
         {
             Debug.Log($"[PlayerSkills] Interrupting invisibility due to skill cast: {skillName} on {gameObject.name}");
             SetToggleBuff("Invisibility", false);
+            RpcSetInvisibilityVisibility(false, _core.team, _originalLayer);  // Добавлено: явный вызов для модели
         }
         GameObject targetObject = null;
         if (targetNetId != 0 && NetworkServer.spawned.ContainsKey(targetNetId))
@@ -287,7 +289,6 @@ public class PlayerSkills : NetworkBehaviour
             }
         }
     }
-
     private IEnumerator CastSkillCoroutine(SkillBase skill, Vector3? targetPosition, GameObject targetObject, int weight)
     {
         _isCasting = true;
@@ -299,7 +300,6 @@ public class PlayerSkills : NetworkBehaviour
         RpcCancelSkillSelection();
         RpcConsumeItemFromSkill(skill.SkillName);
     }
-
     [ClientRpc]
     private void RpcConsumeItemFromSkill(string skillName)
     {
@@ -319,7 +319,6 @@ public class PlayerSkills : NetworkBehaviour
             }
         }
     }
-
     public float GetRemainingCooldown(string skillName)
     {
         if (_skillLastUseTimes.ContainsKey(skillName))
@@ -328,19 +327,16 @@ public class PlayerSkills : NetworkBehaviour
         }
         return 0f;
     }
-
     [Server]
     public void StartSkillCooldown(string skillName)
     {
         _skillLastUseTimes[skillName] = (float)NetworkTime.time;
     }
-
     [Server]
     public void StartGlobalCooldown()
     {
         _lastGlobalUseTime = (float)NetworkTime.time;
     }
-
     private void HandleSkills()
     {
         if (skills == null || skills.Count == 0) return;
@@ -358,7 +354,6 @@ public class PlayerSkills : NetworkBehaviour
             UpdateCursor();
         }
     }
-
     public void SelectSkill(ISkill skill)
     {
         if (!_core.CanCastSkill(skill))
@@ -376,11 +371,10 @@ public class PlayerSkills : NetworkBehaviour
         {
             _activeSkill.SetIndicatorVisibility(false);
         }
-        _activeSkill = skill;
-        skill.SetIndicatorVisibility(true);
+        _activeSkill = s;
+        s.SetIndicatorVisibility(true);
         SetCursor(castCursor);
     }
-
     [ClientRpc]
     public void RpcPlayBasicAttackVFX(Vector3 startPos, Quaternion startRot, Vector3 targetPos, bool isCritical, string skillName)
     {
@@ -390,7 +384,6 @@ public class PlayerSkills : NetworkBehaviour
             basicAttackSkill.PlayVFX(startPos, startRot, targetPos, isCritical, this);
         }
     }
-
     [ClientRpc]
     public void RpcSpawnProjectile(Vector3 startPos, Vector3 targetPos, string skillName)
     {
@@ -404,7 +397,6 @@ public class PlayerSkills : NetworkBehaviour
             slowSkill.SpawnProjectile(startPos, targetPos, this);
         }
     }
-
     [ClientRpc]
     public void RpcApplySlowEffect(uint targetNetId, float duration, string skillName)
     {
@@ -418,7 +410,6 @@ public class PlayerSkills : NetworkBehaviour
             }
         }
     }
-
     [ClientRpc]
     public void RpcPlayTargetedStun(uint targetNetId, string skillName)
     {
@@ -432,7 +423,6 @@ public class PlayerSkills : NetworkBehaviour
             }
         }
     }
-
     [ClientRpc]
     public void RpcPlayTargetedSilence(uint targetNetId, string skillName)
     {
@@ -446,7 +436,6 @@ public class PlayerSkills : NetworkBehaviour
             }
         }
     }
-
     [ClientRpc]
     public void RpcPlayTargetedRecovery(uint targetNetId, string skillName)
     {
@@ -460,7 +449,6 @@ public class PlayerSkills : NetworkBehaviour
             }
         }
     }
-
     [ClientRpc]
     public void RpcPlayHealingSkill(uint targetNetId, string skillName)
     {
@@ -474,7 +462,6 @@ public class PlayerSkills : NetworkBehaviour
             }
         }
     }
-
     [ClientRpc]
     public void RpcPlayAoeStun(Vector3 position, string skillName)
     {
@@ -484,7 +471,6 @@ public class PlayerSkills : NetworkBehaviour
             aoeStunSkill.PlayEffect(position);
         }
     }
-
     [ClientRpc]
     public void RpcPlayAoeHeal(Vector3 position, string skillName)
     {
@@ -494,7 +480,6 @@ public class PlayerSkills : NetworkBehaviour
             aoeHealSkill.PlayEffect(position);
         }
     }
-
     [ClientRpc]
     public void RpcPlayAoeDamage(Vector3 position, string skillName)
     {
@@ -504,7 +489,6 @@ public class PlayerSkills : NetworkBehaviour
             aoeDamageSkill.PlayEffect(position, GetComponent<PlayerCore>());
         }
     }
-
     private void Update()
     {
         if (isLocalPlayer) HandleSkills();
@@ -520,7 +504,6 @@ public class PlayerSkills : NetworkBehaviour
             }
         }
     }
-
     public void CancelAllSkillSelections()
     {
         if (_activeSkill != null)
@@ -530,7 +513,6 @@ public class PlayerSkills : NetworkBehaviour
             SetCursor(defaultCursor);
         }
     }
-
     public void CancelSkillSelection()
     {
         if (_activeSkill != null)
@@ -540,7 +522,6 @@ public class PlayerSkills : NetworkBehaviour
             SetCursor(defaultCursor);
         }
     }
-
     private void UpdateCursor()
     {
         if ((float)NetworkTime.time - _lastCursorUpdate > cursorUpdateInterval)
@@ -567,22 +548,18 @@ public class PlayerSkills : NetworkBehaviour
             _lastCursorUpdate = (float)NetworkTime.time;
         }
     }
-
     private void SetCursor(Texture2D cursor)
     {
         Cursor.SetCursor(cursor, Vector2.zero, CursorMode.Auto);
     }
-
     private void OnCooldownChanged(SyncDictionary<string, float>.Operation op, string key, float item)
     {
         if (isLocalPlayer) UpdateSkillUI(key);
     }
-
     private void OnGlobalCooldownChanged(float oldVal, float newVal)
     {
         if (isLocalPlayer) UpdateGlobalCooldownUI();
     }
-
     private void UpdateSkillUI(string key)
     {
         SkillBase skill = skills.Find(s => s.SkillName == key);
@@ -601,31 +578,26 @@ public class PlayerSkills : NetworkBehaviour
             PlayerUI.Instance.UpdateSkillCooldown(key, progress);
         }
     }
-
     private void UpdateGlobalCooldownUI()
     {
         float progress = 1f - Mathf.Max(0, globalCooldown - ((float)NetworkTime.time - _lastGlobalUseTime)) / globalCooldown;
-        PlayerUI.Instance.UpdateGlobalCooldown(progress);
+        PlayerUI.Instance.UpdateSkillCooldown("Global", progress);
     }
-
     [ClientRpc]
     private void RpcCancelSkillSelection()
     {
         CancelSkillSelection();
     }
-
     public void StartLocalCooldown(string skillName, float cooldown, bool useGlobal)
     {
         localCooldowns[skillName] = (float)NetworkTime.time + cooldown;
         if (useGlobal) localGlobalCooldownEnd = (float)NetworkTime.time + globalCooldown;
     }
-
     public override void OnDeserialize(NetworkReader reader, bool initialState)
     {
         base.OnDeserialize(reader, initialState);
         if (skills == null || skills.Count == 0) return;
     }
-
     [ClientRpc]
     public void RpcPlayReviveVFX(uint targetNetId, string skillName)
     {
@@ -639,7 +611,6 @@ public class PlayerSkills : NetworkBehaviour
             }
         }
     }
-
     [ClientRpc]
     private void RpcUpdateBuffIndicator(string skillName, bool isActive)
     {
@@ -653,19 +624,17 @@ public class PlayerSkills : NetworkBehaviour
                 if (btn.skill != null && btn.skill.SkillName == skillName && btn.skill.SkillCastType == SkillBase.CastType.ToggleBuff)
                 {
                     btn.UpdateBuffIndicator(skillName, isActive);
-                    Debug.Log($"[PlayerSkills] RpcUpdateBuffIndicator: {skillName} set to {isActive} for button {btn.buttonIndex}");
+                    Debug.Log($"[PlayerSkills] RpcUpdateBuffIndicator: {skillName} set to {isActive} for button {btn.buttonIndex}, layer={gameObject.layer}");
                     break;
                 }
             }
         }
     }
-
     [Command]
     public void CmdToggleInvisibility(bool enable, string skillName)
     {
         CmdToggleBuff(skillName, enable);
     }
-
     [Command]
     public void CmdToggleBuff(string skillName, bool enable)
     {
@@ -701,40 +670,43 @@ public class PlayerSkills : NetworkBehaviour
         }
         SetToggleBuff(skillName, enable);
     }
-
     [Server]
     public void SetToggleBuff(string skillName, bool value)
     {
         toggleBuffStates[skillName] = value;
         Debug.Log($"[PlayerSkills] SetToggleBuff: {skillName} = {value} on {gameObject.name}, toggleBuffStates: {string.Join(", ", toggleBuffStates.Select(kv => $"{kv.Key}: {kv.Value}"))}");
-        RpcUpdateBuffIndicator(skillName, value);
         if (skillName == "Invisibility")
         {
-            InvisibilitySkill invisSkill = skills.Find(s => s.SkillName == skillName) as InvisibilitySkill;
-            int originalLayer = invisSkill != null ? invisSkill.originalLayer : LayerMask.NameToLayer("Player");
-            RpcSetInvisibilityVisibility(value, _core.team, originalLayer);
+            _isInvisible = value;  // Локально на сервере
+            _playerLayer = value ? LayerMask.NameToLayer("Ignore Raycast") : _originalLayer;
+            RpcSetInvisibilityState(value);  // Мгновенный sync на клиентов
+            RpcSetInvisibilityVisibility(value, _core.team, _originalLayer);
+            RpcForceLayer(_playerLayer);
         }
+        RpcUpdateBuffIndicator(skillName, value);
     }
-
+    [ClientRpc]
+    public void RpcSetInvisibilityState(bool value)
+    {
+        _isInvisible = value;
+        Debug.Log($"[PlayerSkills] RpcSetInvisibilityState {value} on {gameObject.name}");
+    }
     private IEnumerator ToggleBuffDuration(string skillName, float duration)
     {
         yield return new WaitForSeconds(duration);
         SetToggleBuff(skillName, false);
     }
-
     [Server]
     private void SetInvisible(bool value)
     {
         SetToggleBuff("Invisibility", value);
     }
-
     [Command]
     private void CmdInterruptInvisibility()
     {
         Debug.Log($"[PlayerSkills] CmdInterruptInvisibility called on {gameObject.name}, _isInvisible={_isInvisible}");
         SetToggleBuff("Invisibility", false);
     }
-
     [ClientRpc]
     public void RpcRevealPlayer(bool isVisible, int layer)
     {
@@ -749,10 +721,8 @@ public class PlayerSkills : NetworkBehaviour
         {
             Debug.LogWarning($"[PlayerSkills] GameObject 'Models' not found on {gameObject.name}");
         }
-        gameObject.layer = layer;
         Debug.Log($"[PlayerSkills] RpcRevealPlayer: isVisible={isVisible}, layer={layer}, isSameTeam={isSameTeam}, isLocalPlayer={this.isLocalPlayer} on {gameObject.name}");
     }
-
     [ClientRpc]
     public void RpcSetInvisibilityVisibility(bool isInvisible, PlayerTeam targetTeam, int originalLayer)
     {
@@ -763,17 +733,27 @@ public class PlayerSkills : NetworkBehaviour
         {
             bool shouldBeVisible = !isInvisible || isSameTeam || this.isLocalPlayer;
             modelsTransform.gameObject.SetActive(shouldBeVisible);
-            gameObject.layer = isInvisible ? LayerMask.NameToLayer("Ignore Raycast") : originalLayer;
-            Debug.Log($"[PlayerSkills] RpcSetInvisibilityVisibility: isInvisible={isInvisible}, layer={gameObject.layer}, isSameTeam={isSameTeam}, isLocalPlayer={this.isLocalPlayer}, targetTeam={targetTeam}, localPlayerTeam={(localPlayer != null ? localPlayer.team.ToString() : "null")} on {gameObject.name}");
+            Debug.Log($"[PlayerSkills] RpcSetInvisibilityVisibility: isInvisible={isInvisible}, shouldBeVisible={shouldBeVisible}, isSameTeam={isSameTeam}, isLocalPlayer={this.isLocalPlayer}, targetTeam={targetTeam}, localPlayerTeam={(localPlayer != null ? localPlayer.team.ToString() : "null")} on {gameObject.name}");
         }
         else
         {
             Debug.LogWarning($"[PlayerSkills] GameObject 'Models' not found on {gameObject.name}");
         }
     }
-
+    [ClientRpc]
+    public void RpcForceLayer(int layer)
+    {
+        gameObject.layer = layer;
+        Debug.Log($"[PlayerSkills] RpcForceLayer {layer} on {gameObject.name}");
+    }
     public float GetGlobalRemainingCooldown()
     {
         return Mathf.Max(0, globalCooldown - ((float)NetworkTime.time - _lastGlobalUseTime));
+    }
+    [Server]
+    public void SetPlayerLayer(int layer)
+    {
+        _playerLayer = layer;
+        Debug.Log($"[PlayerSkills] Server set layer: {layer} on {gameObject.name}");
     }
 }

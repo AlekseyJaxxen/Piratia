@@ -2,7 +2,6 @@ using Mirror;
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
-
 public class RevealGroundEffect : NetworkBehaviour
 {
     private float dur;
@@ -10,7 +9,6 @@ public class RevealGroundEffect : NetworkBehaviour
     private PlayerTeam team;
     private int layerMask;
     private HashSet<uint> revealedPlayers = new HashSet<uint>();
-
     public void Init(float duration, float radius, PlayerTeam ownerTeam, int layerMask)
     {
         dur = duration;
@@ -19,7 +17,6 @@ public class RevealGroundEffect : NetworkBehaviour
         this.layerMask = layerMask;
         StartCoroutine(DestroyAfter(duration));
     }
-
     private void Update()
     {
         if (!isServer) return;
@@ -34,6 +31,8 @@ public class RevealGroundEffect : NetworkBehaviour
                 if (!revealedPlayers.Contains(player.netId))
                 {
                     player.Skills.RpcRevealPlayer(true, LayerMask.NameToLayer("Player"));
+                    player.Skills.RpcSetInvisibilityState(false);  // Добавлено: временно видим для атаки
+                    player.Skills.SetPlayerLayer(LayerMask.NameToLayer("Player"));
                     revealedPlayers.Add(player.netId);
                 }
             }
@@ -48,9 +47,9 @@ public class RevealGroundEffect : NetworkBehaviour
                     PlayerCore player = NetworkServer.spawned[playerId].GetComponent<PlayerCore>();
                     if (player != null && player.Skills._isInvisible)
                     {
-                        InvisibilitySkill invisSkill = player.Skills.skills.Find(s => s.SkillName == "Invisibility") as InvisibilitySkill;
-                        int originalLayer = invisSkill != null ? invisSkill.originalLayer : LayerMask.NameToLayer("Player");
-                        player.Skills.RpcSetInvisibilityVisibility(true, player.team, originalLayer);
+                        player.Skills.RpcSetInvisibilityVisibility(true, player.team, player.Skills._originalLayer);
+                        player.Skills.RpcSetInvisibilityState(true);  // Добавлено: возвращаем невидимость
+                        player.Skills.SetPlayerLayer(LayerMask.NameToLayer("Ignore Raycast"));
                         player.Skills.RpcRevealPlayer(false, LayerMask.NameToLayer("Ignore Raycast"));
                     }
                 }
@@ -58,7 +57,6 @@ public class RevealGroundEffect : NetworkBehaviour
             }
         }
     }
-
     private IEnumerator DestroyAfter(float delay)
     {
         yield return new WaitForSeconds(delay);
@@ -69,9 +67,9 @@ public class RevealGroundEffect : NetworkBehaviour
                 PlayerCore player = NetworkServer.spawned[playerId].GetComponent<PlayerCore>();
                 if (player != null && player.Skills._isInvisible)
                 {
-                    InvisibilitySkill invisSkill = player.Skills.skills.Find(s => s.SkillName == "Invisibility") as InvisibilitySkill;
-                    int originalLayer = invisSkill != null ? invisSkill.originalLayer : LayerMask.NameToLayer("Player");
-                    player.Skills.RpcSetInvisibilityVisibility(true, player.team, originalLayer);
+                    player.Skills.RpcSetInvisibilityVisibility(true, player.team, player.Skills._originalLayer);
+                    player.Skills.RpcSetInvisibilityState(true);  // Добавлено: возвращаем невидимость
+                    player.Skills.SetPlayerLayer(LayerMask.NameToLayer("Ignore Raycast"));
                     player.Skills.RpcRevealPlayer(false, LayerMask.NameToLayer("Ignore Raycast"));
                 }
             }

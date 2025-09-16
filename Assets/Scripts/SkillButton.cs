@@ -41,11 +41,9 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         {
             button.onClick.AddListener(OnButtonClicked);
         }
-        // Подписываемся на изменение состояния тоггл-баффов
         if (skills != null && skillsComponent != null)
         {
             skillsComponent.OnToggleBuffChanged.AddListener(UpdateBuffIndicator);
-            // Проверяем начальное состояние баффа
             if (skill != null && skill.SkillCastType == CastType.ToggleBuff)
             {
                 bool isActive = skillsComponent.toggleBuffStates.ContainsKey(skill.SkillName) && skillsComponent.toggleBuffStates[skill.SkillName];
@@ -56,10 +54,22 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
 
     private void OnDestroy()
     {
-        // Отписываемся от события
         if (skillsComponent != null)
         {
             skillsComponent.OnToggleBuffChanged.RemoveListener(UpdateBuffIndicator);
+        }
+    }
+
+    private void Update()
+    {
+        if (skillsComponent != null && skill != null && skill.SkillCastType == CastType.ToggleBuff)
+        {
+            bool isActive = skillsComponent.toggleBuffStates.ContainsKey(skill.SkillName) && skillsComponent.toggleBuffStates[skill.SkillName];
+            if (buffIndicator != null && buffIndicator.activeSelf != isActive)
+            {
+                UpdateBuffIndicator(skill.SkillName, isActive);
+                Debug.Log($"[SkillButton] Client-side UpdateBuffIndicator: {skill.SkillName} set to {isActive} for button {buttonIndex}");
+            }
         }
     }
 
@@ -104,8 +114,15 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
                         Debug.Log($"[SkillButton] ToggleBuff {skill.SkillName} already in state {isActive}, skipping CmdToggleBuff, index: {buttonIndex}");
                         return;
                     }
+                    if (!targetState && skillsComponent.GetRemainingCooldown(skill.SkillName) > 0)
+                    {
+                        Debug.Log($"[SkillButton] Deactivating {skill.SkillName} during cooldown, index: {buttonIndex}");
+                    }
                     core.Skills.CmdToggleBuff(skill.SkillName, targetState);
-                    Debug.Log($"[SkillButton] ToggleBuff {skill.SkillName} requesting state {targetState}, index: {buttonIndex}");
+                    // Добавь: локальный сет layer
+                    int targetLayer = targetState ? LayerMask.NameToLayer("Ignore Raycast") : skillsComponent._originalLayer;
+                    core.gameObject.layer = targetLayer;
+                    Debug.Log($"[SkillButton] Local layer set to {targetLayer} for {skill.SkillName}");
                 }
                 else
                 {
@@ -231,7 +248,7 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         if (buffIndicator != null && skill != null && skill.SkillCastType == CastType.ToggleBuff && skill.SkillName == skillName)
         {
             buffIndicator.SetActive(isActive);
-            Debug.Log($"[SkillButton] BuffIndicator for {skill.SkillName} set to {isActive} on button {buttonIndex}");
+            Debug.Log($"[SkillButton] UpdateBuffIndicator: {skill.SkillName} set to {isActive} on button {buttonIndex}, layer={core.gameObject.layer}");
         }
     }
 }

@@ -1,3 +1,4 @@
+
 using UnityEngine;
 using Mirror;
 
@@ -5,10 +6,9 @@ using Mirror;
 public class InvisibilitySkill : SkillBase
 {
     [Header("Invisibility Settings")]
-    public float duration = 10f; // Настраиваемая длительность
-    public GameObject invisibilityEffectPrefab; // Эффект частиц для невидимости (опционально)
+    public float duration = 10f;
+    public GameObject invisibilityEffectPrefab;
     private GameObject _invisibilityEffectInstance;
-    public int originalLayer { get; private set; } // Для сохранения слоя игрока
 
     public override void Init(PlayerCore core)
     {
@@ -19,18 +19,14 @@ public class InvisibilitySkill : SkillBase
             _invisibilityEffectInstance = Object.Instantiate(invisibilityEffectPrefab, core.transform);
             _invisibilityEffectInstance.SetActive(false);
         }
-        originalLayer = core.gameObject.layer; // Сохраняем слой "Player"
-        Debug.Log($"[InvisibilitySkill] Initialized with originalLayer={originalLayer} for {core.gameObject.name}");
     }
 
     protected override void ExecuteSkillImplementation(PlayerCore player, Vector3? targetPosition, GameObject targetObject)
     {
-        // Логика на клиенте не нужна, т.к. toggle в HandleSkills вызывает Cmd
     }
 
     public override void ExecuteOnServer(PlayerCore caster, Vector3? targetPosition, GameObject targetObject, int weight)
     {
-        // Не используется, т.к. toggle в CmdToggleInvisibility
     }
 
     public override void CleanupIndicators()
@@ -51,7 +47,6 @@ public class InvisibilitySkill : SkillBase
             Debug.LogWarning($"[InvisibilitySkill] Player is null in ApplyInvisibilityEffect for {SkillName}");
             return;
         }
-        // Управляем только эффектом частиц на клиенте
         if (_invisibilityEffectInstance != null)
         {
             _invisibilityEffectInstance.SetActive(isActive);

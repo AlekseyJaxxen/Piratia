@@ -153,6 +153,16 @@ public class PlayerMovement : NetworkBehaviour
                 if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
                 {
                     Debug.Log($"[PlayerMovement] Raycast hit: {hit.collider.name}, tag={hit.collider.tag}, layer={LayerMask.LayerToName(hit.collider.gameObject.layer)}, components={string.Join(", ", hit.collider.GetComponents<Component>().Select(c => c.GetType().Name))}");
+
+                    // === НАЧАЛО ИЗМЕНЕНИЙ ===
+                    // Добавляем проверку, чтобы Raycast не работал, если объект находится на слое, который игнорирует Raycast.
+                    if (hit.collider.gameObject.layer == LayerMask.NameToLayer("Ignore Raycast"))
+                    {
+                        Debug.Log("[PlayerMovement] Hit object is on Ignore Raycast layer. Ignoring.");
+                        return; // Возвращаемся, не обрабатывая клик
+                    }
+                    // === КОНЕЦ ИЗМЕНЕНИЙ ===
+
                     // Добавлено: DroppedItem
                     DroppedItem droppedItem = hit.collider.GetComponent<DroppedItem>() ?? hit.collider.GetComponentInParent<DroppedItem>();
                     if (droppedItem != null)

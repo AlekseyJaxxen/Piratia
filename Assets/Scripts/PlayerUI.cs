@@ -321,7 +321,10 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
                         bool isActive = skillsComp.toggleBuffStates.ContainsKey(btn.skill.SkillName) && skillsComp.toggleBuffStates[btn.skill.SkillName];
                         bool targetState = !isActive;
                         skillsComp.CmdToggleBuff(btn.skill.SkillName, targetState);
-                        Debug.Log($"[PlayerUI] Instant ToggleBuff: {btn.skill.SkillName}, requesting state {targetState}");
+                        // Добавь: локальный сет layer
+                        int targetLayer = targetState ? LayerMask.NameToLayer("Ignore Raycast") : skillsComp._originalLayer;
+                        core.gameObject.layer = targetLayer;
+                        Debug.Log($"[PlayerUI] Local layer set to {targetLayer} for {btn.skill.SkillName}");
                     }
                     else
                     {
