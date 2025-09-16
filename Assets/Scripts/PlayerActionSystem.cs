@@ -360,6 +360,14 @@ public class PlayerActionSystem : NetworkBehaviour
                 CompleteAction();
                 yield break;
             }
+            PlayerCore targetPlayerCore = targetObject.GetComponent<PlayerCore>();
+            if (targetPlayerCore != null && targetPlayerCore.Skills._isInvisible)
+            {
+                Debug.Log($"[PlayerActionSystem] Skill cast stopped: target {targetObject.name} is invisible");
+                _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
+                CompleteAction();
+                yield break;
+            }
             float distance = Vector3.Distance(transform.position, targetObject.transform.position);
             float effectiveRange = skillToCast.Range - castRangeOffset;
             if (distance <= effectiveRange)

@@ -677,11 +677,16 @@ public class PlayerSkills : NetworkBehaviour
         Debug.Log($"[PlayerSkills] SetToggleBuff: {skillName} = {value} on {gameObject.name}, toggleBuffStates: {string.Join(", ", toggleBuffStates.Select(kv => $"{kv.Key}: {kv.Value}"))}");
         if (skillName == "Invisibility")
         {
-            _isInvisible = value;  // Локально на сервере
+            _isInvisible = value;
             _playerLayer = value ? LayerMask.NameToLayer("Ignore Raycast") : _originalLayer;
-            RpcSetInvisibilityState(value);  // Мгновенный sync на клиентов
+            RpcSetInvisibilityState(value);
             RpcSetInvisibilityVisibility(value, _core.team, _originalLayer);
             RpcForceLayer(_playerLayer);
+
+            if (value)  // При входе в невидимость очисти target у врагов
+            {
+                ClearEnemyTargets();
+            }
         }
         RpcUpdateBuffIndicator(skillName, value);
     }
@@ -755,5 +760,21 @@ public class PlayerSkills : NetworkBehaviour
     {
         _playerLayer = layer;
         Debug.Log($"[PlayerSkills] Server set layer: {layer} on {gameObject.name}");
+    }
+    [Server]
+    private void ClearEnemyTargets()
+    {
+        foreach (var conn in NetworkServer.connections.Values)
+        {
+            if (conn.identity != null)
+            {
+                PlayerCore enemy = conn.identity.GetComponent<PlayerCore>();
+                if (enemy != null && enemy.team != _core.team && enemy.Combat.Target == gameObject)
+                {
+                    enemy.Combat.ClearTarget();
+                    Debug.Log($"[PlayerSkills] Cleared target from {enemy.gameObject.name} due to invis");
+                }
+            }
+        }
     }
 }
