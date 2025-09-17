@@ -9,35 +9,40 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 17a19ca3fa980d7429832ef83c06e12b, type: 3}
-  m_Name: Helmet
-  m_EditorClassIdentifier: Assembly-CSharp::Item
-  itemName: Helmet
-  id: 1
-  icon: {fileID: 21300000, guid: ba38f88fc0d64734382abdc691e9658a, type: 3}
-  dropModelPrefab: {fileID: 1416556264988855144, guid: 274b635ff68d8d146b63d3fac539c60a,
+  m_Script: {fileID: 11500000, guid: 7d7f7ae7c1addd747aebb713dd34b8c5, type: 3}
+  m_Name: BigBoeSword
+  m_EditorClassIdentifier: Assembly-CSharp::SwordItem
+  itemName: BigSword
+  id: 6
+  icon: {fileID: 21300000, guid: abe1d030c9f8cd148935e4a7e62ac578, type: 3}
+  dropModelPrefab: {fileID: 919132149155446097, guid: 23f44c9e41fbdf44f84fe58679fcf847,
     type: 3}
-  itemType: 0
-  equipmentSlot: 1
-  alternativeSlot: 1
+  itemType: 2
+  equipmentSlot: 4
+  alternativeSlot: 0
+  primaryDisplaySlot: 5
   maxStack: 1
   canDrop: 1
   canSell: 1
   canUse: 0
   canHotbar: 0
-  strengthMod: 100
+  isTwoHanded: 1
+  strengthMod: 40
   agilityMod: 0
   spiritMod: 0
   constitutionMod: 0
   accuracyMod: 0
   intelligenceMod: 0
-  rarity: 0
+  rarity: 2
   requiredLevel: 1
+  characterClass: 0
   skillEffect: {fileID: 0}
   castRange: 5
-  model1: 
-  boneName: 
-  alternativeBoneName: 
+  model1: ItemModels/BigBoeSword
+  boneName: RightHandWeapon
+  alternativeBoneName: LeftHandWeapon
+  modelRotation: {x: 0, y: 0, z: 0, w: 1}
+  modelScale: {x: 1, y: 1, z: 1}
   model2: 
   model3: 
   model4: 
@@ -61,7 +66,6 @@ MonoBehaviour:
   price: 0
   size: 0
   characterLevel: 0
-  characterClass: 
   characterNick: 
   characterReputation: 0
   itemCanEquip: 1
@@ -95,9 +99,9 @@ MonoBehaviour:
   staConstantBonus: 0
   lukConstantBonus: 0
   attackRangeConstantBonus: 0
-  minAttackConstantBonus: 0
-  maxAttackConstantBonus: 0
-  maxHpConstantBonus: 0
+  minAttackConstantBonus: 500
+  maxAttackConstantBonus: 600
+  maxHpConstantBonus: 1000
   maxSpConstantBonus: 0
   fleeConstantBonus: 0
   hitConstantBonus: 0
@@ -128,6 +132,10 @@ MonoBehaviour:
   displayItemEffect: 
   itemDropModelEffect: 
   itemUsageEffect: 
-  description: 
+  description: This is big ass sword
   itemLevel: 0
   remark: 
+  baseDamage: 100
+  attackSpeed: 1
+  criticalChance: 0
+  criticalMultiplier: 0

@@ -9,12 +9,15 @@ public class Item : ScriptableObject
     [SerializeField] private GameObject dropModelPrefab;
     public ItemType itemType = ItemType.Consumable;
     public EquipmentSlot equipmentSlot = EquipmentSlot.None;
+    public EquipmentSlot alternativeSlot = EquipmentSlot.None;
+    public EquipmentSlot primaryDisplaySlot = EquipmentSlot.None;
     [Header("Flags")]
     public int maxStack = 1;
     public bool canDrop = true;
     public bool canSell = true;
     public bool canUse = false;
     public bool canHotbar = false;
+    public bool isTwoHanded = false;
     [Header("Stats Modifiers")]
     public int strengthMod;
     public int agilityMod;
@@ -25,12 +28,16 @@ public class Item : ScriptableObject
     [Header("MMO Properties")]
     public Rarity rarity = Rarity.Common;
     public int requiredLevel = 1;
+    public CharacterClass characterClass = CharacterClass.None;
     [Header("Skill Effect (Optional)")]
     public SkillBase skillEffect;
     public float castRange = 5f;
     [Header("Visuals")]
-    public string model1; // Путь к префабу модели экипировки (например, "Weapons/Sword")
-    public string boneName; // Имя кости для привязки (например, "RightHand")
+    public string model1;
+    public string boneName;
+    public string alternativeBoneName;
+    public Quaternion modelRotation = Quaternion.identity;
+    public Vector3 modelScale = Vector3.one;
     [Header("Additional Item Properties")]
     public string model2;
     public string model3;
@@ -55,7 +62,6 @@ public class Item : ScriptableObject
     public int price;
     public int size;
     public int characterLevel;
-    public string characterClass;
     public string characterNick;
     public int characterReputation;
     public bool itemCanEquip;
@@ -126,11 +132,26 @@ public class Item : ScriptableObject
     public int itemLevel;
     public string remark;
 
-    private void OnEnable()
+    public void OnEnable()
     {
         if (id < 0)
         {
             Debug.LogWarning($"[Item] ID not set for {itemName}, defaulting to -1");
+        }
+        // Сброс полей, если предмет не экипируемый
+        if (equipmentSlot == EquipmentSlot.None && alternativeSlot == EquipmentSlot.None)
+        {
+            boneName = string.Empty;
+            alternativeBoneName = string.Empty;
+            primaryDisplaySlot = EquipmentSlot.None;
+            isTwoHanded = false;
+            Debug.Log($"[Item] Reset equipment fields for {itemName} as equipmentSlot and alternativeSlot are None");
+        }
+        // Проверка двуручного оружия
+        if (isTwoHanded && primaryDisplaySlot == EquipmentSlot.None)
+        {
+            primaryDisplaySlot = equipmentSlot;
+            Debug.Log($"[Item] Set primaryDisplaySlot to {equipmentSlot} for two-handed item {itemName}");
         }
     }
 
@@ -173,9 +194,29 @@ public class Item : ScriptableObject
         }
     }
 
-    public bool IsEquipable(int playerLevel)
+    public bool IsEquipable(int playerLevel, CharacterClass playerClass)
     {
-        return equipmentSlot != EquipmentSlot.None && playerLevel >= requiredLevel && itemCanEquip;
+        bool classMatch = characterClass == CharacterClass.None || characterClass == playerClass;
+        return (equipmentSlot != EquipmentSlot.None || alternativeSlot != EquipmentSlot.None) && playerLevel >= requiredLevel && itemCanEquip && classMatch;
+    }
+
+    public bool CanEquipToSlot(EquipmentSlot slot)
+    {
+        if (isTwoHanded)
+        {
+            return slot == equipmentSlot || slot == alternativeSlot;
+        }
+        return slot == equipmentSlot || slot == alternativeSlot;
+    }
+
+    public string GetBoneNameForSlot(EquipmentSlot slot)
+    {
+        if (isTwoHanded && primaryDisplaySlot != EquipmentSlot.None)
+        {
+            // Для двуручного оружия возвращаем boneName, если primaryDisplaySlot задан
+            return boneName;
+        }
+        return slot == alternativeSlot && !string.IsNullOrEmpty(alternativeBoneName) ? alternativeBoneName : boneName;
     }
 
     public GameObject GetDropModelPrefab()

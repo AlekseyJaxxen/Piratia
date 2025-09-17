@@ -757,60 +757,32 @@ public class PlayerCore : NetworkBehaviour
     }
 
     [Command]
-    public void CmdEquipItem(ItemInfo itemInfo, int slotIndex, EquipmentSlot slotType)
+    public void CmdEquipItem(ItemInfo itemInfo, int slotIndex, EquipmentSlot slot)
     {
+        if (!isServer) return;
         if (Inventory == null)
         {
-            Debug.LogError("[PlayerCore] CmdEquipItem failed: Inventory is null!");
+            Debug.LogError("[PlayerCore] Inventory component not found!");
             return;
         }
-        Item item = Resources.Load<ItemDatabase>("ItemDatabase")?.GetItem(itemInfo.id);
+        Item item = itemInfo.GetItem();
         if (item == null)
         {
-            Debug.LogError($"[PlayerCore] CmdEquipItem failed: Item with ID {itemInfo.id} not found");
+            Debug.LogError($"[PlayerCore] Cannot equip item: Item with ID {itemInfo.id} not found");
             return;
         }
-        // Логируем состояние инвентаря
-        Debug.Log($"[PlayerCore] CmdEquipItem: Attempting to equip {item.itemName} (ID: {itemInfo.id}, slot: {slotIndex}, type: {slotType}). Inventory: {string.Join(", ", Inventory.items.Select(i => $"ID:{i.id}, Qty:{i.quantity}"))}");
-
-        // Проверяем, есть ли предмет в инвентаре
-        int foundIndex = Inventory.items.FindIndex(i => i.id == itemInfo.id && i.quantity > 0);
-        if (foundIndex == -1)
+        if (!item.IsEquipable(Stats.level, Stats.characterClass))
         {
-            Debug.LogError($"[PlayerCore] Failed to equip item: {item.itemName} (ID: {itemInfo.id}, slot {slotIndex}, type {slotType}), item not found in inventory or quantity is 0");
+            Debug.LogError($"[PlayerCore] Cannot equip item: {item.itemName}, player level {Stats.level} or class {Stats.characterClass} does not match required level {item.requiredLevel} or class {item.characterClass}");
             return;
         }
-        if (item.equipmentSlot != slotType)
+        if (!item.CanEquipToSlot(slot))
         {
-            Debug.LogError($"[PlayerCore] Failed to equip item: {item.itemName} (ID: {itemInfo.id}, slot {slotIndex}, type {slotType}), slot type mismatch (expected {item.equipmentSlot}, got {slotType})");
+            Debug.LogError($"[PlayerCore] Cannot equip item: {item.itemName} cannot be equipped to slot {slot}");
             return;
         }
-        if (!item.IsEquipable(Stats.level))
-        {
-            Debug.LogError($"[PlayerCore] Failed to equip item: {item.itemName} (ID: {itemInfo.id}, slot {slotIndex}, type {slotType}), player level {Stats.level} is less than required level {item.requiredLevel}");
-            return;
-        }
-        // Если slotIndex некорректен, используем foundIndex
-        if (slotIndex < 0 || slotIndex >= Inventory.items.Count || Inventory.items[slotIndex].id != itemInfo.id)
-        {
-            Debug.LogWarning($"[PlayerCore] Slot index {slotIndex} invalid or mismatched for {item.itemName}, using found index {foundIndex}");
-            slotIndex = foundIndex;
-        }
-        Debug.Log($"[PlayerCore] Equipping item: {item.itemName} (ID: {itemInfo.id}) to slot {slotType} from inventory slot {slotIndex}");
-        Inventory.EquipItem(itemInfo, slotType, slotIndex);
-        // Уменьшаем количество в слоте инвентаря
-        ItemInfo slotItem = Inventory.items[slotIndex];
-        slotItem.quantity--;
-        if (slotItem.quantity <= 0)
-        {
-            Inventory.ClearItemSlot(slotIndex);
-        }
-        else
-        {
-            Inventory.items[slotIndex] = slotItem;
-        }
-        RpcUpdateInventoryUI();
-        RpcUpdateEquipmentUI();
+        Debug.Log($"[PlayerCore] Equipping item: {item.itemName} (ID: {itemInfo.id}) to {slot} from slot {slotIndex}");
+        Inventory.EquipItem(itemInfo, slot, slotIndex);
     }
 
     [Command]

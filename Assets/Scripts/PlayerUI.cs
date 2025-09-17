@@ -57,6 +57,9 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         public Image cooldownImage;
     }
     [SerializeField] private List<SkillCooldownEntry> skillCooldownEntries = new List<SkillCooldownEntry>();
+    [Header("Inventory and Equipment UI")]
+    [SerializeField] private InventorySlot[] inventorySlots;
+    [SerializeField] private EquipmentSlotUI[] equipmentSlots;
     private CharacterStats stats;
     private PlayerCore core;
     private RectTransform attributesPanelRect;
@@ -64,6 +67,7 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     private readonly KeyCode[] hotkeys1 = { KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None };
     private readonly KeyCode[] hotkeys2 = { KeyCode.None, KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.Alpha4, KeyCode.Alpha5, KeyCode.Alpha6, KeyCode.Alpha7, KeyCode.Alpha8, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.Minus, KeyCode.Equals };
     private readonly KeyCode[] hotkeys3 = { KeyCode.None, KeyCode.Q, KeyCode.W, KeyCode.E, KeyCode.R, KeyCode.T, KeyCode.Y, KeyCode.U, KeyCode.I, KeyCode.O, KeyCode.P, KeyCode.LeftBracket, KeyCode.RightBracket };
+
     public Sprite GetDefaultEmptySprite() => defaultEmptySprite;
     public SkillButton[] GetSkillButtons2() => skillButtons2;
     public SkillButton[] GetSkillButtons3() => skillButtons3;
@@ -92,6 +96,8 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             return;
         }
         StartCoroutine(InitializeUI());
+        core.Inventory.OnInventoryChanged.AddListener(UpdateInventoryUI);
+        core.Inventory.OnEquipmentChanged.AddListener(UpdateEquipmentUI);
     }
 
     private IEnumerator InitializeUI()
@@ -266,6 +272,8 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         {
             Debug.LogError("[PlayerUI] PlayerSkills component not found!");
         }
+        UpdateInventoryUI();
+        UpdateEquipmentUI();
     }
 
     private void Update()
@@ -321,7 +329,6 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
                         bool isActive = skillsComp.toggleBuffStates.ContainsKey(btn.skill.SkillName) && skillsComp.toggleBuffStates[btn.skill.SkillName];
                         bool targetState = !isActive;
                         skillsComp.CmdToggleBuff(btn.skill.SkillName, targetState);
-                        // Добавь: локальный сет layer
                         int targetLayer = targetState ? LayerMask.NameToLayer("Ignore Raycast") : skillsComp._originalLayer;
                         core.gameObject.layer = targetLayer;
                         Debug.Log($"[PlayerUI] Local layer set to {targetLayer} for {btn.skill.SkillName}");
@@ -399,6 +406,11 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             stats.OnAccuracyChangedEvent -= (oldValue, newValue) => UpdateAttribute("accuracy", newValue);
             stats.OnMinAttackChangedEvent -= (oldValue, newValue) => UpdateAttribute("minAttack", newValue);
             stats.OnMaxAttackChangedEvent -= (oldValue, newValue) => UpdateAttribute("maxAttack", newValue);
+        }
+        if (core != null && core.Inventory != null)
+        {
+            core.Inventory.OnInventoryChanged.RemoveListener(UpdateInventoryUI);
+            core.Inventory.OnEquipmentChanged.RemoveListener(UpdateEquipmentUI);
         }
     }
 
@@ -497,11 +509,12 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         if (minAttackText != null) minAttackText.text = $"{stats.minAttack}";
         if (maxAttackText != null) maxAttackText.text = $"{stats.maxAttack}";
         bool hasPoints = stats.characteristicPoints > 0;
-        if (strengthButton != null) { strengthButton.gameObject.SetActive(hasPoints); Debug.Log($"[PlayerUI] StrengthButton active: {hasPoints}"); }
-        if (agilityButton != null) { agilityButton.gameObject.SetActive(hasPoints); Debug.Log($"[PlayerUI] AgilityButton active: {hasPoints}"); }
-        if (spiritButton != null) { spiritButton.gameObject.SetActive(hasPoints); Debug.Log($"[PlayerUI] SpiritButton active: {hasPoints}"); }
-        if (constitutionButton != null) { constitutionButton.gameObject.SetActive(hasPoints); Debug.Log($"[PlayerUI] ConstitutionButton active: {hasPoints}"); }
-        if (accuracyButton != null) { accuracyButton.gameObject.SetActive(hasPoints); Debug.Log($"[PlayerUI] AccuracyButton active: {hasPoints}"); }
+        if (strengthButton != null) strengthButton.gameObject.SetActive(hasPoints);
+        if (agilityButton != null) agilityButton.gameObject.SetActive(hasPoints);
+        if (spiritButton != null) spiritButton.gameObject.SetActive(hasPoints);
+        if (constitutionButton != null) constitutionButton.gameObject.SetActive(hasPoints);
+        if (accuracyButton != null) accuracyButton.gameObject.SetActive(hasPoints);
+        Debug.Log($"[PlayerUI] AttributesPanel updated: strength={stats.strength}, agility={stats.agility}, spirit={stats.spirit}, constitution={stats.constitution}, accuracy={stats.accuracy}");
     }
 
     private void UpdateAttribute(string statName, int value)
@@ -522,7 +535,7 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
                 if (constitutionText != null) constitutionText.text = $"{value}";
                 break;
             case "accuracy":
-                if (accuracyText != null) accuracyText.text = $"{value}";
+                if (accuracyText != null) strengthText.text = $"{value}";
                 break;
             case "minattack":
                 if (minAttackText != null) minAttackText.text = $"{value}";
@@ -576,6 +589,52 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
 
     public void OnEndDrag(PointerEventData eventData)
     {
+        GameObject droppedOn = eventData.pointerCurrentRaycast.gameObject;
+        if (droppedOn == null)
+        {
+            Debug.Log("[PlayerUI] Dropped outside any slot");
+            return;
+        }
+
+        EquipmentSlotUI equipmentSlot = droppedOn.GetComponent<EquipmentSlotUI>();
+        InventorySlot inventorySlot = eventData.pointerDrag.GetComponent<InventorySlot>();
+        if (equipmentSlot != null && inventorySlot != null && inventorySlot.itemInfo.id > 0)
+        {
+            Item item = inventorySlot.itemInfo.GetItem();
+            if (item != null && item.CanEquipToSlot(equipmentSlot.slotType))
+            {
+                core.CmdEquipItem(inventorySlot.itemInfo, inventorySlot.slotIndex, equipmentSlot.slotType);
+                Debug.Log($"[PlayerUI] Dropped {item.itemName} onto {equipmentSlot.slotType} slot from inventory slot {inventorySlot.slotIndex}");
+            }
+            else
+            {
+                Debug.LogWarning($"[PlayerUI] Cannot equip {item?.itemName ?? "null"} to {equipmentSlot.slotType}");
+            }
+            return;
+        }
+
+        SkillButton hotbarButton = droppedOn.GetComponent<SkillButton>();
+        if (hotbarButton != null && inventorySlot != null && inventorySlot.itemInfo.id > 0)
+        {
+            Item item = inventorySlot.itemInfo.GetItem();
+            if (item != null && item.canHotbar)
+            {
+                AssignItemToHotbar(item, hotbarButton, inventorySlot.slotIndex);
+                Debug.Log($"[PlayerUI] Assigned {item.itemName} to hotbar button {hotbarButton.buttonIndex}");
+            }
+            else
+            {
+                Debug.LogWarning($"[PlayerUI] Cannot assign {item?.itemName ?? "null"} to hotbar: canHotbar={item?.canHotbar}");
+            }
+            return;
+        }
+
+        SkillButton firstButton = eventData.pointerDrag.GetComponent<SkillButton>();
+        if (firstButton != null && hotbarButton != null)
+        {
+            SwapSkillsOrItems(firstButton, hotbarButton);
+            Debug.Log($"[PlayerUI] Swapped buttons: {firstButton.buttonIndex} <-> {hotbarButton.buttonIndex}");
+        }
     }
 
     public void AssignItemToHotbar(Item item, SkillButton hotbarButton, int slotIndex)
@@ -583,6 +642,11 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         int index2 = Array.IndexOf(skillButtons2, hotbarButton);
         int index3 = Array.IndexOf(skillButtons3, hotbarButton);
         if (index2 == -1 && index3 == -1) return;
+        if (!item.canHotbar)
+        {
+            Debug.LogWarning($"[PlayerUI] Item {item.itemName} cannot be assigned to hotbar");
+            return;
+        }
         string oldSkillName = "";
         if (hotbarButton.skill != null)
         {
@@ -720,6 +784,10 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             var secondEntry = skillCooldownEntries.Find(e => e.cooldownImage == secondButton.transform.Find("CooldownOverlay")?.GetComponent<Image>());
             if (firstEntry != null) firstEntry.skillName = firstButton.skill != null ? firstButton.skill.SkillName : (firstButton.item != null ? firstButton.item.itemName : "");
             if (secondEntry != null) secondEntry.skillName = secondButton.skill != null ? secondButton.skill.SkillName : (secondButton.item != null ? secondButton.item.itemName : "");
+            if (firstButton.item != null || secondButton.item != null)
+            {
+                core.CmdSwapInventoryItems(firstButton.itemSlotIndex, secondButton.itemSlotIndex);
+            }
             Debug.Log($"[PlayerUI] Swapped: {(firstButton.skill != null ? firstButton.skill.SkillName : (firstButton.item != null ? firstButton.item.itemName : "empty"))} (hotkey {firstHotkey}) <-> {(secondButton.skill != null ? secondButton.skill.SkillName : (secondButton.item != null ? secondButton.item.itemName : "empty"))} (hotkey {secondHotkey})");
         }
     }
@@ -733,5 +801,84 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         index = Array.IndexOf(skillButtons3, button);
         if (index != -1) return hotkeys3[index];
         return KeyCode.None;
+    }
+
+    public void UpdateInventoryUI()
+    {
+        if (!core.isLocalPlayer) return;
+        for (int i = 0; i < inventorySlots.Length && i < core.Inventory.items.Count; i++)
+        {
+            inventorySlots[i].SetItem(core.Inventory.items[i]);
+        }
+        Debug.Log($"[PlayerUI] Inventory UI updated, slots assigned: {inventorySlots.Length}, items: {core.Inventory.items.Count}");
+    }
+
+    public void UpdateEquipmentUI()
+    {
+        if (!core.isLocalPlayer) return;
+        foreach (var slot in equipmentSlots)
+        {
+            ItemInfo equippedItem = core.Inventory.GetEquipped(slot.slotType);
+            slot.SetItem(equippedItem);
+            Debug.Log($"[PlayerUI] Equipment slot {slot.slotType} updated: {(equippedItem.id > 0 ? equippedItem.GetItem()?.itemName : "empty")}");
+        }
+        Debug.Log($"[PlayerUI] Equipment UI updated, slots checked: {equipmentSlots.Length}");
+    }
+
+    public EquipmentSlotUI FindMatchingEquipmentSlot(Item item)
+    {
+        if (item == null)
+        {
+            Debug.LogWarning("[PlayerUI] FindMatchingEquipmentSlot: Item is null");
+            return null;
+        }
+        if (equipmentSlots == null || equipmentSlots.Length == 0)
+        {
+            Debug.LogWarning($"[PlayerUI] FindMatchingEquipmentSlot: equipmentSlots is {(equipmentSlots == null ? "null" : "empty")}");
+            return null;
+        }
+        // Проверяем основной слот
+        EquipmentSlotUI mainSlot = equipmentSlots.FirstOrDefault(s => s.slotType == item.equipmentSlot);
+        if (mainSlot != null)
+        {
+            ItemInfo equippedItem = core.Inventory.GetEquipped(item.equipmentSlot);
+            if (equippedItem.id == 0) // Проверка на id == 0, как в Inventory.cs
+            {
+                Debug.Log($"[PlayerUI] Found free main slot: {item.equipmentSlot} for {item.itemName}");
+                return mainSlot;
+            }
+            else
+            {
+                Debug.Log($"[PlayerUI] Main slot {item.equipmentSlot} is occupied by {equippedItem.GetItem()?.itemName ?? "unknown"} (ID: {equippedItem.id})");
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"[PlayerUI] No EquipmentSlotUI found for {item.equipmentSlot} in equipmentSlots");
+        }
+        // Проверяем альтернативный слот
+        if (item.alternativeSlot != EquipmentSlot.None)
+        {
+            EquipmentSlotUI altSlot = equipmentSlots.FirstOrDefault(s => s.slotType == item.alternativeSlot);
+            if (altSlot != null)
+            {
+                ItemInfo equippedItem = core.Inventory.GetEquipped(item.alternativeSlot);
+                if (equippedItem.id == 0) // Проверка на id == 0
+                {
+                    Debug.Log($"[PlayerUI] Found free alternative slot: {item.alternativeSlot} for {item.itemName}");
+                    return altSlot;
+                }
+                else
+                {
+                    Debug.Log($"[PlayerUI] Alternative slot {item.alternativeSlot} is occupied by {equippedItem.GetItem()?.itemName ?? "unknown"} (ID: {equippedItem.id})");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"[PlayerUI] No EquipmentSlotUI found for {item.alternativeSlot} in equipmentSlots");
+            }
+        }
+        Debug.LogWarning($"[PlayerUI] No free slots found for {item.itemName} (equipmentSlot: {item.equipmentSlot}, alternativeSlot: {item.alternativeSlot})");
+        return null;
     }
 }

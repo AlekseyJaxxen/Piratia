@@ -9,31 +9,53 @@ public class SwordItem : Item
     public float criticalChance = 0.05f;
     public float criticalMultiplier = 1.5f;
 
+    private void OnEnable()
+    {
+        // ”дал€ем автоматическое заполнение полей, полагаемс€ на настройки из инспектора и базовый класс Item
+        base.OnEnable();
+    }
+
     public override void Use(PlayerCore player)
     {
-        CharacterStats stats = player.GetComponent<CharacterStats>();
-        if (stats == null)
+        if (!canUse)
         {
-            Debug.LogError($"[SwordItem] CharacterStats component not found on PlayerCore for {itemName}!");
-            return;
-        }
-
-        if (IsEquipable(stats.level))
-        {
-            Debug.Log($"[SwordItem] Equipping sword {itemName}");
-            int slotIndex = player.Inventory.items.FindIndex(i => i.id == id);
-            if (slotIndex >= 0)
+            if (IsEquipable(player.Stats.level, player.Stats.characterClass))
             {
-                player.CmdEquipItem(player.Inventory.items[slotIndex], slotIndex, equipmentSlot);
+                EquipmentSlotUI slotUI = PlayerUI.Instance.FindMatchingEquipmentSlot(this);
+                if (slotUI != null)
+                {
+                    int slotIndex = player.Inventory.items.FindIndex(item => item.id == id);
+                    if (slotIndex >= 0)
+                    {
+                        player.CmdEquipItem(player.Inventory.items[slotIndex], slotIndex, slotUI.slotType);
+                        Debug.Log($"[SwordItem] Equipping {itemName} to {slotUI.slotType} from slot {slotIndex}");
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"[SwordItem] No matching equipment slot for {itemName}");
+                }
             }
             else
             {
-                Debug.LogWarning($"[SwordItem] Item {itemName} not found in inventory");
+                Debug.LogWarning($"[SwordItem] Cannot equip {itemName}: level {player.Stats.level} or class {player.Stats.characterClass} does not match required level {requiredLevel} or class {characterClass}");
             }
         }
         else
         {
-            Debug.LogWarning($"[SwordItem] Cannot equip {itemName}. Player level {stats.level} is less than required level {requiredLevel}");
+            base.Use(player);
         }
+    }
+
+    public virtual int CalculateDamage()
+    {
+        bool isCritical = Random.value < criticalChance;
+        int damage = baseDamage;
+        if (isCritical)
+        {
+            damage = Mathf.RoundToInt(damage * criticalMultiplier);
+            Debug.Log($"[SwordItem] Critical hit with {itemName}! Damage: {damage}");
+        }
+        return damage;
     }
 }

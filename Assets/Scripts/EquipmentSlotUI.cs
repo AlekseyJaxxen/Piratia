@@ -3,7 +3,7 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using System.Collections;
 
-public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler
+public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler, IPointerClickHandler
 {
     [SerializeField] private Image itemIcon;
     [SerializeField] public EquipmentSlot slotType;
@@ -17,6 +17,10 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
     {
         inventoryUI = GetComponentInParent<InventoryUI>();
         core = GetComponentInParent<PlayerCore>();
+        if (core == null)
+        {
+            core = FindObjectOfType<PlayerCore>();
+        }
     }
 
     public void SetItem(ItemInfo info)
@@ -139,21 +143,29 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
             inventoryUI.draggedSlot = null;
             return;
         }
-        // Проверка, соответствует ли слот предмету и уровню игрока
-        if (item.equipmentSlot != slotType)
+        if (!item.CanEquipToSlot(slotType))
         {
-            Debug.LogWarning($"[EquipmentSlotUI] Cannot equip {item.itemName}: slot {slotType} does not match item slot {item.equipmentSlot}");
+            Debug.LogWarning($"[EquipmentSlotUI] Cannot equip {item.itemName}: slot {slotType} does not match item slot {item.equipmentSlot} or {item.alternativeSlot}");
             inventoryUI.draggedSlot = null;
             return;
         }
-        if (!item.IsEquipable(core.Stats.level))
+        if (!item.IsEquipable(core.Stats.level, core.Stats.characterClass))
         {
-            Debug.LogWarning($"[EquipmentSlotUI] Cannot equip {item.itemName}: player level {core.Stats.level} is less than required level {item.requiredLevel}");
+            Debug.LogWarning($"[EquipmentSlotUI] Cannot equip {item.itemName}: player level {core.Stats.level} or class {core.Stats.characterClass} does not match required level {item.requiredLevel} or class {item.characterClass}");
             inventoryUI.draggedSlot = null;
             return;
         }
-        Debug.Log($"[EquipmentSlotUI] OnDrop: Attempting to equip {item.itemName} (ID: {inventoryUI.draggedSlot.itemInfo.id}) from slot {inventoryUI.draggedSlot.slotIndex} to {slotType}");
+        Debug.Log($"[EquipmentSlotUI] OnDrop: Equipping {item.itemName} (ID: {inventoryUI.draggedSlot.itemInfo.id}) from slot {inventoryUI.draggedSlot.slotIndex} to {slotType}");
         core.CmdEquipItem(inventoryUI.draggedSlot.itemInfo, inventoryUI.draggedSlot.slotIndex, slotType);
         inventoryUI.draggedSlot = null;
+    }
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (eventData.clickCount == 2 && itemInfo.id > 0)
+        {
+            core.CmdUnequipItem(slotType);
+            Debug.Log($"[EquipmentSlotUI] Double-click unequipping item: {itemInfo.GetItem()?.itemName ?? "null"} from {slotType}");
+        }
     }
 }

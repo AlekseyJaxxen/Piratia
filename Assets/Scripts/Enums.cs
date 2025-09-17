@@ -6,7 +6,8 @@ public enum CharacterClass
     Mage,
     Archer,
     Monster,
-    Tank
+    Tank,
+    None
 }
 
 

@@ -52,6 +52,7 @@ public class Inventory : NetworkBehaviour
             OnInventoryChanged.Invoke();
             OnEquipmentChanged.Invoke();
             OnGoldChanged.Invoke();
+            UpdateEquipmentVisuals();
         }
     }
 
@@ -69,7 +70,7 @@ public class Inventory : NetworkBehaviour
         {
             for (int i = 0; i < items.Count; i++)
             {
-                if (items[i].id == item.id)
+                if (items[i].id == item.id && items[i].quantity < item.maxStack)
                 {
                     int newQuantity = items[i].quantity + quantity;
                     if (newQuantity <= item.maxStack)
@@ -102,17 +103,12 @@ public class Inventory : NetworkBehaviour
                 Debug.Log($"[Inventory] Added new item: {item.itemName} (ID: {item.id}, quantity: {quantity}) to empty slot {emptyIndex}");
                 added = true;
             }
-            else if (items.Count < inventorySize)
-            {
-                items.Add(new ItemInfo { id = item.id, quantity = quantity });
-                Debug.Log($"[Inventory] Added new item: {item.itemName} (ID: {item.id}, quantity: {quantity}) to new slot");
-                added = true;
-            }
             else
             {
                 Debug.LogWarning($"[Inventory] Cannot add item: {item.itemName}, inventory full");
             }
         }
+        if (added) OnInventoryChanged.Invoke();
         return added;
     }
 
@@ -144,17 +140,70 @@ public class Inventory : NetworkBehaviour
             Debug.LogError($"[Inventory] Cannot equip item: Item with ID {itemInfo.id} not found");
             return;
         }
-        if (item.equipmentSlot != slot)
+        if (!item.CanEquipToSlot(slot))
         {
-            Debug.LogError($"[Inventory] Cannot equip item: {item.itemName} slot {item.equipmentSlot} does not match {slot}");
+            Debug.LogError($"[Inventory] Cannot equip item: {item.itemName} cannot be equipped to slot {slot}");
             return;
         }
-        if (!item.IsEquipable(playerCore.Stats.level))
+        if (!item.IsEquipable(playerCore.Stats.level, playerCore.Stats.characterClass))
         {
-            Debug.LogError($"[Inventory] Cannot equip item: {item.itemName}, player level {playerCore.Stats.level} is less than required level {item.requiredLevel}");
+            Debug.LogError($"[Inventory] Cannot equip item: {item.itemName}, player level {playerCore.Stats.level} or class {playerCore.Stats.characterClass} does not match required level {item.requiredLevel} or class {item.characterClass}");
             return;
         }
-        Debug.Log($"[Inventory] Equipping item: {item.itemName} (ID: {itemInfo.id}) to {slot} from slot {slotIndex}");
+        if (slotIndex < 0 || slotIndex >= items.Count)
+        {
+            Debug.LogError($"[Inventory] Cannot equip item: {item.itemName} (ID: {itemInfo.id}), invalid slot index {slotIndex}");
+            return;
+        }
+        ItemInfo slotItem = items[slotIndex];
+        if (slotItem.id != itemInfo.id || slotItem.quantity <= 0)
+        {
+            Debug.LogError($"[Inventory] Cannot equip item: {item.itemName} (ID: {itemInfo.id}), item mismatch (expected ID: {itemInfo.id}, found ID: {slotItem.id}, quantity: {slotItem.quantity}) at slot {slotIndex}");
+            return;
+        }
+
+        // ѕроверка на наличие двуручного оружи€ в другом слоте
+        if (slot == EquipmentSlot.LeftHand || slot == EquipmentSlot.RightHand)
+        {
+            EquipmentSlot otherSlot = (slot == EquipmentSlot.LeftHand) ? EquipmentSlot.RightHand : EquipmentSlot.LeftHand;
+            ItemInfo otherSlotItem = GetEquipped(otherSlot);
+            if (otherSlotItem.id > 0)
+            {
+                Item otherItemObj = otherSlotItem.GetItem();
+                if (otherItemObj != null && otherItemObj.isTwoHanded)
+                {
+                    Debug.Log($"[Inventory] Unequipping two-handed item: {otherItemObj.itemName} from {otherSlot} to inventory");
+                    ApplyItemStats(otherItemObj, false);
+                    if (!AddItem(otherItemObj, otherSlotItem.quantity))
+                    {
+                        Debug.LogWarning($"[Inventory] Failed to add unequipped item {otherItemObj.itemName} from {otherSlot} to inventory");
+                        return;
+                    }
+                    SetEquipped(otherSlot, new ItemInfo());
+                }
+            }
+
+            // ≈сли экипируетс€ двуручное оружие, очищаем другой слот
+            if (item.isTwoHanded && item.alternativeSlot != EquipmentSlot.None)
+            {
+                if (otherSlotItem.id > 0)
+                {
+                    Item otherItemObj = otherSlotItem.GetItem();
+                    if (otherItemObj != null)
+                    {
+                        Debug.Log($"[Inventory] Unequipping item from second slot: {otherItemObj.itemName} from {otherSlot} to inventory");
+                        ApplyItemStats(otherItemObj, false);
+                        if (!AddItem(otherItemObj, otherSlotItem.quantity))
+                        {
+                            Debug.LogWarning($"[Inventory] Failed to add unequipped item {otherItemObj.itemName} from {otherSlot} to inventory");
+                            return;
+                        }
+                        SetEquipped(otherSlot, new ItemInfo());
+                    }
+                }
+            }
+        }
+
         ItemInfo oldItem = GetEquipped(slot);
         if (oldItem.id > 0)
         {
@@ -163,20 +212,18 @@ public class Inventory : NetworkBehaviour
             {
                 Debug.Log($"[Inventory] Unequipping old item: {oldItemObj.itemName} from {slot} to inventory");
                 ApplyItemStats(oldItemObj, false);
-                AddItem(oldItemObj, oldItem.quantity);
+                if (!AddItem(oldItemObj, oldItem.quantity))
+                {
+                    Debug.LogWarning($"[Inventory] Failed to add unequipped item {oldItemObj.itemName} back to inventory");
+                    return;
+                }
             }
         }
-        SetEquipped(slot, itemInfo);
+
+        Debug.Log($"[Inventory] Equipping item: {item.itemName} (ID: {itemInfo.id}) to {slot} from slot {slotIndex}");
         ApplyItemStats(item, true);
+        SetEquipped(slot, itemInfo);
         ClearItemSlot(slotIndex);
-        if (isClient)
-        {
-            visuals?.UpdateEquipmentVisual(slot, itemInfo);
-        }
-        else
-        {
-            RpcUpdateEquipmentVisual(slot, itemInfo);
-        }
     }
 
     [Server]
@@ -185,15 +232,8 @@ public class Inventory : NetworkBehaviour
         ItemInfo itemInfo = GetEquipped(slot);
         if (itemInfo.id <= 0 || itemInfo.quantity <= 0)
         {
+            Debug.Log($"[Inventory] No item to unequip in slot {slot}");
             SetEquipped(slot, new ItemInfo());
-            if (isClient)
-            {
-                visuals?.UpdateEquipmentVisual(slot, new ItemInfo());
-            }
-            else
-            {
-                RpcUpdateEquipmentVisual(slot, new ItemInfo());
-            }
             return;
         }
         Item item = itemInfo.GetItem();
@@ -201,27 +241,33 @@ public class Inventory : NetworkBehaviour
         {
             Debug.LogError($"[Inventory] Cannot unequip item: Item with ID {itemInfo.id} not found");
             SetEquipped(slot, new ItemInfo());
-            if (isClient)
-            {
-                visuals?.UpdateEquipmentVisual(slot, new ItemInfo());
-            }
-            else
-            {
-                RpcUpdateEquipmentVisual(slot, new ItemInfo());
-            }
             return;
         }
         Debug.Log($"[Inventory] Unequipping item: {item.itemName} from {slot}, quantity: {itemInfo.quantity}");
         ApplyItemStats(item, false);
-        AddItem(item, itemInfo.quantity);
-        SetEquipped(slot, new ItemInfo());
-        if (isClient)
+        if (!AddItem(item, itemInfo.quantity))
         {
-            visuals?.UpdateEquipmentVisual(slot, new ItemInfo());
+            Debug.LogWarning($"[Inventory] Failed to add unequipped item {item.itemName} back to inventory");
+            return;
         }
-        else
+        SetEquipped(slot, new ItemInfo());
+        if (item.isTwoHanded && item.alternativeSlot != EquipmentSlot.None)
         {
-            RpcUpdateEquipmentVisual(slot, new ItemInfo());
+            ItemInfo otherSlotItem = GetEquipped(item.alternativeSlot);
+            if (otherSlotItem.id > 0)
+            {
+                Item otherItemObj = otherSlotItem.GetItem();
+                if (otherItemObj != null)
+                {
+                    Debug.Log($"[Inventory] Unequipping second slot: {otherItemObj.itemName} from {item.alternativeSlot}");
+                    ApplyItemStats(otherItemObj, false);
+                    if (!AddItem(otherItemObj, otherSlotItem.quantity))
+                    {
+                        Debug.LogWarning($"[Inventory] Failed to add unequipped item {otherItemObj.itemName} from {item.alternativeSlot} to inventory");
+                    }
+                    SetEquipped(item.alternativeSlot, new ItemInfo());
+                }
+            }
         }
     }
 
@@ -237,6 +283,56 @@ public class Inventory : NetworkBehaviour
         items[slotIndex1] = items[slotIndex2];
         items[slotIndex2] = temp;
         Debug.Log($"[Inventory] Swapped items: slot {slotIndex1} <-> slot {slotIndex2}");
+        OnInventoryChanged.Invoke();
+    }
+
+    [Server]
+    public void StackItems(int fromIndex, int toIndex, int maxAdd)
+    {
+        if (fromIndex < 0 || toIndex < 0 || fromIndex >= items.Count || toIndex >= items.Count)
+        {
+            Debug.LogError($"[Inventory] Cannot stack items: Invalid indices {fromIndex}/{toIndex}");
+            return;
+        }
+        ItemInfo fromItem = items[fromIndex];
+        ItemInfo toItem = items[toIndex];
+        if (fromItem.id != toItem.id || fromItem.id <= 0)
+        {
+            Debug.LogError($"[Inventory] Cannot stack items: IDs don't match ({fromItem.id} != {toItem.id}) or invalid ID");
+            return;
+        }
+        Item item = fromItem.GetItem();
+        if (item == null || !item.stackable)
+        {
+            Debug.LogError($"[Inventory] Cannot stack item: {item?.itemName ?? "null"} is not stackable or null");
+            return;
+        }
+        int quantityToAdd = Mathf.Min(maxAdd, fromItem.quantity);
+        ItemInfo updatedToItem = toItem;
+        updatedToItem.quantity += quantityToAdd;
+        items[toIndex] = updatedToItem;
+        ItemInfo updatedFromItem = fromItem;
+        updatedFromItem.quantity -= quantityToAdd;
+        if (updatedFromItem.quantity <= 0)
+        {
+            updatedFromItem = new ItemInfo { id = 0, quantity = 0 };
+        }
+        items[fromIndex] = updatedFromItem;
+        Debug.Log($"[Inventory] Stacked {quantityToAdd} of {item.itemName} from slot {fromIndex} to {toIndex}, new quantity: {items[toIndex].quantity}");
+        OnInventoryChanged.Invoke();
+    }
+
+    [Server]
+    public void ClearItemSlot(int index)
+    {
+        if (index < 0 || index >= items.Count)
+        {
+            Debug.LogError($"[Inventory] Cannot clear item slot: Index {index} is out of bounds.");
+            return;
+        }
+        items[index] = new ItemInfo { id = 0, quantity = 0 };
+        Debug.Log($"[Inventory] Cleared item slot at index: {index}");
+        OnInventoryChanged.Invoke();
     }
 
     public void OnItemsListChanged(SyncList<ItemInfo>.Operation op, int index, ItemInfo oldItem, ItemInfo newItem)
@@ -264,7 +360,7 @@ public class Inventory : NetworkBehaviour
         Debug.Log($"[Inventory] Applied stats for {item.itemName} (apply={apply}): strength={item.strengthMod + item.strModulusBonus + item.strConstantBonus}, agility={item.agilityMod + item.agiModulusBonus + item.agiConstantBonus}, spirit={item.spiritMod + item.sprModulusBonus}, constitution={item.constitutionMod + item.conModulusBonus + item.conConstantBonus}, accuracy={item.accuracyMod + item.hitRateModulusBonus + item.hitModulusBonus + item.hitConstantBonus}, intelligence={item.intelligenceMod + item.agiModulusBonus + item.agiConstantBonus}, maxHealth={item.maxHpModulusBonus + item.maxHpConstantBonus}, maxMana={item.maxSpModulusBonus + item.maxSpConstantBonus}, armor={item.defenseModulusBonus + item.physicalResist}, criticalHitChance={item.crtModulusBonus + item.crtConstantBonus}, movementSpeed={item.mspdModulusBonus + item.mspdConstantBonus}");
     }
 
-    private ItemInfo GetEquipped(EquipmentSlot slot)
+    public ItemInfo GetEquipped(EquipmentSlot slot)
     {
         switch (slot)
         {
@@ -279,7 +375,7 @@ public class Inventory : NetworkBehaviour
             case EquipmentSlot.Gloves: return glovesSlot;
             case EquipmentSlot.Weapon: return weaponSlot;
             case EquipmentSlot.OffHand: return offHandSlot;
-            default: return new ItemInfo();
+            default: return new ItemInfo { id = 0, quantity = 0 };
         }
     }
 
@@ -324,56 +420,67 @@ public class Inventory : NetworkBehaviour
         OnEquipmentChanged.Invoke();
         if (isClient) visuals?.UpdateEquipmentVisual(EquipmentSlot.Head, newItem);
     }
+
     private void OnBodyChanged(ItemInfo oldItem, ItemInfo newItem)
     {
         OnEquipmentChanged.Invoke();
         if (isClient) visuals?.UpdateEquipmentVisual(EquipmentSlot.Body, newItem);
     }
+
     private void OnLegsChanged(ItemInfo oldItem, ItemInfo newItem)
     {
         OnEquipmentChanged.Invoke();
         if (isClient) visuals?.UpdateEquipmentVisual(EquipmentSlot.Legs, newItem);
     }
+
     private void OnRightHandChanged(ItemInfo oldItem, ItemInfo newItem)
     {
         OnEquipmentChanged.Invoke();
         if (isClient) visuals?.UpdateEquipmentVisual(EquipmentSlot.RightHand, newItem);
     }
+
     private void OnLeftHandChanged(ItemInfo oldItem, ItemInfo newItem)
     {
         OnEquipmentChanged.Invoke();
         if (isClient) visuals?.UpdateEquipmentVisual(EquipmentSlot.LeftHand, newItem);
     }
+
     private void OnRingChanged(ItemInfo oldItem, ItemInfo newItem)
     {
         OnEquipmentChanged.Invoke();
         if (isClient) visuals?.UpdateEquipmentVisual(EquipmentSlot.Ring, newItem);
     }
+
     private void OnNecklaceChanged(ItemInfo oldItem, ItemInfo newItem)
     {
         OnEquipmentChanged.Invoke();
         if (isClient) visuals?.UpdateEquipmentVisual(EquipmentSlot.Necklace, newItem);
     }
+
     private void OnBootsChanged(ItemInfo oldItem, ItemInfo newItem)
     {
         OnEquipmentChanged.Invoke();
         if (isClient) visuals?.UpdateEquipmentVisual(EquipmentSlot.Boots, newItem);
     }
+
     private void OnGlovesChanged(ItemInfo oldItem, ItemInfo newItem)
     {
         OnEquipmentChanged.Invoke();
         if (isClient) visuals?.UpdateEquipmentVisual(EquipmentSlot.Gloves, newItem);
     }
+
     private void OnWeaponChanged(ItemInfo oldItem, ItemInfo newItem)
     {
         OnEquipmentChanged.Invoke();
         if (isClient) visuals?.UpdateEquipmentVisual(EquipmentSlot.Weapon, newItem);
     }
+
     private void OnOffHandChanged(ItemInfo oldItem, ItemInfo newItem)
     {
         OnEquipmentChanged.Invoke();
         if (isClient) visuals?.UpdateEquipmentVisual(EquipmentSlot.OffHand, newItem);
     }
+
     private void OnInventoryGoldChanged(int oldGold, int newGold)
     {
         OnGoldChanged.Invoke();
@@ -385,15 +492,21 @@ public class Inventory : NetworkBehaviour
         visuals?.UpdateEquipmentVisual(slot, itemInfo);
     }
 
-    [Server]
-    public void ClearItemSlot(int index)
+    [Client]
+    private void UpdateEquipmentVisuals()
     {
-        if (index < 0 || index >= items.Count)
-        {
-            Debug.LogError($"[Inventory] Cannot clear item slot: Index {index} is out of bounds.");
-            return;
-        }
-        items[index] = new ItemInfo { id = 0, quantity = 0 };
-        Debug.Log($"[Inventory] Cleared item slot at index: {index}");
+        if (visuals == null) return;
+        visuals.UpdateEquipmentVisual(EquipmentSlot.Head, headSlot);
+        visuals.UpdateEquipmentVisual(EquipmentSlot.Body, bodySlot);
+        visuals.UpdateEquipmentVisual(EquipmentSlot.Legs, legsSlot);
+        visuals.UpdateEquipmentVisual(EquipmentSlot.RightHand, rightHandSlot);
+        visuals.UpdateEquipmentVisual(EquipmentSlot.LeftHand, leftHandSlot);
+        visuals.UpdateEquipmentVisual(EquipmentSlot.Ring, ringSlot);
+        visuals.UpdateEquipmentVisual(EquipmentSlot.Necklace, necklaceSlot);
+        visuals.UpdateEquipmentVisual(EquipmentSlot.Boots, bootsSlot);
+        visuals.UpdateEquipmentVisual(EquipmentSlot.Gloves, glovesSlot);
+        visuals.UpdateEquipmentVisual(EquipmentSlot.Weapon, weaponSlot);
+        visuals.UpdateEquipmentVisual(EquipmentSlot.OffHand, offHandSlot);
+        Debug.Log($"[Inventory] Updated visuals for all equipment slots");
     }
 }

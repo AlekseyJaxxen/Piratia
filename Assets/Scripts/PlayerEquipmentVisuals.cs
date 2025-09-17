@@ -1,155 +1,190 @@
 using UnityEngine;
 using Mirror;
-using System.Collections.Generic;
-using System.Collections;
+using System.Linq;
 
 public class PlayerEquipmentVisuals : NetworkBehaviour
 {
-    private Dictionary<EquipmentSlot, GameObject> equippedModels = new Dictionary<EquipmentSlot, GameObject>();
-    private Transform characterModel;
-    private Animator animator;
-    private PlayerAnimationSystem animationSystem;
+    private PlayerCore playerCore;
+    private GameObject[] instantiatedObjects;
 
-    public void Init(PlayerCore player)
+    public void Init(PlayerCore core)
     {
-        animationSystem = player.GetComponent<PlayerAnimationSystem>();
-        if (animationSystem == null)
-        {
-            Debug.LogError($"[PlayerEquipmentVisuals] PlayerAnimationSystem not found on {player.gameObject.name}!");
-            return;
-        }
-
-        characterModel = GetActiveCharacterModel();
-        if (characterModel == null)
-        {
-            Debug.LogError($"[PlayerEquipmentVisuals] No active model found for {player.gameObject.name}! Waiting for PlayerAnimationSystem to initialize.");
-            StartCoroutine(WaitForModelInitialization(player));
-            return;
-        }
-
-        animator = characterModel.GetComponent<Animator>();
-        if (animator == null)
-        {
-            Debug.LogError($"[PlayerEquipmentVisuals] Animator not found on character model: {characterModel.name}");
-            return;
-        }
-        Debug.Log($"[PlayerEquipmentVisuals] Initialized with character model: {characterModel.name}, scale: {characterModel.localScale}");
+        playerCore = core;
+        Transform[] allTransforms = GetComponentsInChildren<Transform>();
+        instantiatedObjects = new GameObject[allTransforms.Length];
+        Debug.Log($"[PlayerEquipmentVisuals] Initialized with {allTransforms.Length} transforms: {string.Join(", ", allTransforms.Where(t => t != null).Select(t => t.name))}");
+        bool hasRightHand = allTransforms.Any(t => t != null && t.name.ToLower() == "righthandweapon");
+        bool hasLeftHand = allTransforms.Any(t => t != null && t.name.ToLower() == "lefthandweapon");
+        Debug.Log($"[PlayerEquipmentVisuals] RightHandWeapon found: {hasRightHand}, LeftHandWeapon found: {hasLeftHand}");
     }
 
-    private Transform GetActiveCharacterModel()
-    {
-        if (animationSystem != null)
-        {
-            GameObject activeModel = animationSystem.GetActiveModel();
-            if (activeModel != null)
-            {
-                return activeModel.transform;
-            }
-        }
-        return null;
-    }
-
-    private IEnumerator WaitForModelInitialization(PlayerCore player)
-    {
-        yield return new WaitForSeconds(1f);
-        characterModel = GetActiveCharacterModel();
-        if (characterModel == null)
-        {
-            Debug.LogError($"[PlayerEquipmentVisuals] Failed to find active model after retry for {player.gameObject.name}!");
-            yield break;
-        }
-        animator = characterModel.GetComponent<Animator>();
-        if (animator == null)
-        {
-            Debug.LogError($"[PlayerEquipmentVisuals] Animator not found on character model: {characterModel.name}");
-            yield break;
-        }
-        Debug.Log($"[PlayerEquipmentVisuals] Successfully initialized with character model: {characterModel.name}, scale: {characterModel.localScale} after retry");
-    }
-
-    [Client]
     public void UpdateEquipmentVisual(EquipmentSlot slot, ItemInfo itemInfo)
     {
-        if (characterModel == null || animator == null)
+        if (slot == EquipmentSlot.Head)
         {
-            Debug.LogWarning($"[PlayerEquipmentVisuals] Cannot update equipment visual for slot {slot}: characterModel or animator is null.");
+            Debug.Log($"[PlayerEquipmentVisuals] Skipping visual update for Head slot (not implemented)");
             return;
         }
 
-        // Удаляем старую модель, если она есть
-        if (equippedModels.ContainsKey(slot))
+        // Очистка визуала для текущего слота
+        ClearVisualForSlot(slot);
+
+        Item item = itemInfo.GetItem();
+        if (item == null || itemInfo.id == 0)
         {
-            if (equippedModels[slot] != null)
-            {
-                NetworkServer.Destroy(equippedModels[slot]);
-            }
-            equippedModels.Remove(slot);
+            Debug.Log($"[PlayerEquipmentVisuals] No item or invalid item ID for slot {slot}, visual cleared");
+            return;
         }
 
-        // Добавляем новую модель, если предмет экипирован
-        if (itemInfo.id > 0)
+        // Для двуручного оружия используем primaryDisplaySlot
+        string boneName;
+        if (item.isTwoHanded)
         {
-            Item item = itemInfo.GetItem();
-            if (item != null && !string.IsNullOrEmpty(item.boneName))
+            boneName = item.GetBoneNameForSlot(item.primaryDisplaySlot);
+        }
+        else
+        {
+            boneName = item.GetBoneNameForSlot(slot);
+        }
+
+        Transform bone = FindBone(boneName);
+        if (bone == null)
+        {
+            Debug.LogWarning($"[PlayerEquipmentVisuals] No bone ({boneName}) for slot {slot}, skipping visual for {item.itemName}");
+            return;
+        }
+
+        // Экипировка модели
+        if (item.isTwoHanded)
+        {
+            if (!string.IsNullOrEmpty(boneName))
             {
-                GameObject prefab = item.GetEquipModelPrefab();
-                if (prefab != null)
-                {
-                    Transform bone = FindBone(item.boneName);
-                    if (bone != null)
-                    {
-                        GameObject model = Instantiate(prefab, bone);
-                        // Корректируем масштаб относительно масштаба characterModel
-                        Vector3 modelScale = characterModel.localScale;
-                        Vector3 inverseModelScale = new Vector3(1f / modelScale.x, 1f / modelScale.y, 1f / modelScale.z);
-                        model.transform.localScale = Vector3.Scale(prefab.transform.localScale, inverseModelScale);
-                        model.transform.localPosition = Vector3.zero;
-                        model.transform.localRotation = Quaternion.identity;
-                        NetworkServer.Spawn(model, connectionToClient);
-                        equippedModels[slot] = model;
-                        Debug.Log($"[PlayerEquipmentVisuals] Equipped model for {item.itemName} on {item.boneName} for slot {slot}, model scale: {modelScale}, adjusted model scale: {model.transform.localScale}");
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"[PlayerEquipmentVisuals] Bone {item.boneName} not found for {item.itemName}");
-                    }
-                }
+                EquipModel(item, bone, slot);
             }
         }
+        else
+        {
+            EquipModel(item, bone, slot);
+        }
+
+        Debug.Log($"[PlayerEquipmentVisuals] Equipped model for {item.itemName} on {boneName} for slot {slot}");
     }
 
     private Transform FindBone(string boneName)
     {
-        if (animator == null) return null;
-        Transform[] bones = animator.GetComponentsInChildren<Transform>();
-        foreach (Transform bone in bones)
+        if (string.IsNullOrEmpty(boneName))
         {
-            if (bone.name == boneName)
+            Debug.LogWarning($"[PlayerEquipmentVisuals] Bone name is empty or null");
+            return null;
+        }
+
+        Transform[] allTransforms = GetComponentsInChildren<Transform>();
+        foreach (Transform transform in allTransforms)
+        {
+            if (transform != null && transform.name.ToLower() == boneName.ToLower())
             {
-                Debug.Log($"[PlayerEquipmentVisuals] Found bone {boneName}, scale: {bone.localScale}");
-                return bone;
+                Debug.Log($"[PlayerEquipmentVisuals] Found bone {boneName}, scale: {transform.localScale}, position: {transform.position}");
+                return transform;
             }
         }
-        Debug.LogWarning($"[PlayerEquipmentVisuals] Bone {boneName} not found in animator hierarchy.");
+        Debug.LogWarning($"[PlayerEquipmentVisuals] Bone {boneName} not found in {allTransforms.Length} transforms");
         return null;
     }
 
-    [Client]
-    public void ClearAllEquipmentVisuals()
+    private void EquipModel(Item item, Transform bone, EquipmentSlot slot)
     {
-        foreach (var model in equippedModels.Values)
+        GameObject modelPrefab = item.GetEquipModelPrefab();
+        if (modelPrefab == null)
         {
-            if (model != null)
-            {
-                NetworkServer.Destroy(model);
-            }
+            Debug.LogWarning($"[PlayerEquipmentVisuals] No equip model prefab for item {item.itemName} at path {item.model1}");
+            return;
         }
-        equippedModels.Clear();
+
+        GameObject model = Instantiate(modelPrefab, bone);
+        model.transform.localPosition = Vector3.zero;
+        model.transform.localRotation = item.modelRotation; // Без корректировки поворота
+        model.transform.localScale = item.modelScale;
+
+        int transformIndex = System.Array.IndexOf(GetComponentsInChildren<Transform>(), bone);
+        if (transformIndex >= 0 && transformIndex < instantiatedObjects.Length)
+        {
+            if (instantiatedObjects[transformIndex] != null)
+            {
+                Debug.LogWarning($"[PlayerEquipmentVisuals] Overwriting existing model at index {transformIndex} for bone {bone.name}");
+                Destroy(instantiatedObjects[transformIndex]);
+            }
+            instantiatedObjects[transformIndex] = model;
+        }
+        else
+        {
+            Debug.LogWarning($"[PlayerEquipmentVisuals] Invalid transform index {transformIndex} for bone {bone.name}");
+        }
+
+        Debug.Log($"[PlayerEquipmentVisuals] Equipped model for {item.itemName} on {bone.name} for slot {slot}, model scale: {model.transform.localScale}, rotation: {model.transform.localRotation}");
     }
 
-    public override void OnStopClient()
+    private void ClearVisualForSlot(EquipmentSlot slot)
     {
-        base.OnStopClient();
-        ClearAllEquipmentVisuals();
+        if (slot == EquipmentSlot.Head)
+        {
+            Debug.Log($"[PlayerEquipmentVisuals] Skipping clear visual for Head slot (not implemented)");
+            return;
+        }
+
+        // Очистка только для кости, соответствующей текущему слоту
+        string boneName = slot == EquipmentSlot.RightHand ? "RightHandWeapon" : "LeftHandWeapon";
+        Transform bone = FindBone(boneName);
+        Transform[] allTransforms = GetComponentsInChildren<Transform>();
+
+        if (bone != null)
+        {
+            // Уничтожение всех дочерних объектов на кости
+            foreach (Transform child in bone)
+            {
+                Debug.Log($"[PlayerEquipmentVisuals] Destroying child object {child.name} on bone {boneName} for slot {slot}");
+                Destroy(child.gameObject);
+            }
+
+            // Очистка в instantiatedObjects
+            int transformIndex = System.Array.IndexOf(allTransforms, bone);
+            if (transformIndex >= 0 && transformIndex < instantiatedObjects.Length && instantiatedObjects[transformIndex] != null)
+            {
+                Debug.Log($"[PlayerEquipmentVisuals] Destroying model for slot {slot} on bone {boneName} at index {transformIndex}");
+                Destroy(instantiatedObjects[transformIndex]);
+                instantiatedObjects[transformIndex] = null;
+            }
+        }
+
+        // Очистка другого слота, если предмет двуручный
+        EquipmentSlot otherSlot = slot == EquipmentSlot.RightHand ? EquipmentSlot.LeftHand : EquipmentSlot.RightHand;
+        ItemInfo otherItem = playerCore.Inventory.GetEquipped(otherSlot);
+        if (otherItem.id > 0)
+        {
+            Item item = otherItem.GetItem();
+            if (item != null && item.isTwoHanded)
+            {
+                string otherBoneName = item.GetBoneNameForSlot(item.primaryDisplaySlot);
+                if (!string.IsNullOrEmpty(otherBoneName))
+                {
+                    Transform otherBone = FindBone(otherBoneName);
+                    if (otherBone != null)
+                    {
+                        foreach (Transform child in otherBone)
+                        {
+                            Debug.Log($"[PlayerEquipmentVisuals] Destroying child object {child.name} on bone {otherBoneName} for other slot {otherSlot}");
+                            Destroy(child.gameObject);
+                        }
+
+                        int transformIndex = System.Array.IndexOf(allTransforms, otherBone);
+                        if (transformIndex >= 0 && transformIndex < instantiatedObjects.Length && instantiatedObjects[transformIndex] != null)
+                        {
+                            Debug.Log($"[PlayerEquipmentVisuals] Destroying model for other slot {otherSlot} on bone {otherBoneName} at index {transformIndex}");
+                            Destroy(instantiatedObjects[transformIndex]);
+                            instantiatedObjects[transformIndex] = null;
+                        }
+                    }
+                }
+            }
+        }
     }
 }
