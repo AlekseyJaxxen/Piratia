@@ -1962,6 +1962,12 @@ MonoBehaviour:
   legsSlotUI: {fileID: 5806746762673311600}
   rightHandSlotUI: {fileID: 1878536691369494489}
   leftHandSlotUI: {fileID: 2101245415822874658}
+  ringSlotUI: {fileID: 0}
+  necklaceSlotUI: {fileID: 0}
+  bootsSlotUI: {fileID: 0}
+  glovesSlotUI: {fileID: 0}
+  weaponSlotUI: {fileID: 0}
+  offHandSlotUI: {fileID: 0}
   itemTooltip: {fileID: 7179936171313767849}
   tooltipText: {fileID: 1800503398977408188}
   goldText: {fileID: 4087807099611603395}
@@ -5319,6 +5325,7 @@ GameObject:
   - component: {fileID: 2974157229141710053}
   - component: {fileID: 7647094216593040190}
   - component: {fileID: 7836211492774739891}
+  - component: {fileID: 3688220245886055776}
   m_Layer: 8
   m_Name: Player_Prefab_A
   m_TagString: Player
@@ -5444,6 +5451,7 @@ MonoBehaviour:
   constitution: 100
   accuracy: 5
   intelligence: 5
+  luck: 5
   movementSpeed: 8
   maxHealth: 1000
   minAttack: 5
@@ -5613,6 +5621,7 @@ MonoBehaviour:
   OnToggleBuffChanged:
     m_PersistentCalls:
       m_Calls: []
+  _originalLayer: 0
 --- !u!114 &9141868853825329552
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5749,6 +5758,24 @@ MonoBehaviour:
   leftHandSlot:
     id: 0
     quantity: 0
+  ringSlot:
+    id: 0
+    quantity: 0
+  necklaceSlot:
+    id: 0
+    quantity: 0
+  bootsSlot:
+    id: 0
+    quantity: 0
+  glovesSlot:
+    id: 0
+    quantity: 0
+  weaponSlot:
+    id: 0
+    quantity: 0
+  offHandSlot:
+    id: 0
+    quantity: 0
   gold: 0
   OnInventoryChanged:
     m_PersistentCalls:
@@ -5759,6 +5786,21 @@ MonoBehaviour:
   OnEquipmentChanged:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &3688220245886055776
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8270360301193926596}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 181a2d40fcd05cd4e975a058a7c99dc9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerEquipmentVisuals
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
 --- !u!1 &8529803357861243606
 GameObject:
   m_ObjectHideFlags: 0
@@ -12261,6 +12303,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: BoE_Sword
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: a2399f9f2386e564eb930650af79cd8e,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

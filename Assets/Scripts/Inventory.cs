@@ -23,17 +23,25 @@ public class Inventory : NetworkBehaviour
     [HideInInspector] public UnityEvent OnInventoryChanged = new UnityEvent();
     [HideInInspector] public UnityEvent OnGoldChanged = new UnityEvent();
     [HideInInspector] public UnityEvent OnEquipmentChanged = new UnityEvent();
-
-    public void OnItemsListChanged(SyncList<ItemInfo>.Operation op, int index, ItemInfo oldItem, ItemInfo newItem)
-    {
-        Debug.Log($"[Inventory] Items list changed: op={op}, index={index}");
-        OnInventoryChanged.Invoke();
-    }
+    private PlayerEquipmentVisuals visuals;
 
     public void Init(PlayerCore core)
     {
         playerCore = core;
         items.Callback += OnItemsListChanged;
+        while (items.Count < inventorySize)
+        {
+            items.Add(new ItemInfo { id = 0, quantity = 0 });
+        }
+        visuals = GetComponent<PlayerEquipmentVisuals>();
+        if (visuals == null)
+        {
+            Debug.LogError("[Inventory] PlayerEquipmentVisuals component not found!");
+        }
+        else
+        {
+            visuals.Init(core);
+        }
     }
 
     public override void OnStartClient()
@@ -161,6 +169,14 @@ public class Inventory : NetworkBehaviour
         SetEquipped(slot, itemInfo);
         ApplyItemStats(item, true);
         ClearItemSlot(slotIndex);
+        if (isClient)
+        {
+            visuals?.UpdateEquipmentVisual(slot, itemInfo);
+        }
+        else
+        {
+            RpcUpdateEquipmentVisual(slot, itemInfo);
+        }
     }
 
     [Server]
@@ -170,6 +186,14 @@ public class Inventory : NetworkBehaviour
         if (itemInfo.id <= 0 || itemInfo.quantity <= 0)
         {
             SetEquipped(slot, new ItemInfo());
+            if (isClient)
+            {
+                visuals?.UpdateEquipmentVisual(slot, new ItemInfo());
+            }
+            else
+            {
+                RpcUpdateEquipmentVisual(slot, new ItemInfo());
+            }
             return;
         }
         Item item = itemInfo.GetItem();
@@ -177,12 +201,48 @@ public class Inventory : NetworkBehaviour
         {
             Debug.LogError($"[Inventory] Cannot unequip item: Item with ID {itemInfo.id} not found");
             SetEquipped(slot, new ItemInfo());
+            if (isClient)
+            {
+                visuals?.UpdateEquipmentVisual(slot, new ItemInfo());
+            }
+            else
+            {
+                RpcUpdateEquipmentVisual(slot, new ItemInfo());
+            }
             return;
         }
         Debug.Log($"[Inventory] Unequipping item: {item.itemName} from {slot}, quantity: {itemInfo.quantity}");
         ApplyItemStats(item, false);
         AddItem(item, itemInfo.quantity);
         SetEquipped(slot, new ItemInfo());
+        if (isClient)
+        {
+            visuals?.UpdateEquipmentVisual(slot, new ItemInfo());
+        }
+        else
+        {
+            RpcUpdateEquipmentVisual(slot, new ItemInfo());
+        }
+    }
+
+    [Server]
+    public void SwapItems(int slotIndex1, int slotIndex2)
+    {
+        if (slotIndex1 < 0 || slotIndex2 < 0 || slotIndex1 >= items.Count || slotIndex2 >= items.Count)
+        {
+            Debug.LogError($"[Inventory] Cannot swap items: Invalid indices {slotIndex1}/{slotIndex2}");
+            return;
+        }
+        ItemInfo temp = items[slotIndex1];
+        items[slotIndex1] = items[slotIndex2];
+        items[slotIndex2] = temp;
+        Debug.Log($"[Inventory] Swapped items: slot {slotIndex1} <-> slot {slotIndex2}");
+    }
+
+    public void OnItemsListChanged(SyncList<ItemInfo>.Operation op, int index, ItemInfo oldItem, ItemInfo newItem)
+    {
+        Debug.Log($"[Inventory] Items list changed: op={op}, index={index}");
+        OnInventoryChanged.Invoke();
     }
 
     private void ApplyItemStats(Item item, bool apply)
@@ -259,18 +319,71 @@ public class Inventory : NetworkBehaviour
         return equippedItems.ToArray();
     }
 
-    private void OnHeadChanged(ItemInfo oldItem, ItemInfo newItem) { OnEquipmentChanged.Invoke(); }
-    private void OnBodyChanged(ItemInfo oldItem, ItemInfo newItem) { OnEquipmentChanged.Invoke(); }
-    private void OnLegsChanged(ItemInfo oldItem, ItemInfo newItem) { OnEquipmentChanged.Invoke(); }
-    private void OnRightHandChanged(ItemInfo oldItem, ItemInfo newItem) { OnEquipmentChanged.Invoke(); }
-    private void OnLeftHandChanged(ItemInfo oldItem, ItemInfo newItem) { OnEquipmentChanged.Invoke(); }
-    private void OnRingChanged(ItemInfo oldItem, ItemInfo newItem) { OnEquipmentChanged.Invoke(); }
-    private void OnNecklaceChanged(ItemInfo oldItem, ItemInfo newItem) { OnEquipmentChanged.Invoke(); }
-    private void OnBootsChanged(ItemInfo oldItem, ItemInfo newItem) { OnEquipmentChanged.Invoke(); }
-    private void OnGlovesChanged(ItemInfo oldItem, ItemInfo newItem) { OnEquipmentChanged.Invoke(); }
-    private void OnWeaponChanged(ItemInfo oldItem, ItemInfo newItem) { OnEquipmentChanged.Invoke(); }
-    private void OnOffHandChanged(ItemInfo oldItem, ItemInfo newItem) { OnEquipmentChanged.Invoke(); }
-    private void OnInventoryGoldChanged(int oldGold, int newGold) { OnGoldChanged.Invoke(); }
+    private void OnHeadChanged(ItemInfo oldItem, ItemInfo newItem)
+    {
+        OnEquipmentChanged.Invoke();
+        if (isClient) visuals?.UpdateEquipmentVisual(EquipmentSlot.Head, newItem);
+    }
+    private void OnBodyChanged(ItemInfo oldItem, ItemInfo newItem)
+    {
+        OnEquipmentChanged.Invoke();
+        if (isClient) visuals?.UpdateEquipmentVisual(EquipmentSlot.Body, newItem);
+    }
+    private void OnLegsChanged(ItemInfo oldItem, ItemInfo newItem)
+    {
+        OnEquipmentChanged.Invoke();
+        if (isClient) visuals?.UpdateEquipmentVisual(EquipmentSlot.Legs, newItem);
+    }
+    private void OnRightHandChanged(ItemInfo oldItem, ItemInfo newItem)
+    {
+        OnEquipmentChanged.Invoke();
+        if (isClient) visuals?.UpdateEquipmentVisual(EquipmentSlot.RightHand, newItem);
+    }
+    private void OnLeftHandChanged(ItemInfo oldItem, ItemInfo newItem)
+    {
+        OnEquipmentChanged.Invoke();
+        if (isClient) visuals?.UpdateEquipmentVisual(EquipmentSlot.LeftHand, newItem);
+    }
+    private void OnRingChanged(ItemInfo oldItem, ItemInfo newItem)
+    {
+        OnEquipmentChanged.Invoke();
+        if (isClient) visuals?.UpdateEquipmentVisual(EquipmentSlot.Ring, newItem);
+    }
+    private void OnNecklaceChanged(ItemInfo oldItem, ItemInfo newItem)
+    {
+        OnEquipmentChanged.Invoke();
+        if (isClient) visuals?.UpdateEquipmentVisual(EquipmentSlot.Necklace, newItem);
+    }
+    private void OnBootsChanged(ItemInfo oldItem, ItemInfo newItem)
+    {
+        OnEquipmentChanged.Invoke();
+        if (isClient) visuals?.UpdateEquipmentVisual(EquipmentSlot.Boots, newItem);
+    }
+    private void OnGlovesChanged(ItemInfo oldItem, ItemInfo newItem)
+    {
+        OnEquipmentChanged.Invoke();
+        if (isClient) visuals?.UpdateEquipmentVisual(EquipmentSlot.Gloves, newItem);
+    }
+    private void OnWeaponChanged(ItemInfo oldItem, ItemInfo newItem)
+    {
+        OnEquipmentChanged.Invoke();
+        if (isClient) visuals?.UpdateEquipmentVisual(EquipmentSlot.Weapon, newItem);
+    }
+    private void OnOffHandChanged(ItemInfo oldItem, ItemInfo newItem)
+    {
+        OnEquipmentChanged.Invoke();
+        if (isClient) visuals?.UpdateEquipmentVisual(EquipmentSlot.OffHand, newItem);
+    }
+    private void OnInventoryGoldChanged(int oldGold, int newGold)
+    {
+        OnGoldChanged.Invoke();
+    }
+
+    [ClientRpc]
+    private void RpcUpdateEquipmentVisual(EquipmentSlot slot, ItemInfo itemInfo)
+    {
+        visuals?.UpdateEquipmentVisual(slot, itemInfo);
+    }
 
     [Server]
     public void ClearItemSlot(int index)

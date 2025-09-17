@@ -31,7 +31,7 @@ public class PlayerCore : NetworkBehaviour
     public Material allyMaterial;
     public Material enemyMaterial;
     public GameObject deathVFXPrefab;
-    [SerializeField] private Transform modelTransform;
+    [SerializeField] public Transform modelTransform;
     private Quaternion initialModelRotation;
     [SerializeField] private BoxCollider boxCollider;
     [Header("Indicators")]
@@ -71,6 +71,8 @@ public class PlayerCore : NetworkBehaviour
     [SyncVar] public float pendingReviveHpFraction = 0f;
     [Header("Dropped Items")]
     [SerializeField] private GameObject droppedItemPrefab;
+    private PlayerEquipmentVisuals equipmentVisuals;
+
 
     protected virtual void Awake()
     {
@@ -82,6 +84,7 @@ public class PlayerCore : NetworkBehaviour
         Health = GetComponent<Health>();
         Stats = GetComponent<CharacterStats>();
         Inventory = GetComponent<Inventory>();
+        equipmentVisuals = GetComponent<PlayerEquipmentVisuals>();
         if (Inventory == null)
         {
             Debug.LogError("[PlayerCore] Inventory component not found on this GameObject!");
@@ -89,6 +92,10 @@ public class PlayerCore : NetworkBehaviour
         else
         {
             Inventory.Init(this);
+        }
+        if (equipmentVisuals == null)
+        {
+            Debug.LogError("[PlayerCore] PlayerEquipmentVisuals component not found!");
         }
         if (Movement != null) Movement.Init(this);
         if (Combat != null) Combat.Init(this);

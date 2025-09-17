@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: NewItem
   m_EditorClassIdentifier: Assembly-CSharp::Item
   itemName: New Item
-  id: -1
+  id: 4
   icon: {fileID: 0}
   dropModelPrefab: {fileID: 0}
   itemType: 1

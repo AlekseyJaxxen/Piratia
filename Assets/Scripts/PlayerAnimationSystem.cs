@@ -88,7 +88,6 @@ public class PlayerAnimationSystem : NetworkBehaviour
         {
             Debug.LogWarning($"[PlayerAnimationSystem] AnimatorController not set in ClassData for {_stats.characterClass}");
         }
-        // Поиск Renderer в активной модели или её дочерних объектах
         modelRenderer = _activeModel.GetComponentInChildren<Renderer>();
         if (modelRenderer != null)
         {
@@ -105,6 +104,12 @@ public class PlayerAnimationSystem : NetworkBehaviour
             Debug.LogError($"[PlayerAnimationSystem] No Renderer found on active model {_activeModel.name} or its children!");
         }
         Debug.Log($"[PlayerAnimationSystem] Set model {_activeModel.name} and animator for {_stats.characterClass}");
+    }
+
+    // Публичный метод для доступа к _activeModel
+    public GameObject GetActiveModel()
+    {
+        return _activeModel;
     }
 
     public void PlayDamageFlash()

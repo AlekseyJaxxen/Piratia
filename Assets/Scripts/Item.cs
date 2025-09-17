@@ -28,8 +28,10 @@ public class Item : ScriptableObject
     [Header("Skill Effect (Optional)")]
     public SkillBase skillEffect;
     public float castRange = 5f;
+    [Header("Visuals")]
+    public string model1; // Путь к префабу модели экипировки (например, "Weapons/Sword")
+    public string boneName; // Имя кости для привязки (например, "RightHand")
     [Header("Additional Item Properties")]
-    public string model1;
     public string model2;
     public string model3;
     public string model4;
@@ -173,12 +175,26 @@ public class Item : ScriptableObject
 
     public bool IsEquipable(int playerLevel)
     {
-        return equipmentSlot != EquipmentSlot.None && playerLevel >= requiredLevel;
+        return equipmentSlot != EquipmentSlot.None && playerLevel >= requiredLevel && itemCanEquip;
     }
 
     public GameObject GetDropModelPrefab()
     {
         return dropModelPrefab;
+    }
+
+    public GameObject GetEquipModelPrefab()
+    {
+        if (!string.IsNullOrEmpty(model1))
+        {
+            GameObject prefab = Resources.Load<GameObject>(model1);
+            if (prefab == null)
+            {
+                Debug.LogWarning($"[Item] Equip model prefab not found at path: {model1} for {itemName}");
+            }
+            return prefab;
+        }
+        return null;
     }
 }
 

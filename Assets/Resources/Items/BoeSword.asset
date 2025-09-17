@@ -9,22 +9,21 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 17a19ca3fa980d7429832ef83c06e12b, type: 3}
-  m_Name: Helmet
-  m_EditorClassIdentifier: Assembly-CSharp::Item
-  itemName: Helmet
-  id: 1
-  icon: {fileID: 21300000, guid: ba38f88fc0d64734382abdc691e9658a, type: 3}
-  dropModelPrefab: {fileID: 1416556264988855144, guid: 274b635ff68d8d146b63d3fac539c60a,
-    type: 3}
-  itemType: 0
-  equipmentSlot: 1
+  m_Script: {fileID: 11500000, guid: 7d7f7ae7c1addd747aebb713dd34b8c5, type: 3}
+  m_Name: BoeSword
+  m_EditorClassIdentifier: Assembly-CSharp::SwordItem
+  itemName: New Item
+  id: -1
+  icon: {fileID: 0}
+  dropModelPrefab: {fileID: 0}
+  itemType: 1
+  equipmentSlot: 0
   maxStack: 1
   canDrop: 1
   canSell: 1
   canUse: 0
   canHotbar: 0
-  strengthMod: 100
+  strengthMod: 0
   agilityMod: 0
   spiritMod: 0
   constitutionMod: 0
@@ -35,6 +34,7 @@ MonoBehaviour:
   skillEffect: {fileID: 0}
   castRange: 5
   model1: 
+  boneName: 
   model2: 
   model3: 
   model4: 
@@ -61,7 +61,7 @@ MonoBehaviour:
   characterClass: 
   characterNick: 
   characterReputation: 0
-  itemCanEquip: 1
+  itemCanEquip: 0
   location: 
   itemSwitchLocation: 
   itemObtainIntoLocation: 
@@ -128,3 +128,7 @@ MonoBehaviour:
   description: 
   itemLevel: 0
   remark: 
+  baseDamage: 10
+  attackSpeed: 1
+  criticalChance: 0.05
+  criticalMultiplier: 1.5
