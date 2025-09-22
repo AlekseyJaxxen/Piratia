@@ -66,26 +66,28 @@ public class Inventory : NetworkBehaviour
         }
         bool added = false;
         bool isStackable = item.stackable && item.maxStack > 1;
+        int remaining = quantity;
+
         if (isStackable)
         {
             for (int i = 0; i < items.Count; i++)
             {
                 if (items[i].id == item.id && items[i].quantity < item.maxStack)
                 {
-                    int newQuantity = items[i].quantity + quantity;
-                    if (newQuantity <= item.maxStack)
-                    {
-                        ItemInfo updatedItemInfo = items[i];
-                        updatedItemInfo.quantity = newQuantity;
-                        items[i] = updatedItemInfo;
-                        Debug.Log($"[Inventory] Added {quantity} to existing stack of {item.itemName}. New total: {newQuantity}");
-                        added = true;
-                        break;
-                    }
+                    int space = item.maxStack - items[i].quantity;
+                    int addAmount = Mathf.Min(remaining, space);
+                    ItemInfo updatedItemInfo = items[i];
+                    updatedItemInfo.quantity += addAmount;
+                    items[i] = updatedItemInfo;
+                    remaining -= addAmount;
+                    Debug.Log($"[Inventory] Added {addAmount} to existing stack of {item.itemName}. New total: {updatedItemInfo.quantity}");
+                    added = true;
+                    if (remaining <= 0) break;
                 }
             }
         }
-        if (!added)
+
+        while (remaining > 0)
         {
             int emptyIndex = -1;
             for (int i = 0; i < items.Count; i++)
@@ -98,18 +100,22 @@ public class Inventory : NetworkBehaviour
             }
             if (emptyIndex >= 0)
             {
-                ItemInfo newInfo = new ItemInfo { id = item.id, quantity = quantity };
+                int addAmount = isStackable ? Mathf.Min(remaining, item.maxStack) : remaining;
+                ItemInfo newInfo = new ItemInfo { id = item.id, quantity = addAmount };
                 items[emptyIndex] = newInfo;
-                Debug.Log($"[Inventory] Added new item: {item.itemName} (ID: {item.id}, quantity: {quantity}) to empty slot {emptyIndex}");
+                remaining -= addAmount;
+                Debug.Log($"[Inventory] Added new item: {item.itemName} (ID: {item.id}, quantity: {addAmount}) to empty slot {emptyIndex}");
                 added = true;
             }
             else
             {
                 Debug.LogWarning($"[Inventory] Cannot add item: {item.itemName}, inventory full");
+                break;
             }
         }
+
         if (added) OnInventoryChanged.Invoke();
-        return added;
+        return added && remaining == 0;
     }
 
     [Server]
@@ -161,7 +167,6 @@ public class Inventory : NetworkBehaviour
             Debug.LogError($"[Inventory] Cannot equip item: {item.itemName} (ID: {itemInfo.id}), item mismatch (expected ID: {itemInfo.id}, found ID: {slotItem.id}, quantity: {slotItem.quantity}) at slot {slotIndex}");
             return;
         }
-
         // ѕроверка на наличие двуручного оружи€
         if (slot == EquipmentSlot.LeftHand || slot == EquipmentSlot.RightHand)
         {
@@ -199,7 +204,6 @@ public class Inventory : NetworkBehaviour
                 }
             }
         }
-
         ItemInfo oldItem = GetEquipped(slot);
         if (oldItem.id > 0)
         {
@@ -215,7 +219,6 @@ public class Inventory : NetworkBehaviour
                 }
             }
         }
-
         Debug.Log($"[Inventory] Equipping item: {item.itemName} (ID: {itemInfo.id}) to {slot} from slot {slotIndex}");
         ApplyItemStats(item, true);
         SetEquipped(slot, itemInfo);

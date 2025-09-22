@@ -34,6 +34,27 @@ public class DroppedItem : NetworkBehaviour, IPointerEnterHandler, IPointerExitH
                 Debug.LogWarning($"[DroppedItem] modelParent not assigned, using transform of {gameObject.name}");
             }
         }
+        if (nameCanvas != null)
+        {
+            // Add a Horizontal Layout Group to the nameCanvas
+            HorizontalLayoutGroup layoutGroup = nameCanvas.gameObject.AddComponent<HorizontalLayoutGroup>();
+            layoutGroup.padding = new RectOffset(10, 10, 5, 5); // Add some padding
+            layoutGroup.childAlignment = TextAnchor.MiddleCenter;
+            layoutGroup.childControlWidth = true;
+            layoutGroup.childControlHeight = true;
+
+            // Add a Content Size Fitter to the nameCanvas
+            ContentSizeFitter contentFitter = nameCanvas.gameObject.AddComponent<ContentSizeFitter>();
+            contentFitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            contentFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            // Add the Image component for the background
+            Image bg = nameCanvas.gameObject.AddComponent<Image>();
+            bg.color = new Color(0f, 0f, 0f, 0.5f);
+
+            // Ensure the text is a child of the canvas and on top of the background
+            nameText.transform.SetParent(nameCanvas.transform);
+        }
     }
     private void Start()
     {

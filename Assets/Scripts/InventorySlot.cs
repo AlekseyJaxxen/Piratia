@@ -192,26 +192,33 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        if (eventData.clickCount == 2 && itemInfo.id > 0)
+        if (itemInfo.id > 0)
         {
-            Item item = itemInfo.GetItem();
-            if (item != null && item.IsEquipable(core.Stats.level, core.Stats.characterClass))
+            float timeSinceLastClick = Time.time - lastClickTime;
+            if (timeSinceLastClick < DOUBLE_CLICK_TIME)
             {
-                EquipmentSlotUI matchingSlot = PlayerUI.Instance.FindMatchingEquipmentSlot(item);
-                if (matchingSlot != null)
+                Item item = itemInfo.GetItem();
+                if (item != null && item.IsEquipable(core.Stats.level, core.Stats.characterClass))
                 {
-                    Debug.Log($"[InventorySlot] Double-click equipping item: {item.itemName} (ID: {itemInfo.id}) to {matchingSlot.slotType} from slot {slotIndex}");
-                    core.CmdEquipItem(itemInfo, slotIndex, matchingSlot.slotType);
+                    EquipmentSlotUI matchingSlot = inventoryUI.FindMatchingEquipmentSlot(item.equipmentSlot);
+                    if (matchingSlot == null && item.alternativeSlot != EquipmentSlot.None)
+                        matchingSlot = inventoryUI.FindMatchingEquipmentSlot(item.alternativeSlot);
+                    if (matchingSlot != null)
+                    {
+                        Debug.Log($"[InventorySlot] Double-click equipping item: {item.itemName} (ID: {itemInfo.id}) to {matchingSlot.slotType} from slot {slotIndex}");
+                        core.CmdEquipItem(itemInfo, slotIndex, matchingSlot.slotType);
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[InventorySlot] Cannot equip {item.itemName} on double-click: no matching slot for {item.equipmentSlot} or {item.alternativeSlot}");
+                    }
                 }
                 else
                 {
-                    Debug.LogWarning($"[InventorySlot] Cannot equip {item.itemName} on double-click: no matching slot for {item.equipmentSlot} or {item.alternativeSlot} or both slots are occupied");
+                    Debug.LogWarning($"[InventorySlot] Cannot equip {item?.itemName ?? "null"} on double-click: item is null or level {core.Stats.level} < {item?.requiredLevel} or class {core.Stats.characterClass} != {item?.characterClass}");
                 }
             }
-            else
-            {
-                Debug.LogWarning($"[InventorySlot] Cannot equip {item?.itemName ?? "null"} on double-click: item is null or level {core.Stats.level} < {item?.requiredLevel} or class {core.Stats.characterClass} != {item?.characterClass}");
-            }
+            lastClickTime = Time.time;
         }
     }
 

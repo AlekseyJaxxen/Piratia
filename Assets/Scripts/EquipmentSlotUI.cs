@@ -2,7 +2,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using System.Collections;
-
 public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler, IPointerClickHandler
 {
     [SerializeField] private Image itemIcon;
@@ -12,7 +11,8 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
     private InventoryUI inventoryUI;
     private GameObject dragIcon;
     private Coroutine tooltipCoroutine;
-
+    private float lastClickTime;
+    private const float DOUBLE_CLICK_TIME = 0.3f;
     private void Awake()
     {
         inventoryUI = GetComponentInParent<InventoryUI>();
@@ -22,7 +22,6 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
             core = FindObjectOfType<PlayerCore>();
         }
     }
-
     public void SetItem(ItemInfo info)
     {
         itemInfo = info;
@@ -40,7 +39,6 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
             Debug.Log($"[EquipmentSlotUI] Cleared slot {slotType}");
         }
     }
-
     public void OnPointerEnter(PointerEventData eventData)
     {
         Item item = itemInfo.GetItem();
@@ -49,7 +47,6 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
             tooltipCoroutine = StartCoroutine(ShowTooltipAfterDelay(item, eventData.position));
         }
     }
-
     public void OnPointerExit(PointerEventData eventData)
     {
         if (tooltipCoroutine != null)
@@ -60,7 +57,6 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
         inventoryUI.HideTooltip();
         Debug.Log($"[EquipmentSlotUI] Hiding tooltip for slot {slotType}");
     }
-
     private IEnumerator ShowTooltipAfterDelay(Item item, Vector3 position)
     {
         yield return new WaitForSeconds(0.5f);
@@ -71,7 +67,6 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
         }
         tooltipCoroutine = null;
     }
-
     public void OnBeginDrag(PointerEventData eventData)
     {
         if (itemInfo.id <= 0) return;
@@ -92,13 +87,11 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
         dragImage.rectTransform.position = eventData.position;
         Debug.Log($"[EquipmentSlotUI] Begin drag: {item.itemName} (ID: {itemInfo.id}) from slot {slotType}");
     }
-
     public void OnDrag(PointerEventData eventData)
     {
         if (dragIcon == null) return;
         dragIcon.GetComponent<RectTransform>().position = eventData.position;
     }
-
     public void OnEndDrag(PointerEventData eventData)
     {
         if (dragIcon == null) return;
@@ -127,7 +120,6 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
         }
         Destroy(dragIcon);
     }
-
     public void OnDrop(PointerEventData eventData)
     {
         if (inventoryUI.draggedSlot == null || inventoryUI.draggedSlot.itemInfo.id <= 0)
@@ -155,17 +147,27 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
             inventoryUI.draggedSlot = null;
             return;
         }
+        // Авто-своп: если слот занят, unequip сначала
+        if (itemInfo.id > 0)
+        {
+            Debug.Log($"[EquipmentSlotUI] Slot {slotType} occupied, auto-unequip first");
+            core.CmdUnequipItem(slotType);
+        }
         Debug.Log($"[EquipmentSlotUI] OnDrop: Equipping {item.itemName} (ID: {inventoryUI.draggedSlot.itemInfo.id}) from slot {inventoryUI.draggedSlot.slotIndex} to {slotType}");
         core.CmdEquipItem(inventoryUI.draggedSlot.itemInfo, inventoryUI.draggedSlot.slotIndex, slotType);
         inventoryUI.draggedSlot = null;
     }
-
     public void OnPointerClick(PointerEventData eventData)
     {
-        if (eventData.clickCount == 2 && itemInfo.id > 0)
+        if (itemInfo.id > 0)
         {
-            core.CmdUnequipItem(slotType);
-            Debug.Log($"[EquipmentSlotUI] Double-click unequipping item: {itemInfo.GetItem()?.itemName ?? "null"} from {slotType}");
+            float timeSinceLastClick = Time.time - lastClickTime;
+            if (timeSinceLastClick < DOUBLE_CLICK_TIME)
+            {
+                core.CmdUnequipItem(slotType);
+                Debug.Log($"[EquipmentSlotUI] Double-click unequipping item: {itemInfo.GetItem()?.itemName ?? "null"} from {slotType}");
+            }
+            lastClickTime = Time.time;
         }
     }
 }
