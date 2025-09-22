@@ -2,6 +2,7 @@ using UnityEngine;
 using Mirror;
 using DG.Tweening;
 using System.Linq;
+using System.Collections.Generic;
 
 public class PlayerAnimationSystem : NetworkBehaviour
 {
@@ -15,19 +16,21 @@ public class PlayerAnimationSystem : NetworkBehaviour
     private Renderer modelRenderer;
     private Color originalColor;
     private Sequence damageFlashSequence;
-    [SyncVar(hook = nameof(OnIsMovingChanged))]
-    private bool syncIsMoving;
-    [SyncVar(hook = nameof(OnIsDeadChanged))]
-    private bool syncIsDead;
+    private string _currentAnimation = "Idle"; // Трекинг текущей для избежания повторных вызовов
+    private Inventory _inventory;
+    private Item.WeaponType _currentWeaponType = Item.WeaponType.None;
+    private Dictionary<string, List<string>> _actionAnimations = new Dictionary<string, List<string>>();
 
     private void Awake()
     {
         _actionSystem = GetComponent<PlayerActionSystem>();
         _core = GetComponent<PlayerCore>();
         _stats = GetComponent<CharacterStats>();
+        _inventory = GetComponent<Inventory>();
         if (_actionSystem == null) Debug.LogError("[PlayerAnimationSystem] PlayerActionSystem is null!");
         if (_core == null) Debug.LogError("[PlayerAnimationSystem] PlayerCore is null!");
         if (_stats == null) Debug.LogError("[PlayerAnimationSystem] CharacterStats is null!");
+        if (_inventory == null) Debug.LogError("[PlayerAnimationSystem] Inventory is null!");
         characterModels = GetComponentsInChildren<Transform>(true)
             .Where(t => t.CompareTag("CharacterModel"))
             .Select(t => t.gameObject)
@@ -37,6 +40,7 @@ public class PlayerAnimationSystem : NetworkBehaviour
             model.SetActive(false);
         }
         _stats.OnCharacterClassChangedEvent += OnCharacterClassChanged;
+        _inventory.OnEquipmentChanged.AddListener(UpdateWeaponAnimations);
     }
 
     public override void OnStartClient()
@@ -104,9 +108,75 @@ public class PlayerAnimationSystem : NetworkBehaviour
             Debug.LogError($"[PlayerAnimationSystem] No Renderer found on active model {_activeModel.name} or its children!");
         }
         Debug.Log($"[PlayerAnimationSystem] Set model {_activeModel.name} and animator for {_stats.characterClass}");
+        UpdateWeaponAnimations(); // Инициализация анимаций
     }
 
-    // Публичный метод для доступа к _activeModel
+    private void UpdateWeaponAnimations()
+    {
+        // Памятка по именованию анимаций в Animator Controller:
+        // - Базовые стейты: Idle, Player_Walk, Player_Attack, Player_Cast, Death
+        // - Вариации базовых: Player_Attack2, Player_Attack3, Player_Walk2 и т.д. (до 5 вариаций, код проверяет до Player_Attack5)
+        // - С типом оружия: Player_Attack_OneHandedSword, Player_Walk_TwoHandedSword, Player_Cast_Staff и т.д. (WeaponType из Item)
+        // - Вариации с оружием: Player_Attack_OneHandedSword2, Player_Attack_OneHandedSword3 и т.д.
+        // - Если стейт с суффиксом оружия существует, он приоритетен; fallback на базовый без суффикса
+        // - Все стейты должны быть в базовом слое (layer 0), без переходов (transitions), с loop для Walk/Idle/Attack если нужно
+
+        _currentWeaponType = GetCurrentWeaponType();
+        _actionAnimations.Clear();
+        string[] actions = { "Walk", "Attack", "Cast" };
+        foreach (var action in actions)
+        {
+            string baseName = $"Player_{action}";
+            string suffixed = _currentWeaponType != Item.WeaponType.None ? $"Player_{action}_{_currentWeaponType}" : baseName;
+            int hash = Animator.StringToHash(suffixed);
+            if (_animator.HasState(0, hash))
+            {
+                baseName = suffixed;
+            }
+            // Собираем вариации (1,2,3...)
+            List<string> anims = new List<string>();
+            for (int i = 1; i <= 5; i++) // Увеличьте, если нужно больше
+            {
+                string name = i == 1 ? baseName : $"{baseName}{i}";
+                hash = Animator.StringToHash(name);
+                if (_animator.HasState(0, hash))
+                {
+                    anims.Add(name);
+                }
+            }
+            if (anims.Count == 0)
+            {
+                // Fallback на базовую без суффикса и вариаций
+                anims.Add($"Player_{action}");
+            }
+            _actionAnimations[action] = anims;
+            Debug.Log($"[PlayerAnimationSystem] Cached {action} animations for {_currentWeaponType}: {string.Join(", ", anims)}");
+        }
+    }
+
+    private Item.WeaponType GetCurrentWeaponType()
+    {
+        Item weapon = _inventory.weaponSlot.GetItem();
+        if (weapon != null && weapon.itemType == ItemType.Weapon) return weapon.weaponType;
+
+        weapon = _inventory.rightHandSlot.GetItem();
+        if (weapon != null && weapon.itemType == ItemType.Weapon) return weapon.weaponType;
+
+        weapon = _inventory.leftHandSlot.GetItem();
+        if (weapon != null && weapon.itemType == ItemType.Weapon) return weapon.weaponType;
+
+        return Item.WeaponType.None;
+    }
+
+    private string GetRandomAnimation(string action)
+    {
+        if (_actionAnimations.TryGetValue(action, out var anims) && anims.Count > 0)
+        {
+            return anims[Random.Range(0, anims.Count)];
+        }
+        return $"Player_{action}"; // Ult fallback
+    }
+
     public GameObject GetActiveModel()
     {
         return _activeModel;
@@ -124,15 +194,13 @@ public class PlayerAnimationSystem : NetworkBehaviour
     private void Update()
     {
         if (_actionSystem == null || _animator == null || _core == null || !isOwned) return;
-        if (_core.isDead && !syncIsDead)
+        if (_core.isDead && _currentAnimation != "Death")
         {
-            CmdSetTrigger("Death");
-            CmdSetIsDead(true);
-            Debug.Log("[PlayerAnimationSystem] Triggered Death animation");
+            CmdPlayAnimation("Death");
+            Debug.Log("[PlayerAnimationSystem] Played Death animation");
         }
-        else if (!_core.isDead && syncIsDead)
+        else if (!_core.isDead && _currentAnimation == "Death")
         {
-            CmdSetIsDead(false);
             ResetAnimations();
         }
         if (_wasPerformingAction && !_actionSystem.IsPerformingAction)
@@ -147,30 +215,35 @@ public class PlayerAnimationSystem : NetworkBehaviour
     private void UpdateAnimations()
     {
         if (_core.isDead) return;
-        bool isMoving = _core.Movement.IsMoving;
+
+        string targetAnimation = "Idle";
+
         if (_actionSystem.CurrentAction == PlayerAction.Move)
         {
-            CmdResetTrigger("Attack");
-            CmdResetTrigger("SkillCast");
+            targetAnimation = GetRandomAnimation("Walk");
             _animator.speed = 1f;
-            isMoving = true;
         }
         else if (_actionSystem.CurrentAction == PlayerAction.Attack && _actionSystem.CurrentTarget != null && _actionSystem.CurrentSkill != null)
         {
             float attackRange = _actionSystem.CurrentSkill.Range;
             float distance = Vector3.Distance(transform.position, _actionSystem.CurrentTarget.transform.position);
-            isMoving = distance > attackRange;
-            if (isMoving)
+            if (distance > attackRange)
             {
+                targetAnimation = GetRandomAnimation("Walk");
                 _animator.speed = 1f;
             }
-            else if (!isMoving && distance <= attackRange)
+            else
             {
                 if (_actionSystem.CurrentSkill is BasicAttackSkill)
                 {
-                    float attackSpeed = _stats.attackSpeed;
-                    _animator.speed = attackSpeed;
-                    CmdSetTrigger("Attack");
+                    if (_currentAnimation.Contains("Attack")) // Если уже атака, сохраняем текущую вариацию
+                    {
+                        targetAnimation = _currentAnimation;
+                    }
+                    else
+                    {
+                        targetAnimation = GetRandomAnimation("Attack"); // Выбираем новую только при переходе к атаке
+                    }
                 }
             }
         }
@@ -188,83 +261,60 @@ public class PlayerAnimationSystem : NetworkBehaviour
             }
             else
             {
-                CmdSetIsMoving(false);
+                targetAnimation = "Idle";
                 _animator.speed = 1f;
-                CmdSetTrigger("Idle");
                 return;
             }
-            isMoving = distance > castRange;
-            if (isMoving)
+            if (distance > castRange)
             {
+                targetAnimation = GetRandomAnimation("Walk");
                 _animator.speed = 1f;
             }
-            else if (!isMoving && distance <= castRange)
+            else
             {
-                CmdSetTrigger("SkillCast");
+                if (_animator.GetCurrentAnimatorStateInfo(0).normalizedTime < 1f && _currentAnimation.Contains("Cast")) return; // Не прерывать каст
+                targetAnimation = GetRandomAnimation("Cast");
             }
         }
         else
         {
-            if (!isMoving)
-            {
-                CmdSetTrigger("Idle");
-            }
+            targetAnimation = "Idle";
         }
-        if (syncIsMoving != isMoving)
+
+        if (_currentAnimation != targetAnimation)
         {
-            CmdSetIsMoving(isMoving);
-            Debug.Log($"[PlayerAnimationSystem] Set IsMoving to {isMoving}, CurrentAction: {_actionSystem.CurrentAction}");
+            CmdPlayAnimation(targetAnimation);
+            Debug.Log($"[PlayerAnimationSystem] Played {targetAnimation}, CurrentAction: {_actionSystem.CurrentAction}");
         }
     }
 
     [Command]
-    private void CmdSetIsMoving(bool value)
+    private void CmdPlayAnimation(string stateName)
     {
-        syncIsMoving = value;
-    }
-
-    [Command]
-    private void CmdSetIsDead(bool value)
-    {
-        syncIsDead = value;
-    }
-
-    [Command]
-    private void CmdSetTrigger(string trigger)
-    {
-        RpcSetTrigger(trigger);
-    }
-
-    [Command]
-    private void CmdResetTrigger(string trigger)
-    {
-        RpcResetTrigger(trigger);
+        RpcPlayAnimation(stateName);
     }
 
     [ClientRpc]
-    private void RpcSetTrigger(string trigger)
+    private void RpcPlayAnimation(string stateName)
     {
         if (_animator != null)
-            _animator.SetTrigger(trigger);
-    }
-
-    [ClientRpc]
-    private void RpcResetTrigger(string trigger)
-    {
-        if (_animator != null)
-            _animator.ResetTrigger(trigger);
-    }
-
-    private void OnIsMovingChanged(bool oldValue, bool newValue)
-    {
-        if (_animator != null)
-            _animator.SetBool("IsMoving", newValue);
-    }
-
-    private void OnIsDeadChanged(bool oldValue, bool newValue)
-    {
-        if (_animator != null)
-            _animator.SetBool("IsDead", newValue);
+        {
+            if (stateName.Contains("Attack"))
+            {
+                AnimatorClipInfo[] clipInfo = _animator.GetCurrentAnimatorClipInfo(0);
+                float duration = clipInfo.Length > 0 ? clipInfo[0].clip.length : 1f;
+                _animator.speed = duration * _stats.attackSpeed;
+            }
+            if (stateName == _currentAnimation)
+            {
+                _animator.Play(stateName, 0, 0f); // Restart анимации
+            }
+            else
+            {
+                _animator.CrossFade(stateName, 0.1f, 0);
+            }
+            _currentAnimation = stateName; // Обновляем локально на всех клиентах
+        }
     }
 
     [Client]
@@ -272,13 +322,8 @@ public class PlayerAnimationSystem : NetworkBehaviour
     {
         if (_animator != null && !_core.Movement.IsMoving)
         {
-            CmdSetIsMoving(false);
-            CmdResetTrigger("Attack");
-            CmdResetTrigger("SkillCast");
-            CmdResetTrigger("Death");
-            CmdSetIsDead(false);
             _animator.speed = 1f;
-            _animator.SetTrigger("Idle");
+            CmdPlayAnimation("Idle");
             Debug.Log("[PlayerAnimationSystem] Animations reset to Idle");
         }
     }
@@ -286,7 +331,7 @@ public class PlayerAnimationSystem : NetworkBehaviour
     [Client]
     public void TriggerAttackAnimation()
     {
-        CmdSetTrigger("Attack");
+        CmdPlayAnimation(GetRandomAnimation("Attack"));
     }
 
     private void OnDisable()

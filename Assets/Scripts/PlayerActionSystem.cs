@@ -306,7 +306,7 @@ public class PlayerActionSystem : NetworkBehaviour
                 _core.Combat._lastAttackTime = Time.time;
                 if (animationSystem != null)
                 {
-                    animationSystem.ResetAnimations();
+                    
                 }
                 if (!isLooping)
                 {

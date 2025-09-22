@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SwordItem
   itemName: BigSword
   id: 6
-  icon: {fileID: 21300000, guid: abe1d030c9f8cd148935e4a7e62ac578, type: 3}
+  icon: {fileID: 21300000, guid: 201d893effb7eb0499f917a0d749f9b0, type: 3}
   dropModelPrefab: {fileID: 919132149155446097, guid: 23f44c9e41fbdf44f84fe58679fcf847,
     type: 3}
   itemType: 2
@@ -38,7 +38,7 @@ MonoBehaviour:
   characterClass: 0
   skillEffect: {fileID: 0}
   castRange: 5
-  model1: ItemModels/BigBoeSword
+  model1: ItemModels/2HandSword
   boneName: RightHandWeapon
   alternativeBoneName: LeftHandWeapon
   modelRotation: {x: 0, y: 0, z: 0, w: 1}
@@ -135,6 +135,7 @@ MonoBehaviour:
   description: This is big ass sword
   itemLevel: 0
   remark: 
+  weaponType: 2
   baseDamage: 100
   attackSpeed: 1
   criticalChance: 0

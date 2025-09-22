@@ -13,6 +13,7 @@ public class SwordItem : Item
     {
         // ”дал€ем автоматическое заполнение полей, полагаемс€ на настройки из инспектора и базовый класс Item
         base.OnEnable();
+        weaponType = isTwoHanded ? WeaponType.TwoHandedSword : WeaponType.OneHandedSword;
     }
 
     public override void Use(PlayerCore player)

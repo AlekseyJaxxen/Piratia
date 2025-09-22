@@ -1,5 +1,4 @@
 using UnityEngine;
-
 [CreateAssetMenu(fileName = "NewItem", menuName = "Inventory/Item")]
 public class Item : ScriptableObject
 {
@@ -131,7 +130,8 @@ public class Item : ScriptableObject
     public string description;
     public int itemLevel;
     public string remark;
-
+    public enum WeaponType { None, OneHandedSword, TwoHandedSword, Bow, Staff, Dagger, Axe }
+    public WeaponType weaponType = WeaponType.None;
     public void OnEnable()
     {
         if (id < 0)
@@ -154,7 +154,6 @@ public class Item : ScriptableObject
             Debug.Log($"[Item] Set primaryDisplaySlot to {equipmentSlot} for two-handed item {itemName}");
         }
     }
-
     public virtual void Use(PlayerCore player)
     {
         if (canUse)
@@ -193,13 +192,11 @@ public class Item : ScriptableObject
             }
         }
     }
-
     public bool IsEquipable(int playerLevel, CharacterClass playerClass)
     {
         bool classMatch = characterClass == CharacterClass.None || characterClass == playerClass;
         return (equipmentSlot != EquipmentSlot.None || alternativeSlot != EquipmentSlot.None) && playerLevel >= requiredLevel && itemCanEquip && classMatch;
     }
-
     public bool CanEquipToSlot(EquipmentSlot slot)
     {
         if (isTwoHanded)
@@ -208,7 +205,6 @@ public class Item : ScriptableObject
         }
         return slot == equipmentSlot || slot == alternativeSlot;
     }
-
     public string GetBoneNameForSlot(EquipmentSlot slot)
     {
         if (isTwoHanded && primaryDisplaySlot != EquipmentSlot.None)
@@ -218,12 +214,10 @@ public class Item : ScriptableObject
         }
         return slot == alternativeSlot && !string.IsNullOrEmpty(alternativeBoneName) ? alternativeBoneName : boneName;
     }
-
     public GameObject GetDropModelPrefab()
     {
         return dropModelPrefab;
     }
-
     public GameObject GetEquipModelPrefab()
     {
         if (!string.IsNullOrEmpty(model1))
@@ -238,7 +232,6 @@ public class Item : ScriptableObject
         return null;
     }
 }
-
 public enum ItemType { Normal, Consumable, Weapon, Armor, Accessory, QuestItem, Material }
 public enum EquipmentSlot { None, Head, Body, Legs, RightHand, LeftHand, Ring, Necklace, Boots, Gloves, Weapon, OffHand }
 public enum Rarity { Common, Uncommon, Rare, Epic, Legendary }
