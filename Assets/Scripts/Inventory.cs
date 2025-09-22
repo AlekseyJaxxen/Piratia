@@ -162,7 +162,7 @@ public class Inventory : NetworkBehaviour
             return;
         }
 
-        // ѕроверка на наличие двуручного оружи€ в другом слоте
+        // ѕроверка на наличие двуручного оружи€
         if (slot == EquipmentSlot.LeftHand || slot == EquipmentSlot.RightHand)
         {
             EquipmentSlot otherSlot = (slot == EquipmentSlot.LeftHand) ? EquipmentSlot.RightHand : EquipmentSlot.LeftHand;
@@ -170,28 +170,24 @@ public class Inventory : NetworkBehaviour
             if (otherSlotItem.id > 0)
             {
                 Item otherItemObj = otherSlotItem.GetItem();
-                if (otherItemObj != null && otherItemObj.isTwoHanded)
+                if (otherItemObj != null)
                 {
-                    Debug.Log($"[Inventory] Unequipping two-handed item: {otherItemObj.itemName} from {otherSlot} to inventory");
-                    ApplyItemStats(otherItemObj, false);
-                    if (!AddItem(otherItemObj, otherSlotItem.quantity))
+                    // ≈сли в другом слоте что-то есть, и текущее оружие двуручное, снимаем предмет из другого слота
+                    if (item.isTwoHanded)
                     {
-                        Debug.LogWarning($"[Inventory] Failed to add unequipped item {otherItemObj.itemName} from {otherSlot} to inventory");
-                        return;
+                        Debug.Log($"[Inventory] Unequipping item from {otherSlot} to inventory due to two-handed item {item.itemName}");
+                        ApplyItemStats(otherItemObj, false);
+                        if (!AddItem(otherItemObj, otherSlotItem.quantity))
+                        {
+                            Debug.LogWarning($"[Inventory] Failed to add unequipped item {otherItemObj.itemName} from {otherSlot} to inventory");
+                            return;
+                        }
+                        SetEquipped(otherSlot, new ItemInfo());
                     }
-                    SetEquipped(otherSlot, new ItemInfo());
-                }
-            }
-
-            // ≈сли экипируетс€ двуручное оружие, очищаем другой слот
-            if (item.isTwoHanded && item.alternativeSlot != EquipmentSlot.None)
-            {
-                if (otherSlotItem.id > 0)
-                {
-                    Item otherItemObj = otherSlotItem.GetItem();
-                    if (otherItemObj != null)
+                    // ≈сли в другом слоте двуручное оружие, снимаем его
+                    else if (otherItemObj.isTwoHanded)
                     {
-                        Debug.Log($"[Inventory] Unequipping item from second slot: {otherItemObj.itemName} from {otherSlot} to inventory");
+                        Debug.Log($"[Inventory] Unequipping two-handed item: {otherItemObj.itemName} from {otherSlot} to inventory");
                         ApplyItemStats(otherItemObj, false);
                         if (!AddItem(otherItemObj, otherSlotItem.quantity))
                         {

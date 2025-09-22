@@ -19,7 +19,7 @@ MonoBehaviour:
     type: 3}
   itemType: 2
   equipmentSlot: 4
-  alternativeSlot: 0
+  alternativeSlot: 5
   primaryDisplaySlot: 5
   maxStack: 1
   canDrop: 1

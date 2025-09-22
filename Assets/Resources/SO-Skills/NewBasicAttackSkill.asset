@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: NewBasicAttackSkill
   m_EditorClassIdentifier: Assembly-CSharp::BasicAttackSkill
   castType: 0
-  ignoreGlobalCooldown: 1
   _icon: {fileID: 21300000, guid: d31e0f15092fcfb47bd6e1a8defa5cbc, type: 3}
   _skillName: WarriorMelee
+  _description: 
   _hotkey: 0
-  _range: 1
+  _range: 2
   _cooldown: 0
   _castTime: 0
   _castCursor: {fileID: 0}
@@ -25,8 +25,10 @@ MonoBehaviour:
   _damageType: 0
   _weight: 1
   _effectRadius: 0
+  _ignoreGlobalCooldown: 0
   castRangePrefab: {fileID: 0}
   effectRadiusPrefab: {fileID: 0}
+  VFXPrefab: {fileID: 0}
   vfxPrefab: {fileID: 176804, guid: 4889039938a567444827eafcfbc2b267, type: 3}
   projectilePrefab: {fileID: 0}
   projectileSpeed: 20

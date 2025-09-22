@@ -13,21 +13,23 @@ MonoBehaviour:
   m_Name: NewProjectileDamageSkill
   m_EditorClassIdentifier: Assembly-CSharp::ProjectileDamageSkill
   castType: 0
-  ignoreGlobalCooldown: 0
   _icon: {fileID: 21300000, guid: 4f242f6091714734e8d2f2002b45498d, type: 3}
   _skillName: WarriorSLash
+  _description: 
   _hotkey: 282
   _range: 7
   _cooldown: 5
-  _castTime: 0.1
+  _castTime: 0.3
   _castCursor: {fileID: 0}
   _manaCost: 0
   _damageType: 0
   _weight: 1
   _effectRadius: 0
+  _ignoreGlobalCooldown: 0
   castRangePrefab: {fileID: 3299273662854126661, guid: ee30310967d98c04fb16bcfa96cfb3c2,
     type: 3}
   effectRadiusPrefab: {fileID: 0}
+  VFXPrefab: {fileID: 0}
   baseDamage: 15
   damageMultiplier: 7.5
   projectilePrefab: {fileID: 3990349598840729365, guid: 6eb4cabc9ef4e984cbc851661b6969ff,

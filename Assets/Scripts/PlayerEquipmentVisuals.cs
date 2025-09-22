@@ -26,7 +26,7 @@ public class PlayerEquipmentVisuals : NetworkBehaviour
             return;
         }
 
-        // Очистка визуала для текущего слота
+        // Очистка визуала для текущего слота и связанного слота для двуручного оружия
         ClearVisualForSlot(slot);
 
         Item item = itemInfo.GetItem();
@@ -36,38 +36,24 @@ public class PlayerEquipmentVisuals : NetworkBehaviour
             return;
         }
 
-        // Для двуручного оружия используем primaryDisplaySlot
-        string boneName;
-        if (item.isTwoHanded)
-        {
-            boneName = item.GetBoneNameForSlot(item.primaryDisplaySlot);
-        }
-        else
-        {
-            boneName = item.GetBoneNameForSlot(slot);
-        }
-
+        // Выбор слота для отображения
+        EquipmentSlot displaySlot = item.isTwoHanded ? item.primaryDisplaySlot : slot;
+        string boneName = item.GetBoneNameForSlot(displaySlot);
         Transform bone = FindBone(boneName);
+
         if (bone == null)
         {
-            Debug.LogWarning($"[PlayerEquipmentVisuals] No bone ({boneName}) for slot {slot}, skipping visual for {item.itemName}");
+            Debug.LogWarning($"[PlayerEquipmentVisuals] No bone ({boneName}) for display slot {displaySlot}, skipping visual for {item.itemName}");
             return;
         }
 
         // Экипировка модели
-        if (item.isTwoHanded)
-        {
-            if (!string.IsNullOrEmpty(boneName))
-            {
-                EquipModel(item, bone, slot);
-            }
-        }
-        else
+        if (!string.IsNullOrEmpty(boneName))
         {
             EquipModel(item, bone, slot);
         }
 
-        Debug.Log($"[PlayerEquipmentVisuals] Equipped model for {item.itemName} on {boneName} for slot {slot}");
+        Debug.Log($"[PlayerEquipmentVisuals] Equipped model for {item.itemName} on {boneName} for slot {slot} (display slot: {displaySlot})");
     }
 
     private Transform FindBone(string boneName)
@@ -102,7 +88,7 @@ public class PlayerEquipmentVisuals : NetworkBehaviour
 
         GameObject model = Instantiate(modelPrefab, bone);
         model.transform.localPosition = Vector3.zero;
-        model.transform.localRotation = item.modelRotation; // Без корректировки поворота
+        model.transform.localRotation = item.modelRotation;
         model.transform.localScale = item.modelScale;
 
         int transformIndex = System.Array.IndexOf(GetComponentsInChildren<Transform>(), bone);
@@ -131,7 +117,7 @@ public class PlayerEquipmentVisuals : NetworkBehaviour
             return;
         }
 
-        // Очистка только для кости, соответствующей текущему слоту
+        // Очистка для кости, соответствующей текущему слоту
         string boneName = slot == EquipmentSlot.RightHand ? "RightHandWeapon" : "LeftHandWeapon";
         Transform bone = FindBone(boneName);
         Transform[] allTransforms = GetComponentsInChildren<Transform>();
