@@ -67,7 +67,6 @@ public class Inventory : NetworkBehaviour
         bool added = false;
         bool isStackable = item.stackable && item.maxStack > 1;
         int remaining = quantity;
-
         if (isStackable)
         {
             for (int i = 0; i < items.Count; i++)
@@ -86,8 +85,7 @@ public class Inventory : NetworkBehaviour
                 }
             }
         }
-
-        while (remaining > 0)
+        while (remaining > 0 && !added)
         {
             int emptyIndex = -1;
             for (int i = 0; i < items.Count; i++)
@@ -113,7 +111,6 @@ public class Inventory : NetworkBehaviour
                 break;
             }
         }
-
         if (added) OnInventoryChanged.Invoke();
         return added && remaining == 0;
     }

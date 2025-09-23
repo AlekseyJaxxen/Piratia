@@ -152,16 +152,16 @@ public class PlayerMovement : NetworkBehaviour
             {
                 if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
                 {
+                    // Игнорируем хиты на самого игрока (и детей)
+                    if (hit.collider.transform == transform || hit.collider.transform.IsChildOf(transform)) return;
+
                     Debug.Log($"[PlayerMovement] Raycast hit: {hit.collider.name}, tag={hit.collider.tag}, layer={LayerMask.LayerToName(hit.collider.gameObject.layer)}, components={string.Join(", ", hit.collider.GetComponents<Component>().Select(c => c.GetType().Name))}");
 
-                    // === НАЧАЛО ИЗМЕНЕНИЙ ===
-                    // Добавляем проверку, чтобы Raycast не работал, если объект находится на слое, который игнорирует Raycast.
                     if (hit.collider.gameObject.layer == LayerMask.NameToLayer("Ignore Raycast"))
                     {
                         Debug.Log("[PlayerMovement] Hit object is on Ignore Raycast layer. Ignoring.");
-                        return; // Возвращаемся, не обрабатывая клик
+                        return;
                     }
-                    // === КОНЕЦ ИЗМЕНЕНИЙ ===
 
                     // Добавлено: DroppedItem
                     DroppedItem droppedItem = hit.collider.GetComponent<DroppedItem>() ?? hit.collider.GetComponentInParent<DroppedItem>();
@@ -236,11 +236,24 @@ public class PlayerMovement : NetworkBehaviour
         EventSystem.current.RaycastAll(eventData, results);
         foreach (var result in results)
         {
-            if (result.gameObject.layer == LayerMask.NameToLayer("LocalPlayerUI") || result.gameObject.GetComponent<Canvas>() != null)
+            // Минимальное изменение: игнорируем UI, если это canvas DroppedItem
+            if (result.gameObject.layer == LayerMask.NameToLayer("LocalPlayerUI") ||
+                (result.gameObject.GetComponent<Canvas>() != null && !IsDroppedItemUI(result.gameObject)))
             {
                 Debug.Log($"[PlayerMovement] Pointer over UI: {result.gameObject.name}, layer={LayerMask.LayerToName(result.gameObject.layer)}");
                 return true;
             }
+        }
+        return false;
+    }
+
+    private bool IsDroppedItemUI(GameObject uiObj)
+    {
+        Transform current = uiObj.transform;
+        while (current != null)
+        {
+            if (current.GetComponent<DroppedItem>() != null) return true;
+            current = current.parent;
         }
         return false;
     }

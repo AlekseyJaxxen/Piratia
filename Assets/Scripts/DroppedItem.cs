@@ -1,12 +1,11 @@
-// DroppedItem.cs - полный, фикс Pickup (quantity >0) + SpawnModel/UpdateNameText (quantity max(1,quantity))
+// DroppedItem.cs - полный, collider следует + UI клик
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using Mirror;
 using DG.Tweening;
 using UnityEngine.EventSystems;
-
-public class DroppedItem : NetworkBehaviour, IPointerEnterHandler, IPointerExitHandler
+public class DroppedItem : NetworkBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler // + IPointerClickHandler
 {
     [Header("Settings")]
     [SyncVar] public int itemID;
@@ -42,18 +41,17 @@ public class DroppedItem : NetworkBehaviour, IPointerEnterHandler, IPointerExitH
             layoutGroup.childAlignment = TextAnchor.MiddleCenter;
             layoutGroup.childControlWidth = true;
             layoutGroup.childControlHeight = true;
-
             // Add a Content Size Fitter to the nameCanvas
             ContentSizeFitter contentFitter = nameCanvas.gameObject.AddComponent<ContentSizeFitter>();
             contentFitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
             contentFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
             // Add the Image component for the background
             Image bg = nameCanvas.gameObject.AddComponent<Image>();
             bg.color = new Color(0f, 0f, 0f, 0.5f);
-
+            bg.raycastTarget = true; // Фикс: Raycast Target для UI клика
             // Ensure the text is a child of the canvas and on top of the background
             nameText.transform.SetParent(nameCanvas.transform);
+            nameText.raycastTarget = true; // Фикс: Raycast Target для текста
         }
     }
     private void Start()
@@ -108,11 +106,24 @@ public class DroppedItem : NetworkBehaviour, IPointerEnterHandler, IPointerExitH
     private void AnimateDrop()
     {
         if (modelInstance == null || modelParent == null) return;
-        Vector3 startPos = transform.position + Vector3.up * 3f;
-        Vector3 endPos = transform.position;
-        modelInstance.transform.position = startPos;
+        // От дроп-позиции в случайную сторону, расстояние 1-2f (ближе)
+        Vector2 randomCircle = Random.insideUnitCircle; // 2D круг
+        Vector3 randomDir = new Vector3(randomCircle.x, 0, randomCircle.y).normalized;
+        float randomDist = Random.Range(1f, 2f);
+        Vector3 startPos = transform.position;
+        Vector3 endPos = transform.position + randomDir * randomDist;
+        Vector3 midHeight = endPos + Vector3.up * 3f; // Макс. высота для параболы
+        modelInstance.transform.localPosition = Vector3.zero; // Локально относительно transform
+        if (nameCanvas != null) nameCanvas.transform.localPosition = Vector3.up * 1f; // Локально
         tweenSequence = DOTween.Sequence();
-        tweenSequence.Append(modelInstance.transform.DOMove(endPos, 0.7f).SetEase(Ease.InQuad));
+        // Парабола: двигаем весь transform (для collider) + Y для модели/текста
+        tweenSequence.Append(transform.DOMove(new Vector3(endPos.x, startPos.y, endPos.z), 1.5f).SetEase(Ease.InOutQuad)); // Горизонт всего
+        tweenSequence.Join(modelInstance.transform.DOMoveY(midHeight.y - endPos.y, 0.75f).SetEase(Ease.OutQuad).SetLoops(2, LoopType.Yoyo)); // Подъём модели относительно
+        // Текст следует за моделью
+        if (nameCanvas != null)
+        {
+            tweenSequence.Join(nameCanvas.transform.DOMoveY((midHeight.y + 1f) - endPos.y, 0.75f).SetEase(Ease.OutQuad).SetLoops(2, LoopType.Yoyo)); // Подъём текста относительно
+        }
         tweenSequence.AppendCallback(() =>
         {
             if (modelInstance != null)
@@ -124,11 +135,19 @@ public class DroppedItem : NetworkBehaviour, IPointerEnterHandler, IPointerExitH
                     .SetEase(Ease.InOutSine)
                     .SetLoops(-1, LoopType.Yoyo);
             }
+            if (nameCanvas != null)
+            {
+                nameCanvas.transform.DOMoveY(modelParent.position.y + 1.2f, 1f)
+                    .SetEase(Ease.InOutSine)
+                    .SetLoops(-1, LoopType.Yoyo);
+            }
         });
-        Debug.Log($"[DroppedItem] Animated drop for item: {item.itemName} (ID: {itemID}) falling from above position");
+        Debug.Log($"[DroppedItem] Animated parabolic drop for item: {item.itemName} (ID: {itemID})");
     }
     private void OnDestroy()
     {
+        if (modelInstance != null) Destroy(modelInstance);
+        if (tweenSequence != null && tweenSequence.IsActive()) tweenSequence.Kill();
         if (tweenSequence != null) tweenSequence.Kill();
     }
     [Client]
@@ -151,6 +170,11 @@ public class DroppedItem : NetworkBehaviour, IPointerEnterHandler, IPointerExitH
         {
             Debug.LogWarning($"[DroppedItem] Player too far to pickup item: {item.itemName} (ID: {itemID}, distance: {distance}, required: {pickupDistance})");
         }
+    }
+    [Client] // Фикс: UI клик
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        OnMouseDown(); // Вызываем ту же логику
     }
     public void OnPointerEnter(PointerEventData eventData)
     {

@@ -1,0 +1,142 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d7f7ae7c1addd747aebb713dd34b8c5, type: 3}
+  m_Name: AttackOnTitanSword
+  m_EditorClassIdentifier: Assembly-CSharp::SwordItem
+  itemName: Saw
+  id: 7
+  icon: {fileID: 21300000, guid: 32755480142b639408225f9c45b34916, type: 3}
+  dropModelPrefab: {fileID: 919132149155446097, guid: 23f44c9e41fbdf44f84fe58679fcf847,
+    type: 3}
+  itemType: 2
+  equipmentSlot: 4
+  alternativeSlot: 5
+  primaryDisplaySlot: 0
+  maxStack: 1
+  canDrop: 1
+  canSell: 1
+  canUse: 0
+  canHotbar: 0
+  isTwoHanded: 0
+  strengthMod: 0
+  agilityMod: 0
+  spiritMod: 0
+  constitutionMod: 0
+  accuracyMod: 0
+  intelligenceMod: 0
+  rarity: 2
+  requiredLevel: 1
+  characterClass: 0
+  skillEffect: {fileID: 0}
+  castRange: 5
+  model1: ItemModels/Saw
+  boneName: RightHandWeapon
+  alternativeBoneName: LeftHandWeapon
+  modelRotation: {x: 0, y: 0, z: 0, w: 1}
+  modelScale: {x: 1, y: 1, z: 1}
+  model2: 
+  model3: 
+  model4: 
+  model5: 
+  shipSymbol: 
+  shipSize: 0
+  number: 0
+  obtain: 
+  prefix: 
+  rate: 0
+  setId: 0
+  forgingLevel: 0
+  stableValue: 0
+  onlyId: 0
+  trade: 0
+  picked: 0
+  discard: 0
+  confirmToDelete: 0
+  stackable: 0
+  isInstantiation: 0
+  price: 0
+  size: 0
+  characterLevel: 0
+  characterNick: 
+  characterReputation: 0
+  itemCanEquip: 1
+  location: 
+  itemSwitchLocation: 
+  itemObtainIntoLocation: 
+  strModulusBonus: 0
+  agiModulusBonus: 0
+  dexModulusBonus: 0
+  conModulusBonus: 0
+  sprModulusBonus: 0
+  lukModulusBonus: 0
+  hitRateModulusBonus: 0
+  minAttackModulusBonus: 0
+  maxAttackModulusBonus: 0
+  defenseModulusBonus: 0
+  maxHpModulusBonus: 0
+  maxSpModulusBonus: 0
+  fleeModulusBonus: 0
+  hitModulusBonus: 0
+  crtModulusBonus: 0
+  mfModulusBonus: 0
+  hrecModulusBonus: 0
+  srecModulusBonus: 0
+  mspdModulusBonus: 0
+  colModulusBonus: 0
+  strConstantBonus: 0
+  agiConstantBonus: 0
+  dexConstantBonus: 0
+  conConstantBonus: 0
+  staConstantBonus: 0
+  lukConstantBonus: 0
+  attackRangeConstantBonus: 0
+  minAttackConstantBonus: 0
+  maxAttackConstantBonus: 0
+  maxHpConstantBonus: 0
+  maxSpConstantBonus: 0
+  fleeConstantBonus: 0
+  hitConstantBonus: 0
+  crtConstantBonus: 0
+  mfConstantBonus: 0
+  hrecConstantBonus: 0
+  srecConstantBonus: 0
+  mspdConstantBonus: 0
+  colConstantBonus: 0
+  physicalResist: 0
+  itemLeftHandExertIdentifier: 
+  itemEnergy: 0
+  durability: 0
+  maxInstantiation: 0
+  holeValue: 0
+  shipDurabilityRecovered: 0
+  canContainCannonQuantity: 0
+  shipMemberCount: 0
+  memberLabel: 
+  cargoCapacity: 0
+  fuelConsumption: 0
+  cannonballPathOfFlightSpeed: 0
+  shipMovementSpeed: 0
+  usageEffect: 
+  displayEffect: 
+  itemBindEffect: 
+  itemBindEffectDummy: 
+  displayItemEffect: 
+  itemDropModelEffect: 
+  itemUsageEffect: 
+  description: 
+  itemLevel: 0
+  remark: 
+  weaponType: 1
+  baseDamage: 10
+  attackSpeed: 1
+  criticalChance: 0.05
+  criticalMultiplier: 1.5

@@ -19,7 +19,7 @@ MonoBehaviour:
   _hotkey: 282
   _range: 7
   _cooldown: 5
-  _castTime: 0.3
+  _castTime: 0.5
   _castCursor: {fileID: 0}
   _manaCost: 0
   _damageType: 0
@@ -34,4 +34,4 @@ MonoBehaviour:
   damageMultiplier: 7.5
   projectilePrefab: {fileID: 3990349598840729365, guid: 6eb4cabc9ef4e984cbc851661b6969ff,
     type: 3}
-  impactEffectPrefab: {fileID: 0}
+  impactEffectPrefab: {fileID: 179906, guid: 20dfdd4230d28d34fad7c8e1731f5cd0, type: 3}
