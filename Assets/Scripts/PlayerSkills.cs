@@ -137,6 +137,14 @@ public class PlayerSkills : NetworkBehaviour
         {
             SetCursor(defaultCursor);
         }
+
+        if (isServer)
+        {
+            foreach (var skill in skills)
+            {
+                _skillLastUseTimes[skill.SkillName] = float.NegativeInfinity;
+            }
+        }
     }
     private void OnDisable()
     {
@@ -242,7 +250,7 @@ public class PlayerSkills : NetworkBehaviour
         {
             Debug.Log($"[PlayerSkills] Interrupting invisibility due to skill cast: {skillName} on {gameObject.name}");
             SetToggleBuff("Invisibility", false);
-            RpcSetInvisibilityVisibility(false, _core.team, _originalLayer);  // Добавлено: явный вызов для модели
+            RpcSetInvisibilityVisibility(false, _core.team, _originalLayer); // Добавлено: явный вызов для модели
         }
         GameObject targetObject = null;
         if (targetNetId != 0 && NetworkServer.spawned.ContainsKey(targetNetId))
@@ -273,6 +281,8 @@ public class PlayerSkills : NetworkBehaviour
             }
         }
         if (stats != null) stats.SpendMana(skill.ManaCost);
+        StartSkillCooldown(skillName);
+        if (!skill.ignoreGlobalCooldown) StartGlobalCooldown();
         if (skill.CastTime > 0)
         {
             StartCoroutine(CastSkillCoroutine(skill, targetPosition, targetObject, weight));
@@ -280,8 +290,6 @@ public class PlayerSkills : NetworkBehaviour
         else
         {
             skill.ExecuteOnServer(caster, targetPosition, targetObject, weight);
-            StartSkillCooldown(skillName);
-            if (!skill.ignoreGlobalCooldown) StartGlobalCooldown();
             if (!(skill is BasicAttackSkill))
             {
                 RpcCancelSkillSelection();
@@ -289,6 +297,10 @@ public class PlayerSkills : NetworkBehaviour
             }
         }
     }
+
+
+
+
     private IEnumerator CastSkillCoroutine(SkillBase skill, Vector3? targetPosition, GameObject targetObject, int weight)
     {
         _isCasting = true;

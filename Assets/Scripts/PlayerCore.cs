@@ -73,7 +73,6 @@ public class PlayerCore : NetworkBehaviour
     [SerializeField] private GameObject droppedItemPrefab;
     private PlayerEquipmentVisuals equipmentVisuals;
 
-
     protected virtual void Awake()
     {
         Movement = GetComponent<PlayerMovement>();
@@ -336,7 +335,7 @@ public class PlayerCore : NetworkBehaviour
     {
         if (isDead)
         {
-            ServerRespawnPlayer(_initialSpawnPosition);
+            ServerRespawnPlayer(GetTeamSpawnPoint(team).position);
         }
     }
 
@@ -532,10 +531,15 @@ public class PlayerCore : NetworkBehaviour
     }
 
     public GameObject GetHealthBarPrefab() { return null; }
+
     public void SetHealthBarUI(HealthBarUI ui) { healthBarUI = ui; }
+
     public HealthBarUI GetHealthBarUI() { return healthBarUI; }
+
     public int GetCurrentHealth() { return Health != null ? Health.CurrentHealth : 0; }
+
     public int GetMaxHealth() { return Health != null ? Health.MaxHealth : 0; }
+
     public NameTagUI GetNameTagUI() { return nameTagUI; }
 
     public bool CanCastSkill(ISkill skill = null)
@@ -831,6 +835,7 @@ public class PlayerCore : NetworkBehaviour
     }
 
     public GameObject GetTargetIndicatorPrefab() => targetIndicatorPrefab;
+
     public GameObject GetMoveIndicatorPrefab() => moveIndicatorPrefab;
 
     private IEnumerator DelayedInventorySync()
@@ -914,5 +919,24 @@ public class PlayerCore : NetworkBehaviour
                 Debug.Log($"[PlayerCore] Updated hotbar {btn.buttonIndex} slotIndex: {btn.itemSlotIndex + 1} -> {btn.itemSlotIndex}");
             }
         }
+    }
+
+    private Transform GetTeamSpawnPoint(PlayerTeam team)
+    {
+        GameObject[] spawnPoints = GameObject.FindGameObjectsWithTag("SpawnPoint");
+        foreach (GameObject spawnPoint in spawnPoints)
+        {
+            TeamSpawnPoint teamSpawn = spawnPoint.GetComponent<TeamSpawnPoint>();
+            if (teamSpawn != null && teamSpawn.team == team)
+            {
+                return spawnPoint.transform;
+            }
+        }
+        if (spawnPoints.Length > 0)
+        {
+            return spawnPoints[Random.Range(0, spawnPoints.Length)].transform;
+        }
+        Debug.LogWarning("No spawn points for team " + team);
+        return transform;
     }
 }

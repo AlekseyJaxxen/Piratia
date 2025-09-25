@@ -153,19 +153,23 @@ public class MyNetworkManager : NetworkManager
     public Transform GetTeamSpawnPoint(PlayerTeam team)
     {
         GameObject[] spawnPoints = GameObject.FindGameObjectsWithTag("SpawnPoint");
+        Debug.Log($"Найдено {spawnPoints.Length} точек с тегом 'SpawnPoint'");
         foreach (GameObject spawnPoint in spawnPoints)
         {
             TeamSpawnPoint teamSpawn = spawnPoint.GetComponent<TeamSpawnPoint>();
             if (teamSpawn != null && teamSpawn.team == team)
             {
+                Debug.Log($"Выбрана точка для {team}: {spawnPoint.name} на {spawnPoint.transform.position}");
                 return spawnPoint.transform;
             }
         }
         if (spawnPoints.Length > 0)
         {
-            return spawnPoints[Random.Range(0, spawnPoints.Length)].transform;
+            Transform fallback = spawnPoints[Random.Range(0, spawnPoints.Length)].transform;
+            Debug.Log($"Fallback: {fallback.name} на {fallback.position}");
+            return fallback;
         }
-        Debug.LogWarning("[MyNetworkManager] No spawn points found for team " + team);
+        Debug.LogWarning("Нет точек спауна для " + team);
         return transform;
     }
 }

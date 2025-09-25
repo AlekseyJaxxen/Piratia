@@ -90,29 +90,12 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
+  info: {fileID: 11400000, guid: 96a7042462a39e04692f8464933e9f3f, type: 2}
   monsterName: Chest
-  moveSpeed: 7
-  attackCooldown: 2
-  deathVFXPrefab: {fileID: 0}
-  canMove: 1
-  canAttack: 1
-  slowEffectPrefab: {fileID: 4637046911172921311, guid: 9c9304a4aaf7f8d45bf498861bade450,
-    type: 3}
   aggroTargetNetId: 0
-  experienceReward: 50
-  dropTable:
-  - item: {fileID: 11400000, guid: e619915cd8351e14a83c0b088390741a, type: 2}
-    dropChance: 1
-  - item: {fileID: 11400000, guid: 67af998acb8eaf047b50af2369bbf0ba, type: 2}
-    dropChance: 1
-  - item: {fileID: 11400000, guid: 8b28c694ce609d74b867c2004951b85b, type: 2}
-    dropChance: 1
-  droppedItemPrefab: {fileID: 8686491603925156450, guid: 133a99e109889094299eec33717cff52,
-    type: 3}
   IsDead: 0
   IsStunned: 0
   IsSilenced: 0
-  stoppingDistance: 1.8
   basicAttackSkill: {fileID: 11400000, guid: 7bbed8c6ef038aa418d85853fbc14319, type: 2}
   physicsModel: {fileID: 7651286584265580614}
   minForce: {x: -5, y: 2, z: -5}

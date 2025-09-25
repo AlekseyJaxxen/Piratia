@@ -13,20 +13,25 @@ public class DropEntry
 
 public class Monster : NetworkBehaviour
 {
+    [SerializeField] private MonsterInfo info; // Добавлено
+
     [Header("Monster Settings")]
     [SyncVar(hook = nameof(OnNameChanged))] public string monsterName = "Monster";
-    [SerializeField] private float moveSpeed = 5f;
-    [SerializeField] private float attackCooldown = 2f;
-    [SerializeField] private GameObject deathVFXPrefab;
-    [SerializeField] private bool canMove = true;
-    [SerializeField] private bool canAttack = true;
-    [SerializeField] private GameObject slowEffectPrefab;
-    [Header("Aggro & Experience")] // Добавлено
+    private float moveSpeed = 5f;
+    private float attackCooldown = 2f;
+    private GameObject deathVFXPrefab;
+    private bool canMove = true;
+    private bool canAttack = true;
+    private GameObject slowEffectPrefab;
+
+    [Header("Aggro & Experience")]
     [SyncVar] public uint aggroTargetNetId = 0;
-    [SerializeField] private int experienceReward = 50;
+    private int experienceReward = 50;
+
     [Header("Drop Settings")]
-    [SerializeField] private List<DropEntry> dropTable = new List<DropEntry>();
-    [SerializeField] private GameObject droppedItemPrefab;
+    private List<DropEntry> dropTable = new List<DropEntry>();
+    private GameObject droppedItemPrefab;
+
     private GameObject _slowEffectInstance;
     private NavMeshAgent _agent;
     private MonsterUI _monsterUI;
@@ -39,18 +44,45 @@ public class Monster : NetworkBehaviour
     [SyncVar(hook = nameof(OnStunStateChanged))] public bool IsStunned = false;
     [SyncVar(hook = nameof(OnSilenceStateChanged))] public bool IsSilenced = false;
     [SyncVar] private int _currentEffectWeight = 0;
-    [SerializeField] public float stoppingDistance = 1f;
-    [SerializeField] public MonsterBasicAttackSkill basicAttackSkill;
+    private float stoppingDistance = 1f;
+    public MonsterBasicAttackSkill basicAttackSkill;
+
     [Header("Physics Settings")]
-    [SerializeField] public GameObject physicsModel;
-    [SerializeField] public Vector3 minForce = new Vector3(-5f, 2f, -5f);
-    [SerializeField] public Vector3 maxForce = new Vector3(5f, 5f, 0f);
+    public GameObject physicsModel;
+    public Vector3 minForce = new Vector3(-5f, 2f, -5f);
+    public Vector3 maxForce = new Vector3(5f, 5f, 0f);
+
     [SyncVar] public bool IsCooldown = false;
     private SkinnedMeshRenderer _renderer;
     private Health _health;
+
     private void Awake()
     {
+        if (info == null)
+        {
+            Debug.LogError("[Monster] MonsterInfo not assigned!");
+            return;
+        }
+
+        // Инициализация из info
+        monsterName = info.monsterName;
+        moveSpeed = info.moveSpeed;
+        attackCooldown = info.attackCooldown;
+        deathVFXPrefab = info.deathVFXPrefab;
+        canMove = info.canMove;
+        canAttack = info.canAttack;
+        slowEffectPrefab = info.slowEffectPrefab;
+        experienceReward = info.experienceReward;
+        dropTable = info.dropTable;
+        droppedItemPrefab = info.droppedItemPrefab;
+        stoppingDistance = info.stoppingDistance;
+        basicAttackSkill = info.basicAttackSkill;
+        physicsModel = info.physicsModel;
+        minForce = info.minForce;
+        maxForce = info.maxForce;
+
         if (basicAttackSkill == null) Debug.LogError("Skill not assigned");
+
         if (canMove)
         {
             _agent = GetComponent<NavMeshAgent>();
@@ -71,15 +103,18 @@ public class Monster : NetworkBehaviour
                 }
             }
         }
+
         _rigidbody = GetComponent<Rigidbody>();
         if (_rigidbody != null)
         {
             _rigidbody.isKinematic = true;
         }
+
         if (physicsModel == null)
         {
             Debug.LogWarning($"[Monster] PhysicsModel not assigned for {monsterName}, using default GameObject");
         }
+
         if (canAttack)
         {
             if (basicAttackSkill == null)
@@ -88,25 +123,38 @@ public class Monster : NetworkBehaviour
                 canAttack = false;
             }
         }
+
         _health = GetComponent<Health>();
         if (_health == null)
         {
             Debug.LogError("[Monster] Health component missing!");
         }
+
         _renderer = GetComponentInChildren<SkinnedMeshRenderer>();
         if (_renderer == null)
         {
             Debug.LogWarning($"[Monster] SkinnedMeshRenderer not found on {monsterName}");
         }
+
         if (droppedItemPrefab == null)
             Debug.LogWarning("[Monster] DroppedItemPrefab not set!");
     }
+
     public override void OnStartServer()
     {
         base.OnStartServer();
+
+        if (info != null)
+        {
+            _health.MaxHealth = info.maxHealth;
+            _health.CurrentHealth = info.maxHealth;
+        }
+
         Debug.Log($"[Monster] Initialized health on server to: {_health.CurrentHealth}/{_health.MaxHealth}");
         StartCoroutine(CheckControlEffectExpiration());
     }
+
+    // Остальной код без изменений
     public override void OnStartClient()
     {
         base.OnStartClient();
@@ -174,7 +222,7 @@ public class Monster : NetworkBehaviour
     [Server]
     public void UpdateAggro(uint attackerNetId, int damage)
     {
-        Debug.Log($"[Monster] UpdateAggro called: attackerNetId={attackerNetId}, damage={damage}, current aggro={aggroTargetNetId}"); // Добавь
+        Debug.Log($"[Monster] UpdateAggro called: attackerNetId={attackerNetId}, damage={damage}, current aggro={aggroTargetNetId}");
         if (aggroTargetNetId == 0 || damage > 0)
         {
             aggroTargetNetId = attackerNetId;
@@ -309,7 +357,6 @@ public class Monster : NetworkBehaviour
         if (IsDead) return;
         IsDead = true;
         Debug.Log($"[Monster] Die called for {monsterName}, Health: {_health.CurrentHealth}, aggroTargetNetId={aggroTargetNetId}");
-        // Опыт аггро-игроку
         Debug.Log($"[Monster] Die: aggroTargetNetId={aggroTargetNetId}, NetworkServer.spawned.Count={NetworkServer.spawned.Count}");
         if (aggroTargetNetId != 0 && NetworkServer.spawned.TryGetValue(aggroTargetNetId, out var identity))
         {
@@ -328,7 +375,6 @@ public class Monster : NetworkBehaviour
         {
             Debug.LogWarning($"[Monster] No aggroTarget or not spawned: {aggroTargetNetId}");
         }
-        // Дропы с owner
         foreach (var entry in dropTable)
         {
             if (entry.item != null && Random.value <= entry.dropChance)
@@ -380,13 +426,13 @@ public class Monster : NetworkBehaviour
             return;
         }
         GameObject droppedItem = Instantiate(droppedItemPrefab, transform.position + Random.insideUnitSphere * 1f + Vector3.up * 0.5f, Quaternion.identity);
-        DroppedItem droppedScript = droppedItem.GetComponent<DroppedItem>(); // Объявление перед использованием
+        DroppedItem droppedScript = droppedItem.GetComponent<DroppedItem>();
         if (droppedScript != null)
         {
             droppedScript.itemID = itemID;
             droppedScript.quantity = quantity;
             droppedScript.ownerNetId = aggroTargetNetId;
-            droppedScript.dropTime = Time.time; // Если есть
+            droppedScript.dropTime = Time.time;
         }
         NetworkServer.Spawn(droppedItem);
         Debug.Log($"[Monster] Spawned dropped item: ID {itemID}, quantity {quantity} at {droppedItem.transform.position}, owner={aggroTargetNetId}");
@@ -493,6 +539,4 @@ public class Monster : NetworkBehaviour
             yield return new WaitForSeconds(0.5f);
         }
     }
-
-
 }

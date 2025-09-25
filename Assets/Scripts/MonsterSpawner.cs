@@ -3,7 +3,6 @@ using Mirror;
 using UnityEngine.AI;
 using System.Collections.Generic;
 using System.Collections;
-
 public class MonsterSpawner : NetworkBehaviour
 {
     [SerializeField] private GameObject[] monsterPrefabs;
@@ -11,28 +10,33 @@ public class MonsterSpawner : NetworkBehaviour
     [SerializeField] private List<Transform> spawnPoints;
     [SerializeField] private Transform chestSpawnPoint;
     [SerializeField] private float respawnInterval = 10f;
-    [SerializeField] private int maxMonsters = 5;
+    [SerializeField] private int maxMonsters = 50; // Адаптируй под spawnPoints.Count * 10
     private List<GameObject> spawnedMonsters = new List<GameObject>();
     private GameObject spawnedChest;
-
+    private Transform monstersContainer;
     public override void OnStartServer()
     {
         base.OnStartServer();
-        StartCoroutine(SpawnMonstersDelayed());
-    }
 
+        StartCoroutine(SpawnMonstersDelayed());
+
+        monstersContainer = new GameObject("MonstersContainer").transform;
+        monstersContainer.parent = transform;
+        StartCoroutine(SpawnMonstersDelayed());
+
+
+    }
     private IEnumerator SpawnMonstersDelayed()
     {
         yield return new WaitUntil(() => NavMesh.CalculateTriangulation().vertices.Length > 0 && GameObject.Find("TeamSelectionCanvas") != null);
         SpawnChest();
         foreach (var point in spawnPoints)
         {
-            SpawnMonster(point.position);
+            SpawnMonster(point.position, 10);
         }
         InvokeRepeating(nameof(CheckAndRespawn), respawnInterval, respawnInterval);
         Debug.Log("[MonsterSpawner] Started spawning monsters");
     }
-
     public override void OnStopServer()
     {
         base.OnStopServer();
@@ -51,39 +55,43 @@ public class MonsterSpawner : NetworkBehaviour
         }
         Debug.Log("[MonsterSpawner] Stopped spawning monsters and cleared spawnedMonsters list");
     }
-
     [Server]
-    private void SpawnMonster(Vector3 position)
+    private void SpawnMonster(Vector3 centerPosition, int count = 1)
     {
         if (monsterPrefabs == null || monsterPrefabs.Length == 0)
         {
             Debug.LogError("[MonsterSpawner] Monster prefabs not assigned!");
             return;
         }
-        GameObject prefab = monsterPrefabs[Random.Range(0, monsterPrefabs.Length)];
-        NavMeshHit hit;
-        if (NavMesh.SamplePosition(position, out hit, 10f, NavMesh.AllAreas))
+        for (int i = 0; i < count; i++)
         {
-            position = hit.position;
-            Debug.Log($"[MonsterSpawner] Adjusted spawn position to NavMesh: {position}");
-            GameObject monster = Instantiate(prefab, position, Quaternion.identity);
-            NavMeshAgent agent = monster.GetComponent<NavMeshAgent>();
-            if (agent == null || !agent.isOnNavMesh)
+            Vector3 offset = new Vector3(Random.Range(-100f, 100f), 0f, Random.Range(-100f, 100f));
+            Vector3 position = centerPosition + offset;
+            GameObject prefab = monsterPrefabs[Random.Range(0, monsterPrefabs.Length)];
+            NavMeshHit hit;
+            if (NavMesh.SamplePosition(position, out hit, 10f, NavMesh.AllAreas))
             {
-                Debug.LogError($"[MonsterSpawner] Monster at {position} failed to initialize on NavMesh!");
-                Destroy(monster);
-                return;
+                position = hit.position;
+                Debug.Log($"[MonsterSpawner] Adjusted spawn position to NavMesh: {position}");
+                GameObject monster = Instantiate(prefab, position, Quaternion.identity);
+                monster.transform.SetParent(monstersContainer);
+                NavMeshAgent agent = monster.GetComponent<NavMeshAgent>();
+                if (agent == null || !agent.isOnNavMesh)
+                {
+                    Debug.LogError($"[MonsterSpawner] Monster at {position} failed to initialize on NavMesh!");
+                    Destroy(monster);
+                    continue;
+                }
+                NetworkServer.Spawn(monster);
+                spawnedMonsters.Add(monster);
+                Debug.Log($"[MonsterSpawner] Spawned monster at {position}");
             }
-            NetworkServer.Spawn(monster);
-            spawnedMonsters.Add(monster);
-            Debug.Log($"[MonsterSpawner] Spawned monster at {position}");
-        }
-        else
-        {
-            Debug.LogError($"[MonsterSpawner] Spawn point {position} is not on NavMesh!");
+            else
+            {
+                Debug.LogError($"[MonsterSpawner] Spawn point {position} is not on NavMesh!");
+            }
         }
     }
-
     [Server]
     private void SpawnChest()
     {
@@ -107,7 +115,6 @@ public class MonsterSpawner : NetworkBehaviour
         NetworkServer.Spawn(spawnedChest);
         Debug.Log($"[MonsterSpawner] Spawned chest at {position}");
     }
-
     [Server]
     private void CheckAndRespawn()
     {
@@ -131,11 +138,10 @@ public class MonsterSpawner : NetworkBehaviour
         }
         Debug.Log($"[MonsterSpawner] Active monsters: {spawnedMonsters.Count}");
     }
-
     [Server]
     private IEnumerator SpawnAfterDelay(Vector3 position, float delay)
     {
         yield return new WaitForSeconds(delay);
-        SpawnMonster(position);
+        SpawnMonster(position, 10);
     }
 }

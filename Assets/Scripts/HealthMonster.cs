@@ -16,7 +16,7 @@ public class HealthMonster : Health
             Debug.LogError($"[HealthMonster] Monster component missing on {gameObject.name}");
             return;
         }
-        SetHealth(_health);
+        // SetHealth(_health);
         Debug.Log($"[HealthMonster] Initialized health for {gameObject.name}: {CurrentHealth}");
     }
     [Server]

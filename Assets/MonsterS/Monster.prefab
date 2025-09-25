@@ -56,29 +56,12 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
+  info: {fileID: 11400000, guid: 402a337758a3d6b40a448cad056cded9, type: 2}
   monsterName: DemonicWorld Wandering
-  moveSpeed: 7
-  attackCooldown: 2
-  deathVFXPrefab: {fileID: 0}
-  canMove: 1
-  canAttack: 1
-  slowEffectPrefab: {fileID: 4637046911172921311, guid: 9c9304a4aaf7f8d45bf498861bade450,
-    type: 3}
   aggroTargetNetId: 0
-  experienceReward: 1000
-  dropTable:
-  - item: {fileID: 11400000, guid: 6ffb45c650aabde4bb286e3c122f114a, type: 2}
-    dropChance: 0.1
-  - item: {fileID: 11400000, guid: 9421be2e35934f940b518c516057cd91, type: 2}
-    dropChance: 0.2
-  - item: {fileID: 11400000, guid: 535f7ff821cde9549b1c6f1170af339b, type: 2}
-    dropChance: 0.4
-  droppedItemPrefab: {fileID: 8686491603925156450, guid: 133a99e109889094299eec33717cff52,
-    type: 3}
   IsDead: 0
   IsStunned: 0
   IsSilenced: 0
-  stoppingDistance: 1.8
   basicAttackSkill: {fileID: 11400000, guid: 7bbed8c6ef038aa418d85853fbc14319, type: 2}
   physicsModel: {fileID: 0}
   minForce: {x: -5, y: 2, z: -5}
