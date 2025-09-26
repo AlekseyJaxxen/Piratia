@@ -21,7 +21,6 @@ public class MonsterSpawner : NetworkBehaviour
     [SerializeField] private GameObject chestPrefab;
     [SerializeField] private List<SpawnConfig> spawnConfigs = new List<SpawnConfig>(); // Список конфигов
     [SerializeField] private Transform chestSpawnPoint;
-
     private List<GameObject> spawnedMonsters = new List<GameObject>();
     private GameObject spawnedChest;
     private Transform monstersContainer;
@@ -72,6 +71,7 @@ public class MonsterSpawner : NetworkBehaviour
         }
         Debug.Log("[MonsterSpawner] Stopped spawning monsters and cleared spawnedMonsters list");
     }
+
     [Server]
     private void SpawnGroup(SpawnConfig config)
     {
@@ -90,10 +90,9 @@ public class MonsterSpawner : NetworkBehaviour
                 Monster monsterScript = monster.GetComponent<Monster>();
                 if (monsterScript != null)
                 {
-                    MonsterInfo info = (db != null && config.monsterId - 1 < db.monsters.Count) ? db.monsters[config.monsterId - 1] : null;
-                    if (info != null)
+                    if (db != null && config.monsterId - 1 < db.monsters.Count)
                     {
-                        monsterScript.info = info;
+                        monsterScript.monsterId = config.monsterId; // Изменено: присваиваем ID вместо info
                     }
                     else
                     {
@@ -120,6 +119,7 @@ public class MonsterSpawner : NetworkBehaviour
             }
         }
     }
+
     [Server]
     private void SpawnChest()
     {

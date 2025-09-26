@@ -3034,10 +3034,15 @@ MonoBehaviour:
   chestPrefab: {fileID: 3774602016594009712, guid: 7684dde642174e94580fe0b0677307ae,
     type: 3}
   spawnConfigs:
-  - monsterId: 1
+  - monsterId: 2
     position: {x: 380, y: 0.5, z: 350}
     radius: 40
-    count: 100
+    count: 3
+    respawnTime: 1
+  - monsterId: 3
+    position: {x: 384, y: 0.5, z: 400}
+    radius: 40
+    count: 3
     respawnTime: 1
   chestSpawnPoint: {fileID: 1456860375}
 --- !u!114 &1372684383

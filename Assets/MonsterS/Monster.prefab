@@ -56,13 +56,13 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  info: {fileID: 11400000, guid: 402a337758a3d6b40a448cad056cded9, type: 2}
+  info: {fileID: 0}
   monsterName: DemonicWorld Wandering
   aggroTargetNetId: 0
   IsDead: 0
   IsStunned: 0
   IsSilenced: 0
-  basicAttackSkill: {fileID: 11400000, guid: a229fccd33ff10744a8a3c45ed1c4195, type: 2}
+  basicAttackSkill: {fileID: 0}
   physicsModel: {fileID: 0}
   minForce: {x: -5, y: 2, z: -5}
   maxForce: {x: 5, y: 5, z: 0}
@@ -637,6 +637,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: Mob_Mushroom
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 8e936f17e9c7bbc41845f0d2dbae8e3e,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

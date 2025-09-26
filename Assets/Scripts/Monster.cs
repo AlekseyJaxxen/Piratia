@@ -13,8 +13,8 @@ public class DropEntry
 
 public class Monster : NetworkBehaviour
 {
-    [SerializeField] public MonsterInfo info; // Измени на public
-
+    [SyncVar(hook = nameof(OnMonsterIdChanged))] public int monsterId; // Добавлено для синхронизации
+    private MonsterInfo info; // Теперь private, загружается динамически
     [Header("Monster Settings")]
     [SyncVar(hook = nameof(OnNameChanged))] public string monsterName = "Monster";
     private float moveSpeed = 5f;
@@ -23,15 +23,12 @@ public class Monster : NetworkBehaviour
     private bool canMove = true;
     private bool canAttack = true;
     private GameObject slowEffectPrefab;
-
     [Header("Aggro & Experience")]
     [SyncVar] public uint aggroTargetNetId = 0;
     private int experienceReward = 50;
-
     [Header("Drop Settings")]
     private List<DropEntry> dropTable = new List<DropEntry>();
     private GameObject droppedItemPrefab;
-
     private GameObject _slowEffectInstance;
     private NavMeshAgent _agent;
     private MonsterUI _monsterUI;
@@ -46,25 +43,67 @@ public class Monster : NetworkBehaviour
     [SyncVar] private int _currentEffectWeight = 0;
     private float stoppingDistance = 1f;
     public MonsterBasicAttackSkill basicAttackSkill;
-
     [Header("Physics Settings")]
     public GameObject physicsModel;
     public Vector3 minForce = new Vector3(-5f, 2f, -5f);
     public Vector3 maxForce = new Vector3(5f, 5f, 0f);
-
     [SyncVar] public bool IsCooldown = false;
     private SkinnedMeshRenderer _renderer;
     private Health _health;
 
     private void Awake()
     {
-        if (info == null)
+        // Только GetComponent, без зависимости от info
+        _agent = GetComponent<NavMeshAgent>();
+        _rigidbody = GetComponent<Rigidbody>();
+        if (_rigidbody != null)
         {
-            Debug.LogError("[Monster] MonsterInfo not assigned!");
+            _rigidbody.isKinematic = true;
+        }
+        _health = GetComponent<Health>();
+        if (_health == null)
+        {
+            Debug.LogError("[Monster] Health component missing!");
+        }
+        _renderer = GetComponentInChildren<SkinnedMeshRenderer>();
+        if (_renderer == null)
+        {
+            Debug.LogWarning($"[Monster] SkinnedMeshRenderer not found on {monsterName}");
+        }
+    }
+
+    public override void OnStartServer()
+    {
+        base.OnStartServer();
+        LoadAndInitializeServer();
+        StartCoroutine(CheckControlEffectExpiration());
+    }
+
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+        LoadAndInitializeClient();
+        _monsterUI = GetComponentInChildren<MonsterUI>();
+        if (_monsterUI == null)
+        {
+            Debug.LogError($"[Monster] MonsterUI component not found on {gameObject.name}. Check if it's a child object and has the component.");
             return;
         }
+        _monsterUI.target = transform;
+        _monsterUI.SetData(monsterName, _health.CurrentHealth, _health.MaxHealth);
+        Debug.Log($"[Monster] OnStartClient called. UI initialized with currentHealth: {_health.CurrentHealth}. IsHost={isServer}");
+        _health.OnHealthUpdated += OnHealthUpdatedHandler;
+    }
 
-        // Инициализация из info
+    private void LoadAndInitializeServer()
+    {
+        info = LoadMonsterInfo();
+        if (info == null)
+        {
+            Debug.LogError($"[Monster] MonsterInfo not loaded for ID {monsterId}!");
+            return;
+        }
+        // Серверная инициализация
         monsterName = info.monsterName;
         moveSpeed = info.moveSpeed;
         attackCooldown = info.attackCooldown;
@@ -80,95 +119,75 @@ public class Monster : NetworkBehaviour
         physicsModel = info.physicsModel;
         minForce = info.minForce;
         maxForce = info.maxForce;
-
         if (basicAttackSkill == null) Debug.LogError("Skill not assigned");
-
-        if (canMove)
+        if (canMove && _agent != null)
         {
-            _agent = GetComponent<NavMeshAgent>();
-            if (_agent == null)
+            _agent.baseOffset = 0.2f;
+            _agent.speed = moveSpeed;
+            _agent.stoppingDistance = stoppingDistance;
+            if (!_agent.isOnNavMesh)
             {
-                Debug.LogError("[Monster] NavMeshAgent component missing!");
+                Debug.LogWarning($"[Monster] {monsterName} is not on NavMesh at {transform.position}. Disabling movement.");
                 canMove = false;
             }
-            else
-            {
-                _agent.baseOffset = 0.2f;
-                _agent.speed = moveSpeed;
-                _agent.stoppingDistance = stoppingDistance;
-                if (!_agent.isOnNavMesh)
-                {
-                    Debug.LogWarning($"[Monster] {monsterName} is not on NavMesh at {transform.position}. Disabling movement.");
-                    canMove = false;
-                }
-            }
         }
-
-        _rigidbody = GetComponent<Rigidbody>();
-        if (_rigidbody != null)
-        {
-            _rigidbody.isKinematic = true;
-        }
-
         if (physicsModel == null)
         {
             Debug.LogWarning($"[Monster] PhysicsModel not assigned for {monsterName}, using default GameObject");
         }
-
-        if (canAttack)
+        if (canAttack && basicAttackSkill == null)
         {
-            if (basicAttackSkill == null)
-            {
-                Debug.LogError("[Monster] MonsterBasicAttackSkill component missing!");
-                canAttack = false;
-            }
+            Debug.LogError("[Monster] MonsterBasicAttackSkill component missing!");
+            canAttack = false;
         }
-
-        _health = GetComponent<Health>();
-        if (_health == null)
-        {
-            Debug.LogError("[Monster] Health component missing!");
-        }
-
-        _renderer = GetComponentInChildren<SkinnedMeshRenderer>();
-        if (_renderer == null)
-        {
-            Debug.LogWarning($"[Monster] SkinnedMeshRenderer not found on {monsterName}");
-        }
-
         if (droppedItemPrefab == null)
             Debug.LogWarning("[Monster] DroppedItemPrefab not set!");
-    }
-
-    public override void OnStartServer()
-    {
-        base.OnStartServer();
-
-        if (info != null)
-        {
-            _health.MaxHealth = info.maxHealth;
-            _health.CurrentHealth = info.maxHealth;
-        }
-
+        _health.MaxHealth = info.maxHealth;
+        _health.CurrentHealth = info.maxHealth;
         Debug.Log($"[Monster] Initialized health on server to: {_health.CurrentHealth}/{_health.MaxHealth}");
-        StartCoroutine(CheckControlEffectExpiration());
     }
 
-    // Остальной код без изменений
-    public override void OnStartClient()
+    private void LoadAndInitializeClient()
     {
-        base.OnStartClient();
-        _monsterUI = GetComponentInChildren<MonsterUI>();
-        if (_monsterUI == null)
+        info = LoadMonsterInfo();
+        if (info == null)
         {
-            Debug.LogError($"[Monster] MonsterUI component not found on {gameObject.name}. Check if it's a child object and has the component.");
+            Debug.LogError($"[Monster] MonsterInfo not loaded for ID {monsterId}!");
             return;
         }
-        _monsterUI.target = transform;
-        _monsterUI.SetData(monsterName, _health.CurrentHealth, _health.MaxHealth);
-        Debug.Log($"[Monster] OnStartClient called. UI initialized with currentHealth: {_health.CurrentHealth}. IsHost={isServer}");
-        _health.OnHealthUpdated += OnHealthUpdatedHandler;
+        // Клиентская инициализация (визуал)
+        if (info.modelPrefab != null)
+        {
+            GameObject model = Instantiate(info.modelPrefab, transform.position, transform.rotation, transform);
+            Debug.Log($"[Monster] Instantiated modelPrefab for {monsterName}");
+            _renderer = model.GetComponentInChildren<SkinnedMeshRenderer>();
+            if (_renderer == null)
+            {
+                Debug.LogWarning($"[Monster] SkinnedMeshRenderer not found after instantiating model on {monsterName}");
+            }
+        }
+        else
+        {
+            Debug.LogWarning("[Monster] modelPrefab not assigned in MonsterInfo!");
+        }
     }
+
+    private MonsterInfo LoadMonsterInfo()
+    {
+        MonsterDatabase db = Resources.Load<MonsterDatabase>("MonsterData/MonsterDatabase");
+        if (db != null && monsterId - 1 >= 0 && monsterId - 1 < db.monsters.Count)
+        {
+            return db.monsters[monsterId - 1];
+        }
+        return null;
+    }
+
+    private void OnMonsterIdChanged(int oldId, int newId)
+    {
+        // Можно перезагрузить info если нужно, но уже в OnStart
+    }
+
+    // Остальной код без изменений (OnNameChanged, OnStunStateChanged и т.д. до конца)
     public override void OnStopClient()
     {
         base.OnStopClient();
