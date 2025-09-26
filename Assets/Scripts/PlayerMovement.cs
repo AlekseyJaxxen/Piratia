@@ -16,9 +16,7 @@ public class PlayerMovement : NetworkBehaviour
     public NavMeshAgent Agent => _agent;
     private PlayerCore _core;
     private GameObject _currentMoveIndicator;
-
     public bool IsMoving => _agent != null && _agent.velocity.magnitude > 0.1f;
-
     public void Init(PlayerCore core)
     {
         if (core == null)
@@ -38,7 +36,6 @@ public class PlayerMovement : NetworkBehaviour
         _agent.updateRotation = false;
         Debug.Log($"[PlayerMovement] Initialized with moveSpeed={moveSpeed}, core.isOwned={_core.netIdentity.isOwned}, core.Camera={(_core.Camera != null ? _core.Camera.name : "null")}");
     }
-
     private void Update()
     {
         if (isLocalPlayer)
@@ -47,7 +44,6 @@ public class PlayerMovement : NetworkBehaviour
             UpdateMoveIndicator();
         }
     }
-
     private void HandleMovement()
     {
         if (_core == null)
@@ -93,7 +89,7 @@ public class PlayerMovement : NetworkBehaviour
                 bool isSelf = skill.SkillCastType == SkillBase.CastType.SelfBuff || skill.SkillCastType == SkillBase.CastType.ToggleBuff;
                 if (isSelf)
                 {
-                    skill.Execute(_core, null, _core.gameObject);
+                    _core.Skills.CmdExecuteSkill(_core, null, _core.netId, skill.SkillName, skill.Weight);
                     _core.Skills.CancelSkillSelection();
                     return;
                 }
@@ -154,15 +150,12 @@ public class PlayerMovement : NetworkBehaviour
                 {
                     // Игнорируем хиты на самого игрока (и детей)
                     if (hit.collider.transform == transform || hit.collider.transform.IsChildOf(transform)) return;
-
                     Debug.Log($"[PlayerMovement] Raycast hit: {hit.collider.name}, tag={hit.collider.tag}, layer={LayerMask.LayerToName(hit.collider.gameObject.layer)}, components={string.Join(", ", hit.collider.GetComponents<Component>().Select(c => c.GetType().Name))}");
-
                     if (hit.collider.gameObject.layer == LayerMask.NameToLayer("Ignore Raycast"))
                     {
                         Debug.Log("[PlayerMovement] Hit object is on Ignore Raycast layer. Ignoring.");
                         return;
                     }
-
                     // Добавлено: DroppedItem
                     DroppedItem droppedItem = hit.collider.GetComponent<DroppedItem>() ?? hit.collider.GetComponentInParent<DroppedItem>();
                     if (droppedItem != null)
@@ -218,7 +211,6 @@ public class PlayerMovement : NetworkBehaviour
             }
         }
     }
-
     private bool IsPointerOverPlayerUI()
     {
         if (EventSystem.current == null)
@@ -246,7 +238,6 @@ public class PlayerMovement : NetworkBehaviour
         }
         return false;
     }
-
     private bool IsDroppedItemUI(GameObject uiObj)
     {
         Transform current = uiObj.transform;
@@ -257,7 +248,6 @@ public class PlayerMovement : NetworkBehaviour
         }
         return false;
     }
-
     public void MoveTo(Vector3 destination)
     {
         if (_agent == null)
@@ -269,7 +259,6 @@ public class PlayerMovement : NetworkBehaviour
         _agent.SetDestination(destination);
         Debug.Log($"[PlayerMovement] Moving to destination: {destination}");
     }
-
     public void UpdateRotation()
     {
         if (Agent.velocity.sqrMagnitude > 0.1f)
@@ -277,7 +266,6 @@ public class PlayerMovement : NetworkBehaviour
             RotateTo(Agent.velocity);
         }
     }
-
     public void StopMovement()
     {
         if (_agent != null && !_agent.isStopped)
@@ -287,7 +275,6 @@ public class PlayerMovement : NetworkBehaviour
             ClearMoveIndicator();
         }
     }
-
     public void RotateTo(Vector3 direction)
     {
         direction.y = 0;
@@ -297,13 +284,11 @@ public class PlayerMovement : NetworkBehaviour
             transform.rotation = lookRotation;
         }
     }
-
     [Server]
     public void SetMovementSpeed(float newSpeed)
     {
         RpcSetMovementSpeed(newSpeed);
     }
-
     [ClientRpc]
     private void RpcSetMovementSpeed(float newSpeed)
     {
@@ -313,12 +298,10 @@ public class PlayerMovement : NetworkBehaviour
             Debug.Log($"[PlayerMovement] Movement speed set to: {newSpeed}");
         }
     }
-
     public float GetOriginalSpeed()
     {
         return _core != null && _core.Stats != null ? _core.Stats.movementSpeed : moveSpeed;
     }
-
     [Client]
     private void UpdateMoveIndicator()
     {
@@ -337,7 +320,6 @@ public class PlayerMovement : NetworkBehaviour
             ClearMoveIndicator();
         }
     }
-
     [Client]
     private void ClearMoveIndicator()
     {

@@ -62,7 +62,7 @@ MonoBehaviour:
   IsDead: 0
   IsStunned: 0
   IsSilenced: 0
-  basicAttackSkill: {fileID: 11400000, guid: 7bbed8c6ef038aa418d85853fbc14319, type: 2}
+  basicAttackSkill: {fileID: 11400000, guid: a229fccd33ff10744a8a3c45ed1c4195, type: 2}
   physicsModel: {fileID: 0}
   minForce: {x: -5, y: 2, z: -5}
   maxForce: {x: 5, y: 5, z: 0}

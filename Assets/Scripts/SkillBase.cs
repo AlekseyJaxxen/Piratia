@@ -181,7 +181,7 @@ public abstract class SkillBase : ScriptableObject, ISkill
         }
     }
 
-    public void SetEffectRadiusPosition(Vector3 position)
+    public virtual void SetEffectRadiusPosition(Vector3 position)
     {
         if (effectRadiusIndicator != null)
         {

@@ -13,7 +13,7 @@ public class DropEntry
 
 public class Monster : NetworkBehaviour
 {
-    [SerializeField] private MonsterInfo info; // Добавлено
+    [SerializeField] public MonsterInfo info; // Измени на public
 
     [Header("Monster Settings")]
     [SyncVar(hook = nameof(OnNameChanged))] public string monsterName = "Monster";

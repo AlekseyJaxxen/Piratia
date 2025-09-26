@@ -789,4 +789,65 @@ public class PlayerSkills : NetworkBehaviour
             }
         }
     }
+
+    public void StartJumpCoroutine(Vector3 start, Vector3 end, int weight, float jumpDuration, float heightMultiplier)
+    {
+        StartCoroutine(PerformJump(_core, start, end, weight, jumpDuration, heightMultiplier));
+    }
+
+    private IEnumerator PerformJump(PlayerCore caster, Vector3 start, Vector3 end, int weight, float jumpDuration, float heightMultiplier)
+    {
+        RpcDisableAgentAndNT();
+        caster.Movement.Agent.enabled = false;
+        caster.GetComponent<NetworkTransformHybrid>().enabled = false;
+
+        float elapsed = 0f;
+        float distance = Vector3.Distance(start, end);
+        float heightDiff = end.y - start.y;
+        while (elapsed < jumpDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / jumpDuration;
+
+            Vector3 pos = Vector3.Lerp(start, end, t);
+            pos.y = start.y + t * heightDiff + Mathf.Sin(t * Mathf.PI) * (distance / 2f) * heightMultiplier;
+
+            caster.transform.position = pos;
+            RpcSetPosition(pos);
+
+            yield return null;
+        }
+        caster.transform.position = end;
+        RpcSetPosition(end);
+
+        caster.Movement.Agent.enabled = true;
+        caster.Movement.Agent.Warp(end);
+        caster.GetComponent<NetworkTransformHybrid>().enabled = true;
+        RpcEnableAgentAndNT(end);
+
+        caster.ClearStunEffect();
+    }
+
+    [ClientRpc]
+    private void RpcSetPosition(Vector3 pos)
+    {
+        transform.position = pos;
+    }
+
+    [ClientRpc]
+    private void RpcDisableAgentAndNT()
+    {
+        _core.Movement.Agent.enabled = false;
+        GetComponent<NetworkTransformHybrid>().enabled = false;
+    }
+
+    [ClientRpc]
+    private void RpcEnableAgentAndNT(Vector3 pos)
+    {
+        transform.position = pos;
+        _core.Movement.Agent.enabled = true;
+        _core.Movement.Agent.Warp(pos);
+        GetComponent<NetworkTransformHybrid>().enabled = true;
+    }
+
 }

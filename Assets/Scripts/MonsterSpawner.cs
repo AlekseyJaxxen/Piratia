@@ -3,44 +3,60 @@ using Mirror;
 using UnityEngine.AI;
 using System.Collections.Generic;
 using System.Collections;
+using System;
+
+[System.Serializable]
+public class SpawnConfig
+{
+    public int monsterId;
+    public Vector3 position;
+    public float radius = 100f;
+    public int count = 100;
+    public float respawnTime = 60f; // В секундах
+}
+
 public class MonsterSpawner : NetworkBehaviour
 {
-    [SerializeField] private GameObject[] monsterPrefabs;
+    [SerializeField] private GameObject monsterPrefab; // Один префаб Monster
     [SerializeField] private GameObject chestPrefab;
-    [SerializeField] private List<Transform> spawnPoints;
+    [SerializeField] private List<SpawnConfig> spawnConfigs = new List<SpawnConfig>(); // Список конфигов
     [SerializeField] private Transform chestSpawnPoint;
-    [SerializeField] private float respawnInterval = 10f;
-    [SerializeField] private int maxMonsters = 50; // Адаптируй под spawnPoints.Count * 10
+
     private List<GameObject> spawnedMonsters = new List<GameObject>();
     private GameObject spawnedChest;
     private Transform monstersContainer;
+    private Dictionary<SpawnConfig, List<GameObject>> spawnedPerConfig = new Dictionary<SpawnConfig, List<GameObject>>();
+    private Dictionary<SpawnConfig, Coroutine> respawnCoroutines = new Dictionary<SpawnConfig, Coroutine>();
+
     public override void OnStartServer()
     {
         base.OnStartServer();
-
-        StartCoroutine(SpawnMonstersDelayed());
-
         monstersContainer = new GameObject("MonstersContainer").transform;
         monstersContainer.parent = transform;
         StartCoroutine(SpawnMonstersDelayed());
-
-
     }
+
     private IEnumerator SpawnMonstersDelayed()
     {
         yield return new WaitUntil(() => NavMesh.CalculateTriangulation().vertices.Length > 0 && GameObject.Find("TeamSelectionCanvas") != null);
         SpawnChest();
-        foreach (var point in spawnPoints)
+        foreach (var config in spawnConfigs)
         {
-            SpawnMonster(point.position, 10);
+            spawnedPerConfig[config] = new List<GameObject>();
+            SpawnGroup(config);
+            respawnCoroutines[config] = StartCoroutine(CheckAndRespawnGroup(config));
         }
-        InvokeRepeating(nameof(CheckAndRespawn), respawnInterval, respawnInterval);
         Debug.Log("[MonsterSpawner] Started spawning monsters");
     }
+
     public override void OnStopServer()
     {
         base.OnStopServer();
-        CancelInvoke(nameof(CheckAndRespawn));
+        foreach (var coroutine in respawnCoroutines.Values)
+        {
+            if (coroutine != null) StopCoroutine(coroutine);
+        }
+        respawnCoroutines.Clear();
         foreach (var monster in spawnedMonsters)
         {
             if (monster != null)
@@ -49,6 +65,7 @@ public class MonsterSpawner : NetworkBehaviour
             }
         }
         spawnedMonsters.Clear();
+        spawnedPerConfig.Clear();
         if (spawnedChest != null)
         {
             NetworkServer.Destroy(spawnedChest);
@@ -56,25 +73,35 @@ public class MonsterSpawner : NetworkBehaviour
         Debug.Log("[MonsterSpawner] Stopped spawning monsters and cleared spawnedMonsters list");
     }
     [Server]
-    private void SpawnMonster(Vector3 centerPosition, int count = 1)
+    private void SpawnGroup(SpawnConfig config)
     {
-        if (monsterPrefabs == null || monsterPrefabs.Length == 0)
+        int toSpawn = config.count - spawnedPerConfig[config].Count;
+        MonsterDatabase db = Resources.Load<MonsterDatabase>("MonsterData/MonsterDatabase"); // Путь к твоему SO
+        for (int i = 0; i < toSpawn; i++)
         {
-            Debug.LogError("[MonsterSpawner] Monster prefabs not assigned!");
-            return;
-        }
-        for (int i = 0; i < count; i++)
-        {
-            Vector3 offset = new Vector3(Random.Range(-100f, 100f), 0f, Random.Range(-100f, 100f));
-            Vector3 position = centerPosition + offset;
-            GameObject prefab = monsterPrefabs[Random.Range(0, monsterPrefabs.Length)];
+            Vector3 offset = new Vector3(UnityEngine.Random.Range(-config.radius, config.radius), 0f, UnityEngine.Random.Range(-config.radius, config.radius));
+            Vector3 position = config.position + offset;
             NavMeshHit hit;
-            if (NavMesh.SamplePosition(position, out hit, 10f, NavMesh.AllAreas))
+            if (NavMesh.SamplePosition(position, out hit, config.radius, NavMesh.AllAreas))
             {
                 position = hit.position;
-                Debug.Log($"[MonsterSpawner] Adjusted spawn position to NavMesh: {position}");
-                GameObject monster = Instantiate(prefab, position, Quaternion.identity);
+                GameObject monster = Instantiate(monsterPrefab, position, Quaternion.identity);
                 monster.transform.SetParent(monstersContainer);
+                Monster monsterScript = monster.GetComponent<Monster>();
+                if (monsterScript != null)
+                {
+                    MonsterInfo info = (db != null && config.monsterId - 1 < db.monsters.Count) ? db.monsters[config.monsterId - 1] : null;
+                    if (info != null)
+                    {
+                        monsterScript.info = info;
+                    }
+                    else
+                    {
+                        Debug.LogError($"[MonsterSpawner] No MonsterInfo for ID {config.monsterId}");
+                        Destroy(monster);
+                        continue;
+                    }
+                }
                 NavMeshAgent agent = monster.GetComponent<NavMeshAgent>();
                 if (agent == null || !agent.isOnNavMesh)
                 {
@@ -84,7 +111,8 @@ public class MonsterSpawner : NetworkBehaviour
                 }
                 NetworkServer.Spawn(monster);
                 spawnedMonsters.Add(monster);
-                Debug.Log($"[MonsterSpawner] Spawned monster at {position}");
+                spawnedPerConfig[config].Add(monster);
+                Debug.Log($"[MonsterSpawner] Spawned monster ID {config.monsterId} at {position}");
             }
             else
             {
@@ -115,33 +143,19 @@ public class MonsterSpawner : NetworkBehaviour
         NetworkServer.Spawn(spawnedChest);
         Debug.Log($"[MonsterSpawner] Spawned chest at {position}");
     }
+
     [Server]
-    private void CheckAndRespawn()
+    private IEnumerator CheckAndRespawnGroup(SpawnConfig config)
     {
-        for (int i = spawnedMonsters.Count - 1; i >= 0; i--)
+        while (true)
         {
-            if (spawnedMonsters[i] == null ||
-                spawnedMonsters[i].GetComponent<HealthMonster>() == null ||
-                spawnedMonsters[i].GetComponent<HealthMonster>().CurrentHealth <= 0)
+            yield return new WaitForSeconds(config.respawnTime);
+            spawnedPerConfig[config].RemoveAll(m => m == null || m.GetComponent<HealthMonster>() == null || m.GetComponent<HealthMonster>().CurrentHealth <= 0);
+            if (spawnedPerConfig[config].Count < config.count)
             {
-                spawnedMonsters.RemoveAt(i);
+                SpawnGroup(config);
             }
+            Debug.Log($"[MonsterSpawner] Group {config.monsterId}: Active {spawnedPerConfig[config].Count}/{config.count}");
         }
-        if (spawnedChest == null ||
-            (spawnedChest.GetComponent<HealthMonster>() != null && spawnedChest.GetComponent<HealthMonster>().CurrentHealth <= 0))
-        {
-            SpawnChest();
-        }
-        if (spawnedMonsters.Count < maxMonsters && spawnPoints.Count > 0)
-        {
-            StartCoroutine(SpawnAfterDelay(spawnPoints[Random.Range(0, spawnPoints.Count)].position, 3.5f));
-        }
-        Debug.Log($"[MonsterSpawner] Active monsters: {spawnedMonsters.Count}");
-    }
-    [Server]
-    private IEnumerator SpawnAfterDelay(Vector3 position, float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        SpawnMonster(position, 10);
     }
 }

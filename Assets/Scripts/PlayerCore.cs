@@ -469,7 +469,7 @@ public class PlayerCore : NetworkBehaviour
     }
 
     [Server]
-    private void ClearStunEffect()
+    public void ClearStunEffect()
     {
         if (isStunned)
         {
@@ -939,4 +939,18 @@ public class PlayerCore : NetworkBehaviour
         Debug.LogWarning("No spawn points for team " + team);
         return transform;
     }
+
+    [ClientRpc]
+    public void RpcDisableNT()
+    {
+        GetComponent<NetworkTransformHybrid>().enabled = false;
+    }
+
+    [ClientRpc]
+    public void RpcEnableNT()
+    {
+        GetComponent<NetworkTransformHybrid>().enabled = true;
+    }
+
+
 }

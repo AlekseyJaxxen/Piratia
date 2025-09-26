@@ -16,7 +16,6 @@ public class PlayerActionSystem : NetworkBehaviour
     public ISkill CurrentSkill => _currentSkill;
     public GameObject CurrentTarget => _core?.Combat?.Target;
     public Vector3? CurrentTargetPosition { get; private set; }
-
     public void Init(PlayerCore core)
     {
         _core = core;
@@ -25,7 +24,6 @@ public class PlayerActionSystem : NetworkBehaviour
             Debug.LogError("[PlayerActionSystem] PlayerCore is null during initialization!");
         }
     }
-
     private void Update()
     {
         if (isLocalPlayer)
@@ -33,13 +31,11 @@ public class PlayerActionSystem : NetworkBehaviour
             UpdateTargetIndicator(); // Обновляем индикатор цели атаки
         }
     }
-
     private void OnDisable()
     {
         CompleteAction();
         ClearTargetIndicator();
     }
-
     public override void OnStopClient()
     {
         base.OnStopClient();
@@ -47,7 +43,6 @@ public class PlayerActionSystem : NetworkBehaviour
         ClearTargetIndicator();
         Debug.Log("[PlayerActionSystem] Cleaned up on client disconnect.");
     }
-
     private int GetPriority(PlayerAction action)
     {
         switch (action)
@@ -58,7 +53,6 @@ public class PlayerActionSystem : NetworkBehaviour
             default: return 0;
         }
     }
-
     public bool TryStartAction(PlayerAction actionType, Vector3? targetPosition = null, GameObject targetObject = null, ISkill skillToCast = null)
     {
         Debug.Log($"[PlayerActionSystem] Trying to start new action: {actionType}, isOwned: {isOwned}");
@@ -176,7 +170,6 @@ public class PlayerActionSystem : NetworkBehaviour
         _currentActionType = PlayerAction.None;
         return false;
     }
-
     private IEnumerator MoveAction(Vector3 destination)
     {
         if (_core == null || _core.Movement == null || _core.Movement.Agent == null)
@@ -203,7 +196,6 @@ public class PlayerActionSystem : NetworkBehaviour
         Debug.Log($"[PlayerActionSystem] Movement action completed.");
         CompleteAction();
     }
-
     private IEnumerator AttackAction(GameObject target, ISkill skill = null)
     {
         if (_core == null || _core.Movement == null || _core.Combat == null || _core.Stats == null || _core.Skills == null)
@@ -302,12 +294,8 @@ public class PlayerActionSystem : NetworkBehaviour
                     yield break;
                 }
                 Debug.Log($"[PlayerActionSystem] Executing attack with skill: {((SkillBase)skill).SkillName}");
-                skill.Execute(_core, null, target);
+                _core.Skills.CmdExecuteSkill(_core, null, target.GetComponent<NetworkIdentity>().netId, skill.SkillName, ((SkillBase)skill).Weight);
                 _core.Combat._lastAttackTime = Time.time;
-                if (animationSystem != null)
-                {
-                    
-                }
                 if (!isLooping)
                 {
                     if (((SkillBase)skill).CastTime > 0)
@@ -337,7 +325,6 @@ public class PlayerActionSystem : NetworkBehaviour
         Debug.Log($"[PlayerActionSystem] Attack action completed: target is null or dead");
         CompleteAction();
     }
-
     private IEnumerator CastSkillAction(GameObject targetObject, ISkill skillToCast)
     {
         if (_core == null || _core.Movement == null)
@@ -380,7 +367,7 @@ public class PlayerActionSystem : NetworkBehaviour
             {
                 _core.Movement.StopMovement();
                 _core.Movement.RotateTo(targetObject.transform.position - transform.position);
-                skillToCast.Execute(_core, targetObject.transform.position, targetObject);
+                _core.Skills.CmdExecuteSkill(_core, targetObject.transform.position, targetObject.GetComponent<NetworkIdentity>().netId, skillToCast.SkillName, ((SkillBase)skillToCast).Weight);
                 if (((SkillBase)skillToCast).CastTime > 0)
                 {
                     _isCasting = true;
@@ -399,7 +386,6 @@ public class PlayerActionSystem : NetworkBehaviour
             yield return null;
         }
     }
-
     private IEnumerator CastSkillAction(Vector3 targetPosition, ISkill skillToCast)
     {
         if (_core == null || _core.Movement == null)
@@ -426,7 +412,7 @@ public class PlayerActionSystem : NetworkBehaviour
             {
                 _core.Movement.StopMovement();
                 _core.Movement.RotateTo(targetPosition - transform.position);
-                skillToCast.Execute(_core, targetPosition, null);
+                _core.Skills.CmdExecuteSkill(_core, targetPosition, 0, skillToCast.SkillName, ((SkillBase)skillToCast).Weight);
                 if (((SkillBase)skillToCast).CastTime > 0)
                 {
                     _isCasting = true;
@@ -446,7 +432,6 @@ public class PlayerActionSystem : NetworkBehaviour
             yield return null;
         }
     }
-
     public void CompleteAction()
     {
         Debug.Log($"[PlayerActionSystem] Completing action {_currentActionType}");
@@ -471,7 +456,6 @@ public class PlayerActionSystem : NetworkBehaviour
         GetComponent<PlayerAnimationSystem>()?.ResetAnimations();
         ClearTargetIndicator();
     }
-
     [Client]
     private void UpdateTargetIndicator()
     {
@@ -489,7 +473,6 @@ public class PlayerActionSystem : NetworkBehaviour
             ClearTargetIndicator();
         }
     }
-
     [Client]
     private void ClearTargetIndicator()
     {

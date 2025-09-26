@@ -1285,6 +1285,11 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 781441973}
     m_Modifications:
+    - target: {fileID: 806258434606570630, guid: 70536b9cbaf4ac64490caf09de847442,
+        type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6723780303746495844, guid: 70536b9cbaf4ac64490caf09de847442,
         type: 3}
       propertyPath: m_Name
@@ -2659,18 +2664,17 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  monsterPrefabs:
-  - {fileID: 3774602016594009712, guid: 64fa1db29f590d644ac361ea0f9d871f, type: 3}
+  monsterPrefab: {fileID: 3774602016594009712, guid: 64fa1db29f590d644ac361ea0f9d871f,
+    type: 3}
   chestPrefab: {fileID: 3774602016594009712, guid: 7684dde642174e94580fe0b0677307ae,
     type: 3}
-  spawnPoints:
-  - {fileID: 691239095}
-  - {fileID: 2081079595}
-  - {fileID: 607002311}
-  - {fileID: 1080855209}
+  spawnConfigs:
+  - monsterId: 1
+    position: {x: 380, y: 0.5, z: 350}
+    radius: 40
+    count: 100
+    respawnTime: 1
   chestSpawnPoint: {fileID: 1456860375}
-  respawnInterval: 20
-  maxMonsters: 5
 --- !u!114 &1372684383
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3508,6 +3512,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 5e7dae658d5acbd40ab22695aa6763cb, type: 2}
   - {fileID: 11400000, guid: 921c930d425e53243b9becb1a5a82f8e, type: 2}
   - {fileID: 11400000, guid: 416c0a404f8283143b92925216e31ace, type: 2}
+  - {fileID: 11400000, guid: 8cec8c0118119a14c83125b8f8184130, type: 2}
   mageSkills:
   - {fileID: 11400000, guid: 3eb9b1d80c8fde844a94600c814cc491, type: 2}
   - {fileID: 11400000, guid: 9a1d78afb8732344b98a8f8244a0e5da, type: 2}
