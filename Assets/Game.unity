@@ -3889,6 +3889,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ab40c771bb9731c49976f330705f5542, type: 2}
   - {fileID: 11400000, guid: 98da5bee077b24744a433bfaf95a8a74, type: 2}
   - {fileID: 11400000, guid: 9304033d9f889c74688e6e90b8d857d1, type: 2}
+  - {fileID: 11400000, guid: 8cec8c0118119a14c83125b8f8184130, type: 2}
   archerSkills:
   - {fileID: 11400000, guid: b6306e214bb395b4192626b3912fc0c6, type: 2}
   - {fileID: 11400000, guid: ebbf47ecd1d49094dac17c306e5f32af, type: 2}
@@ -3897,6 +3898,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: f44fad9d056e591459a2a607d3f32fc6, type: 2}
   - {fileID: 11400000, guid: 3b33861125ed1b042a157c074889acef, type: 2}
   - {fileID: 11400000, guid: 416c0a404f8283143b92925216e31ace, type: 2}
+  - {fileID: 11400000, guid: 8cec8c0118119a14c83125b8f8184130, type: 2}
   tankSkills:
   - {fileID: 11400000, guid: 66e41989aa5f4f94bba13713265dfd2e, type: 2}
   - {fileID: 11400000, guid: 99c8eac67305e384f974c7ef9b54607c, type: 2}
@@ -3905,6 +3907,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ad3b6fec9636f474ba1cbae02ad3e27b, type: 2}
   - {fileID: 11400000, guid: b7c06ffec485dd046acf254cd4bbccee, type: 2}
   - {fileID: 11400000, guid: 416c0a404f8283143b92925216e31ace, type: 2}
+  - {fileID: 11400000, guid: 8cec8c0118119a14c83125b8f8184130, type: 2}
 --- !u!4 &1855098298
 Transform:
   m_ObjectHideFlags: 0

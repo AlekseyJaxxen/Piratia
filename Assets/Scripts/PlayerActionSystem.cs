@@ -2,7 +2,6 @@
 using Mirror;
 using System.Collections;
 using UnityEngine.AI;
-
 public class PlayerActionSystem : NetworkBehaviour
 {
     private PlayerCore _core;
@@ -274,16 +273,22 @@ public class PlayerActionSystem : NetworkBehaviour
             Debug.Log($"[PlayerActionSystem] Distance to target {target.name}: {distance}, skill range: {attackRange}");
             if (distance > attackRange)
             {
-                Vector3 tempPos = target.transform.position;
-                tempPos.y = transform.position.y; // Same Y as player for path
+                Vector3 direction = (target.transform.position - transform.position).normalized;
+                Vector3 tempPos = transform.position + direction * 1f; // Step size
+                tempPos.y = transform.position.y; // Уровень агента
                 NavMeshHit hit;
                 if (NavMesh.SamplePosition(tempPos, out hit, 1f, NavMesh.AllAreas))
                 {
-                    tempPos = hit.position;
+                    _core.Movement.MoveTo(hit.position);
+                    _core.Movement.UpdateRotation();
+                    Debug.Log($"[PlayerActionSystem] No full path. Manual step to {hit.position}");
                 }
-                _core.Movement.MoveTo(tempPos);
-                _core.Movement.UpdateRotation();
-                Debug.Log($"[PlayerActionSystem] Target out of range. Moving towards target at {tempPos}. Distance: {distance}");
+                else
+                {
+                    Debug.Log($"[PlayerActionSystem] No NavMesh for manual step to target {target.name}. Stopping attack.");
+                    CompleteAction();
+                    yield break;
+                }
             }
             else
             {
@@ -394,15 +399,23 @@ public class PlayerActionSystem : NetworkBehaviour
             }
             else
             {
-                Vector3 tempPos = targetObject.transform.position;
-                tempPos.y = transform.position.y; // Same Y as player for path
+                Vector3 direction = (targetObject.transform.position - transform.position).normalized;
+                Vector3 tempPos = transform.position + direction * 1f; // Step size
+                tempPos.y = transform.position.y; // Уровень агента
                 NavMeshHit hit;
                 if (NavMesh.SamplePosition(tempPos, out hit, 1f, NavMesh.AllAreas))
                 {
-                    tempPos = hit.position;
+                    _core.Movement.MoveTo(hit.position);
+                    _core.Movement.UpdateRotation();
+                    Debug.Log($"[PlayerActionSystem] No full path. Manual step to {hit.position}");
                 }
-                _core.Movement.MoveTo(tempPos);
-                _core.Movement.UpdateRotation();
+                else
+                {
+                    Debug.Log($"[PlayerActionSystem] No NavMesh for manual step to target {targetObject.name}. Stopping cast.");
+                    _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
+                    CompleteAction();
+                    yield break;
+                }
             }
             if (_core.Movement.Agent.hasPath && _core.Movement.Agent.remainingDistance <= _core.Movement.Agent.stoppingDistance && distance > effectiveRange)
             {
@@ -454,15 +467,23 @@ public class PlayerActionSystem : NetworkBehaviour
             }
             else
             {
-                Vector3 tempPos = targetPosition;
-                tempPos.y = transform.position.y; // Same Y as player for path
+                Vector3 direction = (targetPosition - transform.position).normalized;
+                Vector3 tempPos = transform.position + direction * 1f; // Step size
+                tempPos.y = transform.position.y; // Уровень агента
                 NavMeshHit hit;
                 if (NavMesh.SamplePosition(tempPos, out hit, 1f, NavMesh.AllAreas))
                 {
-                    tempPos = hit.position;
+                    _core.Movement.MoveTo(hit.position);
+                    _core.Movement.UpdateRotation();
+                    Debug.Log($"[PlayerActionSystem] No full path. Manual step to {hit.position}");
                 }
-                _core.Movement.MoveTo(tempPos);
-                _core.Movement.UpdateRotation();
+                else
+                {
+                    Debug.Log($"[PlayerActionSystem] No NavMesh for manual step to target position {targetPosition}. Stopping cast.");
+                    _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
+                    CompleteAction();
+                    yield break;
+                }
             }
             if (_core.Movement.Agent.hasPath && _core.Movement.Agent.remainingDistance <= _core.Movement.Agent.stoppingDistance && distance > effectiveRange)
             {
