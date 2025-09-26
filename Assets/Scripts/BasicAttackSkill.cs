@@ -31,7 +31,7 @@ public class BasicAttackSkill : SkillBase
             Debug.LogWarning($"[BasicAttackSkill] Invalid target for {_skillName}");
             return;
         }
-        float distance = Vector3.Distance(caster.transform.position, targetObject.transform.position);
+        float distance = Vector3.Distance(caster.transform.position, targetObject.transform.position); // Full distance with Y
         if (distance > Range)
         {
             Debug.LogWarning($"[BasicAttackSkill] Target {targetObject.name} is out of range: {distance} > {Range}");
@@ -57,7 +57,7 @@ public class BasicAttackSkill : SkillBase
         }
         Debug.Log($"[BasicAttackSkill] Client requesting attack for skill {_skillName} on target: {targetObject.name}, netId: {targetIdentity.netId}, strength: {stats.strength}, minAttack: {stats.minAttack}, maxAttack: {stats.maxAttack}");
         skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName, 0);
-        caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);        
+        caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
     }
 
     public override void ExecuteOnServer(PlayerCore caster, Vector3? targetPosition, GameObject targetObject, int weight)

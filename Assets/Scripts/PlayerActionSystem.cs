@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using Mirror;
 using System.Collections;
+using UnityEngine.AI;
 
 public class PlayerActionSystem : NetworkBehaviour
 {
@@ -269,13 +270,15 @@ public class PlayerActionSystem : NetworkBehaviour
                 CompleteAction();
                 yield break;
             }
-            float distance = Vector3.Distance(transform.position, target.transform.position);
+            float distance = Vector3.Distance(transform.position, target.transform.position); // Full distance with Y
             Debug.Log($"[PlayerActionSystem] Distance to target {target.name}: {distance}, skill range: {attackRange}");
             if (distance > attackRange)
             {
-                _core.Movement.MoveTo(target.transform.position);
+                Vector3 tempPos = target.transform.position;
+                tempPos.y = transform.position.y; // Same Y as player for path
+                _core.Movement.MoveTo(tempPos);
                 _core.Movement.UpdateRotation();
-                Debug.Log($"[PlayerActionSystem] Target out of range. Moving towards target at {target.transform.position}. Distance: {distance}");
+                Debug.Log($"[PlayerActionSystem] Target out of range. Moving towards target at {tempPos}. Distance: {distance}");
             }
             else
             {
@@ -320,6 +323,12 @@ public class PlayerActionSystem : NetworkBehaviour
                     yield return new WaitForSeconds(attackCooldown);
                 }
             }
+            if (_core.Movement.Agent.hasPath && _core.Movement.Agent.remainingDistance <= _core.Movement.Agent.stoppingDistance && distance > attackRange)
+            {
+                Debug.Log($"[PlayerActionSystem] Cannot get closer to target {target.name}. Stopping attack.");
+                CompleteAction();
+                yield break;
+            }
             yield return null;
         }
         Debug.Log($"[PlayerActionSystem] Attack action completed: target is null or dead");
@@ -361,7 +370,7 @@ public class PlayerActionSystem : NetworkBehaviour
                 CompleteAction();
                 yield break;
             }
-            float distance = Vector3.Distance(transform.position, targetObject.transform.position);
+            float distance = Vector3.Distance(transform.position, targetObject.transform.position); // Full distance with Y
             float effectiveRange = skillToCast.Range - castRangeOffset;
             if (distance <= effectiveRange)
             {
@@ -380,8 +389,17 @@ public class PlayerActionSystem : NetworkBehaviour
             }
             else
             {
-                _core.Movement.MoveTo(targetObject.transform.position);
+                Vector3 tempPos = targetObject.transform.position;
+                tempPos.y = transform.position.y; // Same Y as player for path
+                _core.Movement.MoveTo(tempPos);
                 _core.Movement.UpdateRotation();
+            }
+            if (_core.Movement.Agent.hasPath && _core.Movement.Agent.remainingDistance <= _core.Movement.Agent.stoppingDistance && distance > effectiveRange)
+            {
+                Debug.Log($"[PlayerActionSystem] Cannot get closer to target {targetObject.name}. Stopping cast.");
+                _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
+                CompleteAction();
+                yield break;
             }
             yield return null;
         }
@@ -406,7 +424,7 @@ public class PlayerActionSystem : NetworkBehaviour
                 CompleteAction();
                 yield break;
             }
-            float distance = Vector3.Distance(transform.position, targetPosition);
+            float distance = Vector3.Distance(transform.position, targetPosition); // Full distance with Y
             float effectiveRange = skillToCast.Range - castRangeOffset;
             if (distance <= effectiveRange)
             {
@@ -426,8 +444,17 @@ public class PlayerActionSystem : NetworkBehaviour
             }
             else
             {
-                _core.Movement.MoveTo(targetPosition);
+                Vector3 tempPos = targetPosition;
+                tempPos.y = transform.position.y; // Same Y as player for path
+                _core.Movement.MoveTo(tempPos);
                 _core.Movement.UpdateRotation();
+            }
+            if (_core.Movement.Agent.hasPath && _core.Movement.Agent.remainingDistance <= _core.Movement.Agent.stoppingDistance && distance > effectiveRange)
+            {
+                Debug.Log($"[PlayerActionSystem] Cannot get closer to target position {targetPosition}. Stopping cast.");
+                _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
+                CompleteAction();
+                yield break;
             }
             yield return null;
         }

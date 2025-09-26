@@ -264,11 +264,11 @@ public class PlayerSkills : NetworkBehaviour
             float distance = 0f;
             if (targetObject != null)
             {
-                distance = Vector3.Distance(transform.position, targetObject.transform.position);
+                distance = Vector3.Distance(transform.position, targetObject.transform.position); // Full distance with Y
             }
             else if (targetPosition.HasValue)
             {
-                distance = Vector3.Distance(transform.position, targetPosition.Value);
+                distance = Vector3.Distance(transform.position, targetPosition.Value); // Full distance with Y
             }
             if (distance > skill.Range + tolerance)
             {
