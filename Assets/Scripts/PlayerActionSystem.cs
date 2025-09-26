@@ -276,6 +276,11 @@ public class PlayerActionSystem : NetworkBehaviour
             {
                 Vector3 tempPos = target.transform.position;
                 tempPos.y = transform.position.y; // Same Y as player for path
+                NavMeshHit hit;
+                if (NavMesh.SamplePosition(tempPos, out hit, 1f, NavMesh.AllAreas))
+                {
+                    tempPos = hit.position;
+                }
                 _core.Movement.MoveTo(tempPos);
                 _core.Movement.UpdateRotation();
                 Debug.Log($"[PlayerActionSystem] Target out of range. Moving towards target at {tempPos}. Distance: {distance}");
@@ -391,6 +396,11 @@ public class PlayerActionSystem : NetworkBehaviour
             {
                 Vector3 tempPos = targetObject.transform.position;
                 tempPos.y = transform.position.y; // Same Y as player for path
+                NavMeshHit hit;
+                if (NavMesh.SamplePosition(tempPos, out hit, 1f, NavMesh.AllAreas))
+                {
+                    tempPos = hit.position;
+                }
                 _core.Movement.MoveTo(tempPos);
                 _core.Movement.UpdateRotation();
             }
@@ -446,6 +456,11 @@ public class PlayerActionSystem : NetworkBehaviour
             {
                 Vector3 tempPos = targetPosition;
                 tempPos.y = transform.position.y; // Same Y as player for path
+                NavMeshHit hit;
+                if (NavMesh.SamplePosition(tempPos, out hit, 1f, NavMesh.AllAreas))
+                {
+                    tempPos = hit.position;
+                }
                 _core.Movement.MoveTo(tempPos);
                 _core.Movement.UpdateRotation();
             }

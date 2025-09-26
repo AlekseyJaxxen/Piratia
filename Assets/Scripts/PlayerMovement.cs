@@ -255,6 +255,11 @@ public class PlayerMovement : NetworkBehaviour
             Debug.LogError("[PlayerMovement] NavMeshAgent is null");
             return;
         }
+        NavMeshHit hit;
+        if (NavMesh.SamplePosition(destination, out hit, 1f, NavMesh.AllAreas))
+        {
+            destination = hit.position;
+        }
         _agent.isStopped = false;
         _agent.SetDestination(destination);
         Debug.Log($"[PlayerMovement] Moving to destination: {destination}");
