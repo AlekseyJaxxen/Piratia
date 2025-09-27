@@ -61,11 +61,20 @@ public class ProjectileDamageSkill : SkillBase
         {
             randomAttack = Mathf.RoundToInt(stats.spirit);
         }
-        int totalBaseDamage = baseDamage + randomAttack; // Суммируем базовый урон и атаку
-        Health targetHealth = targetObject.GetComponent<Health>();
-        if (targetHealth != null)
+        int totalBaseDamage = baseDamage + randomAttack; // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅ
+        // Try HealthMonster first for monsters, then fall back to Health
+        HealthMonster targetHealthMonster = targetObject.GetComponent<HealthMonster>();
+        if (targetHealthMonster != null)
         {
-            targetHealth.TakeDamage(totalBaseDamage, SkillDamageType, false, caster.netIdentity, damageMultiplier); // Передаем множитель
+            targetHealthMonster.TakeDamage(totalBaseDamage, SkillDamageType, false, caster.netIdentity, damageMultiplier);
+        }
+        else
+        {
+            Health targetHealth = targetObject.GetComponent<Health>();
+            if (targetHealth != null)
+            {
+                targetHealth.TakeDamage(totalBaseDamage, SkillDamageType, false, caster.netIdentity, damageMultiplier);
+            }
         }
         Vector3 startPos = caster.transform.position;
         Vector3 targetPos = targetObject.transform.position;
@@ -77,8 +86,8 @@ public class ProjectileDamageSkill : SkillBase
         if (projectilePrefab != null)
         {
             PlayerCore caster = playerSkills.GetComponent<PlayerCore>();
-            Vector3 direction = (targetPos - startPos).normalized; // Направление к цели
-            Quaternion rotation = Quaternion.LookRotation(caster.transform.forward); // Ориентация по направлению игрока
+            Vector3 direction = (targetPos - startPos).normalized; // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅ
+            Quaternion rotation = Quaternion.LookRotation(caster.transform.forward); // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
             GameObject projectile = Object.Instantiate(projectilePrefab, startPos, rotation);
             playerSkills.StartCoroutine(MoveProjectile(projectile, targetPos));
             Debug.Log($"[ProjectileDamageSkill] Spawned projectile from {startPos} towards {targetPos} with rotation {rotation}");

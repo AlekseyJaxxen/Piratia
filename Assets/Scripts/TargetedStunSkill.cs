@@ -6,7 +6,7 @@ using System.Collections;
 public class TargetedStunSkill : SkillBase
 {
     [Header("Stun Skill Specifics")]
-    public int baseDamage = 0; // Если нужно добавить урон, иначе 0
+    public int baseDamage = 0; // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅ 0
     public float damageMultiplier = 1f;
     public float stunDuration = 2f;
     public GameObject effectPrefab;
@@ -63,10 +63,19 @@ public class TargetedStunSkill : SkillBase
             }
         }
 
-        Health targetHealth = targetObject.GetComponent<Health>();
-        if (targetHealth != null && finalDamage > 0)
+        // Try HealthMonster first for monsters, then fall back to Health
+        HealthMonster targetHealthMonster = targetObject.GetComponent<HealthMonster>();
+        if (targetHealthMonster != null && finalDamage > 0)
         {
-            targetHealth.TakeDamage(finalDamage, SkillDamageType, false, caster.netIdentity);
+            targetHealthMonster.TakeDamage(finalDamage, SkillDamageType, false, caster.netIdentity);
+        }
+        else
+        {
+            Health targetHealth = targetObject.GetComponent<Health>();
+            if (targetHealth != null && finalDamage > 0)
+            {
+                targetHealth.TakeDamage(finalDamage, SkillDamageType, false, caster.netIdentity);
+            }
         }
 
         PlayerCore targetCore = targetObject.GetComponent<PlayerCore>();

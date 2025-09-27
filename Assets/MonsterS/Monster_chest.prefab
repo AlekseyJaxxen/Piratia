@@ -41,7 +41,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5617032317511274802}
-  - component: {fileID: 5567740804577852805}
   - component: {fileID: 7657699711342853803}
   - component: {fileID: 6532704908327139589}
   - component: {fileID: 6747403938314298328}
@@ -75,32 +74,6 @@ Transform:
   - {fileID: 117818344067977626}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &5567740804577852805
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3774602016594009712}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9a6816b72ccd0e04f88a778cf8d4fcc6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: '::'
-  syncDirection: 0
-  syncMode: 0
-  syncInterval: 0
-  info: {fileID: 11400000, guid: 96a7042462a39e04692f8464933e9f3f, type: 2}
-  monsterName: Chest
-  aggroTargetNetId: 0
-  IsDead: 0
-  IsStunned: 0
-  IsSilenced: 0
-  basicAttackSkill: {fileID: 11400000, guid: 7bbed8c6ef038aa418d85853fbc14319, type: 2}
-  physicsModel: {fileID: 7651286584265580614}
-  minForce: {x: -5, y: 2, z: -5}
-  maxForce: {x: 5, y: 5, z: 0}
-  IsCooldown: 0
 --- !u!114 &7657699711342853803
 MonoBehaviour:
   m_ObjectHideFlags: 0

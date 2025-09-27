@@ -10,8 +10,8 @@ public class BasicAttackSkill : SkillBase
     public GameObject projectilePrefab;
     public float projectileSpeed = 20f;
     [Header("VFX Position Settings")]
-    public Vector3 vfxStartOffset = new Vector3(0f, 1.5f, 0f); // Смещение начальной позиции для снаряда
-    public Vector3 vfxTargetOffset = new Vector3(0f, 1.0f, 0f); // Смещение позиции VFX на цели
+    public Vector3 vfxStartOffset = new Vector3(0f, 1.5f, 0f); // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+    public Vector3 vfxTargetOffset = new Vector3(0f, 1.0f, 0f); // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ VFX пїЅпїЅ пїЅпїЅпїЅпїЅ
     [Header("Critical Hit Settings")]
     public GameObject criticalHitVfxPrefab;
     public GameObject impactEffectPrefab;
@@ -65,10 +65,19 @@ public class BasicAttackSkill : SkillBase
         CharacterStats stats = caster.GetComponent<CharacterStats>();
         int damage = Random.Range(stats.minAttack, stats.maxAttack + 1);
         bool isCritical = stats.TryCriticalHit();
-        Health targetHealth = targetObject.GetComponent<Health>();
-        if (targetHealth != null)
+        // Try HealthMonster first for monsters, then fall back to Health
+        HealthMonster targetHealthMonster = targetObject.GetComponent<HealthMonster>();
+        if (targetHealthMonster != null)
         {
-            targetHealth.TakeDamage(damage, SkillDamageType, isCritical, caster.netIdentity);
+            targetHealthMonster.TakeDamage(damage, SkillDamageType, isCritical, caster.netIdentity);
+        }
+        else
+        {
+            Health targetHealth = targetObject.GetComponent<Health>();
+            if (targetHealth != null)
+            {
+                targetHealth.TakeDamage(damage, SkillDamageType, isCritical, caster.netIdentity);
+            }
         }
         Vector3 startPos = caster.transform.position + vfxStartOffset;
         Quaternion startRot = caster.transform.rotation;
@@ -80,7 +89,7 @@ public class BasicAttackSkill : SkillBase
     {
         if (vfxPrefab != null)
         {
-            // VFX появляется на цели
+            // VFX пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅ
             GameObject vfxInstance = Object.Instantiate(vfxPrefab, endPosition, Quaternion.identity);
             if (isCritical && vfxInstance.TryGetComponent<Renderer>(out var renderer))
             {
@@ -91,14 +100,14 @@ public class BasicAttackSkill : SkillBase
         }
         if (isCritical && criticalHitVfxPrefab != null)
         {
-            // Критический VFX также на цели
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ VFX пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅ
             GameObject critVfx = Object.Instantiate(criticalHitVfxPrefab, endPosition, Quaternion.identity);
             Object.Destroy(critVfx, 1f);
             Debug.Log($"[BasicAttackSkill] Spawned critical VFX at target position: {endPosition}");
         }
         if (projectilePrefab != null)
         {
-            // Снаряд движется от персонажа к цели
+            // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅ
             GameObject projectileInstance = Object.Instantiate(projectilePrefab, startPosition, Quaternion.LookRotation(endPosition - startPosition));
             if (isCritical && projectileInstance.TryGetComponent<Renderer>(out var projectileRenderer))
             {
@@ -125,7 +134,7 @@ public class BasicAttackSkill : SkillBase
         {
             if (impactEffectPrefab != null)
             {
-                // Эффект попадания на цели
+                // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅ
                 GameObject impact = Object.Instantiate(impactEffectPrefab, end, Quaternion.identity);
                 if (isCritical && impact.TryGetComponent<Renderer>(out var impactRenderer))
                 {

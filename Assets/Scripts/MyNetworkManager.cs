@@ -7,20 +7,153 @@ public class MyNetworkManager : NetworkManager
     [Header("Player Settings")]
     public GameObject[] playerPrefabs;
 
+    public override void OnStartHost()
+    {
+        base.OnStartHost();
+        Debug.Log("[MyNetworkManager] Host started");
+        // Р”Р»СЏ С…РѕСЃС‚Р° РЅСѓР¶РЅРѕ РѕР±СЂР°Р±РѕС‚Р°С‚СЊ СЃРїР°РІРЅ РёРіСЂРѕРєР° РѕС‚РґРµР»СЊРЅРѕ
+        StartCoroutine(HandleHostPlayerSpawn());
+    }
+
+    private IEnumerator HandleHostPlayerSpawn()
+    {
+        Debug.Log("[MyNetworkManager] HandleHostPlayerSpawn started");
+        
+        // Р–РґРµРј РїРѕРєР° СЃРµСЂРІРµСЂ Рё РєР»РёРµРЅС‚ Р±СѓРґСѓС‚ РіРѕС‚РѕРІС‹
+        Debug.Log("[MyNetworkManager] Waiting for server and client to be ready...");
+        yield return new WaitUntil(() => NetworkServer.active && NetworkClient.isConnected);
+        Debug.Log("[MyNetworkManager] Server and client are ready");
+        
+        yield return new WaitForSeconds(0.5f); // РЈРІРµР»РёС‡РёРІР°РµРј Р·Р°РґРµСЂР¶РєСѓ РґР»СЏ СЃС‚Р°Р±РёР»СЊРЅРѕСЃС‚Рё
+        Debug.Log("[MyNetworkManager] Wait completed, proceeding with spawn handling");
+        
+        // РџРѕР»СѓС‡Р°РµРј РёРЅС„РѕСЂРјР°С†РёСЋ Рѕ РёРіСЂРѕРєРµ РёР· UI
+        PlayerUI_Team.PlayerInfo uiInfo = PlayerUI_Team.GetTempPlayerInfo();
+        Debug.Log($"[MyNetworkManager] UI Info retrieved: Name={uiInfo.name}, Team={uiInfo.team}, Prefab={uiInfo.prefabIndex}, Class={uiInfo.characterClass}");
+        
+        // РС‰РµРј СѓР¶Рµ СЃРѕР·РґР°РЅРЅРѕРіРѕ РёРіСЂРѕРєР° С…РѕСЃС‚Р° СЃ РЅРµСЃРєРѕР»СЊРєРёРјРё РїРѕРїС‹С‚РєР°РјРё
+        GameObject hostPlayer = null;
+        int attempts = 0;
+        while (hostPlayer == null && attempts < 10)
+        {
+            Debug.Log($"[MyNetworkManager] Searching for host player, attempt {attempts + 1}/10");
+            hostPlayer = FindHostPlayer();
+            if (hostPlayer == null)
+            {
+                Debug.Log($"[MyNetworkManager] Host player not found, attempt {attempts + 1}/10, waiting...");
+                yield return new WaitForSeconds(0.1f);
+                attempts++;
+            }
+            else
+            {
+                Debug.Log($"[MyNetworkManager] Host player found on attempt {attempts + 1}");
+            }
+        }
+        
+        if (hostPlayer != null)
+        {
+            Debug.Log($"[MyNetworkManager] Found existing host player: {hostPlayer.name} at position {hostPlayer.transform.position}");
+            
+            // РЈСЃС‚Р°РЅР°РІР»РёРІР°РµРј РїРѕР·РёС†РёСЋ СЃРїР°РІРЅР° РґР»СЏ РєРѕРјР°РЅРґС‹
+            Debug.Log($"[MyNetworkManager] Looking for spawn point for team: {uiInfo.team}");
+            Transform spawnPoint = GetTeamSpawnPoint(uiInfo.team);
+            if (spawnPoint != null)
+            {
+                Debug.Log($"[MyNetworkManager] Found spawn point at position: {spawnPoint.position}");
+                Debug.Log($"[MyNetworkManager] Current host player position: {hostPlayer.transform.position}");
+                
+                hostPlayer.transform.position = spawnPoint.position;
+                Debug.Log($"[MyNetworkManager] Host player moved to position: {hostPlayer.transform.position}");
+                
+                // Р”РѕРїРѕР»РЅРёС‚РµР»СЊРЅРѕ РїСЂРёРЅСѓРґРёС‚РµР»СЊРЅРѕ РѕР±РЅРѕРІР»СЏРµРј РїРѕР·РёС†РёСЋ С‡РµСЂРµР· NetworkTransformHybrid
+                NetworkTransformHybrid networkTransform = hostPlayer.GetComponent<NetworkTransformHybrid>();
+                if (networkTransform != null)
+                {
+                    Debug.Log("[MyNetworkManager] Found NetworkTransformHybrid, syncing position");
+                    networkTransform.CmdTeleport(spawnPoint.position, hostPlayer.transform.rotation);
+                    Debug.Log($"[MyNetworkManager] Host player position synced via NetworkTransformHybrid to {spawnPoint.position}");
+                }
+                else
+                {
+                    Debug.LogWarning("[MyNetworkManager] NetworkTransformHybrid component not found on host player");
+                }
+            }
+            else
+            {
+                Debug.LogError($"[MyNetworkManager] No valid spawn point found for team {uiInfo.team}!");
+            }
+            
+            // РќР°СЃС‚СЂР°РёРІР°РµРј PlayerCore
+            PlayerCore playerCore = hostPlayer.GetComponent<PlayerCore>();
+            if (playerCore != null)
+            {
+                Debug.Log($"[MyNetworkManager] Setting PlayerCore: Name={uiInfo.name}, Team={uiInfo.team}");
+                playerCore.playerName = uiInfo.name;
+                playerCore.team = uiInfo.team;
+                Debug.Log($"[MyNetworkManager] Host player settings updated: Name={playerCore.playerName}, Team={playerCore.team}");
+            }
+            else
+            {
+                Debug.LogError("[MyNetworkManager] PlayerCore component missing on host player!");
+                yield break;
+            }
+            
+            // РќР°СЃС‚СЂР°РёРІР°РµРј CharacterStats
+            CharacterStats characterStats = hostPlayer.GetComponent<CharacterStats>();
+            if (characterStats != null)
+            {
+                Debug.Log($"[MyNetworkManager] Setting CharacterStats class to: {uiInfo.characterClass}");
+                characterStats.characterClass = uiInfo.characterClass;
+                Debug.Log($"[MyNetworkManager] Host player character class set to: {characterStats.characterClass}");
+            }
+            else
+            {
+                Debug.LogWarning("[MyNetworkManager] CharacterStats component not found on host player");
+            }
+            
+            Debug.Log($"[MyNetworkManager] Host player spawn handling completed successfully. Final position: {hostPlayer.transform.position}");
+        }
+        else
+        {
+            Debug.LogError("[MyNetworkManager] Host player not found after 10 attempts!");
+        }
+    }
+    
+    private GameObject FindHostPlayer()
+    {
+        // РС‰РµРј РёРіСЂРѕРєР° СЃ Р»РѕРєР°Р»СЊРЅС‹Рј СЃРѕРµРґРёРЅРµРЅРёРµРј
+        foreach (var connection in NetworkServer.connections)
+        {
+            if (connection.Value != null && connection.Value.identity != null)
+            {
+                GameObject player = connection.Value.identity.gameObject;
+                PlayerCore playerCore = player.GetComponent<PlayerCore>();
+                if (playerCore != null && playerCore.isLocalPlayer)
+                {
+                    Debug.Log($"[MyNetworkManager] Found host player: {player.name} at position {player.transform.position}");
+                    return player;
+                }
+            }
+        }
+        
+        // РђР»СЊС‚РµСЂРЅР°С‚РёРІРЅС‹Р№ СЃРїРѕСЃРѕР± РїРѕРёСЃРєР° - С‡РµСЂРµР· NetworkClient
+        if (NetworkClient.localPlayer != null)
+        {
+            GameObject localPlayer = NetworkClient.localPlayer.gameObject;
+            Debug.Log($"[MyNetworkManager] Found host player via NetworkClient: {localPlayer.name} at position {localPlayer.transform.position}");
+            return localPlayer;
+        }
+        
+        Debug.Log("[MyNetworkManager] Host player not found in connections or NetworkClient");
+        return null;
+    }
+
     public override void OnStartServer()
     {
         base.OnStartServer();
-        // Регистрируем обработчик для сообщения от клиента
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         NetworkServer.RegisterHandler<NetworkPlayerInfo>(OnReceivePlayerInfo);
         Debug.Log("[MyNetworkManager] Server started, handler registered for NetworkPlayerInfo");
-    }
-
-    public override void OnStopServer()
-    {
-        base.OnStopServer();
-        // Отменяем регистрацию обработчика при остановке сервера
-        NetworkServer.UnregisterHandler<NetworkPlayerInfo>();
-        Debug.Log("[MyNetworkManager] Server stopped, handler unregistered");
     }
 
     public override void OnClientConnect()
@@ -28,10 +161,10 @@ public class MyNetworkManager : NetworkManager
         base.OnClientConnect();
         Debug.Log("[MyNetworkManager] Client connected to server. Sending player info...");
 
-        // Получаем информацию о выборе игрока из временного хранилища
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         PlayerUI_Team.PlayerInfo uiInfo = PlayerUI_Team.GetTempPlayerInfo();
 
-        // Отправляем сообщение на сервер, содержащее всю необходимую информацию для создания игрока
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
         NetworkClient.Send(new NetworkPlayerInfo
         {
             playerName = uiInfo.name,
@@ -40,7 +173,7 @@ public class MyNetworkManager : NetworkManager
             characterClass = uiInfo.characterClass
         });
 
-        // Отмечаем клиента как "готового"
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ"
         if (!NetworkClient.ready)
         {
             NetworkClient.Ready();
@@ -52,13 +185,13 @@ public class MyNetworkManager : NetworkManager
         }
     }
 
-    // Обработчик сообщения NetworkPlayerInfo на сервере
+    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ NetworkPlayerInfo пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     [Server]
     private void OnReceivePlayerInfo(NetworkConnectionToClient conn, NetworkPlayerInfo info)
     {
         Debug.Log($"[MyNetworkManager] Server received player info: Name: {info.playerName}, Team: {info.playerTeam}, Prefab: {info.playerPrefabIndex}, Class: {info.characterClass}, ConnectionId: {conn.connectionId}");
 
-        // Если у игрока уже есть объект, заменяем его
+        // пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ
         if (conn.identity != null)
         {
             Debug.LogWarning($"[MyNetworkManager] Player already exists for connection {conn.connectionId}. Replacing player.");
@@ -77,10 +210,10 @@ public class MyNetworkManager : NetworkManager
             info.playerTeam = PlayerTeam.Red;
         }
 
-        // Создаем экземпляр игрока на сервере
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         GameObject playerInstance = Instantiate(playerPrefabs[info.playerPrefabIndex]);
 
-        // Находим и устанавливаем точку спавна для команды
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         Transform spawnPoint = GetTeamSpawnPoint(info.playerTeam);
         if (spawnPoint != null)
         {
@@ -92,7 +225,7 @@ public class MyNetworkManager : NetworkManager
             Debug.LogWarning("[MyNetworkManager] No valid spawn point found, using default position");
         }
 
-        // Настраиваем компонент PlayerCore
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ PlayerCore
         PlayerCore playerCore = playerInstance.GetComponent<PlayerCore>();
         if (playerCore != null)
         {
@@ -105,16 +238,16 @@ public class MyNetworkManager : NetworkManager
             return;
         }
 
-        // Находим компонент CharacterStats и напрямую устанавливаем класс
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ CharacterStats пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
         CharacterStats characterStats = playerInstance.GetComponent<CharacterStats>();
         if (characterStats != null)
         {
-            // Устанавливаем класс, который будет синхронизирован с клиентами
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
             characterStats.characterClass = info.characterClass;
 
-            // Принудительно вызываем методы для перерасчета статов на сервере.
-            // Это гарантирует, что хост получит правильные значения, так как
-            // для него SyncVar может не сработать, если класс не изменился.
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ.
+            // пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅ пїЅпїЅпїЅ
+            // пїЅпїЅпїЅ пїЅпїЅпїЅпїЅ SyncVar пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.
             characterStats.LoadClassData();
             characterStats.CalculateDerivedStats();
 
@@ -125,10 +258,10 @@ public class MyNetworkManager : NetworkManager
             Debug.LogError("[MyNetworkManager] CharacterStats component missing on spawned player!");
         }
 
-        // Добавляем игрока для соединения
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         NetworkServer.AddPlayerForConnection(conn, playerInstance);
 
-        // Присваиваем клиенту authority над его объектом
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ authority пїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         NetworkIdentity identity = playerInstance.GetComponent<NetworkIdentity>();
         if (identity != null)
         {
@@ -143,38 +276,58 @@ public class MyNetworkManager : NetworkManager
         Debug.Log($"[MyNetworkManager] Player {info.playerName} successfully spawned with prefab {playerInstance.name}. isOwned={identity.isOwned}");
     }
 
-    // Этот метод больше не используется, так как OnReceivePlayerInfo теперь обрабатывает добавление игрока
+    // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅ пїЅпїЅпїЅ OnReceivePlayerInfo пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
     public override void OnServerAddPlayer(NetworkConnectionToClient conn)
     {
         Debug.Log("[MyNetworkManager] OnServerAddPlayer called, but we are using OnReceivePlayerInfo handler instead.");
     }
 
-    // Вспомогательный метод для поиска точки спавна команды
+    // РџРѕР»СѓС‡РµРЅРёРµ С‚РѕС‡РєРё СЃРїР°РІРЅР° РґР»СЏ РєРѕРјР°РЅРґС‹ РёРіСЂРѕРєР°
     public Transform GetTeamSpawnPoint(PlayerTeam team)
     {
+        Debug.Log($"[MyNetworkManager] GetTeamSpawnPoint called for team: {team}");
+        
         GameObject[] spawnPoints = GameObject.FindGameObjectsWithTag("SpawnPoint");
-        Debug.Log($"Найдено {spawnPoints.Length} точек с тегом 'SpawnPoint'");
+        Debug.Log($"[MyNetworkManager] Found {spawnPoints.Length} spawn points with tag 'SpawnPoint'");
+        
+        if (spawnPoints.Length == 0)
+        {
+            Debug.LogError("[MyNetworkManager] No spawn points found with tag 'SpawnPoint'!");
+            return null;
+        }
+        
         foreach (GameObject spawnPoint in spawnPoints)
         {
             TeamSpawnPoint teamSpawn = spawnPoint.GetComponent<TeamSpawnPoint>();
-            if (teamSpawn != null && teamSpawn.team == team)
+            if (teamSpawn != null)
             {
-                Debug.Log($"Выбрана точка для {team}: {spawnPoint.name} на {spawnPoint.transform.position}");
-                return spawnPoint.transform;
+                Debug.Log($"[MyNetworkManager] Spawn point '{spawnPoint.name}' has team: {teamSpawn.team}");
+                if (teamSpawn.team == team)
+                {
+                    Debug.Log($"[MyNetworkManager] Found matching spawn point for team {team}: {spawnPoint.name} at {spawnPoint.transform.position}");
+                    return spawnPoint.transform;
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"[MyNetworkManager] Spawn point '{spawnPoint.name}' has no TeamSpawnPoint component!");
             }
         }
+        
+        Debug.LogWarning($"[MyNetworkManager] No spawn point found for team {team}, using fallback");
         if (spawnPoints.Length > 0)
         {
             Transform fallback = spawnPoints[Random.Range(0, spawnPoints.Length)].transform;
-            Debug.Log($"Fallback: {fallback.name} на {fallback.position}");
+            Debug.Log($"[MyNetworkManager] Fallback spawn point: {fallback.name} at {fallback.position}");
             return fallback;
         }
-        Debug.LogWarning("Нет точек спауна для " + team);
+        
+        Debug.LogError("[MyNetworkManager] No spawn points available at all!");
         return transform;
     }
 }
 
-// Структура сообщения, отправляемого от клиента к серверу
+// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 public struct NetworkPlayerInfo : NetworkMessage
 {
     public string playerName;

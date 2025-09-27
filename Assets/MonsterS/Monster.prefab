@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 3388256022164301377}
   - component: {fileID: -3424931942500901088}
   - component: {fileID: 8413731148631188213}
+  - component: {fileID: 347775164245287434}
   m_Layer: 9
   m_Name: Monster
   m_TagString: Enemy
@@ -56,7 +57,7 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  info: {fileID: 0}
+  monsterId: 0
   monsterName: DemonicWorld Wandering
   aggroTargetNetId: 0
   IsDead: 0
@@ -67,6 +68,8 @@ MonoBehaviour:
   minForce: {x: -5, y: 2, z: -5}
   maxForce: {x: 5, y: 5, z: 0}
   IsCooldown: 0
+  legsNetId: 0
+  headNetId: 0
 --- !u!114 &7657699711342853803
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -158,7 +161,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1.07, y: 1.57, z: 1}
+  m_Size: {x: 1.07, y: 3.33, z: 1}
   m_Center: {x: 0, y: 1.07, z: 0}
 --- !u!114 &-3424931942500901088
 MonoBehaviour:
@@ -195,13 +198,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9116a9e2dee98b6468cd0ce00ffe2b3f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  patrolRadius: 10
-  chaseTimeout: 10
-  playerLayer:
-    serializedVersion: 2
-    m_Bits: 384
-  attackRange: 2
-  attackCooldown: 1
+--- !u!114 &347775164245287434
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3774602016594009712}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a838f7c21233a7e4ea91cb1257be87b2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterSkillExecutor
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
 --- !u!1 &3982028417516796216
 GameObject:
   m_ObjectHideFlags: 0

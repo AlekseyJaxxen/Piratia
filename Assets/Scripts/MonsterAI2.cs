@@ -5,11 +5,15 @@ using System.Collections;
 public class MonsterAI2 : MonoBehaviour
 {
     public enum State { Idle, Patrol, Chase, Return }
-    [SerializeField] private float patrolRadius = 10f;
-    [SerializeField] private float chaseTimeout = 30f;
-    [SerializeField] private LayerMask playerLayer;
-    [SerializeField] private float attackRange = 2f;
-    [SerializeField] private float attackCooldown = 2f;
+    
+    // AI РїР°СЂР°РјРµС‚СЂС‹ РёР· SO
+    private float patrolRadius = 10f;
+    private float chaseTimeout = 30f;
+    private LayerMask playerLayer;
+    private float attackRange = 2f;
+    private float detectionRange = 10f;
+    private float attackCooldown = 2f;
+    
     private NavMeshAgent agent;
     private Monster monster;
     private Vector3 spawnPoint;
@@ -17,29 +21,39 @@ public class MonsterAI2 : MonoBehaviour
     private PlayerCore target;
     private float lastAttackTime;
     private float chaseStartTime;
-
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
         monster = GetComponent<Monster>();
         spawnPoint = transform.position;
     }
-
+    
+    public void InitializeAI(MonsterInfo monsterInfo)
+    {
+        if (monsterInfo != null)
+        {
+            patrolRadius = monsterInfo.patrolRadius;
+            chaseTimeout = monsterInfo.chaseTimeout;
+            playerLayer = monsterInfo.playerLayer;
+            attackRange = monsterInfo.attackRange;
+            detectionRange = monsterInfo.detectionRange;
+            attackCooldown = monsterInfo.attackCooldown;
+        }
+    }
     private void Update()
     {
+        if (monster.headNetId != 0) return; // пїЅпїЅпїЅ AI пїЅпїЅпїЅ legs
         if (monster.GetComponent<Health>().CurrentHealth <= 0 || monster.IsDead)
         {
             enabled = false;
             return;
         }
-
-        // Проверяем все эффекты контроля
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         if (monster.IsStunned || monster.IsCooldown || !agent.isActiveAndEnabled)
         {
-            agent.isStopped = true;
+            if (agent != null && agent.isOnNavMesh) agent.isStopped = true;
             return;
         }
-
         switch (currentState)
         {
             case State.Idle:
@@ -61,10 +75,9 @@ public class MonsterAI2 : MonoBehaviour
                 break;
         }
     }
-
     private void FindTarget()
     {
-        Collider[] hits = Physics.OverlapSphere(transform.position, 10f, playerLayer);
+        Collider[] hits = Physics.OverlapSphere(transform.position, detectionRange, playerLayer);
         float closestDistance = float.MaxValue;
         PlayerCore closestPlayer = null;
         foreach (Collider hit in hits)
@@ -82,7 +95,6 @@ public class MonsterAI2 : MonoBehaviour
         }
         target = closestPlayer;
     }
-
     private void Patrol()
     {
         if (agent.remainingDistance < 1f && !monster.IsStunned)
@@ -96,16 +108,15 @@ public class MonsterAI2 : MonoBehaviour
             }
         }
     }
-
     private void Chase()
     {
         FindTarget();
         if (target == null || target.isDead) { target = null; SwitchToReturn(); return; }
-        if (monster.IsCooldown) { agent.isStopped = true; return; }
+        if (monster.IsCooldown) { if (agent != null && agent.isOnNavMesh) agent.isStopped = true; return; }
         float distance = Vector3.Distance(transform.position, target.transform.position);
         if (distance <= attackRange && !monster.IsStunned)
         {
-            agent.isStopped = true;
+            if (agent != null && agent.isOnNavMesh) agent.isStopped = true;
             transform.LookAt(target.transform);
             TryAttack();
             if (target.isDead) { target = null; SwitchToReturn(); return; }
@@ -113,30 +124,41 @@ public class MonsterAI2 : MonoBehaviour
         }
         else if (!monster.IsStunned)
         {
-            agent.isStopped = false;
+            if (agent != null && agent.isOnNavMesh) agent.isStopped = false;
             agent.SetDestination(target.transform.position);
         }
     }
-
     private void TryAttack()
     {
-        if (Time.time >= lastAttackTime + attackCooldown && monster.basicAttackSkill != null && !monster.IsStunned)
+        if (Time.time >= lastAttackTime + attackCooldown && !monster.IsStunned)
         {
-            lastAttackTime = Time.time;
-            monster.basicAttackSkill.Execute(monster, null, target.gameObject);
-            monster.IsCooldown = true;
-            agent.isStopped = true;
-            StartCoroutine(EndCooldown());
+            // First try to use a special skill
+            if (monster.TryUseSkill(target))
+            {
+                lastAttackTime = Time.time;
+                monster.IsCooldown = true;
+                if (agent != null && agent.isOnNavMesh) agent.isStopped = true;
+                StartCoroutine(EndCooldown());
+                return;
+            }
+            
+            // If no special skill was used, use basic attack
+            if (monster.basicAttackSkill != null)
+            {
+                lastAttackTime = Time.time;
+                monster.basicAttackSkill.Execute(monster, null, target.gameObject);
+                monster.IsCooldown = true;
+                if (agent != null && agent.isOnNavMesh) agent.isStopped = true;
+                StartCoroutine(EndCooldown());
+            }
         }
     }
-
     private IEnumerator EndCooldown()
     {
         yield return new WaitForSeconds(attackCooldown);
         monster.IsCooldown = false;
-        if (!monster.IsStunned && agent.isOnNavMesh) agent.isStopped = false;
+        if (!monster.IsStunned && agent.isOnNavMesh && agent != null) agent.isStopped = false;
     }
-
     private void ReturnToSpawn()
     {
         if (!monster.IsStunned)
@@ -148,14 +170,11 @@ public class MonsterAI2 : MonoBehaviour
             }
         }
     }
-
     private void SwitchToChase()
     {
         currentState = State.Chase;
         chaseStartTime = Time.time;
     }
-
     private void SwitchToPatrol() { currentState = State.Patrol; }
-
     private void SwitchToReturn() { currentState = State.Return; }
 }

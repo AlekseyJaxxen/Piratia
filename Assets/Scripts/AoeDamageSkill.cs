@@ -38,29 +38,45 @@ public class AoeDamageSkill : SkillBase
         if (SkillDamageType == DamageType.Physical)
         {
             int randomAttack = Random.Range(stats.minAttack, stats.maxAttack + 1);
-            totalBaseDamage = baseDamage + randomAttack; // Суммируем без множителя
+            totalBaseDamage = baseDamage + randomAttack; // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         }
         else
         {
             totalBaseDamage = baseDamage + Mathf.RoundToInt(stats.spirit);
         }
-        // Обновляем маску слоев, чтобы включить "Player" и "Ignore Raycast"
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ "Player" пїЅ "Ignore Raycast"
         int aoeLayerMask = LayerMask.GetMask("Player", "Ignore Raycast", "Monster", "Enemy");
         Collider[] hitColliders = Physics.OverlapSphere(targetPosition.Value, aoeRadius, aoeLayerMask);
         foreach (Collider col in hitColliders)
         {
+            // Try HealthMonster first for monsters, then fall back to Health
+            HealthMonster targetHealthMonster = col.GetComponent<HealthMonster>();
             Health targetHealth = col.GetComponent<Health>();
-            if (targetHealth != null)
+            
+            if (targetHealthMonster != null)
             {
                 PlayerCore targetCore = col.GetComponent<PlayerCore>();
                 Monster targetMonster = col.GetComponent<Monster>();
                 if (targetCore != null && targetCore.team != caster.team)
                 {
-                    targetHealth.TakeDamage(totalBaseDamage, SkillDamageType, false, caster.netIdentity, damageMultiplier); // Передаем множитель
+                    targetHealthMonster.TakeDamage(totalBaseDamage, SkillDamageType, false, caster.netIdentity, damageMultiplier);
                 }
                 else if (targetMonster != null)
                 {
-                    targetHealth.TakeDamage(totalBaseDamage, SkillDamageType, false, caster.netIdentity, damageMultiplier); // Передаем множитель
+                    targetHealthMonster.TakeDamage(totalBaseDamage, SkillDamageType, false, caster.netIdentity, damageMultiplier);
+                }
+            }
+            else if (targetHealth != null)
+            {
+                PlayerCore targetCore = col.GetComponent<PlayerCore>();
+                Monster targetMonster = col.GetComponent<Monster>();
+                if (targetCore != null && targetCore.team != caster.team)
+                {
+                    targetHealth.TakeDamage(totalBaseDamage, SkillDamageType, false, caster.netIdentity, damageMultiplier);
+                }
+                else if (targetMonster != null)
+                {
+                    targetHealth.TakeDamage(totalBaseDamage, SkillDamageType, false, caster.netIdentity, damageMultiplier);
                 }
             }
         }

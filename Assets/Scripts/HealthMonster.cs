@@ -32,41 +32,14 @@ public class HealthMonster : Health
                 return;
             }
         }
-        // Aggro перед уроном
+        // Aggro пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
         _monster.UpdateAggro(attacker.netId, damage);
         base.TakeDamage(damage, damageType, isCritical, attacker);
         Debug.Log($"[HealthMonster] Damage taken: {damage}, Current health: {CurrentHealth}, Monster health: {CurrentHealth}/{MaxHealth}");
         _monster.RpcUpdateMonsterUI(CurrentHealth, MaxHealth);
-        RpcShowDamageNumber(damage, isCritical);
         RpcPlayDamageFlash();
-        if (CurrentHealth <= 0)
-        {
-            _monster.Die();
-        }
-    }
-    [ClientRpc]
-    private void RpcShowDamageNumber(int damage, bool isCritical)
-    {
-        if (floatingTextPrefab != null)
-        {
-            Vector3 spawnPosition = transform.position + new Vector3(0, 2f, 0);
-            GameObject damageTextObj = Instantiate(floatingTextPrefab, spawnPosition, Quaternion.identity);
-            FloatingDamageText damageTextScript = damageTextObj.GetComponent<FloatingDamageText>();
-            if (damageTextScript != null)
-            {
-                damageTextScript.SetDamageText(damage, isCritical);
-                Debug.Log($"[HealthMonster] Spawned damage text: -{damage} at {spawnPosition}, isCritical: {isCritical}");
-            }
-            else
-            {
-                Debug.LogWarning("[HealthMonster] FloatingDamageText component missing on floatingTextPrefab");
-                Destroy(damageTextObj);
-            }
-        }
-        else
-        {
-            Debug.LogWarning("[HealthMonster] floatingTextPrefab is null");
-        }
+        // Death is handled by base.TakeDamage() in Health.cs
+        // Damage text is also handled by base.TakeDamage() in Health.cs
     }
     [ClientRpc]
     private void RpcPlayDamageFlash()

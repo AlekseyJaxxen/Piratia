@@ -17,7 +17,7 @@ public class SpawnConfig
 
 public class MonsterSpawner : NetworkBehaviour
 {
-    [SerializeField] private GameObject monsterPrefab; // Один префаб Monster
+    [SerializeField] public GameObject monsterPrefab; // Сделал public
     [SerializeField] private GameObject chestPrefab;
     [SerializeField] private List<SpawnConfig> spawnConfigs = new List<SpawnConfig>(); // Список конфигов
     [SerializeField] private Transform chestSpawnPoint;
@@ -27,9 +27,12 @@ public class MonsterSpawner : NetworkBehaviour
     private Dictionary<SpawnConfig, List<GameObject>> spawnedPerConfig = new Dictionary<SpawnConfig, List<GameObject>>();
     private Dictionary<SpawnConfig, Coroutine> respawnCoroutines = new Dictionary<SpawnConfig, Coroutine>();
 
+    public static MonsterSpawner Instance;
+
     public override void OnStartServer()
     {
         base.OnStartServer();
+        Instance = this;
         monstersContainer = new GameObject("MonstersContainer").transform;
         monstersContainer.parent = transform;
         StartCoroutine(SpawnMonstersDelayed());
@@ -38,7 +41,7 @@ public class MonsterSpawner : NetworkBehaviour
     private IEnumerator SpawnMonstersDelayed()
     {
         yield return new WaitUntil(() => NavMesh.CalculateTriangulation().vertices.Length > 0 && GameObject.Find("TeamSelectionCanvas") != null);
-        SpawnChest();
+        
         foreach (var config in spawnConfigs)
         {
             spawnedPerConfig[config] = new List<GameObject>();
@@ -92,7 +95,7 @@ public class MonsterSpawner : NetworkBehaviour
                 {
                     if (db != null && config.monsterId - 1 < db.monsters.Count)
                     {
-                        monsterScript.monsterId = config.monsterId; // Изменено: присваиваем ID вместо info
+                        monsterScript.monsterId = config.monsterId;
                     }
                     else
                     {
@@ -120,30 +123,7 @@ public class MonsterSpawner : NetworkBehaviour
         }
     }
 
-    [Server]
-    private void SpawnChest()
-    {
-        if (chestPrefab == null || chestSpawnPoint == null)
-        {
-            Debug.LogError("[MonsterSpawner] Chest prefab or spawn point not assigned!");
-            return;
-        }
-        Vector3 position = chestSpawnPoint.position;
-        NavMeshHit hit;
-        if (NavMesh.SamplePosition(position, out hit, 10f, NavMesh.AllAreas))
-        {
-            position = hit.position;
-        }
-        spawnedChest = Instantiate(chestPrefab, position, Quaternion.identity);
-        NavMeshAgent agent = spawnedChest.GetComponent<NavMeshAgent>();
-        if (agent != null)
-        {
-            agent.enabled = false; // Make immobile
-        }
-        NetworkServer.Spawn(spawnedChest);
-        Debug.Log($"[MonsterSpawner] Spawned chest at {position}");
-    }
-
+   
     [Server]
     private IEnumerator CheckAndRespawnGroup(SpawnConfig config)
     {

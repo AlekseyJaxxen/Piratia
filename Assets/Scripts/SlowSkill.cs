@@ -57,10 +57,19 @@ public class SlowSkill : SkillBase
         {
             finalDamage = baseDamage + Mathf.RoundToInt(stats.spirit * damageMultiplier);
         }
-        Health targetHealth = targetObject.GetComponent<Health>();
-        if (targetHealth != null)
+        // Try HealthMonster first for monsters, then fall back to Health
+        HealthMonster targetHealthMonster = targetObject.GetComponent<HealthMonster>();
+        if (targetHealthMonster != null)
         {
-            targetHealth.TakeDamage(finalDamage, SkillDamageType, false, caster.netIdentity);
+            targetHealthMonster.TakeDamage(finalDamage, SkillDamageType, false, caster.netIdentity);
+        }
+        else
+        {
+            Health targetHealth = targetObject.GetComponent<Health>();
+            if (targetHealth != null)
+            {
+                targetHealth.TakeDamage(finalDamage, SkillDamageType, false, caster.netIdentity);
+            }
         }
         PlayerCore targetCore = targetObject.GetComponent<PlayerCore>();
         Monster targetMonster = targetObject.GetComponent<Monster>();
@@ -87,7 +96,7 @@ public class SlowSkill : SkillBase
         if (projectilePrefab != null)
         {
             GameObject projectile = Object.Instantiate(projectilePrefab, startPos + Vector3.up * 1f, Quaternion.identity);
-            // Логика движения
+            // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         }
     }
 
