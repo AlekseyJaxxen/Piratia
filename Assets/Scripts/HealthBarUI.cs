@@ -1,17 +1,17 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using DG.Tweening;
+using System.Collections;
 
 public class HealthBarUI : MonoBehaviour
 {
     [SerializeField] private Image fillImage;
     [SerializeField] private TextMeshProUGUI hpText;
     [SerializeField] private Vector3 offset = new Vector3(0, 2f, 0);
-    private Sequence damageFlashSequence;
     private Color originalColor;
     public Transform target;
     private Camera mainCamera;
+    private Coroutine damageFlashCoroutine;
 
     void Start()
     {
@@ -19,12 +19,8 @@ public class HealthBarUI : MonoBehaviour
         if (fillImage != null)
         {
             originalColor = fillImage.color;
-            // Создаём последовательность для эффекта вспышки
-            damageFlashSequence = DOTween.Sequence();
-            damageFlashSequence.Append(fillImage.DOColor(Color.red, 0.1f));
-            damageFlashSequence.Append(fillImage.DOColor(originalColor, 0.1f));
-            damageFlashSequence.SetAutoKill(false);
-            damageFlashSequence.Pause();
+            
+            // DoTween removed
         }
         else
         {
@@ -51,7 +47,7 @@ public class HealthBarUI : MonoBehaviour
     {
         if (!gameObject.activeSelf && current > 0)
         {
-            gameObject.SetActive(true); // Активируем UI, если здоровье > 0
+            gameObject.SetActive(true); 
         }
         if (fillImage != null) fillImage.fillAmount = (float)current / max;
         if (hpText != null) hpText.text = $"{current}/{max}";
@@ -59,18 +55,28 @@ public class HealthBarUI : MonoBehaviour
 
     public void PlayDamageFlash()
     {
-        if (damageFlashSequence != null && gameObject.activeSelf)
+        if (damageFlashCoroutine != null)
         {
-            damageFlashSequence.Rewind();
-            damageFlashSequence.Play();
+            StopCoroutine(damageFlashCoroutine);
+        }
+        damageFlashCoroutine = StartCoroutine(DamageFlashCoroutine());
+    }
+    
+    private IEnumerator DamageFlashCoroutine()
+    {
+        if (fillImage != null)
+        {
+            fillImage.color = Color.red;
+            yield return new WaitForSeconds(0.1f);
+            fillImage.color = originalColor;
         }
     }
 
     private void OnDisable()
     {
-        if (damageFlashSequence != null)
+        if (damageFlashCoroutine != null)
         {
-            damageFlashSequence.Kill();
+            StopCoroutine(damageFlashCoroutine);
         }
     }
 }

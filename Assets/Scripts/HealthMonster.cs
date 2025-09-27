@@ -17,6 +17,18 @@ public class HealthMonster : Health
             return;
         }
         // SetHealth(_health);
+        
+        // Auto-find MonsterAnimation if not assigned
+        if (monsterAnimation == null)
+        {
+            monsterAnimation = GetComponent<MonsterAnimation>();
+            if (monsterAnimation == null)
+            {
+                monsterAnimation = GetComponentInChildren<MonsterAnimation>();
+            }
+            Debug.Log($"[HealthMonster] MonsterAnimation auto-found: {monsterAnimation != null}");
+        }
+        
         Debug.Log($"[HealthMonster] Initialized health for {gameObject.name}: {CurrentHealth}");
     }
     [Server]

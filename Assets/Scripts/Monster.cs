@@ -175,8 +175,19 @@ public class Monster : NetworkBehaviour
                 legsMonster.canMove = false;
                 legsMonster.canAttack = false;
                 if (legsMonster._agent != null) legsMonster._agent.enabled = false; // ��� AI
+                
+                // Инициализируем синхронизацию ног с головой
+                CombinedMonsterSync legsSyncComponent = legsGO.GetComponent<CombinedMonsterSync>();
+                if (legsSyncComponent == null)
+                {
+                    legsSyncComponent = legsGO.AddComponent<CombinedMonsterSync>();
+                }
+                
                 NetworkServer.Spawn(legsGO);
                 legsNetId = legsGO.GetComponent<NetworkIdentity>().netId;
+                
+                // Инициализируем синхронизацию после спавна
+                legsSyncComponent.InitializeAsLegs(netIdentity.netId);
                 Debug.Log($"[Monster] Spawned legs for head {monsterName} at {legsGO.transform.position}");
             }
             transform.position += Vector3.up * 15f; // Head �� 15
