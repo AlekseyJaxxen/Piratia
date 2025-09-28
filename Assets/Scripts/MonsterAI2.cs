@@ -49,7 +49,7 @@ public class MonsterAI2 : MonoBehaviour
             return;
         }
         // ��������� ��� ������� ��������
-        if (monster.IsStunned || monster.IsCooldown || !agent.isActiveAndEnabled)
+        if (monster.IsStunned || monster.IsCooldown || !agent.isActiveAndEnabled || !monster.canMove)
         {
             if (agent != null && agent.isOnNavMesh) agent.isStopped = true;
             return;

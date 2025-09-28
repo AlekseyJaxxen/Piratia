@@ -34,6 +34,7 @@ public class HealthMonster : Health
     [Server]
     public new void TakeDamage(int damage, DamageType damageType, bool isCritical, NetworkIdentity attacker)
     {
+        Debug.Log($"[HealthMonster] TakeDamage called on {gameObject.name}, currentHealth: {CurrentHealth}, damage: {damage}, attacker: {attacker?.name}");
         if (CurrentHealth <= 0) return;
         if (_monster == null)
         {
@@ -50,6 +51,12 @@ public class HealthMonster : Health
         // Damage taken
         _monster.RpcUpdateMonsterUI(CurrentHealth, MaxHealth);
         RpcPlayDamageFlash();
+        
+        // Проверяем, умрет ли монстр после этого урона
+        if (CurrentHealth <= 0)
+        {
+            Debug.Log($"[HealthMonster] Monster {gameObject.name} will die, headNetId: {_monster.headNetId}, legsNetId: {_monster.legsNetId}");
+        }
         // Death is handled by base.TakeDamage() in Health.cs
         // Damage text is also handled by base.TakeDamage() in Health.cs
     }

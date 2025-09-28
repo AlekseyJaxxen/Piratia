@@ -574,7 +574,9 @@ public class PlayerSkills : NetworkBehaviour
     }
     private void UpdateSkillUI(string key)
     {
-        SkillBase skill = skills.Find(s => s.SkillName == key);
+        if (skills == null || PlayerUI.Instance == null) return;
+        
+        SkillBase skill = skills.Find(s => s != null && s.SkillName == key);
         if (skill != null)
         {
             float progress;
@@ -592,6 +594,8 @@ public class PlayerSkills : NetworkBehaviour
     }
     private void UpdateGlobalCooldownUI()
     {
+        if (PlayerUI.Instance == null) return;
+        
         float progress = 1f - Mathf.Max(0, globalCooldown - ((float)NetworkTime.time - _lastGlobalUseTime)) / globalCooldown;
         PlayerUI.Instance.UpdateSkillCooldown("Global", progress);
     }

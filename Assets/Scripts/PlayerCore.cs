@@ -841,7 +841,10 @@ public class PlayerCore : NetworkBehaviour
     private IEnumerator DelayedInventorySync()
     {
         yield return new WaitForEndOfFrame();
-        RpcUpdateInventoryUI();
+        if (isServer)
+        {
+            RpcUpdateInventoryUI();
+        }
     }
 
     [ClientRpc]

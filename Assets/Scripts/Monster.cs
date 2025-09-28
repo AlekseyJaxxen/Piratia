@@ -21,7 +21,7 @@ public class Monster : NetworkBehaviour
     private float moveSpeed = 5f;
     private float attackCooldown = 2f;
     private GameObject deathVFXPrefab;
-    private bool canMove = true;
+    public bool canMove = true;
     private bool canAttack = true;
     private GameObject slowEffectPrefab;
     [Header("Aggro & Experience")]
@@ -468,10 +468,30 @@ public class Monster : NetworkBehaviour
         RpcOnMonsterDeath();
         
         // Уведомляем клиентов о смерти головы
+        Debug.Log($"[Monster] Die() called for {name}, headNetId: {headNetId}, isServer: {isServer}");
         if (headNetId != 0)
         {
-            Debug.Log($"[Monster] Calling RpcOnHeadDeath for headNetId: {headNetId}");
-            RpcOnHeadDeath(headNetId);
+            Debug.Log($"[Monster] Calling RpcOnLegsDeath for headNetId: {headNetId}");
+            RpcOnLegsDeath(headNetId);
+            
+            // Также заставляем голову упасть на сервере
+            if (NetworkServer.spawned.TryGetValue(headNetId, out var headIdentity))
+            {
+                Monster headMonster = headIdentity.GetComponent<Monster>();
+                if (headMonster != null)
+                {
+                    Debug.Log($"[Monster] Calling Fall() on server for head: {headMonster.name}");
+                    headMonster.Fall();
+                }
+                else
+                {
+                    Debug.LogWarning($"[Monster] Head monster component not found for netId: {headNetId}");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"[Monster] Head monster not found in spawned objects for netId: {headNetId}");
+            }
         }
         
         // Уничтожаем монстра сразу после смерти
@@ -574,22 +594,7 @@ public class Monster : NetworkBehaviour
     [ClientRpc]
     private void RpcOnMonsterDeath()
     {
-        // Уведомляем клиентов о смерти монстра для обновления миникарты
-        if (headNetId != 0)
-        {
-            // Находим голову и заставляем её упасть на клиенте
-            Monster[] allMonsters = FindObjectsOfType<Monster>();
-            foreach (Monster monster in allMonsters)
-            {
-                if (monster.netIdentity.netId == headNetId)
-                {
-                    monster.FallOnClient();
-                    break;
-                }
-            }
-        }
-        
-        // Также уведомляем клиентов о смерти этого монстра
+        // Уведомляем клиентов о смерти этого монстра
         IsDead = true;
         
         // Отключаем коллайдер на клиенте
@@ -601,9 +606,9 @@ public class Monster : NetworkBehaviour
     }
     
     [ClientRpc]
-    private void RpcOnHeadDeath(uint headId)
+    private void RpcOnLegsDeath(uint headId)
     {
-        Debug.Log($"[Monster] RpcOnHeadDeath called for headId: {headId}");
+        Debug.Log($"[Monster] RpcOnLegsDeath called for headId: {headId} on client, isServer: {isServer}, isClient: {isClient}");
         // Находим голову и заставляем её упасть на клиенте
         Monster[] allMonsters = FindObjectsOfType<Monster>();
         bool headFound = false;
@@ -612,6 +617,7 @@ public class Monster : NetworkBehaviour
             if (monster.netIdentity.netId == headId)
             {
                 Debug.Log($"[Monster] Found head monster: {monster.name}, calling FallOnClient");
+                // НЕ устанавливаем IsDead = true для головы - она должна оставаться живой
                 monster.FallOnClient();
                 headFound = true;
                 break;
@@ -623,21 +629,36 @@ public class Monster : NetworkBehaviour
         }
     }
     
+
     public void FallOnClient()
     {
         Debug.Log($"[Monster] FallOnClient called for {name}");
         // Падение на клиенте без серверных вызовов
         canMove = false;
+        // НЕ меняем canAttack - голова должна оставаться атакуемой после падения
+        
+        // Отключаем NavMeshAgent при падении
         if (_agent != null) 
         {
             _agent.enabled = false;
             _agent.baseOffset = 0f;
         }
         
+        // НЕ отключаем NetworkTransform - оставляем для синхронизации позиции
+        // NetworkTransformHybrid networkTransform = GetComponent<NetworkTransformHybrid>();
+        // if (networkTransform != null)
+        // {
+        //     networkTransform.enabled = false;
+        //     Debug.Log($"[Monster] Disabled NetworkTransformHybrid for {name}");
+        //     // Включаем обратно после анимации падения для синхронизации урона
+        //     StartCoroutine(ReenableNetworkTransformAfterFall());
+        // }
+        
         // Сбрасываем позицию модели для combined монстра
         if (info.isCombined && _renderer != null)
         {
             _renderer.transform.localPosition = Vector3.zero;
+            Debug.Log($"[Monster] Reset model position to zero for combined monster");
         }
         
         // Запускаем анимацию падения
@@ -665,7 +686,12 @@ public class Monster : NetworkBehaviour
     [Server]
     public void ExecuteAttack(uint targetNetId, string skillName, int damage, bool isCritical)
     {
-        if (!canAttack || IsDead || IsStunned || IsSilenced) return;
+        Debug.Log($"[Monster] ExecuteAttack called on {name}: canAttack={canAttack}, IsDead={IsDead}, IsStunned={IsStunned}, IsSilenced={IsSilenced}");
+        if (!canAttack || IsDead || IsStunned || IsSilenced) 
+        {
+            Debug.LogWarning($"[Monster] Attack blocked on {name}: canAttack={canAttack}, IsDead={IsDead}, IsStunned={IsStunned}, IsSilenced={IsSilenced}");
+            return;
+        }
         GameObject targetObject = NetworkServer.spawned.ContainsKey(targetNetId) ? NetworkServer.spawned[targetNetId].gameObject : null;
         if (targetObject == null)
         {
@@ -675,6 +701,7 @@ public class Monster : NetworkBehaviour
         Health targetHealth = targetObject.GetComponent<Health>();
         if (targetHealth != null)
         {
+            Debug.Log($"[Monster] {name} attacking {targetObject.name} for {damage} damage");
             targetHealth.TakeDamage(damage, DamageType.Physical, isCritical, netIdentity);
             // Attack executed
             Vector3 startPosition = transform.position + Vector3.up * 1f;
@@ -746,6 +773,12 @@ public class Monster : NetworkBehaviour
             _agent.baseOffset = 0f; // Сбрасываем baseOffset
         }
         
+        // Устанавливаем позицию на сервере тоже
+        Vector3 targetPos = new Vector3(transform.position.x, 1f, transform.position.z) + Random.insideUnitSphere * 15f;
+        targetPos.y = 1f;
+        transform.position = targetPos;
+        Debug.Log($"[Monster] Server set head position to {targetPos}");
+        
         // Сбрасываем позицию модели для combined монстра
         if (info.isCombined && _renderer != null)
         {
@@ -779,6 +812,8 @@ public class Monster : NetworkBehaviour
         float duration = 1f;
         float elapsed = 0f;
         
+        Debug.Log($"[Monster] FallCoroutine started: {name}, isCombined: {info?.isCombined}, _renderer: {_renderer != null}");
+        
         while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
@@ -790,12 +825,44 @@ public class Monster : NetworkBehaviour
             // Плавный поворот
             transform.eulerAngles = Vector3.Lerp(startRot, targetRot, t);
             
+            // Для combined монстра модель автоматически повторит поворот головы (она child)
+            if (info.isCombined && _renderer != null)
+            {
+                // Модель должна оставаться на уровне головы (y=0 относительно transform)
+                _renderer.transform.localPosition = Vector3.zero;
+            }
+            
             yield return null;
         }
         
         // Убеждаемся, что финальная позиция установлена
         transform.position = targetPos;
         transform.eulerAngles = targetRot;
+        
+        // Финальная позиция модели для combined монстра
+        if (info.isCombined && _renderer != null)
+        {
+            // Модель автоматически повторит поворот головы (она child)
+            _renderer.transform.localPosition = Vector3.zero;
+            Debug.Log($"[Monster] Set model position to {_renderer.transform.localPosition} for combined monster");
+        }
+        
+        // Фиксируем объект в пространстве - отключаем все компоненты движения
+        if (_agent != null)
+        {
+            _agent.enabled = false; // Оставляем отключенным
+            Debug.Log($"[Monster] NavMeshAgent remains disabled for {name} - object frozen");
+        }
+        
+        // Отключаем Rigidbody если есть
+        Rigidbody rb = GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.isKinematic = true;
+            Debug.Log($"[Monster] Rigidbody set to kinematic for {name} - object frozen");
+        }
+        
+        Debug.Log($"[Monster] FallCoroutine completed: {name} at position {transform.position} - OBJECT FROZEN");
     }
 
     // private void OnMonsterIdChanged(int oldId, int newId)
