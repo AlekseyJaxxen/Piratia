@@ -5313,6 +5313,7 @@ GameObject:
   - component: {fileID: 7647094216593040190}
   - component: {fileID: 7836211492774739891}
   - component: {fileID: 3688220245886055776}
+  - component: {fileID: 8813326646547848617}
   m_Layer: 8
   m_Name: Player_Prefab_A
   m_TagString: Player
@@ -5789,6 +5790,26 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
+--- !u!114 &8813326646547848617
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8270360301193926596}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0dcf65ae200faf74487c73942dc0c353, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MinimapGenerator
+  toggleKey: 9
+  minimapSize: 256
+  minimapRange: 50
+  updateInterval: 0.1
+  playerToFollow: {fileID: 8988732741915685909}
+  playerColor: {r: 0, g: 1, b: 0, a: 1}
+  enemyColor: {r: 1, g: 0, b: 0, a: 1}
+  neutralColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
 --- !u!1 &8529803357861243606
 GameObject:
   m_ObjectHideFlags: 0

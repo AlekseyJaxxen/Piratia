@@ -86,7 +86,7 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
             characterPanel.SetActive(newState);
             UpdateInventoryUI();
             UpdateEquipmentUI();
-            Debug.Log($"[InventoryUI] Panels set to {newState}");
+            // Panels state updated
         }
     }
 
@@ -128,7 +128,7 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         else Debug.LogWarning("[InventoryUI] weaponSlotUI is not assigned!");
         if (offHandSlotUI != null) offHandSlotUI.SetItem(core.Inventory.GetEquipped(EquipmentSlot.OffHand));
         else Debug.LogWarning("[InventoryUI] offHandSlotUI is not assigned!");
-        Debug.Log($"[InventoryUI] Equipment UI updated");
+        // Equipment UI updated
     }
 
     public void ShowTooltip(Item item, Vector3 position)

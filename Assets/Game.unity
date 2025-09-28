@@ -1609,61 +1609,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 632417932}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!1 &667050507
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 667050509}
-  - component: {fileID: 667050508}
-  m_Layer: 0
-  m_Name: 'LoadingScreen '
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &667050508
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 667050507}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: abb893d56175fdf4fb240a122c0bcedd, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LoadingScreen
-  loadingPanel: {fileID: 0}
-  loadingBar: {fileID: 0}
-  loadingText: {fileID: 0}
-  progressText: {fileID: 0}
-  loadingDuration: 3
-  loadingMessages:
-  - "\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430 \u043D\u0430\u0432\u044B\u043A\u043E\u0432..."
-  - "\u041F\u043E\u0434\u0433\u043E\u0442\u043E\u0432\u043A\u0430 \u0438\u043D\u0432\u0435\u043D\u0442\u0430\u0440\u044F..."
-  - "\u0421\u0438\u043D\u0445\u0440\u043E\u043D\u0438\u0437\u0430\u0446\u0438\u044F
-    \u0441 \u0441\u0435\u0440\u0432\u0435\u0440\u043E\u043C..."
-  - "\u0413\u043E\u0442\u043E\u0432\u043E!"
---- !u!4 &667050509
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 667050507}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 229.38312, y: -0.07001, z: 341.66605}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &668686355
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4545,4 +4490,3 @@ SceneRoots:
   - {fileID: 604943909}
   - {fileID: 70747163}
   - {fileID: 781441973}
-  - {fileID: 667050509}

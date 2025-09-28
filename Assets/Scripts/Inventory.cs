@@ -79,7 +79,7 @@ public class Inventory : NetworkBehaviour
                     updatedItemInfo.quantity += addAmount;
                     items[i] = updatedItemInfo;
                     remaining -= addAmount;
-                    Debug.Log($"[Inventory] Added {addAmount} to existing stack of {item.itemName}. New total: {updatedItemInfo.quantity}");
+                    // Added to existing stack
                     added = true;
                     if (remaining <= 0) break;
                 }
@@ -102,7 +102,7 @@ public class Inventory : NetworkBehaviour
                 ItemInfo newInfo = new ItemInfo { id = item.id, quantity = addAmount };
                 items[emptyIndex] = newInfo;
                 remaining -= addAmount;
-                Debug.Log($"[Inventory] Added new item: {item.itemName} (ID: {item.id}, quantity: {addAmount}) to empty slot {emptyIndex}");
+                // Added new item to empty slot
                 added = true;
             }
             else
@@ -121,7 +121,7 @@ public class Inventory : NetworkBehaviour
         if (amount <= 0) return;
         gold += amount;
         OnGoldChanged.Invoke();
-        Debug.Log($"[Inventory] Added {amount} gold, total: {gold}");
+        // Gold added
     }
 
     [Server]
@@ -130,7 +130,7 @@ public class Inventory : NetworkBehaviour
         if (amount <= 0 || gold < amount) return false;
         gold -= amount;
         OnGoldChanged.Invoke();
-        Debug.Log($"[Inventory] Spent {amount} gold, remaining: {gold}");
+        // Gold spent
         return true;
     }
 
@@ -164,7 +164,7 @@ public class Inventory : NetworkBehaviour
             Debug.LogError($"[Inventory] Cannot equip item: {item.itemName} (ID: {itemInfo.id}), item mismatch (expected ID: {itemInfo.id}, found ID: {slotItem.id}, quantity: {slotItem.quantity}) at slot {slotIndex}");
             return;
         }
-        // Проверка на наличие двуручного оружия
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
         if (slot == EquipmentSlot.LeftHand || slot == EquipmentSlot.RightHand)
         {
             EquipmentSlot otherSlot = (slot == EquipmentSlot.LeftHand) ? EquipmentSlot.RightHand : EquipmentSlot.LeftHand;
@@ -174,7 +174,7 @@ public class Inventory : NetworkBehaviour
                 Item otherItemObj = otherSlotItem.GetItem();
                 if (otherItemObj != null)
                 {
-                    // Если в другом слоте что-то есть, и текущее оружие двуручное, снимаем предмет из другого слота
+                    // пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ-пїЅпїЅ пїЅпїЅпїЅпїЅ, пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
                     if (item.isTwoHanded)
                     {
                         Debug.Log($"[Inventory] Unequipping item from {otherSlot} to inventory due to two-handed item {item.itemName}");
@@ -186,7 +186,7 @@ public class Inventory : NetworkBehaviour
                         }
                         SetEquipped(otherSlot, new ItemInfo());
                     }
-                    // Если в другом слоте двуручное оружие, снимаем его
+                    // пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ
                     else if (otherItemObj.isTwoHanded)
                     {
                         Debug.Log($"[Inventory] Unequipping two-handed item: {otherItemObj.itemName} from {otherSlot} to inventory");

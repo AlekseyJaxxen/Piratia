@@ -38,7 +38,7 @@ public class ProjectileDamageSkill : SkillBase
             return;
         }
         PlayerSkills skills = caster.GetComponent<PlayerSkills>();
-        Debug.Log($"[ProjectileDamageSkill] Attempting to projectile attack target: {targetObject.name}, netId: {targetIdentity.netId}");
+        // Attempting projectile attack
         skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName, 0);
         caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
     }
@@ -90,7 +90,7 @@ public class ProjectileDamageSkill : SkillBase
             Quaternion rotation = Quaternion.LookRotation(caster.transform.forward); // ���������� �� ����������� ������
             GameObject projectile = Object.Instantiate(projectilePrefab, startPos, rotation);
             playerSkills.StartCoroutine(MoveProjectile(projectile, targetPos));
-            Debug.Log($"[ProjectileDamageSkill] Spawned projectile from {startPos} towards {targetPos} with rotation {rotation}");
+            // Projectile spawned
         }
     }
 

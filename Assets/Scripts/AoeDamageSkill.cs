@@ -25,7 +25,7 @@ public class AoeDamageSkill : SkillBase
             Debug.LogWarning("[AoeDamageSkill] PlayerSkills component missing on caster");
             return;
         }
-        Debug.Log($"[AoeDamageSkill] Attempting to AOE damage at position: {targetPosition.Value}");
+        // Attempting AOE damage
         skills.CmdExecuteSkill(caster, targetPosition, 0, _skillName, Weight);
         caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
     }
@@ -89,7 +89,7 @@ public class AoeDamageSkill : SkillBase
         {
             GameObject effect = Object.Instantiate(effectPrefab, position, Quaternion.identity);
             Object.Destroy(effect, 2f);
-            Debug.Log($"[AoeDamageSkill] Effect spawned at cast point: {position}");
+            // Effect spawned at cast point
         }
     }
 }

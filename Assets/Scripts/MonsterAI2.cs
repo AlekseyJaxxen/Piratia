@@ -38,8 +38,6 @@ public class MonsterAI2 : MonoBehaviour
             attackRange = monsterInfo.attackRange;
             detectionRange = monsterInfo.detectionRange;
             attackCooldown = monsterInfo.attackCooldown;
-            
-            Debug.Log($"[MonsterAI2] {monster.monsterName} AI initialized - attackRange: {attackRange}, detectionRange: {detectionRange}, attackCooldown: {attackCooldown}");
         }
     }
     private void Update()
@@ -99,7 +97,8 @@ public class MonsterAI2 : MonoBehaviour
     }
     private void Patrol()
     {
-        if (agent.remainingDistance < 1f && !monster.IsStunned)
+        // Проверяем, что агент активен и на NavMesh
+        if (agent != null && agent.isActiveAndEnabled && agent.isOnNavMesh && agent.remainingDistance < 1f && !monster.IsStunned)
         {
             Vector3 randomPoint = spawnPoint + Random.insideUnitSphere * patrolRadius;
             randomPoint.y = transform.position.y;
@@ -113,79 +112,59 @@ public class MonsterAI2 : MonoBehaviour
     private void Chase()
     {
         FindTarget();
-        if (target == null || target.isDead) { target = null; SwitchToReturn(); return; }
+        if (target == null || target.isDead) { 
+            target = null; 
+            SwitchToReturn(); 
+            return; 
+        }
         if (monster.IsCooldown) { 
-            Debug.Log($"[MonsterAI2] {monster.monsterName} on cooldown, stopping");
-            if (agent != null && agent.isOnNavMesh) agent.isStopped = true; 
+            if (agent != null && agent.isActiveAndEnabled && agent.isOnNavMesh) agent.isStopped = true; 
             return; 
         }
         float distance = Vector3.Distance(transform.position, target.transform.position);
-        Debug.Log($"[MonsterAI2] {monster.monsterName} chasing {target.playerName}, distance: {distance:F1}, attackRange: {attackRange}, isStunned: {monster.IsStunned}");
         
         if (distance <= attackRange && !monster.IsStunned)
         {
-            Debug.Log($"[MonsterAI2] {monster.monsterName} in attack range, attempting attack");
-            if (agent != null && agent.isOnNavMesh) agent.isStopped = true;
+            if (agent != null && agent.isActiveAndEnabled && agent.isOnNavMesh) agent.isStopped = true;
             transform.LookAt(target.transform);
             TryAttack();
             if (target.isDead) { target = null; SwitchToReturn(); return; }
             chaseStartTime = Time.time; // Reset timer on attack
         }
-        else if (!monster.IsStunned)
+        else if (!monster.IsStunned && agent != null && agent.isActiveAndEnabled && agent.isOnNavMesh)
         {
-            Debug.Log($"[MonsterAI2] {monster.monsterName} moving towards target, distance: {distance:F1}");
-            if (agent != null && agent.isOnNavMesh) agent.isStopped = false;
+            agent.isStopped = false;
             agent.SetDestination(target.transform.position);
         }
     }
     private void TryAttack()
     {
-        float timeSinceLastAttack = Time.time - lastAttackTime;
-        Debug.Log($"[MonsterAI2] {monster.monsterName} TryAttack called. Time since last attack: {timeSinceLastAttack:F1}, cooldown: {attackCooldown}, isStunned: {monster.IsStunned}");
-        
         if (Time.time >= lastAttackTime + attackCooldown && !monster.IsStunned)
         {
-            Debug.Log($"[MonsterAI2] {monster.monsterName} Attack conditions met, attempting attack");
-            
             // First try to use a special skill
             bool specialSkillUsed = monster.TryUseSkill(target);
-            Debug.Log($"[MonsterAI2] {monster.monsterName} Special skill used: {specialSkillUsed}");
             
             if (specialSkillUsed)
             {
                 lastAttackTime = Time.time;
                 monster.IsCooldown = true;
-                if (agent != null && agent.isOnNavMesh) agent.isStopped = true;
+                if (agent != null && agent.isActiveAndEnabled && agent.isOnNavMesh) agent.isStopped = true;
                 StartCoroutine(EndCooldown());
-                Debug.Log($"[MonsterAI2] {monster.monsterName} Special skill executed, starting cooldown");
                 return;
             }
             
             // If no special skill was used, use basic attack
             if (monster.basicAttackSkill != null)
             {
-                Debug.Log($"[MonsterAI2] {monster.monsterName} Using basic attack skill: {monster.basicAttackSkill.SkillName}");
                 lastAttackTime = Time.time;
                 monster.basicAttackSkill.Execute(monster, null, target.gameObject);
                 monster.IsCooldown = true;
-                if (agent != null && agent.isOnNavMesh) agent.isStopped = true;
+                if (agent != null && agent.isActiveAndEnabled && agent.isOnNavMesh) agent.isStopped = true;
                 StartCoroutine(EndCooldown());
-                Debug.Log($"[MonsterAI2] {monster.monsterName} Basic attack executed, starting cooldown");
             }
             else
             {
                 Debug.LogWarning($"[MonsterAI2] {monster.monsterName} No basic attack skill assigned!");
-            }
-        }
-        else
-        {
-            if (Time.time < lastAttackTime + attackCooldown)
-            {
-                Debug.Log($"[MonsterAI2] {monster.monsterName} Still on cooldown: {timeSinceLastAttack:F1}/{attackCooldown}");
-            }
-            if (monster.IsStunned)
-            {
-                Debug.Log($"[MonsterAI2] {monster.monsterName} Cannot attack - stunned");
             }
         }
     }
@@ -193,11 +172,11 @@ public class MonsterAI2 : MonoBehaviour
     {
         yield return new WaitForSeconds(attackCooldown);
         monster.IsCooldown = false;
-        if (!monster.IsStunned && agent.isOnNavMesh && agent != null) agent.isStopped = false;
+        if (!monster.IsStunned && agent != null && agent.isActiveAndEnabled && agent.isOnNavMesh) agent.isStopped = false;
     }
     private void ReturnToSpawn()
     {
-        if (!monster.IsStunned)
+        if (!monster.IsStunned && agent != null && agent.isActiveAndEnabled && agent.isOnNavMesh)
         {
             agent.SetDestination(spawnPoint);
             if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance)

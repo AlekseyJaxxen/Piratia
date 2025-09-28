@@ -55,7 +55,7 @@ public class BasicAttackSkill : SkillBase
             Debug.LogWarning($"[BasicAttackSkill] PlayerSkills component missing on caster for skill {_skillName}");
             return;
         }
-        Debug.Log($"[BasicAttackSkill] Client requesting attack for skill {_skillName} on target: {targetObject.name}, netId: {targetIdentity.netId}, strength: {stats.strength}, minAttack: {stats.minAttack}, maxAttack: {stats.maxAttack}");
+        // Client requesting attack
         skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName, 0);
         caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
     }
@@ -96,14 +96,14 @@ public class BasicAttackSkill : SkillBase
                 renderer.material.color = criticalHitColor;
             }
             Object.Destroy(vfxInstance, 0.2f);
-            Debug.Log($"[BasicAttackSkill] Spawned VFX at target position: {endPosition}");
+            // VFX spawned at target position
         }
         if (isCritical && criticalHitVfxPrefab != null)
         {
             // ����������� VFX ����� �� ����
             GameObject critVfx = Object.Instantiate(criticalHitVfxPrefab, endPosition, Quaternion.identity);
             Object.Destroy(critVfx, 1f);
-            Debug.Log($"[BasicAttackSkill] Spawned critical VFX at target position: {endPosition}");
+            // Critical VFX spawned
         }
         if (projectilePrefab != null)
         {

@@ -37,12 +37,12 @@ public abstract class SkillBase : ScriptableObject, ISkill
 {
     public enum CastType
     {
-        TargetedEnemy, // На врага/монстра (projectile dmg, debuff)
-        TargetedAlly, // На союзника/себя (heal, buff)
-        GroundAoEInstant, // АоЕ на землю мгновенное (урон/лечение)
-        GroundAoEPersistent, // АоЕ на землю persistent (замедление, reveal)
-        SelfBuff, // Самобафф мгновенный
-        ToggleBuff // Поддерживаемое (toggle on/off)
+        TargetedEnemy, // пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ/пїЅпїЅпїЅпїЅпїЅпїЅпїЅ (projectile dmg, debuff)
+        TargetedAlly, // пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ/пїЅпїЅпїЅпїЅ (heal, buff)
+        GroundAoEInstant, // пїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ (пїЅпїЅпїЅпїЅ/пїЅпїЅпїЅпїЅпїЅпїЅпїЅ)
+        GroundAoEPersistent, // пїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ persistent (пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, reveal)
+        SelfBuff, // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+        ToggleBuff // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ (toggle on/off)
     }
 
     [SerializeField] protected CastType castType;
@@ -85,7 +85,7 @@ public abstract class SkillBase : ScriptableObject, ISkill
     [SerializeField] public GameObject effectRadiusPrefab;
     private GameObject castRangeIndicator;
     private GameObject effectRadiusIndicator;
-    public GameObject VFXPrefab; // Базовый VFX-префаб (для совместимости)
+    public GameObject VFXPrefab; // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ VFX-пїЅпїЅпїЅпїЅпїЅпїЅ (пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ)
     public GameObject GetVFXPrefab() => VFXPrefab;
 
     public virtual void Init(PlayerCore core)
@@ -120,7 +120,7 @@ public abstract class SkillBase : ScriptableObject, ISkill
                 castRangeIndicator.transform.localPosition = Vector3.up * 0.01f;
                 castRangeIndicator.transform.localRotation = Quaternion.Euler(0, 0, 0);
                 castRangeIndicator.name = $"{SkillName} Cast Range";
-                Debug.Log($"[SkillBase] Created castRangeIndicator for {SkillName} at {castRangeIndicator.transform.position}");
+                // Cast range indicator created
             }
             if (castRangeIndicator != null) castRangeIndicator.SetActive(true);
             if (effectRadiusIndicator == null && effectRadiusPrefab != null && EffectRadius > 0)
@@ -128,7 +128,7 @@ public abstract class SkillBase : ScriptableObject, ISkill
                 effectRadiusIndicator = Object.Instantiate(effectRadiusPrefab);
                 effectRadiusIndicator.transform.localScale = new Vector3(EffectRadius * 2, 0.1f, EffectRadius * 2);
                 effectRadiusIndicator.name = $"{SkillName} Effect Radius";
-                Debug.Log($"[SkillBase] Created effectRadiusIndicator for {SkillName} at {effectRadiusIndicator.transform.position} with radius {EffectRadius}");
+                // Effect radius indicator created
             }
             if (effectRadiusIndicator != null) effectRadiusIndicator.SetActive(true);
         }
@@ -161,7 +161,7 @@ public abstract class SkillBase : ScriptableObject, ISkill
             Debug.LogWarning($"[SkillBase] Skill execution failed for {_skillName}: Player lacks authority.");
             return;
         }
-        Debug.Log($"[SkillBase] Executing {_skillName}");
+        // Executing skill
         ExecuteSkillImplementation(player, targetPosition, targetObject);
     }
 
@@ -169,7 +169,7 @@ public abstract class SkillBase : ScriptableObject, ISkill
     {
         if (castRangeIndicator != null && !castRangeIndicator.Equals(null))
         {
-            Debug.Log($"[SkillBase] Cleaning up castRangeIndicator for {SkillName}");
+            // Cleaning up cast range indicator
             Destroy(castRangeIndicator);
             castRangeIndicator = null;
         }
@@ -191,18 +191,18 @@ public abstract class SkillBase : ScriptableObject, ISkill
 
     public virtual void ApplyInvisibilityEffect(bool isActive)
     {
-        // Базовая реализация, переопределяется в InvisibilitySkill
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ InvisibilitySkill
     }
 
     protected abstract void ExecuteSkillImplementation(PlayerCore player, Vector3? targetPosition, GameObject targetObject);
 
     public virtual void ExecuteOnServer(PlayerCore caster, Vector3? targetPosition, GameObject targetObject, int weight)
     {
-        // Базовая реализация - пусто
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ - пїЅпїЅпїЅпїЅпїЅ
     }
 
     public virtual void ExecuteOnClient(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
     {
-        // Базовая реализация - пусто
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ - пїЅпїЅпїЅпїЅпїЅ
     }
 }

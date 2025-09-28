@@ -50,7 +50,7 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
             itemIcon.sprite = item.icon;
             itemIcon.enabled = true;
             quantityText.text = info.quantity > 1 ? info.quantity.ToString() : "";
-            Debug.Log($"[InventorySlot] Set item: {item.itemName} (ID: {info.id}) in slot {slotIndex}, quantity: {info.quantity}");
+            // Item set in slot
         }
         else
         {
@@ -98,7 +98,7 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         if (inventoryUI != null && !inventoryUI.isTooltipActive)
         {
             inventoryUI.ShowTooltip(item, transform.position + new Vector3(100f, 0f, 0f));
-            Debug.Log($"[InventorySlot] Showing tooltip for {item.itemName} (slot {slotIndex})");
+            // Showing tooltip
         }
         tooltipCoroutine = null;
     }
@@ -111,11 +111,11 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         if (draggedItem != null && thisItem != null && draggedItem.id == thisItem.id && itemInfo.quantity < thisItem.maxStack)
         {
             core.CmdStackItems(inventoryUI.draggedSlot.slotIndex, slotIndex, thisItem.maxStack - itemInfo.quantity);
-            Debug.Log($"[InventorySlot] Stacked {draggedItem.itemName} from slot {inventoryUI.draggedSlot.slotIndex} to {slotIndex}");
+                // Items stacked
         }
         else
         {
-            Debug.Log($"[InventorySlot] Swapped slots {inventoryUI.draggedSlot.slotIndex} <-> {slotIndex}");
+            // Slots swapped
             core.CmdSwapInventoryItems(inventoryUI.draggedSlot.slotIndex, slotIndex);
         }
         inventoryUI.draggedSlot = null;
@@ -133,7 +133,7 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         dragImage.rectTransform.sizeDelta = itemIcon.rectTransform.sizeDelta;
         dragImage.raycastTarget = false;
         dragImage.rectTransform.position = eventData.position;
-        Debug.Log($"[InventorySlot] Begin drag: {item.itemName} (ID: {itemInfo.id}) (slot {slotIndex})");
+        // Begin drag
     }
 
     public void OnDrag(PointerEventData eventData)
@@ -164,7 +164,7 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         {
             if (item.CanEquipToSlot(targetEquipSlot.slotType) && item.IsEquipable(core.Stats.level, core.Stats.characterClass))
             {
-                Debug.Log($"[InventorySlot] Equipping item: {item.itemName} (ID: {itemInfo.id}) to {targetEquipSlot.slotType} from slot {slotIndex}");
+                // Equipping item
                 core.CmdEquipItem(itemInfo, slotIndex, targetEquipSlot.slotType);
             }
             else

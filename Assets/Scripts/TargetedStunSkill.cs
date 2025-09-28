@@ -38,7 +38,7 @@ public class TargetedStunSkill : SkillBase
             return;
         }
         PlayerSkills skills = caster.GetComponent<PlayerSkills>();
-        Debug.Log($"[TargetedStunSkill] Attempting to stun target: {targetObject.name}, weight: {Weight}");
+        // Attempting to stun target
         skills.CmdExecuteSkill(caster, null, targetIdentity.netId, _skillName, Weight);
         caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
     }

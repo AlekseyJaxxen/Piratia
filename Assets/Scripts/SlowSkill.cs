@@ -38,7 +38,7 @@ public class SlowSkill : SkillBase
             return;
         }
         PlayerSkills skills = caster.GetComponent<PlayerSkills>();
-        Debug.Log($"[SlowSkill] Attempting to slow target: {targetObject.name}, netId: {targetIdentity.netId}");
+        // Attempting to slow target
         skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName, Weight);
         skills.StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
     }
@@ -79,13 +79,13 @@ public class SlowSkill : SkillBase
             if (targetStats != null)
             {
                 targetStats.ApplySlow(slowPercentage, slowDuration);
-                Debug.Log($"[SlowSkill] Applied slow to player {targetCore.gameObject.name}, duration={slowDuration}, percentage={slowPercentage}");
+                // Applied slow to player
             }
         }
         else if (targetMonster != null)
         {
             targetMonster.ReceiveControlEffect(ControlEffectType.Slow, slowDuration, Mathf.RoundToInt(slowPercentage * 100));
-            Debug.Log($"[SlowSkill] Applied slow to monster {targetMonster.monsterName}, duration={slowDuration}, percentage={slowPercentage}");
+            // Applied slow to monster
         }
         uint targetNetId = targetObject.GetComponent<NetworkIdentity>().netId;
         caster.GetComponent<PlayerSkills>().RpcApplySlowEffect(targetNetId, slowDuration, _skillName);
@@ -102,6 +102,6 @@ public class SlowSkill : SkillBase
 
     public void ApplySlowEffect(GameObject target, float duration, PlayerSkills playerSkills)
     {
-        Debug.Log($"[SlowSkill] Applying VFX for slow on {target.name}, duration={duration}");
+        // Applying VFX for slow
     }
 }

@@ -83,7 +83,7 @@ public class Monster : NetworkBehaviour
     {
         base.OnStartServer();
         LoadAndInitializeServer();
-        Debug.Log($"[Monster] Initialized health on server to: {_health.CurrentHealth}/{_health.MaxHealth}");
+        // Health initialized on server
         StartCoroutine(CheckControlEffectExpiration());
     }
     public override void OnStartClient()
@@ -98,7 +98,7 @@ public class Monster : NetworkBehaviour
         }
         _monsterUI.target = transform;
         _monsterUI.SetData(monsterName, _health.CurrentHealth, _health.MaxHealth);
-        Debug.Log($"[Monster] OnStartClient called. UI initialized with currentHealth: {_health.CurrentHealth}. IsHost={isServer}");
+        // UI initialized on client
         _health.OnHealthUpdated += OnHealthUpdatedHandler;
     }
     private void LoadAndInitializeServer()
@@ -188,7 +188,7 @@ public class Monster : NetworkBehaviour
                 
                 // Инициализируем синхронизацию после спавна
                 legsSyncComponent.InitializeAsLegs(netIdentity.netId);
-                Debug.Log($"[Monster] Spawned legs for head {monsterName} at {legsGO.transform.position}");
+                // Legs spawned for combined monster
             }
             transform.position += Vector3.up * 15f; // Head �� 15
             if (_agent != null) _agent.baseOffset = 15f; // ������� �����
@@ -221,7 +221,7 @@ public class Monster : NetworkBehaviour
             {
                 model.transform.localPosition = Vector3.zero;
             }
-            Debug.Log($"[Monster] Instantiated modelPrefab for {monsterName}");
+            // Model prefab instantiated
             _renderer = model.GetComponentInChildren<SkinnedMeshRenderer>();
             if (_renderer == null)
             {
@@ -265,7 +265,7 @@ public class Monster : NetworkBehaviour
 
     private void OnStunStateChanged(bool _, bool newValue)
     {
-        Debug.Log($"[Monster] Stun state changed: {newValue}, isClient={isClient}, isServer={isServer}");
+        // Stun state changed
         if (_agent != null && _agent.isOnNavMesh)
         {
             _agent.isStopped = newValue;
@@ -274,7 +274,7 @@ public class Monster : NetworkBehaviour
 
     private void OnSilenceStateChanged(bool _, bool newValue)
     {
-        Debug.Log($"[Monster] Silence state changed: {newValue}, isClient={isClient}, isServer={isServer}");
+        // Silence state changed
     }
 
     private void OnHealthUpdatedHandler(int currentHP, int maxHP)
@@ -282,7 +282,7 @@ public class Monster : NetworkBehaviour
         if (_monsterUI != null)
         {
             _monsterUI.SetData(monsterName, currentHP, maxHP);
-            Debug.Log($"[Monster] OnHealthUpdatedHandler called. UI updated. New HP: {currentHP}, IsClient={isClient}");
+            // UI updated with new HP
         }
         else
         {
@@ -300,18 +300,18 @@ public class Monster : NetworkBehaviour
         if (_monsterUI != null)
         {
             _monsterUI.SetData(monsterName, currentHealth, maxHealth);
-            Debug.Log($"[Monster] RpcUpdateMonsterUI called: {currentHealth}/{maxHealth}");
+            // Monster UI updated
         }
     }
 
     [Server]
     public void UpdateAggro(uint attackerNetId, int damage)
     {
-        Debug.Log($"[Monster] UpdateAggro called: attackerNetId={attackerNetId}, damage={damage}, current aggro={aggroTargetNetId}");
+        // Aggro updated
         if (aggroTargetNetId == 0 || damage > 0)
         {
             aggroTargetNetId = attackerNetId;
-            Debug.Log($"[Monster] Aggro updated to {attackerNetId} (damage: {damage})");
+            // Aggro target updated
         }
     }
 
@@ -320,7 +320,7 @@ public class Monster : NetworkBehaviour
     {
         if (_currentControlEffect != ControlEffectType.None && Time.time < _controlEffectEndTime && skillWeight <= _currentEffectWeight)
         {
-            Debug.Log($"[Monster] Cannot apply {effectType} (weight {skillWeight}): {_currentControlEffect} (weight {_currentEffectWeight}) is active until {_controlEffectEndTime}");
+            // Control effect blocked by higher weight
             return;
         }
         if (_currentControlEffect != ControlEffectType.None)
@@ -334,7 +334,7 @@ public class Monster : NetworkBehaviour
         {
             IsStunned = true;
             if (_agent != null && _agent.isOnNavMesh) _agent.isStopped = true;
-            Debug.Log($"[Monster] Applied stun effect to {monsterName}, weight={skillWeight}, duration={duration}");
+            // Stun effect applied
         }
         else if (effectType == ControlEffectType.Slow)
         {
@@ -344,14 +344,14 @@ public class Monster : NetworkBehaviour
             {
                 float newSpeed = moveSpeed * (1f - _slowPercentage);
                 _agent.speed = Mathf.Max(0.1f, newSpeed);
-                Debug.Log($"[Monster] Applied slow effect to {monsterName}, weight={skillWeight}, percentage={_slowPercentage}, newSpeed={_agent.speed}, duration={duration}");
+                // Slow effect applied
             }
             RpcApplySlowEffect(true);
         }
         else if (effectType == ControlEffectType.Silence)
         {
             IsSilenced = true;
-            Debug.Log($"[Monster] Applied silence effect to {monsterName}, weight={skillWeight}, duration={duration}");
+            // Silence effect applied
         }
     }
 
@@ -360,7 +360,7 @@ public class Monster : NetworkBehaviour
     {
         if (_currentControlEffect != ControlEffectType.None && Time.time < _controlEffectEndTime && skillWeight <= _currentEffectWeight)
         {
-            Debug.Log($"[Monster] Cannot apply slow (weight {skillWeight}): {_currentControlEffect} (weight {_currentEffectWeight}) is active until {_controlEffectEndTime}");
+            // Slow effect blocked by higher weight
             return;
         }
         if (_currentControlEffect != ControlEffectType.None)
@@ -375,7 +375,7 @@ public class Monster : NetworkBehaviour
         {
             float newSpeed = moveSpeed * (1f - _slowPercentage);
             _agent.speed = Mathf.Max(0.1f, newSpeed);
-            Debug.Log($"[Monster] Applied slow to {monsterName}: percentage={percentage}, duration={duration}, weight={skillWeight}, newSpeed={_agent.speed}");
+            // Slow applied
         }
         _controlEffectEndTime = Time.time + duration;
         RpcApplySlowEffect(true);
@@ -406,7 +406,7 @@ public class Monster : NetworkBehaviour
         _currentControlEffect = ControlEffectType.None;
         _currentEffectWeight = 0;
         _controlEffectEndTime = 0f;
-        Debug.Log($"[Monster] Cleared control effect for {monsterName}");
+        // Control effect cleared
     }
 
     [ClientRpc]
@@ -417,12 +417,12 @@ public class Monster : NetworkBehaviour
             if (slowEffectPrefab != null && _slowEffectInstance == null)
             {
                 _slowEffectInstance = Instantiate(slowEffectPrefab, transform);
-                Debug.Log($"[Monster] Spawned slow effect particles for {monsterName}");
+                // Slow effect particles spawned
             }
             else if (_renderer != null)
             {
                 _renderer.material.color = new Color(0.5f, 0.5f, 1f, 1f);
-                Debug.Log($"[Monster] Applied slow visual effect (color change) to {monsterName}");
+                // Slow visual effect applied
             }
         }
         else
@@ -431,12 +431,12 @@ public class Monster : NetworkBehaviour
             {
                 Destroy(_slowEffectInstance);
                 _slowEffectInstance = null;
-                Debug.Log($"[Monster] Removed slow effect particles from {monsterName}");
+                // Slow effect particles removed
             }
             if (_renderer != null)
             {
                 _renderer.material.color = Color.white;
-                Debug.Log($"[Monster] Removed slow visual effect from {monsterName}");
+                // Slow visual effect removed
             }
         }
     }
@@ -446,15 +446,14 @@ public class Monster : NetworkBehaviour
     {
         if (IsDead) return;
         IsDead = true;
-        Debug.Log($"[Monster] Die called for {monsterName}, Health: {_health.CurrentHealth}, aggroTargetNetId={aggroTargetNetId}");
-        Debug.Log($"[Monster] Die: aggroTargetNetId={aggroTargetNetId}, NetworkServer.spawned.Count={NetworkServer.spawned.Count}");
+        // Monster died
         if (aggroTargetNetId != 0 && NetworkServer.spawned.TryGetValue(aggroTargetNetId, out var identity))
         {
             PlayerCore killer = identity.GetComponent<PlayerCore>();
             if (killer != null && killer.Stats != null)
             {
                 killer.Stats.AddExperience(experienceReward);
-                Debug.Log($"[Monster] Gave {experienceReward} XP to killer {killer.playerName}, level before: {killer.Stats.level}");
+                // XP given to killer
             }
             else
             {
@@ -465,20 +464,24 @@ public class Monster : NetworkBehaviour
         {
             Debug.LogWarning($"[Monster] No aggroTarget or not spawned: {aggroTargetNetId}");
         }
-        if (headNetId != 0 && NetworkServer.spawned.TryGetValue(headNetId, out var headIdentity))
+        // Уведомляем всех клиентов о смерти монстра
+        RpcOnMonsterDeath();
+        
+        // Уведомляем клиентов о смерти головы
+        if (headNetId != 0)
         {
-            Monster headMonster = headIdentity.GetComponent<Monster>();
-            if (headMonster != null)
-            {
-                headMonster.Fall();
-            }
+            Debug.Log($"[Monster] Calling RpcOnHeadDeath for headNetId: {headNetId}");
+            RpcOnHeadDeath(headNetId);
         }
+        
+        // Уничтожаем монстра сразу после смерти
+        StartCoroutine(DespawnAfterDelay(0.1f));
         foreach (var entry in dropTable)
         {
             if (entry.item != null && Random.value <= entry.dropChance)
             {
                 SpawnDroppedItem(entry.item.id, 1);
-                Debug.Log($"[Monster] Dropped item: {entry.item.itemName} (chance: {entry.dropChance})");
+                // Item dropped
             }
         }
         if (_agent != null && _agent.isOnNavMesh)
@@ -496,7 +499,7 @@ public class Monster : NetworkBehaviour
                 Random.Range(minForce.z, maxForce.z)
             );
             physicsRigidbody.AddForce(randomForce, ForceMode.Impulse);
-            Debug.Log($"[Monster] Applied random force {randomForce} to {monsterName}");
+            // Random force applied
         }
         else
         {
@@ -507,13 +510,12 @@ public class Monster : NetworkBehaviour
         {
             boxCollider.enabled = false;
             gameObject.layer = LayerMask.NameToLayer("Ignore Raycast");
-            Debug.Log($"[Monster] Set {monsterName} to Ignore Raycast layer");
+            // Set to Ignore Raycast layer
         }
         canMove = false;
         canAttack = false;
         RpcDie();
         RpcHideMonsterUI();
-        StartCoroutine(DespawnAfterDelay(2f));
     }
 
     [Server]
@@ -534,7 +536,7 @@ public class Monster : NetworkBehaviour
             droppedScript.dropTime = Time.time;
         }
         NetworkServer.Spawn(droppedItem);
-        Debug.Log($"[Monster] Spawned dropped item: ID {itemID}, quantity {quantity} at {droppedItem.transform.position}, owner={aggroTargetNetId}");
+        // Dropped item spawned
     }
 
     [ClientRpc]
@@ -565,8 +567,84 @@ public class Monster : NetworkBehaviour
         if (_monsterUI != null)
         {
             _monsterUI.gameObject.SetActive(false);
-            Debug.Log($"[Monster] RpcHideMonsterUI called for {gameObject.name}");
+            // Monster UI hidden
         }
+    }
+    
+    [ClientRpc]
+    private void RpcOnMonsterDeath()
+    {
+        // Уведомляем клиентов о смерти монстра для обновления миникарты
+        if (headNetId != 0)
+        {
+            // Находим голову и заставляем её упасть на клиенте
+            Monster[] allMonsters = FindObjectsOfType<Monster>();
+            foreach (Monster monster in allMonsters)
+            {
+                if (monster.netIdentity.netId == headNetId)
+                {
+                    monster.FallOnClient();
+                    break;
+                }
+            }
+        }
+        
+        // Также уведомляем клиентов о смерти этого монстра
+        IsDead = true;
+        
+        // Отключаем коллайдер на клиенте
+        BoxCollider boxCollider = GetComponent<BoxCollider>();
+        if (boxCollider != null)
+        {
+            boxCollider.enabled = false;
+        }
+    }
+    
+    [ClientRpc]
+    private void RpcOnHeadDeath(uint headId)
+    {
+        Debug.Log($"[Monster] RpcOnHeadDeath called for headId: {headId}");
+        // Находим голову и заставляем её упасть на клиенте
+        Monster[] allMonsters = FindObjectsOfType<Monster>();
+        bool headFound = false;
+        foreach (Monster monster in allMonsters)
+        {
+            if (monster.netIdentity.netId == headId)
+            {
+                Debug.Log($"[Monster] Found head monster: {monster.name}, calling FallOnClient");
+                monster.FallOnClient();
+                headFound = true;
+                break;
+            }
+        }
+        if (!headFound)
+        {
+            Debug.LogWarning($"[Monster] Head monster with netId {headId} not found on client");
+        }
+    }
+    
+    public void FallOnClient()
+    {
+        Debug.Log($"[Monster] FallOnClient called for {name}");
+        // Падение на клиенте без серверных вызовов
+        canMove = false;
+        if (_agent != null) 
+        {
+            _agent.enabled = false;
+            _agent.baseOffset = 0f;
+        }
+        
+        // Сбрасываем позицию модели для combined монстра
+        if (info.isCombined && _renderer != null)
+        {
+            _renderer.transform.localPosition = Vector3.zero;
+        }
+        
+        // Запускаем анимацию падения
+        Vector3 targetPos = new Vector3(transform.position.x, 1f, transform.position.z) + Random.insideUnitSphere * 15f;
+        targetPos.y = 1f;
+        Debug.Log($"[Monster] Starting fall animation from {transform.position} to {targetPos}");
+        StartCoroutine(FallCoroutine(targetPos));
     }
 
     private IEnumerator DespawnAfterDelay(float delay)
@@ -575,7 +653,7 @@ public class Monster : NetworkBehaviour
         if (gameObject != null)
         {
             NetworkServer.Destroy(gameObject);
-            Debug.Log($"[Monster] Destroyed {monsterName}");
+            // Monster destroyed
         }
     }
 
@@ -598,7 +676,7 @@ public class Monster : NetworkBehaviour
         if (targetHealth != null)
         {
             targetHealth.TakeDamage(damage, DamageType.Physical, isCritical, netIdentity);
-            Debug.Log($"[Monster] Attacked {targetObject.name} with {damage} damage, isCritical: {isCritical}");
+            // Attack executed
             Vector3 startPosition = transform.position + Vector3.up * 1f;
             Vector3 endPosition = targetObject.transform.position + Vector3.up * 1f;
             RpcPlayVFX(startPosition, transform.rotation, endPosition, isCritical);
@@ -662,7 +740,18 @@ public class Monster : NetworkBehaviour
     public void Fall()
     {
         canMove = false;
-        if (_agent != null) _agent.enabled = false;
+        if (_agent != null) 
+        {
+            _agent.enabled = false;
+            _agent.baseOffset = 0f; // Сбрасываем baseOffset
+        }
+        
+        // Сбрасываем позицию модели для combined монстра
+        if (info.isCombined && _renderer != null)
+        {
+            _renderer.transform.localPosition = Vector3.zero;
+        }
+        
         RpcFall();
     }
     [ClientRpc]
@@ -670,10 +759,43 @@ public class Monster : NetworkBehaviour
     {
         Vector3 targetPos = new Vector3(transform.position.x, 1f, transform.position.z) + Random.insideUnitSphere * 15f;
         targetPos.y = 1f;
-        transform.DOJump(targetPos, 5f, 1, 1f).SetEase(Ease.InQuad);
-        transform.DORotate(new Vector3(90f, 0f, 0f), 1f).SetEase(Ease.InQuad).OnComplete(() => {
-            Debug.Log($"[Monster] {monsterName} fallen");
-        });
+        
+        // Сбрасываем позицию модели для combined монстра на клиенте
+        if (info.isCombined && _renderer != null)
+        {
+            _renderer.transform.localPosition = Vector3.zero;
+        }
+        
+        // Используем Coroutine вместо DoTween
+        StartCoroutine(FallCoroutine(targetPos));
+    }
+    
+    private IEnumerator FallCoroutine(Vector3 targetPos)
+    {
+        Vector3 startPos = transform.position;
+        Vector3 startRot = transform.eulerAngles;
+        Vector3 targetRot = new Vector3(90f, 0f, 0f);
+        
+        float duration = 1f;
+        float elapsed = 0f;
+        
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / duration;
+            
+            // Плавное движение к цели
+            transform.position = Vector3.Lerp(startPos, targetPos, t);
+            
+            // Плавный поворот
+            transform.eulerAngles = Vector3.Lerp(startRot, targetRot, t);
+            
+            yield return null;
+        }
+        
+        // Убеждаемся, что финальная позиция установлена
+        transform.position = targetPos;
+        transform.eulerAngles = targetRot;
     }
 
     // private void OnMonsterIdChanged(int oldId, int newId)

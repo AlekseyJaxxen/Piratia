@@ -52,17 +52,17 @@ public class PlayerSkills : NetworkBehaviour
     }
     private void OnPlayerLayerChanged(int oldLayer, int newLayer)
     {
-        Debug.Log($"[PlayerSkills] Player layer changed: {oldLayer} -> {newLayer} on {gameObject.name}, isServer={isServer}, isClient={isClient}, netId={netId}");
+        // Player layer changed
         gameObject.layer = newLayer;
         if (isServer)  // Force-сет на сервере (hook не всегда срабатывает)
         {
             gameObject.layer = newLayer;
-            Debug.Log($"[PlayerSkills] Server force layer: {newLayer} on {gameObject.name}");
+            // Server force layer
         }
     }
     private void OnInvisibilityChanged(bool oldValue, bool newValue)
     {
-        Debug.Log($"[PlayerSkills] Invisibility changed: {oldValue} -> {newValue} on {gameObject.name}, isServer={isServer}, isClient={isClient}, netId={netId}");
+        // Invisibility changed
         SkillBase skill = skills.Find(s => s.SkillName == "Invisibility");
         if (skill != null)
         {
@@ -71,7 +71,7 @@ public class PlayerSkills : NetworkBehaviour
     }
     private void OnToggleBuffStateChanged(SyncDictionary<string, bool>.Operation op, string skillName, bool isActive)
     {
-        Debug.Log($"[PlayerSkills] ToggleBuff changed: {skillName} -> {isActive} on {gameObject.name}, op={op}, toggleBuffStates: {string.Join(", ", toggleBuffStates.Select(kv => $"{kv.Key}: {kv.Value}"))}");
+        // ToggleBuff changed
         OnToggleBuffChanged.Invoke(skillName, isActive);
         if (skillName == "Invisibility")
         {
@@ -221,7 +221,7 @@ public class PlayerSkills : NetworkBehaviour
     {
         if (!caster.CanCastSkill(caster.Skills.skills.Find(s => s.SkillName == skillName)))
         {
-            Debug.Log($"[PlayerSkills] Cannot cast skill {skillName}: invalid conditions on {gameObject.name}");
+            // Cannot cast skill - invalid conditions
             return;
         }
         SkillBase skill = skills.Find(s => s.SkillName == skillName);
@@ -232,18 +232,18 @@ public class PlayerSkills : NetworkBehaviour
         }
         if (GetRemainingCooldown(skillName) > 0)
         {
-            Debug.Log($"[PlayerSkills] Skill {skillName} on cooldown: {GetRemainingCooldown(skillName)}s remaining on {gameObject.name}");
+            // Skill on cooldown
             return;
         }
         if (!skill.ignoreGlobalCooldown && GetGlobalRemainingCooldown() > 0)
         {
-            Debug.Log($"[PlayerSkills] Global cooldown active for {skillName}: {GetGlobalRemainingCooldown()}s remaining on {gameObject.name}");
+            // Global cooldown active
             return;
         }
         CharacterStats stats = caster.GetComponent<CharacterStats>();
         if (stats != null && !stats.HasEnoughMana(skill.ManaCost))
         {
-            Debug.Log($"[PlayerSkills] Not enough mana for {skillName}: required {skill.ManaCost}, available {stats.currentMana} on {gameObject.name}");
+            // Not enough mana
             return;
         }
         if (toggleBuffStates.ContainsKey("Invisibility") && toggleBuffStates["Invisibility"])
@@ -666,7 +666,7 @@ public class PlayerSkills : NetworkBehaviour
             CharacterStats stats = GetComponent<CharacterStats>();
             if (stats != null && !stats.HasEnoughMana(skill.ManaCost))
             {
-                Debug.Log($"[PlayerSkills] Not enough mana for {skillName}: required {skill.ManaCost}, available {stats.currentMana} on {gameObject.name}");
+                // Not enough mana
                 return;
             }
             if (stats != null) stats.SpendMana(skill.ManaCost);

@@ -138,16 +138,16 @@ public class Item : ScriptableObject
         {
             Debug.LogWarning($"[Item] ID not set for {itemName}, defaulting to -1");
         }
-        // Сброс полей, если предмет не экипируемый
+        // пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         if (equipmentSlot == EquipmentSlot.None && alternativeSlot == EquipmentSlot.None)
         {
             boneName = string.Empty;
             alternativeBoneName = string.Empty;
             primaryDisplaySlot = EquipmentSlot.None;
             isTwoHanded = false;
-            Debug.Log($"[Item] Reset equipment fields for {itemName} as equipmentSlot and alternativeSlot are None");
+            // Reset equipment fields
         }
-        // Проверка двуручного оружия
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
         if (isTwoHanded && primaryDisplaySlot == EquipmentSlot.None)
         {
             primaryDisplaySlot = equipmentSlot;
@@ -209,7 +209,7 @@ public class Item : ScriptableObject
     {
         if (isTwoHanded && primaryDisplaySlot != EquipmentSlot.None)
         {
-            // Для двуручного оружия возвращаем boneName, если primaryDisplaySlot задан
+            // пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ boneName, пїЅпїЅпїЅпїЅ primaryDisplaySlot пїЅпїЅпїЅпїЅпїЅ
             return boneName;
         }
         return slot == alternativeSlot && !string.IsNullOrEmpty(alternativeBoneName) ? alternativeBoneName : boneName;

@@ -12,14 +12,14 @@ public class SpawnConfig
     public Vector3 position;
     public float radius = 100f;
     public int count = 100;
-    public float respawnTime = 60f; // В секундах
+    public float respawnTime = 60f; // пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 }
 
 public class MonsterSpawner : NetworkBehaviour
 {
-    [SerializeField] public GameObject monsterPrefab; // Сделал public
+    [SerializeField] public GameObject monsterPrefab; // пїЅпїЅпїЅпїЅпїЅпїЅ public
     [SerializeField] private GameObject chestPrefab;
-    [SerializeField] private List<SpawnConfig> spawnConfigs = new List<SpawnConfig>(); // Список конфигов
+    [SerializeField] private List<SpawnConfig> spawnConfigs = new List<SpawnConfig>(); // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     [SerializeField] private Transform chestSpawnPoint;
     private List<GameObject> spawnedMonsters = new List<GameObject>();
     private GameObject spawnedChest;
@@ -48,7 +48,7 @@ public class MonsterSpawner : NetworkBehaviour
             SpawnGroup(config);
             respawnCoroutines[config] = StartCoroutine(CheckAndRespawnGroup(config));
         }
-        Debug.Log("[MonsterSpawner] Started spawning monsters");
+        // Started spawning monsters
     }
 
     public override void OnStopServer()
@@ -72,14 +72,14 @@ public class MonsterSpawner : NetworkBehaviour
         {
             NetworkServer.Destroy(spawnedChest);
         }
-        Debug.Log("[MonsterSpawner] Stopped spawning monsters and cleared spawnedMonsters list");
+        // Stopped spawning monsters
     }
 
     [Server]
     private void SpawnGroup(SpawnConfig config)
     {
         int toSpawn = config.count - spawnedPerConfig[config].Count;
-        MonsterDatabase db = Resources.Load<MonsterDatabase>("MonsterData/MonsterDatabase"); // Путь к твоему SO
+        MonsterDatabase db = Resources.Load<MonsterDatabase>("MonsterData/MonsterDatabase"); // пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ SO
         for (int i = 0; i < toSpawn; i++)
         {
             Vector3 offset = new Vector3(UnityEngine.Random.Range(-config.radius, config.radius), 0f, UnityEngine.Random.Range(-config.radius, config.radius));
@@ -114,7 +114,7 @@ public class MonsterSpawner : NetworkBehaviour
                 NetworkServer.Spawn(monster);
                 spawnedMonsters.Add(monster);
                 spawnedPerConfig[config].Add(monster);
-                Debug.Log($"[MonsterSpawner] Spawned monster ID {config.monsterId} at {position}");
+                // Monster spawned
             }
             else
             {
@@ -135,7 +135,7 @@ public class MonsterSpawner : NetworkBehaviour
             {
                 SpawnGroup(config);
             }
-            Debug.Log($"[MonsterSpawner] Group {config.monsterId}: Active {spawnedPerConfig[config].Count}/{config.count}");
+            // Group status updated
         }
     }
 }

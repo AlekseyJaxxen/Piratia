@@ -80,7 +80,7 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         }
         if (!core.isLocalPlayer)
         {
-            Debug.Log("[PlayerUI] Not local player, disabling UI.");
+            // Not local player, disabling UI
             gameObject.SetActive(false);
             return;
         }
@@ -104,14 +104,14 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         equipmentSlots = GetComponentsInChildren<EquipmentSlotUI>(true);
         if (!core.isLocalPlayer || !core.isClient)
         {
-            Debug.Log("[PlayerUI] Waiting for client sync...");
+            // Waiting for client sync
             yield return new WaitUntil(() => core.isLocalPlayer && core.isClient);
         }
         if (core.Health != null)
         {
             core.Health.OnHealthUpdated += UpdateHealthBar;
             UpdateHealthBar(core.Health.CurrentHealth, core.Health.MaxHealth);
-            Debug.Log($"[PlayerUI] Initial health: {core.Health.CurrentHealth}/{core.Health.MaxHealth}");
+            // Initial health set
         }
         else
         {
@@ -135,23 +135,23 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         stats.OnMaxAttackChangedEvent += (oldValue, newValue) => UpdateAttribute("maxAttack", newValue);
         if (strengthButton != null)
         {
-            strengthButton.onClick.AddListener(() => { core.CmdIncreaseStat("strength"); Debug.Log("[PlayerUI] Strength button clicked"); });
+            strengthButton.onClick.AddListener(() => { core.CmdIncreaseStat("strength"); });
         }
         if (agilityButton != null)
         {
-            agilityButton.onClick.AddListener(() => { core.CmdIncreaseStat("agility"); Debug.Log("[PlayerUI] Agility button clicked"); });
+            agilityButton.onClick.AddListener(() => { core.CmdIncreaseStat("agility"); });
         }
         if (spiritButton != null)
         {
-            spiritButton.onClick.AddListener(() => { core.CmdIncreaseStat("spirit"); Debug.Log("[PlayerUI] Spirit button clicked"); });
+            spiritButton.onClick.AddListener(() => { core.CmdIncreaseStat("spirit"); });
         }
         if (constitutionButton != null)
         {
-            constitutionButton.onClick.AddListener(() => { core.CmdIncreaseStat("constitution"); Debug.Log("[PlayerUI] Constitution button clicked"); });
+            constitutionButton.onClick.AddListener(() => { core.CmdIncreaseStat("constitution"); });
         }
         if (accuracyButton != null)
         {
-            accuracyButton.onClick.AddListener(() => { core.CmdIncreaseStat("accuracy"); Debug.Log("[PlayerUI] Accuracy button clicked"); });
+            accuracyButton.onClick.AddListener(() => { core.CmdIncreaseStat("accuracy"); });
         }
         if (attributesPanel != null)
         {

@@ -53,7 +53,7 @@ public class Health : NetworkBehaviour
     public void Init()
     {
         CurrentHealth = MaxHealth;
-        Debug.Log($"[Server] {gameObject.name} health initialized: {CurrentHealth}/{MaxHealth}");
+        // Health initialized on server
         RpcUpdateHealthUI(CurrentHealth, MaxHealth);
     }
 
@@ -61,7 +61,7 @@ public class Health : NetworkBehaviour
     public void Heal(int amount)
     {
         CurrentHealth += amount;
-        Debug.Log($"[Server] {gameObject.name} healed for {amount}. Current health: {CurrentHealth}");
+        // Healed on server
         RpcShowHealNumber(amount);
     }
 
@@ -69,7 +69,7 @@ public class Health : NetworkBehaviour
     public void SetHealth(int amount)
     {
         CurrentHealth = amount;
-        Debug.Log($"[Server] {gameObject.name} health set to: {CurrentHealth}");
+        // Health set on server
     }
 
     [Server]
@@ -77,7 +77,7 @@ public class Health : NetworkBehaviour
     {
         MaxHealth = newMaxHealth;
         CurrentHealth = Mathf.Min(CurrentHealth, MaxHealth);
-        Debug.Log($"[Server] {gameObject.name} max health set to: {MaxHealth}");
+        // Max health set on server
         if (NetworkServer.spawned.ContainsKey(netId))
         {
             RpcUpdateHealthUI(CurrentHealth, MaxHealth);
@@ -104,16 +104,16 @@ public class Health : NetworkBehaviour
             CharacterStats attackerStats = attacker?.GetComponent<CharacterStats>();
             float critMultiplier = attackerStats != null ? attackerStats.criticalHitMultiplier : 2.0f;
             finalDamage = Mathf.RoundToInt(finalDamage * critMultiplier);
-            Debug.Log($"[Health] Applying critical hit multiplier {critMultiplier}, finalDamage={finalDamage}");
+            // Critical hit applied
         }
         CurrentHealth -= finalDamage;
         LastAttacker = attacker;
-        Debug.Log($"[Server] {gameObject.name} took {finalDamage} damage from {attacker?.gameObject.name}. Current health: {CurrentHealth}");
+        // Damage taken on server
         RpcShowDamageNumber(finalDamage, isCritical, damageType);
         PlayerSkills skills = GetComponent<PlayerSkills>();
         if (skills != null)
         {
-            Debug.Log($"[Health] Player {gameObject.name} took damage, isInvisible={skills._isInvisible}");
+            // Player took damage
             if (skills._isInvisible)
             {
                 skills.SetToggleBuff("Invisibility", false); // Замена InterruptInvisibility

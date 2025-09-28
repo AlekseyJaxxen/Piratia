@@ -34,7 +34,7 @@ public class PlayerMovement : NetworkBehaviour
         _agent.speed = moveSpeed;
         _agent.stoppingDistance = stoppingDistance;
         _agent.updateRotation = false;
-        Debug.Log($"[PlayerMovement] Initialized with moveSpeed={moveSpeed}, core.isOwned={_core.netIdentity.isOwned}, core.Camera={(_core.Camera != null ? _core.Camera.name : "null")}");
+        // PlayerMovement initialized
     }
     private void Update()
     {
@@ -53,17 +53,17 @@ public class PlayerMovement : NetworkBehaviour
         }
         if (_core.isDead || _core.isStunned)
         {
-            Debug.Log($"[PlayerMovement] Input ignored: isDead={_core.isDead}, isStunned={_core.isStunned}");
+            // Input ignored - player dead/stunned
             return;
         }
         if (!isLocalPlayer)
         {
-            Debug.Log("[PlayerMovement] Input ignored: not local player");
+            // Input ignored - not local player
             return;
         }
         if (!_core.netIdentity.isOwned)
         {
-            Debug.Log("[PlayerMovement] Input ignored: player lacks authority");
+            // Input ignored - lacks authority
             return;
         }
         if (_core.Camera == null || _core.Camera.CameraInstance == null)
@@ -75,15 +75,15 @@ public class PlayerMovement : NetworkBehaviour
         {
             if (IsPointerOverPlayerUI())
             {
-                Debug.Log("[PlayerMovement] Click ignored: Pointer is over LocalPlayerUI element");
+                // Click ignored - over UI
                 return;
             }
-            Debug.Log($"[PlayerMovement] Left mouse button clicked at position: {Input.mousePosition}");
+            // Left mouse button clicked
             Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
-            Debug.Log($"[PlayerMovement] Raycast from mouse position: {Input.mousePosition}, camera: {_core.Camera.CameraInstance.name}");
+            // Raycast from mouse position
             if (_core.Skills.IsSkillSelected)
             {
-                Debug.Log($"[PlayerMovement] Skill selected: {_core.Skills.ActiveSkill?.SkillName ?? "null"}");
+                // Skill selected
                 var skill = (SkillBase)_core.Skills.ActiveSkill;
                 bool isTargeted = skill.SkillCastType == SkillBase.CastType.TargetedEnemy || skill.SkillCastType == SkillBase.CastType.TargetedAlly;
                 bool isSelf = skill.SkillCastType == SkillBase.CastType.SelfBuff || skill.SkillCastType == SkillBase.CastType.ToggleBuff;
@@ -97,7 +97,7 @@ public class PlayerMovement : NetworkBehaviour
                 {
                     if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
                     {
-                        Debug.Log($"[PlayerMovement] Raycast hit: {hit.collider.name}, tag={hit.collider.tag}, layer={LayerMask.LayerToName(hit.collider.gameObject.layer)}, components={string.Join(", ", hit.collider.GetComponents<Component>().Select(c => c.GetType().Name))}");
+                        // Raycast hit
                         GameObject target = hit.collider.gameObject;
                         bool validTarget = false;
                         PlayerCore targetCore = target.GetComponentInParent<PlayerCore>();
@@ -116,31 +116,31 @@ public class PlayerMovement : NetworkBehaviour
                         }
                         if (validTarget)
                         {
-                            Debug.Log($"[PlayerMovement] Starting SkillCast on target: {target.name}");
+                            // Starting SkillCast on target
                             _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, null, target, _core.Skills.ActiveSkill);
                         }
                         else
                         {
-                            Debug.Log("[PlayerMovement] Ignored: invalid target for skill");
+                            // Ignored: invalid target for skill
                         }
                     }
                     else
                     {
-                        Debug.Log("[PlayerMovement] Raycast missed for targeted skill");
+                        // Raycast missed for targeted skill
                     }
                 }
                 else
                 {
                     if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.groundLayer))
                     {
-                        Debug.Log($"[PlayerMovement] Starting SkillCast at ground position: {hit.point}, layer={LayerMask.LayerToName(hit.collider.gameObject.layer)}");
+                        // Starting SkillCast at ground position
                         _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, hit.point, null, _core.Skills.ActiveSkill);
                         if (skill.SkillCastType != SkillBase.CastType.GroundAoEPersistent)
                             _core.Skills.CancelSkillSelection();
                     }
                     else
                     {
-                        Debug.Log("[PlayerMovement] Raycast missed for ground-targeted skill");
+                        // Raycast missed for ground-targeted skill
                     }
                 }
             }
@@ -150,10 +150,10 @@ public class PlayerMovement : NetworkBehaviour
                 {
                     // Игнорируем хиты на самого игрока (и детей)
                     if (hit.collider.transform == transform || hit.collider.transform.IsChildOf(transform)) return;
-                    Debug.Log($"[PlayerMovement] Raycast hit: {hit.collider.name}, tag={hit.collider.tag}, layer={LayerMask.LayerToName(hit.collider.gameObject.layer)}, components={string.Join(", ", hit.collider.GetComponents<Component>().Select(c => c.GetType().Name))}");
+                    // Raycast hit
                     if (hit.collider.gameObject.layer == LayerMask.NameToLayer("Ignore Raycast"))
                     {
-                        Debug.Log("[PlayerMovement] Hit object is on Ignore Raycast layer. Ignoring.");
+                        // Hit object is on Ignore Raycast layer
                         return;
                     }
                     // Добавлено: DroppedItem
@@ -163,12 +163,12 @@ public class PlayerMovement : NetworkBehaviour
                         float distance = Vector3.Distance(transform.position, hit.point);
                         if (distance <= droppedItem.pickupDistance)
                         {
-                            Debug.Log($"[PlayerMovement] Pickup item: {droppedItem.itemID}");
+                            // Pickup item
                             _core.CmdPickupDroppedItem(droppedItem.netId);
                         }
                         else
                         {
-                            Debug.Log($"[PlayerMovement] Moving to item: {droppedItem.itemID}");
+                            // Moving to item
                             _core.ActionSystem.TryStartAction(PlayerAction.Move, hit.point);
                         }
                         return;
@@ -178,35 +178,35 @@ public class PlayerMovement : NetworkBehaviour
                         PlayerCore targetCore = hit.collider.GetComponentInParent<PlayerCore>();
                         if (targetCore != null && targetCore.team != _core.team)
                         {
-                            Debug.Log($"[PlayerMovement] Starting Attack on target: {hit.collider.name}, netId={targetCore.netId}");
+                            // Starting Attack on target
                             if (_core.Skills.GetGlobalRemainingCooldown() > 0) return;
                             _core.ActionSystem.TryStartAction(PlayerAction.Attack, null, hit.collider.gameObject);
                         }
                         else
                         {
-                            Debug.Log($"[PlayerMovement] Attack ignored: target {hit.collider.name} is on the same team or invalid");
+                            // Attack ignored: same team or invalid
                         }
                     }
                     else if (hit.collider.CompareTag("Enemy"))
                     {
-                        Debug.Log($"[PlayerMovement] Starting Attack on enemy: {hit.collider.name}");
+                        // Starting Attack on enemy
                         if (_core.Skills.GetGlobalRemainingCooldown() > 0) return;
                         _core.ActionSystem.TryStartAction(PlayerAction.Attack, null, hit.collider.gameObject);
                     }
                     else if (hit.collider.CompareTag("Ground"))
                     {
-                        Debug.Log($"[PlayerMovement] Starting Move to position: {hit.point}, layer={LayerMask.LayerToName(hit.collider.gameObject.layer)}");
+                        // Starting Move to position
                         _core.Combat.ClearTarget();
                         _core.ActionSystem.TryStartAction(PlayerAction.Move, hit.point);
                     }
                     else
                     {
-                        Debug.Log($"[PlayerMovement] Raycast hit ignored: tag={hit.collider.tag}, layer={LayerMask.LayerToName(hit.collider.gameObject.layer)}");
+                        // Raycast hit ignored
                     }
                 }
                 else
                 {
-                    Debug.Log("[PlayerMovement] Raycast missed for interactable layers");
+                    // Raycast missed for interactable layers
                 }
             }
         }
@@ -232,7 +232,7 @@ public class PlayerMovement : NetworkBehaviour
             if (result.gameObject.layer == LayerMask.NameToLayer("LocalPlayerUI") ||
                 (result.gameObject.GetComponent<Canvas>() != null && !IsDroppedItemUI(result.gameObject)))
             {
-                Debug.Log($"[PlayerMovement] Pointer over UI: {result.gameObject.name}, layer={LayerMask.LayerToName(result.gameObject.layer)}");
+                // Pointer over UI
                 return true;
             }
         }
@@ -262,7 +262,7 @@ public class PlayerMovement : NetworkBehaviour
         }
         _agent.isStopped = false;
         _agent.SetDestination(destination);
-        Debug.Log($"[PlayerMovement] Moving to destination: {destination}");
+        // Moving to destination
     }
     public void UpdateRotation()
     {
@@ -276,7 +276,7 @@ public class PlayerMovement : NetworkBehaviour
         if (_agent != null && !_agent.isStopped)
         {
             _agent.isStopped = true;
-            Debug.Log("[PlayerMovement] Movement stopped");
+            // Movement stopped
             ClearMoveIndicator();
         }
     }
@@ -300,7 +300,7 @@ public class PlayerMovement : NetworkBehaviour
         if (_agent != null)
         {
             _agent.speed = newSpeed;
-            Debug.Log($"[PlayerMovement] Movement speed set to: {newSpeed}");
+            // Movement speed set
         }
     }
     public float GetOriginalSpeed()
@@ -316,7 +316,7 @@ public class PlayerMovement : NetworkBehaviour
             if (_currentMoveIndicator == null)
             {
                 _currentMoveIndicator = Instantiate(_core.GetMoveIndicatorPrefab(), destination, Quaternion.identity);
-                Debug.Log($"[PlayerMovement] Spawned move indicator at {destination}");
+                // Spawned move indicator
             }
             _currentMoveIndicator.transform.position = destination;
         }
@@ -332,7 +332,7 @@ public class PlayerMovement : NetworkBehaviour
         {
             Destroy(_currentMoveIndicator);
             _currentMoveIndicator = null;
-            Debug.Log("[PlayerMovement] Destroyed move indicator");
+            // Destroyed move indicator
         }
     }
 }

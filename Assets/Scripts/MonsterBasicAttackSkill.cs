@@ -55,7 +55,7 @@ public class MonsterBasicAttackSkill : SkillBase
         bool isCritical = Random.value < criticalChance;
         int damage = isCritical ? Mathf.RoundToInt(baseDamage * criticalMultiplier) : baseDamage;
 
-        Debug.Log($"[MonsterBasicAttackSkill] Monster requesting attack for skill {_skillName} on target: {targetObject.name}, netId: {targetIdentity.netId}, damage: {damage}, isCritical: {isCritical}");
+        // Monster requesting attack
 
         // Вызываем метод в Monster для обработки сетевой атаки
         caster.ExecuteAttack(targetIdentity.netId, _skillName, damage, isCritical);

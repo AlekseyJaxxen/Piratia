@@ -26,7 +26,7 @@ public class HealthMonster : Health
             {
                 monsterAnimation = GetComponentInChildren<MonsterAnimation>();
             }
-            Debug.Log($"[HealthMonster] MonsterAnimation auto-found: {monsterAnimation != null}");
+            // MonsterAnimation auto-found
         }
         
         Debug.Log($"[HealthMonster] Initialized health for {gameObject.name}: {CurrentHealth}");
@@ -47,7 +47,7 @@ public class HealthMonster : Health
         // Aggro ����� ������
         _monster.UpdateAggro(attacker.netId, damage);
         base.TakeDamage(damage, damageType, isCritical, attacker);
-        Debug.Log($"[HealthMonster] Damage taken: {damage}, Current health: {CurrentHealth}, Monster health: {CurrentHealth}/{MaxHealth}");
+        // Damage taken
         _monster.RpcUpdateMonsterUI(CurrentHealth, MaxHealth);
         RpcPlayDamageFlash();
         // Death is handled by base.TakeDamage() in Health.cs
@@ -60,7 +60,7 @@ public class HealthMonster : Health
         {
             monsterAnimation.PlayDamageFlash();
             monsterAnimation.PlayShake();
-            Debug.Log($"[HealthMonster] Triggered damage flash for {gameObject.name}");
+            // Damage flash triggered
         }
     }
     private void UpdateMonsterHealth(int newHealth, int maxHealth)

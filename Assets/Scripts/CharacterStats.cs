@@ -143,7 +143,7 @@ public class CharacterStats : NetworkBehaviour
         skillPoints = level - 1;
         characteristicPoints = CalculateCharacteristicPoints();
         StartCoroutine(InitializeSkills());
-        Debug.Log($"[Server] Character initialized: class={characterClass}, strength={strength}, minAttack={minAttack}, maxAttack={maxAttack}");
+        // Character initialized on server
     }
 
     public override void OnStartClient()
@@ -167,7 +167,7 @@ public class CharacterStats : NetworkBehaviour
         accuracy = classData.accuracy;
         intelligence = classData.intelligence;
         luck = classData.luck;
-        Debug.Log($"[CharacterStats] Loaded ClassData: class={characterClass}, strength={strength}, maxHealth={maxHealth}, maxMana={maxMana}");
+        // ClassData loaded
     }
 
     private IEnumerator InitializeSkills()
@@ -176,7 +176,7 @@ public class CharacterStats : NetworkBehaviour
         if (skills != null)
         {
             yield return skills.StartCoroutine("InitializeSkills");
-            Debug.Log($"[CharacterStats] Skills initialized for class={characterClass}");
+            // Skills initialized
         }
         else
         {
@@ -186,7 +186,7 @@ public class CharacterStats : NetworkBehaviour
 
     private void OnCharacterClassChanged(CharacterClass oldClass, CharacterClass newClass)
     {
-        Debug.Log($"[CharacterStats] Class changed via SyncVar: {oldClass} -> {newClass}");
+        // Class changed via SyncVar
         characterClass = newClass;
         LoadClassData();
         CalculateDerivedStats();
@@ -197,9 +197,9 @@ public class CharacterStats : NetworkBehaviour
     [Command]
     public void CmdSetClass(CharacterClass newClass)
     {
-        Debug.Log($"[CharacterStats] Attempting to load ClassData for {newClass} from Resources/ClassData/{newClass}");
+        // Attempting to load ClassData
         var resources = Resources.LoadAll("ClassData", typeof(ClassData));
-        Debug.Log($"[CharacterStats] Available ClassData files: {string.Join(", ", resources.Select(r => r.name))}");
+        // Available ClassData files listed
         ClassData newClassData = Resources.Load<ClassData>($"ClassData/{newClass}");
         if (newClassData == null)
         {
@@ -488,7 +488,10 @@ public class CharacterStats : NetworkBehaviour
         OnLevelChangedEvent?.Invoke(oldLevel, newLevel);
         if (newLevel > oldLevel && levelUpVFXPrefab != null)
         {
-            RpcSpawnLevelUpVFX();
+            if (isServer)
+            {
+                RpcSpawnLevelUpVFX();
+            }
         }
     }
 

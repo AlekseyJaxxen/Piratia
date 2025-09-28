@@ -37,7 +37,6 @@ public class MonsterAnimation : NetworkBehaviour
             StopCoroutine(damageFlashCoroutine);
         }
         damageFlashCoroutine = StartCoroutine(DamageFlashCoroutine());
-        Debug.Log($"[MonsterAnimation] Playing damage flash for {gameObject.name}");
     }
 
     private IEnumerator DamageFlashCoroutine()
@@ -56,7 +55,6 @@ public class MonsterAnimation : NetworkBehaviour
     public void PlayShake(float duration = 0.5f, float strength = 0.5f)
     {
         // DoTween shake removed - no more jerky movement
-        Debug.Log($"[MonsterAnimation] Shake disabled for {gameObject.name}");
     }
 
     private void OnDisable()

@@ -41,7 +41,7 @@ public class PlayerActionSystem : NetworkBehaviour
         base.OnStopClient();
         CompleteAction();
         ClearTargetIndicator();
-        Debug.Log("[PlayerActionSystem] Cleaned up on client disconnect.");
+        // Cleaned up on client disconnect
     }
     private int GetPriority(PlayerAction action)
     {
@@ -55,7 +55,7 @@ public class PlayerActionSystem : NetworkBehaviour
     }
     public bool TryStartAction(PlayerAction actionType, Vector3? targetPosition = null, GameObject targetObject = null, ISkill skillToCast = null)
     {
-        Debug.Log($"[PlayerActionSystem] Trying to start new action: {actionType}, isOwned: {isOwned}");
+        // Trying to start new action
         if (_core == null)
         {
             Debug.LogError("[PlayerActionSystem] _core is null!");
@@ -109,7 +109,7 @@ public class PlayerActionSystem : NetworkBehaviour
         if ((actionType == PlayerAction.Attack || actionType == PlayerAction.SkillCast) && _core.Skills.toggleBuffStates.ContainsKey("Invisibility") && _core.Skills.toggleBuffStates["Invisibility"])
         {
             _core.Skills.CmdInterruptInvisibility();
-            Debug.Log("[PlayerActionSystem] Interrupted invisibility for attack/skill cast");
+            // Interrupted invisibility
         }
         if (_isPerformingAction)
         {
@@ -117,29 +117,29 @@ public class PlayerActionSystem : NetworkBehaviour
             int currentPriority = GetPriority(_currentActionType);
             if (actionType == PlayerAction.Move && _isCasting)
             {
-                Debug.Log($"[PlayerActionSystem] Ignoring Move: player is casting a skill");
+                // Ignoring Move - player is casting
                 return false;
             }
             // Разрешаем Move или новый Attack прерывать текущий Attack
             if (_currentActionType == PlayerAction.Attack && (actionType == PlayerAction.Move || actionType == PlayerAction.Attack))
             {
-                Debug.Log($"[PlayerActionSystem] Allowing {actionType} to interrupt Attack");
+                // Allowing action to interrupt Attack
                 CompleteAction();
             }
             // Разрешаем Move прерывать SkillCast (если не casting)
             else if (actionType == PlayerAction.Move && _currentActionType == PlayerAction.SkillCast)
             {
-                Debug.Log($"[PlayerActionSystem] Allowing Move to interrupt SkillCast (not yet cast)");
+                // Allowing Move to interrupt SkillCast
                 CompleteAction();
             }
             else if (newPriority >= currentPriority)
             {
-                Debug.Log($"[PlayerActionSystem] Interrupting {_currentActionType} for higher/equal priority: {actionType}");
+                // Interrupting action for higher priority
                 CompleteAction();
             }
             else
             {
-                Debug.Log($"[PlayerActionSystem] Ignoring {actionType}: lower priority than {_currentActionType}");
+                // Ignoring action: lower priority
                 return false;
             }
         }
@@ -180,20 +180,20 @@ public class PlayerActionSystem : NetworkBehaviour
         }
         _core.Combat.ClearTarget();
         _core.Movement.MoveTo(destination);
-        Debug.Log($"[PlayerActionSystem] Moving to destination: {destination}");
+        // Moving to destination
         yield return new WaitUntil(() => !_core.Movement.Agent.pathPending);
         while (_core.Movement.Agent.remainingDistance > _core.Movement.Agent.stoppingDistance)
         {
             if (_core.isDead || _core.isStunned)
             {
-                Debug.Log("[PlayerActionSystem] Movement stopped: player is dead or stunned");
+                // Movement stopped: player is dead or stunned
                 CompleteAction();
                 yield break;
             }
             _core.Movement.UpdateRotation();
             yield return null;
         }
-        Debug.Log($"[PlayerActionSystem] Movement action completed.");
+        // Movement action completed
         CompleteAction();
     }
     private IEnumerator AttackAction(GameObject target, ISkill skill = null)
@@ -211,7 +211,7 @@ public class PlayerActionSystem : NetworkBehaviour
             yield break;
         }
         _core.Combat.SetCurrentTarget(target);
-        Debug.Log($"[PlayerActionSystem] Starting AttackAction on target: {target.name}, has NetworkIdentity: {target.GetComponent<NetworkIdentity>() != null}");
+        // Starting AttackAction on target
         PlayerCore targetPlayerCore = target.GetComponent<PlayerCore>();
         Monster targetMonster = target.GetComponent<Monster>();
         if (targetPlayerCore == null && targetMonster == null)
@@ -222,7 +222,7 @@ public class PlayerActionSystem : NetworkBehaviour
         }
         if (targetPlayerCore != null && targetPlayerCore.team == _core.team)
         {
-            Debug.Log($"[PlayerActionSystem] Attack ignored: target {target.name} is on the same team");
+            // Attack ignored: same team
             CompleteAction();
             yield break;
         }

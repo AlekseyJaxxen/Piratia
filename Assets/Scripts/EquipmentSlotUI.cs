@@ -30,13 +30,13 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
         {
             itemIcon.sprite = item.icon;
             itemIcon.enabled = true;
-            Debug.Log($"[EquipmentSlotUI] Set item: {item.itemName} (ID: {info.id}) in slot {slotType}");
+            // Item set in slot
         }
         else
         {
             itemIcon.sprite = null;
             itemIcon.enabled = false;
-            Debug.Log($"[EquipmentSlotUI] Cleared slot {slotType}");
+            // Slot cleared
         }
     }
     public void OnPointerEnter(PointerEventData eventData)
@@ -55,7 +55,7 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
             tooltipCoroutine = null;
         }
         inventoryUI.HideTooltip();
-        Debug.Log($"[EquipmentSlotUI] Hiding tooltip for slot {slotType}");
+        // Hiding tooltip
     }
     private IEnumerator ShowTooltipAfterDelay(Item item, Vector3 position)
     {
@@ -63,7 +63,7 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
         if (inventoryUI != null && !inventoryUI.isTooltipActive)
         {
             inventoryUI.ShowTooltip(item, position);
-            Debug.Log($"[EquipmentSlotUI] Showing tooltip for {item.itemName} (slot {slotType})");
+            // Showing tooltip
         }
         tooltipCoroutine = null;
     }
@@ -85,7 +85,7 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
         dragImage.rectTransform.sizeDelta = itemIcon.rectTransform.sizeDelta;
         dragImage.raycastTarget = false;
         dragImage.rectTransform.position = eventData.position;
-        Debug.Log($"[EquipmentSlotUI] Begin drag: {item.itemName} (ID: {itemInfo.id}) from slot {slotType}");
+        // Begin drag
     }
     public void OnDrag(PointerEventData eventData)
     {
@@ -105,12 +105,12 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
         InventorySlot targetSlot = eventData.pointerEnter?.GetComponent<InventorySlot>();
         if (targetSlot != null)
         {
-            Debug.Log($"[EquipmentSlotUI] Unequipping item: {item.itemName} (ID: {itemInfo.id}) from slot {slotType} to inventory slot {targetSlot.slotIndex}");
+            // Unequipping item
             core.CmdUnequipItem(slotType);
         }
         else if (item.canDrop)
         {
-            Debug.Log($"[EquipmentSlotUI] Dropping item: {item.itemName} (ID: {itemInfo.id}) from slot {slotType}");
+            // Dropping item
             core.CmdDropItem(itemInfo.id, -1);
             core.CmdUnequipItem(slotType);
         }
@@ -147,7 +147,7 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
             inventoryUI.draggedSlot = null;
             return;
         }
-        // Авто-своп: если слот занят, unequip сначала
+        // пїЅпїЅпїЅпїЅ-пїЅпїЅпїЅпїЅ: пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ, unequip пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         if (itemInfo.id > 0)
         {
             Debug.Log($"[EquipmentSlotUI] Slot {slotType} occupied, auto-unequip first");

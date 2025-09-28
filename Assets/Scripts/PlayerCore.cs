@@ -608,7 +608,7 @@ public class PlayerCore : NetworkBehaviour
             this.Inventory.ClearItemSlot(slotIndex);
             RpcUpdateInventoryUI();
             RpcClearHotbarItem(itemID);
-            Debug.Log($"[PlayerCore] Dropped item: {item.itemName} (ID: {itemID}) from slot {slotIndex}, quantity: {dropQuantity}");
+            // Item dropped
             SpawnDroppedItem(itemID, dropQuantity);
         }
     }
@@ -629,7 +629,7 @@ public class PlayerCore : NetworkBehaviour
             droppedScript.quantity = quantity;
         }
         NetworkServer.Spawn(droppedItem);
-        Debug.Log($"[PlayerCore] Spawned dropped item: ID {itemID}, quantity {quantity} at {droppedItem.transform.position}");
+        // Dropped item spawned
     }
 
     [Command]
@@ -654,7 +654,7 @@ public class PlayerCore : NetworkBehaviour
             if (this.Inventory.items[slotIndex].quantity <= 0)
                 this.Inventory.ClearItemSlot(slotIndex);
             RpcUpdateInventoryUI();
-            Debug.Log($"[PlayerCore] Sold item: {item.itemName} (ID: {itemID}) from slot {slotIndex}");
+            // Item sold
         }
     }
 
@@ -682,12 +682,12 @@ public class PlayerCore : NetworkBehaviour
             if (item.skillEffect != null)
             {
                 RpcSelectItemSkill(itemID, slotIndex);
-                Debug.Log($"[PlayerCore] Selected skill from item {item.itemName} (ID: {itemID}) (slot {slotIndex})");
+                // Selected skill from item
                 return;
             }
             item.Use(this);
             ConsumeItem(slotIndex, itemID);
-            Debug.Log($"[PlayerCore] Used item: {item.itemName} (ID: {itemID}) (slot {slotIndex})");
+            // Item used
         }
     }
 
@@ -707,7 +707,7 @@ public class PlayerCore : NetworkBehaviour
             }
             RpcUpdateInventoryUI();
         }
-        Debug.Log($"[PlayerCore] Consumed item {itemID} from slot {slotIndex}");
+        // Item consumed
     }
 
     [Server]
@@ -757,7 +757,7 @@ public class PlayerCore : NetworkBehaviour
         Inventory.items[slotIndex1] = Inventory.items[slotIndex2];
         Inventory.items[slotIndex2] = temp;
         RpcUpdateInventoryUI();
-        Debug.Log($"[PlayerCore] Swapped slots: {slotIndex1} <-> {slotIndex2}");
+        // Slots swapped
     }
 
     [Command]
