@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6783aa84a740ec84aaa67e602fe30424, type: 3}
+  m_Name: MushroomMob
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterInfo
+  monsterName: Moshroom
+  moveSpeed: 15
+  attackCooldown: 2
+  deathVFXPrefab: {fileID: 142478, guid: 120d855bc18f7fa4f8c46575d5629105, type: 3}
+  canMove: 1
+  canAttack: 1
+  slowEffectPrefab: {fileID: 4637046911172921311, guid: 9c9304a4aaf7f8d45bf498861bade450,
+    type: 3}
+  experienceReward: 1500
+  dropTable:
+  - item: {fileID: 11400000, guid: 535f7ff821cde9549b1c6f1170af339b, type: 2}
+    dropChance: 1
+  - item: {fileID: 11400000, guid: 9421be2e35934f940b518c516057cd91, type: 2}
+    dropChance: 1
+  droppedItemPrefab: {fileID: 8686491603925156450, guid: 133a99e109889094299eec33717cff52,
+    type: 3}
+  maxHealth: 100000
+  stoppingDistance: 1
+  basicAttackSkill: {fileID: 11400000, guid: a229fccd33ff10744a8a3c45ed1c4195, type: 2}
+  hitRate: 10
+  dodge: 50
+  physicsModel: {fileID: 0}
+  minForce: {x: -5, y: 2, z: -5}
+  maxForce: {x: 5, y: 5, z: 0}
+  monsterId: 1
+  aiType: AI2
+  modelPrefab: {fileID: 6341273223897909833, guid: 0775bd3be157abd45bd6e2c194560be4,
+    type: 3}
+  isCombined: 0
+  legsInfo: {fileID: 0}
+  headAttackRange: 3
+  legsAttackRange: 2
+  patrolRadius: 10
+  chaseTimeout: 30
+  detectionRange: 10
+  attackRange: 2
+  playerLayer:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  monsterSkills:
+  - skill: {fileID: 0}
+    cooldown: 0
+    useChance: 0
+    minHealthPercentage: 0
+    maxHealthPercentage: 0
+    minDistance: 0
+    maxDistance: 0
+    requiresTarget: 0

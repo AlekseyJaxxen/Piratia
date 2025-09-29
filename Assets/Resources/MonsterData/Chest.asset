@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6783aa84a740ec84aaa67e602fe30424, type: 3}
+  m_Name: Chest
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterInfo
+  monsterName: Chest
+  moveSpeed: 0
+  attackCooldown: 2
+  deathVFXPrefab: {fileID: 0}
+  canMove: 1
+  canAttack: 1
+  slowEffectPrefab: {fileID: 0}
+  experienceReward: 50
+  dropTable:
+  - item: {fileID: 11400000, guid: e619915cd8351e14a83c0b088390741a, type: 2}
+    dropChance: 1
+  droppedItemPrefab: {fileID: 8686491603925156450, guid: 133a99e109889094299eec33717cff52,
+    type: 3}
+  maxHealth: 10000
+  stoppingDistance: 1
+  basicAttackSkill: {fileID: 0}
+  physicsModel: {fileID: 0}
+  minForce: {x: -5, y: 2, z: -5}
+  maxForce: {x: 5, y: 5, z: 0}
+  monsterId: 0
+  aiType: AI2
+  modelPrefab: {fileID: 0}

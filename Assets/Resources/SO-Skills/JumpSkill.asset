@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 714bdda345dc29041a29cb834d9a4129, type: 3}
+  m_Name: JumpSkill
+  m_EditorClassIdentifier: Assembly-CSharp::JumpSkill
+  castType: 2
+  _icon: {fileID: 21300000, guid: f34ffef4875320a4b854843909a00332, type: 3}
+  _skillName: JumpSkill
+  _description: 
+  _hotkey: 48
+  _range: 30
+  _cooldown: 3
+  _castTime: 0
+  _castCursor: {fileID: 0}
+  _manaCost: 0
+  _damageType: 0
+  _weight: 1
+  _effectRadius: 0
+  _ignoreGlobalCooldown: 0
+  castRangePrefab: {fileID: 0}
+  effectRadiusPrefab: {fileID: 8212533921873324154, guid: e6230a171a068cd489eb410abd241717,
+    type: 3}
+  VFXPrefab: {fileID: 0}
+  baseJumpDistance: 30
+  jumpDuration: 0.8
+  maxHeightDifference: 30
+  heightMultiplier: 1
