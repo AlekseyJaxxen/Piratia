@@ -89,7 +89,7 @@ public class Health : NetworkBehaviour
     }
 
     [Server]
-    public void TakeDamage(int baseDamage, DamageType damageType, bool isCritical, NetworkIdentity attacker = null, float damageMultiplier = 1f)
+    public void TakeDamage(int baseDamage, DamageType damageType, bool isCritical, NetworkIdentity attacker = null, float damageMultiplier = 1f, bool isBasicAttack = false)
     {
         PlayerCore attackerCore = attacker?.GetComponent<PlayerCore>();
         if (attackerCore != null && attackerCore.isDead)
@@ -97,6 +97,15 @@ public class Health : NetworkBehaviour
             Debug.LogWarning($"[Health] Ignoring damage from dead attacker {attackerCore.playerName}");
             return;
         }
+        
+        // Check hit/miss only for basic attacks
+        if (isBasicAttack && damageType == DamageType.Physical && !CheckHit(attacker))
+        {
+            Debug.Log($"[Health] Basic attack missed! Attacker: {attacker?.name}, Target: {gameObject.name}");
+            RpcShowMissText();
+            return;
+        }
+        
         int finalDamage = CalculateFinalDamage(baseDamage, damageType);
         finalDamage = Mathf.RoundToInt(finalDamage * damageMultiplier);
         if (isCritical)
@@ -109,7 +118,7 @@ public class Health : NetworkBehaviour
         CurrentHealth -= finalDamage;
         LastAttacker = attacker;
         // Damage taken on server
-        RpcShowDamageNumber(finalDamage, isCritical, damageType);
+        RpcShowDamageNumber(finalDamage, isCritical, damageType, attacker);
         PlayerSkills skills = GetComponent<PlayerSkills>();
         if (skills != null)
         {
@@ -137,6 +146,70 @@ public class Health : NetworkBehaviour
                 player.SetDeathState(true);
             }
         }
+    }
+
+    [Server]
+    private bool CheckHit(NetworkIdentity attacker)
+    {
+        if (attacker == null) return true; // No attacker, always hit
+        
+        int attackerHit = 0;
+        int targetDodge = 0;
+        
+        // Get attacker hit rate
+        PlayerCore attackerPlayer = attacker.GetComponent<PlayerCore>();
+        Monster attackerMonster = attacker.GetComponent<Monster>();
+        
+        if (attackerPlayer != null)
+        {
+            CharacterStats attackerStats = attackerPlayer.GetComponent<CharacterStats>();
+            if (attackerStats != null)
+            {
+                attackerHit = Mathf.RoundToInt(attackerStats.hitChance);
+            }
+        }
+        else if (attackerMonster != null)
+        {
+            attackerHit = attackerMonster.hitRate;
+        }
+        
+        // Get target dodge
+        PlayerCore targetPlayer = GetComponent<PlayerCore>();
+        Monster targetMonster = GetComponent<Monster>();
+        
+        if (targetPlayer != null)
+        {
+            CharacterStats targetStats = targetPlayer.GetComponent<CharacterStats>();
+            if (targetStats != null)
+            {
+                targetDodge = Mathf.RoundToInt(targetStats.dodgeChance);
+            }
+        }
+        else if (targetMonster != null)
+        {
+            targetDodge = targetMonster.dodge;
+        }
+        
+        // Calculate hit chance: 
+        // If hit >= dodge: 100% chance
+        // If dodge > hit: max(10, dodge - hit)
+        int hitChance;
+        if (attackerHit >= targetDodge)
+        {
+            hitChance = 100; // 100% hit chance
+        }
+        else
+        {
+            hitChance = Mathf.Max(10, targetDodge - attackerHit);
+        }
+        
+        // Roll for hit
+        int roll = Random.Range(1, 101); // 1-100
+        bool hit = roll <= hitChance;
+        
+        Debug.Log($"[Health] Hit check: Attacker hit={attackerHit}, Target dodge={targetDodge}, Hit chance={hitChance}%, Roll={roll}, Result={(hit ? "HIT" : "MISS")}");
+        
+        return hit;
     }
 
     [Server]
@@ -168,7 +241,7 @@ public class Health : NetworkBehaviour
     }
 
     [ClientRpc]
-    private void RpcShowDamageNumber(int damage, bool isCritical, DamageType damageType)
+    private void RpcShowDamageNumber(int damage, bool isCritical, DamageType damageType, NetworkIdentity attacker)
     {
         if (floatingTextPrefab != null)
         {
@@ -177,8 +250,12 @@ public class Health : NetworkBehaviour
             FloatingDamageText damageTextScript = floatingTextInstance.GetComponent<FloatingDamageText>();
             if (damageTextScript != null)
             {
-                damageTextScript.SetDamageText(damage, isCritical);
-                Debug.Log($"[Client] Spawned damage text: -{damage} (isCritical: {isCritical}) at {spawnPosition} for {gameObject.name}");
+                // Определяем тип урона
+                bool isOtherPlayer = attacker != null && !attacker.isLocalPlayer;
+                bool isReceivedDamage = gameObject.GetComponent<NetworkIdentity>().isLocalPlayer;
+                
+                damageTextScript.SetDamageText(damage, isCritical, isOtherPlayer, isReceivedDamage);
+                Debug.Log($"[Client] Spawned damage text: -{damage} (isCritical: {isCritical}, isOtherPlayer: {isOtherPlayer}, isReceivedDamage: {isReceivedDamage}) at {spawnPosition} for {gameObject.name}");
             }
             else
             {
@@ -204,6 +281,31 @@ public class Health : NetworkBehaviour
             {
                 healTextScript.SetHealText(healAmount);
                 Debug.Log($"[Client] Spawned heal text: +{healAmount} at {spawnPosition} for {gameObject.name}");
+            }
+            else
+            {
+                Debug.LogWarning($"[Health] FloatingDamageText component missing on floatingTextPrefab for {gameObject.name}");
+                Destroy(floatingTextInstance);
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"[Health] floatingTextPrefab is null for {gameObject.name}");
+        }
+    }
+
+    [ClientRpc]
+    private void RpcShowMissText()
+    {
+        if (floatingTextPrefab != null)
+        {
+            Vector3 spawnPosition = transform.position + Vector3.up * damageTextSpawnHeight;
+            GameObject floatingTextInstance = Instantiate(floatingTextPrefab, spawnPosition, Quaternion.identity);
+            FloatingDamageText missTextScript = floatingTextInstance.GetComponent<FloatingDamageText>();
+            if (missTextScript != null)
+            {
+                missTextScript.SetMissText();
+                Debug.Log($"[Client] Spawned miss text: MISS at {spawnPosition} for {gameObject.name}");
             }
             else
             {

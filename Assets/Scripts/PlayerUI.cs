@@ -318,9 +318,9 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
                 {
                     if (btn.skill.SkillCastType == SkillBase.CastType.SelfBuff)
                     {
-                        btn.skill.Execute(core, null, core.gameObject);
-                        skillsComp.CancelSkillSelection();
-                        Debug.Log($"[PlayerUI] Instant SelfBuff: {btn.skill.SkillName}");
+                        // SelfBuff теперь проходит через PlayerActionSystem для прерывания действий
+                        core.ActionSystem.TryStartAction(PlayerAction.SkillCast, null, core.gameObject, btn.skill);
+                        Debug.Log($"[PlayerUI] SelfBuff through ActionSystem: {btn.skill.SkillName}");
                     }
                     else if (btn.skill.SkillCastType == SkillBase.CastType.ToggleBuff)
                     {
@@ -359,9 +359,9 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
                 {
                     if (btn.skill.SkillCastType == SkillBase.CastType.SelfBuff)
                     {
-                        btn.skill.Execute(core, null, core.gameObject);
-                        skillsComp.CancelSkillSelection();
-                        Debug.Log($"[PlayerUI] Instant SelfBuff: {btn.skill.SkillName}");
+                        // SelfBuff теперь проходит через PlayerActionSystem для прерывания действий
+                        core.ActionSystem.TryStartAction(PlayerAction.SkillCast, null, core.gameObject, btn.skill);
+                        Debug.Log($"[PlayerUI] SelfBuff through ActionSystem: {btn.skill.SkillName}");
                     }
                     else if (btn.skill.SkillCastType == SkillBase.CastType.ToggleBuff)
                     {
@@ -491,8 +491,8 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         if (magicDamageMultiplierText != null) magicDamageMultiplierText.text = $"{stats.magicDamageMultiplier:F2}x";
         if (movementSpeedText != null) movementSpeedText.text = $"{stats.movementSpeed:F1}";
         if (attackSpeedText != null) attackSpeedText.text = $"{stats.attackSpeed:F2}";
-        if (dodgeChanceText != null) dodgeChanceText.text = $"{stats.dodgeChance:F1}%";
-        if (hitChanceText != null) hitChanceText.text = $"{stats.hitChance:F1}%";
+        if (dodgeChanceText != null) dodgeChanceText.text = $"{stats.dodgeChance:F0}";
+        if (hitChanceText != null) hitChanceText.text = $"{stats.hitChance:F0}";
         if (criticalHitChanceText != null) criticalHitChanceText.text = $"{stats.criticalHitChance:F1}%";
         if (criticalHitMultiplierText != null) criticalHitMultiplierText.text = $"{stats.criticalHitMultiplier:F2}x";
         if (minAttackText != null) minAttackText.text = $"{stats.minAttack}";

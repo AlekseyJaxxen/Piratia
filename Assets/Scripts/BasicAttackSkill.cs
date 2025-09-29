@@ -69,14 +69,14 @@ public class BasicAttackSkill : SkillBase
         HealthMonster targetHealthMonster = targetObject.GetComponent<HealthMonster>();
         if (targetHealthMonster != null)
         {
-            targetHealthMonster.TakeDamage(damage, SkillDamageType, isCritical, caster.netIdentity);
+            targetHealthMonster.TakeDamage(damage, SkillDamageType, isCritical, caster.netIdentity, true);
         }
         else
         {
             Health targetHealth = targetObject.GetComponent<Health>();
             if (targetHealth != null)
             {
-                targetHealth.TakeDamage(damage, SkillDamageType, isCritical, caster.netIdentity);
+                targetHealth.TakeDamage(damage, SkillDamageType, isCritical, caster.netIdentity, 1f, true);
             }
         }
         Vector3 startPos = caster.transform.position + vfxStartOffset;

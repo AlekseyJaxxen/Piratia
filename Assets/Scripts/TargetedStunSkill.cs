@@ -67,14 +67,14 @@ public class TargetedStunSkill : SkillBase
         HealthMonster targetHealthMonster = targetObject.GetComponent<HealthMonster>();
         if (targetHealthMonster != null && finalDamage > 0)
         {
-            targetHealthMonster.TakeDamage(finalDamage, SkillDamageType, false, caster.netIdentity);
+            targetHealthMonster.TakeDamage(finalDamage, SkillDamageType, false, caster.netIdentity, damageMultiplier);
         }
         else
         {
             Health targetHealth = targetObject.GetComponent<Health>();
             if (targetHealth != null && finalDamage > 0)
             {
-                targetHealth.TakeDamage(finalDamage, SkillDamageType, false, caster.netIdentity);
+                targetHealth.TakeDamage(finalDamage, SkillDamageType, false, caster.netIdentity, damageMultiplier);
             }
         }
 

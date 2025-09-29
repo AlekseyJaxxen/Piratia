@@ -61,14 +61,14 @@ public class SlowSkill : SkillBase
         HealthMonster targetHealthMonster = targetObject.GetComponent<HealthMonster>();
         if (targetHealthMonster != null)
         {
-            targetHealthMonster.TakeDamage(finalDamage, SkillDamageType, false, caster.netIdentity);
+            targetHealthMonster.TakeDamage(finalDamage, SkillDamageType, false, caster.netIdentity, damageMultiplier);
         }
         else
         {
             Health targetHealth = targetObject.GetComponent<Health>();
             if (targetHealth != null)
             {
-                targetHealth.TakeDamage(finalDamage, SkillDamageType, false, caster.netIdentity);
+                targetHealth.TakeDamage(finalDamage, SkillDamageType, false, caster.netIdentity, damageMultiplier);
             }
         }
         PlayerCore targetCore = targetObject.GetComponent<PlayerCore>();

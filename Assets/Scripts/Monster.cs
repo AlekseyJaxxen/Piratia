@@ -15,13 +15,191 @@ public class DropEntry
 public class Monster : NetworkBehaviour
 {
     [SyncVar(hook = nameof(OnMonsterIdChanged))] public int monsterId;
-    private MonsterInfo info;
+    public MonsterInfo info;
     [Header("Monster Settings")]
     [SyncVar(hook = nameof(OnNameChanged))] public string monsterName = "Monster";
     private float moveSpeed = 5f;
     private float attackCooldown = 2f;
     private GameObject deathVFXPrefab;
     public bool canMove = true;
+    
+    [Header("Combat Stats")]
+    [SyncVar] public int hitRate = 10;
+    [SyncVar] public int dodge = 10;
+    
+    // Методы для управления анимациями combined монстра
+    // PlayAnimation работает и на сервере и на клиенте
+    public void PlayAnimation(string animationName)
+    {
+        if (!NetworkServer.active && !NetworkClient.active)
+        {
+            // Вызываю локально (например в Editor)
+            if (_animator != null)
+            {
+                if (_animator != null)
+                {
+                    _animator.Play(animationName);
+                }
+            }
+            return;
+        }
+        
+        if (NetworkServer.active)
+        {
+            // Сервер: управляем анимацией через систему RPC
+            if (isCombinedLegs && partnerMonster != null)
+            {
+                // Legs управляет аниматором head
+                if (animationName != "Walk" && animationName != "Idle")
+                {
+                    Debug.Log($"[Monster] Server - Legs {name} playing animation {animationName} on head {partnerMonster.name}");
+                }
+                partnerMonster.RpcPlayAnimation(animationName);
+            }
+            else if (_animator != null)
+            {
+                if (animationName != "Walk" && animationName != "Idle")
+                {
+                    Debug.Log($"[Monster] Server - Monster {name} playing animation {animationName}");
+                }
+                _animator.Play(animationName);
+            }
+        }
+        else if (NetworkClient.active)
+        {
+            // Клиент: играем анимацию локально
+            if (_animator != null)
+            {
+                if (animationName != "Walk" && animationName != "Idle")
+                {
+                    Debug.Log($"[Monster] Client - Monster {name} playing animation {animationName}");
+                }
+                _animator.Play(animationName);
+            }
+        }
+    }
+    
+    [ClientRpc]
+    public void RpcPlayAnimation(string animationName)
+    {
+        if (isCombinedLegs && partnerMonster != null)
+        {
+            // Legs управляет аниматором head НО для атаки используем правильную анимацию
+            if (animationName == "LegsKick")
+            {
+                // Для legs атаки играем Kick на head аниматоре
+                if (animationName != "Walk" && animationName != "Idle")
+                {
+                    Debug.Log($"[Monster] RPC: Legs {name} playing animation LegsKick on head {partnerMonster.name}");
+                }
+                if (partnerMonster._animator != null)
+                {
+                    partnerMonster._animator.Play("LegsKick");
+                }
+            }
+            else
+            {
+                // Для остальных анимаций передаем управление head
+                if (animationName != "Walk" && animationName != "Idle")
+                {
+                    Debug.Log($"[Monster] RPC: Legs {name} delegating animation {animationName} to head {partnerMonster.name}");
+                }
+                partnerMonster.RpcPlayAnimation(animationName);
+            }
+        }
+        else if (_animator != null)
+        {
+            // Head или обычный монстр управляет своим аниматором
+            if (animationName != "Walk" && animationName != "Idle")
+            {
+                Debug.Log($"[Monster] RPC: {name} playing animation {animationName} on own animator");
+            }
+            _animator.Play(animationName);
+        }
+        else
+        {
+            if (animationName != "Walk" && animationName != "Idle")
+            {
+                Debug.LogWarning($"[Monster] RPC: {name} cannot play animation {animationName}: _animator is null");
+            }
+        }
+    }
+    
+    // Упрощенные методы для combined монстров
+    [Server]
+    public void ExecuteAttack(PlayerCore target = null)
+    {
+        if (!canAttack || IsDead || IsStunned || IsSilenced) 
+        {
+            Debug.Log($"[Monster] ExecuteAttack blocked for {name}: canAttack={canAttack}, IsDead={IsDead}, IsStunned={IsStunned}, IsSilenced={IsSilenced}");
+            return;
+        }
+        
+        if (isCombinedHead)
+        {
+            // Атака головы
+            string partnerName = partnerMonster != null ? partnerMonster.name : "null";
+            Debug.Log($"[Monster] Head attacking: {name}, partner: {partnerName}, _animator: {_animator != null}");
+            
+            // ДИАГНОСТИКА: проверяем состояние в ExecuteAttack(PlayerCore)
+            bool headIsAlive = !IsDead;
+            bool partnerIsDead = partnerMonster == null || partnerMonster.IsDead;
+            bool headShouldBeFallen = headIsAlive && partnerIsDead; // Голова жива НО legs мертвы = упала
+            
+            Debug.Log($"[Monster] ExecuteAttack(PlayerCore) - HeadAlive: {headIsAlive}, PartnerDead: {partnerIsDead}, shouldBeFallen: {headShouldBeFallen}");
+            
+            // Проверяем: голова упала (legs мертвы и он сама жива) ИЛИ головы просто стоит
+            if (headShouldBeFallen)
+            {
+                // Голова упала - играем анимацию лежа
+                Debug.Log($"[Monster] ExecuteAttack(PlayerCore) Playing HeadPunchLying for FALLEN head");
+                PlayAnimation("HeadPunchLying");
+                RpcPlayAnimation("HeadPunchLying");
+            }
+            else
+            {
+                // Голова стоит - играем обычную анимацию
+                Debug.Log($"[Monster] ExecuteAttack(PlayerCore) Playing HeadPunch for STANDING head");
+                PlayAnimation("HeadPunch");
+                RpcPlayAnimation("HeadPunch");
+            }
+            
+            // Используем MonsterBasicAttackSkill для нанесения урона
+            if (basicAttackSkill != null && target != null)
+            {
+                Debug.Log($"[Monster] Head using basicAttackSkill to attack {target.name}");
+                basicAttackSkill.Execute(this, null, target.gameObject);
+            }
+            else
+            {
+                Debug.LogWarning($"[Monster] Head attack failed: basicAttackSkill={basicAttackSkill != null}, target={target != null}");
+            }
+        }
+        else if (isCombinedLegs)
+        {
+            // Атака ног
+            Debug.Log($"[Monster] Legs attacking: {name}, partner: {partnerMonster?.name}");
+            PlayAnimation("LegsKick");
+            RpcPlayAnimation("LegsKick");
+            
+            // Используем MonsterBasicAttackSkill для нанесения урона
+            if (basicAttackSkill != null && target != null)
+            {
+                Debug.Log($"[Monster] Legs using basicAttackSkill to attack {target.name}");
+                basicAttackSkill.Execute(this, null, target.gameObject);
+            }
+            else
+            {
+                Debug.LogWarning($"[Monster] Legs attack failed: basicAttackSkill={basicAttackSkill != null}, target={target != null}");
+            }
+        }
+        else if (basicAttackSkill != null)
+        {
+            // Обычная атака - используем существующий метод
+            Debug.Log($"[Monster] Regular monster attacking: {name}");
+            // basicAttackSkill.ExecuteAttack(this);
+        }
+    }
     private bool canAttack = true;
     private GameObject slowEffectPrefab;
     [Header("Aggro & Experience")]
@@ -50,11 +228,18 @@ public class Monster : NetworkBehaviour
     public Vector3 maxForce = new Vector3(5f, 5f, 0f);
     [SyncVar] public bool IsCooldown = false;
     private SkinnedMeshRenderer _renderer;
+    private Animator _animator;
     private HealthMonster _health;
     private MonsterSkillExecutor _skillExecutor;
     // ��� combined
-    [SyncVar] public uint legsNetId = 0;
-    [SyncVar] public uint headNetId = 0;
+    // Simplified Combined Settings
+    [Header("Combined Settings")]
+    [SyncVar] public bool isCombinedHead = false;
+    [SyncVar] public bool isCombinedLegs = false;
+    [SyncVar] public uint partnerNetId = 0; // Ссылка на партнера
+    
+    public Monster partnerMonster;
+    public bool isFalling = false;  // Флаг для отслеживания падения головы
     private void Awake()
     {
         _agent = GetComponent<NavMeshAgent>();
@@ -77,6 +262,45 @@ public class Monster : NetworkBehaviour
         if (_renderer == null)
         {
             Debug.LogWarning($"[Monster] SkinnedMeshRenderer not found on {monsterName}");
+        }
+    }
+    
+    private void Start()
+    {
+        if (isCombinedHead || isCombinedLegs)
+        {
+            StartCoroutine(FindPartnerDelayed());
+        }
+    }
+    
+    private IEnumerator FindPartnerDelayed()
+    {
+        yield return new WaitForSeconds(1f);
+        
+        if (NetworkServer.spawned.TryGetValue(partnerNetId, out var partnerIdentity))
+        {
+            partnerMonster = partnerIdentity.GetComponent<Monster>();
+        }
+    }
+    
+    // Упрощенная синхронизация
+    private void Update()
+    {
+        if (isCombinedLegs && partnerMonster != null)
+        {
+            // Legs двигает Head только если head не упал И head не в процессе падения
+            if (!partnerMonster.IsDead && partnerMonster.isFalling == false)
+            {
+                // Проверяем позицию head - устанавливаем только если нужно
+                Vector3 expectedHeadPos = transform.position + Vector3.up * 15f;
+                if (Vector3.Distance(partnerMonster.transform.position, expectedHeadPos) > 1f)
+                {
+                    partnerMonster.transform.position = expectedHeadPos;
+                    partnerMonster.transform.rotation = transform.rotation;
+                    // Логи убраны - не спамим каждый Update
+                }
+            }
+            // НЕ двигаем head если он мертв или падает - убраны спам логи
         }
     }
     public override void OnStartServer()
@@ -149,6 +373,10 @@ public class Monster : NetworkBehaviour
             Debug.LogWarning("[Monster] DroppedItemPrefab not set!");
         _health.MaxHealth = info.maxHealth;
         _health.CurrentHealth = info.maxHealth;
+        
+        // Initialize combat stats
+        hitRate = info.hitRate;
+        dodge = info.dodge;
 
         // Initialize AI with SO parameters
         MonsterAI2 ai2 = GetComponent<MonsterAI2>();
@@ -171,35 +399,23 @@ public class Monster : NetworkBehaviour
                 GameObject legsGO = Instantiate(MonsterSpawner.Instance.monsterPrefab, transform.position, Quaternion.identity);
                 Monster legsMonster = legsGO.GetComponent<Monster>();
                 legsMonster.monsterId = info.legsInfo.monsterId;
-                legsMonster.headNetId = netIdentity.netId;
-                legsMonster.canMove = false;
-                legsMonster.canAttack = false;
-                if (legsMonster._agent != null) legsMonster._agent.enabled = false; // ��� AI
-                
-                // Инициализируем синхронизацию ног с головой
-                CombinedMonsterSync legsSyncComponent = legsGO.GetComponent<CombinedMonsterSync>();
-                if (legsSyncComponent == null)
-                {
-                    legsSyncComponent = legsGO.AddComponent<CombinedMonsterSync>();
-                }
+                legsMonster.isCombinedLegs = true;
+                legsMonster.canMove = true;  // Legs должны двигаться
+                legsMonster.canAttack = true;  // Legs должны атаковать
+                if (legsMonster._agent != null) legsMonster._agent.enabled = true; // ��� AI
                 
                 NetworkServer.Spawn(legsGO);
-                legsNetId = legsGO.GetComponent<NetworkIdentity>().netId;
                 
-                // Инициализируем синхронизацию после спавна
-                legsSyncComponent.InitializeAsLegs(netIdentity.netId);
+                // Устанавливаем связи
+                isCombinedHead = true;
+                partnerNetId = legsGO.GetComponent<NetworkIdentity>().netId;
+                legsMonster.partnerNetId = netIdentity.netId;
                 // Legs spawned for combined monster
             }
             transform.position += Vector3.up * 15f; // Head �� 15
             if (_agent != null) _agent.baseOffset = 15f; // ������� �����
         }
-        else if (headNetId != 0)
-        {
-            // Legs
-            canAttack = false;
-            canMove = false;
-            if (_agent != null) _agent.enabled = false; // ��������� AI ��� legs
-        }
+        // Legs инициализируются автоматически через isCombinedLegs
     }
 
     private void LoadAndInitializeClient()
@@ -221,11 +437,36 @@ public class Monster : NetworkBehaviour
             {
                 model.transform.localPosition = Vector3.zero;
             }
+            // Добавляем tag для легкого поиска
+            model.tag = "MonsterModel";
             // Model prefab instantiated
             _renderer = model.GetComponentInChildren<SkinnedMeshRenderer>();
             if (_renderer == null)
             {
                 Debug.LogWarning($"[Monster] SkinnedMeshRenderer not found after instantiating model on {monsterName}");
+            }
+            
+            // Получаем Animator для управления анимациями
+            // Для legs монстра не ищем аниматор - он будет использовать аниматор head
+            if (!isCombinedLegs)
+            {
+                _animator = model.GetComponent<Animator>();
+                if (_animator == null)
+                {
+                    _animator = model.GetComponentInChildren<Animator>();
+                }
+                if (_animator == null)
+                {
+                    Debug.LogWarning($"[Monster] Animator not found after instantiating model on {monsterName}");
+                }
+                else
+                {
+                    Debug.Log($"[Monster] Found animator on {monsterName}");
+                }
+            }
+            else
+            {
+                Debug.Log($"[Monster] Legs monster {monsterName} - animator will be shared with head");
             }
         }
         else
@@ -467,31 +708,23 @@ public class Monster : NetworkBehaviour
         // Уведомляем всех клиентов о смерти монстра
         RpcOnMonsterDeath();
         
-        // Уведомляем клиентов о смерти головы
-        Debug.Log($"[Monster] Die() called for {name}, headNetId: {headNetId}, isServer: {isServer}");
-        if (headNetId != 0)
+        // Упрощенная логика смерти для combined монстров
+        Debug.Log($"[Monster] Die() called for {name}, isCombinedHead: {isCombinedHead}, isCombinedLegs: {isCombinedLegs}, partnerNetId: {partnerNetId}");
+        
+        // Если это голова combined монстра - убиваем ноги
+        if (isCombinedHead && partnerMonster != null)
         {
-            Debug.Log($"[Monster] Calling RpcOnLegsDeath for headNetId: {headNetId}");
-            RpcOnLegsDeath(headNetId);
-            
-            // Также заставляем голову упасть на сервере
-            if (NetworkServer.spawned.TryGetValue(headNetId, out var headIdentity))
-            {
-                Monster headMonster = headIdentity.GetComponent<Monster>();
-                if (headMonster != null)
-                {
-                    Debug.Log($"[Monster] Calling Fall() on server for head: {headMonster.name}");
-                    headMonster.Fall();
-                }
-                else
-                {
-                    Debug.LogWarning($"[Monster] Head monster component not found for netId: {headNetId}");
-                }
-            }
-            else
-            {
-                Debug.LogWarning($"[Monster] Head monster not found in spawned objects for netId: {headNetId}");
-            }
+            Debug.Log($"[Monster] Head died, killing legs: {partnerMonster.name}");
+            partnerMonster.Die();
+        }
+        
+        // Если это ноги combined монстра - заставляем голову упасть
+        if (isCombinedLegs && partnerMonster != null)
+        {
+            Debug.Log($"[Monster] Legs died, making head fall instantly: {partnerMonster.name}");
+            partnerMonster.FallInstantly();
+            // Уведомляем всех клиентов о смерти legs для синхронизации
+            RpcOnLegsDeath(partnerMonster.netIdentity.netId);
         }
         
         // Уничтожаем монстра сразу после смерти
@@ -606,67 +839,13 @@ public class Monster : NetworkBehaviour
     }
     
     [ClientRpc]
-    private void RpcOnLegsDeath(uint headId)
+    private void RpcOnLegsDeath(uint headNetId)
     {
-        Debug.Log($"[Monster] RpcOnLegsDeath called for headId: {headId} on client, isServer: {isServer}, isClient: {isClient}");
-        // Находим голову и заставляем её упасть на клиенте
-        Monster[] allMonsters = FindObjectsOfType<Monster>();
-        bool headFound = false;
-        foreach (Monster monster in allMonsters)
-        {
-            if (monster.netIdentity.netId == headId)
-            {
-                Debug.Log($"[Monster] Found head monster: {monster.name}, calling FallOnClient");
-                // НЕ устанавливаем IsDead = true для головы - она должна оставаться живой
-                monster.FallOnClient();
-                headFound = true;
-                break;
-            }
-        }
-        if (!headFound)
-        {
-            Debug.LogWarning($"[Monster] Head monster with netId {headId} not found on client");
-        }
+        Debug.Log($"[Monster] RpcOnLegsDeath received for headNetId: {headNetId} - OBSOLETE METHOD");
+        // Этот RPC больше не нужен - FallInstantly уже управляет всем
     }
-    
 
-    public void FallOnClient()
-    {
-        Debug.Log($"[Monster] FallOnClient called for {name}");
-        // Падение на клиенте без серверных вызовов
-        canMove = false;
-        // НЕ меняем canAttack - голова должна оставаться атакуемой после падения
-        
-        // Отключаем NavMeshAgent при падении
-        if (_agent != null) 
-        {
-            _agent.enabled = false;
-            _agent.baseOffset = 0f;
-        }
-        
-        // НЕ отключаем NetworkTransform - оставляем для синхронизации позиции
-        // NetworkTransformHybrid networkTransform = GetComponent<NetworkTransformHybrid>();
-        // if (networkTransform != null)
-        // {
-        //     networkTransform.enabled = false;
-        //     Debug.Log($"[Monster] Disabled NetworkTransformHybrid for {name}");
-        //     // Включаем обратно после анимации падения для синхронизации урона
-        //     StartCoroutine(ReenableNetworkTransformAfterFall());
-        // }
-        
-        // Сбрасываем позицию модели для combined монстра
-        if (info.isCombined && _renderer != null)
-        {
-            _renderer.transform.localPosition = Vector3.zero;
-            Debug.Log($"[Monster] Reset model position to zero for combined monster");
-        }
-        
-        // Запускаем анимацию падения
-        Vector3 targetPos = new Vector3(transform.position.x, 1f, transform.position.z) + Random.insideUnitSphere * 15f;
-        targetPos.y = 1f;
-        Debug.Log($"[Monster] Starting fall animation from {transform.position} to {targetPos}");
-        StartCoroutine(FallCoroutine(targetPos));
-    }
+    // FallOnClient() удален - теперь используется FallInstantly()
 
     private IEnumerator DespawnAfterDelay(float delay)
     {
@@ -692,6 +871,42 @@ public class Monster : NetworkBehaviour
             Debug.LogWarning($"[Monster] Attack blocked on {name}: canAttack={canAttack}, IsDead={IsDead}, IsStunned={IsStunned}, IsSilenced={IsSilenced}");
             return;
         }
+        
+        // Проигрываем анимацию атаки для combined монстров
+        if (isCombinedHead)
+        {
+            Debug.Log($"[Monster] Head attacking: {name}");
+            
+            // ДИАГНОСТИКА: проверяем состояние
+            bool headIsAlive = !IsDead;
+            bool partnerIsDead = partnerMonster == null || partnerMonster.IsDead;
+            bool headShouldBeFallen = headIsAlive && partnerIsDead; // Голова жива НО legs мертвы = упала
+            
+            Debug.Log($"[Monster] HeadAttackDebug - HeadAlive: {headIsAlive}, PartnerDead: {partnerIsDead}, shouldBeFallen: {headShouldBeFallen}");
+            
+            // Проверяем: голова упала (legs мертв и голова жива) ИЛИ головы просто стоит
+            if (headShouldBeFallen)
+            {
+                // Голова упала - играем анимацию лежа
+                Debug.Log($"[Monster] Playing HeadPunchLying animation for FALLEN head");
+                PlayAnimation("HeadPunchLying");
+                RpcPlayAnimation("HeadPunchLying");
+            }
+            else
+            {
+                // Голова стоит - играем обычную анимацию
+                Debug.Log($"[Monster] Playing HeadPunch animation for STANDING head");
+                PlayAnimation("HeadPunch");
+                RpcPlayAnimation("HeadPunch");
+            }
+        }
+        else if (isCombinedLegs)
+        {
+            Debug.Log($"[Monster] Legs attacking: {name}");
+            PlayAnimation("LegsKick");
+            RpcPlayAnimation("LegsKick");
+        }
+        
         GameObject targetObject = NetworkServer.spawned.ContainsKey(targetNetId) ? NetworkServer.spawned[targetNetId].gameObject : null;
         if (targetObject == null)
         {
@@ -702,7 +917,7 @@ public class Monster : NetworkBehaviour
         if (targetHealth != null)
         {
             Debug.Log($"[Monster] {name} attacking {targetObject.name} for {damage} damage");
-            targetHealth.TakeDamage(damage, DamageType.Physical, isCritical, netIdentity);
+            targetHealth.TakeDamage(damage, DamageType.Physical, isCritical, netIdentity, 1f, true);
             // Attack executed
             Vector3 startPosition = transform.position + Vector3.up * 1f;
             Vector3 endPosition = targetObject.transform.position + Vector3.up * 1f;
@@ -764,34 +979,113 @@ public class Monster : NetworkBehaviour
     }
 
     [Server]
-    public void Fall()
+    public void FallInstantly()
     {
+        Debug.Log($"[Monster] FallInstantly called for {name}");
+        
         canMove = false;
+        isFalling = true;  // Устанавливаем флаг падения
+        
+        // ПРИНУДИТЕЛЬНО отключаем и перемещаем NavMeshAgent
         if (_agent != null) 
         {
-            _agent.enabled = false;
-            _agent.baseOffset = 0f; // Сбрасываем baseOffset
+            Debug.Log($"[Monster] NavMeshAgent before fall - enabled: {_agent.enabled}, baseOffset: {_agent.baseOffset}, pos: {_agent.transform.position}");
+            _agent.baseOffset = 0f; // Сброс ПЕРЕД отключением
+            _agent.enabled = false; // Отключаем СНАЧАЛА
+            Debug.Log($"[Monster] NavMeshAgent disabled");
         }
         
-        // Устанавливаем позицию на сервере тоже
-        Vector3 targetPos = new Vector3(transform.position.x, 1f, transform.position.z) + Random.insideUnitSphere * 15f;
-        targetPos.y = 1f;
-        transform.position = targetPos;
-        Debug.Log($"[Monster] Server set head position to {targetPos}");
+        // Устанавливаем позицию на сервере - ПРИНУДИТЕЛЬНО!
+        Vector3 groundPos = new Vector3(transform.position.x, 1f, transform.position.z);
+        Debug.Log($"[Monster] BEFORE position change: {transform.position}");
+        transform.position = groundPos;
+        Debug.Log($"[Monster] AFTER position change: {transform.position}");
         
-        // Сбрасываем позицию модели для combined монстра
+        // Принудительно синхронизируем через NetworkTransform - проверяем компонент
+        NetworkTransformHybrid networkTransform = GetComponent<NetworkTransformHybrid>();
+        if (networkTransform != null)
+        {
+            Debug.Log($"[Monster] NetworkTransformHybrid found, forcing position sync");
+            // Устанавливаем позицию напрямую и принуждаем NetworkTransform к синхронизации
+            networkTransform.transform.position = groundPos;
+            transform.position = groundPos;
+        }
+        else
+        {
+            Debug.LogError($"[Monster] NetworkTransformHybrid not found on {name}!");
+        }
+        
+        // ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА - если позиция не установилась
+        if (Vector3.Distance(transform.position, groundPos) > 0.1f)
+        {
+            Debug.LogError($"[Monster] POSITION NOT SET! Trying to force: {groundPos}, actual: {transform.position}");
+            transform.position = groundPos; // Повторная попытка
+        }
+        
+        // Обновляем позицию модели для combined монстра
         if (info.isCombined && _renderer != null)
         {
             _renderer.transform.localPosition = Vector3.zero;
         }
         
-        RpcFall();
+        // Проигрываем анимацию лежания для упавшей головы
+        if (isCombinedHead)
+        {
+            Debug.Log($"[Monster] Playing LyingIdle animation for fallen head: {name}");
+            PlayAnimation("LyingIdle");
+            RpcPlayAnimation("LyingIdle");
+            
+            // Принудительно опускаем модель на землю
+            GameObject[] modelObjects = GameObject.FindGameObjectsWithTag("MonsterModel");
+            foreach (GameObject modelObject in modelObjects)
+            {
+                if (modelObject.transform.parent == transform)
+                {
+                    modelObject.transform.localPosition = new Vector3(2.4f, 0f, 4.6f);
+                    Debug.Log($"[Monster] Model positioned at localPos {modelObject.transform.localPosition}");
+                    break;
+                }
+            }
+        }
+        
+        // Уведомляем клиентов о мгновенном падении
+        RpcFallInstantly(groundPos);
     }
+    
     [ClientRpc]
-    private void RpcFall()
+    private void RpcFallInstantly(Vector3 groundPos)
     {
-        Vector3 targetPos = new Vector3(transform.position.x, 1f, transform.position.z) + Random.insideUnitSphere * 15f;
-        targetPos.y = 1f;
+        Debug.Log($"[Monster] RpcFallInstantly called for {name} at position {groundPos}");
+        Debug.Log($"[Monster] Client BEFORE position change: {transform.position}");
+        
+        // ПРИНУДИТЕЛЬНО отключаем NavMeshAgent на клиенте
+        if (_agent != null)
+        {
+            Debug.Log($"[Monster] Client NavMeshAgent before - enabled: {_agent.enabled}, baseOffset: {_agent.baseOffset}");
+            _agent.baseOffset = 0f; // Сброс ПЕРЕД отключением
+            _agent.enabled = false; // Отключаем
+        }
+        
+        // Дополнительно синхронизируем через NetworkTransformHybrid на клиенте
+        NetworkTransformHybrid networkTransform = GetComponent<NetworkTransformHybrid>();
+        if (networkTransform != null)
+        {
+            Debug.Log($"[Monster] Client NetworkTransformHybrid found, forcing position");
+            // Принудительно обновляем трансформ и принуждаем к мгновенной синхронизации
+            networkTransform.transform.position = groundPos;
+            transform.position = groundPos;
+        }
+        
+        // Синхронизируем позицию с сервера - ПРИНУДИТЕЛЬНО!
+        transform.position = groundPos;
+        Debug.Log($"[Monster] Client AFTER position change: {transform.position}");
+        
+        // ПРОВЕРКА - если позиция не установилась на клиенте
+        if (Vector3.Distance(transform.position, groundPos) > 0.1f)
+        {
+            Debug.LogError($"[Monster] CLIENT POSITION NOT SET! Expected: {groundPos}, Actual: {transform.position}");
+            transform.position = groundPos; // Повторная попытка
+        }
         
         // Сбрасываем позицию модели для combined монстра на клиенте
         if (info.isCombined && _renderer != null)
@@ -799,73 +1093,141 @@ public class Monster : NetworkBehaviour
             _renderer.transform.localPosition = Vector3.zero;
         }
         
-        // Используем Coroutine вместо DoTween
-        StartCoroutine(FallCoroutine(targetPos));
+        // Принудительно опускаем модель на землю на клиенте
+        if (isCombinedHead)
+        {
+            PlayAnimation("LyingIdle");
+            
+            GameObject[] modelObjects = GameObject.FindGameObjectsWithTag("MonsterModel");
+            foreach (GameObject modelObject in modelObjects)
+            {
+                if (modelObject.transform.parent == transform)
+                {
+                    modelObject.transform.localPosition = new Vector3(2.4f, 0f, 4.6f);
+                    Debug.Log($"[Monster] Client model positioned at localPos {modelObject.transform.localPosition}");
+                    break;
+                }
+            }
+        }
+        
+        
+        // Финальная проверка позиции
+        if (Vector3.Distance(transform.position, groundPos) > 0.1f)
+        {
+            Debug.LogWarning($"[Monster] FINAL CHECK: Position correction needed: {groundPos} vs {transform.position}");
+            transform.position = groundPos;
+        }
+        
+        isFalling = false;  // Сбрасываем флаг падения сразу
+        
+        Debug.Log($"[Monster] FallInstantly completed: {name} at position {transform.position} - OBJECT FREEZE");
     }
     
-    private IEnumerator FallCoroutine(Vector3 targetPos)
+    // Старый метод Fall (оставляем для совместимости, но не используем)
+    [Server]
+    public void Fall()
     {
-        Vector3 startPos = transform.position;
-        Vector3 startRot = transform.eulerAngles;
-        Vector3 targetRot = new Vector3(90f, 0f, 0f);
-        
-        float duration = 1f;
-        float elapsed = 0f;
-        
-        Debug.Log($"[Monster] FallCoroutine started: {name}, isCombined: {info?.isCombined}, _renderer: {_renderer != null}");
-        
-        while (elapsed < duration)
-        {
-            elapsed += Time.deltaTime;
-            float t = elapsed / duration;
-            
-            // Плавное движение к цели
-            transform.position = Vector3.Lerp(startPos, targetPos, t);
-            
-            // Плавный поворот
-            transform.eulerAngles = Vector3.Lerp(startRot, targetRot, t);
-            
-            // Для combined монстра модель автоматически повторит поворот головы (она child)
-            if (info.isCombined && _renderer != null)
-            {
-                // Модель должна оставаться на уровне головы (y=0 относительно transform)
-                _renderer.transform.localPosition = Vector3.zero;
-            }
-            
-            yield return null;
-        }
-        
-        // Убеждаемся, что финальная позиция установлена
-        transform.position = targetPos;
-        transform.eulerAngles = targetRot;
-        
-        // Финальная позиция модели для combined монстра
-        if (info.isCombined && _renderer != null)
-        {
-            // Модель автоматически повторит поворот головы (она child)
-            _renderer.transform.localPosition = Vector3.zero;
-            Debug.Log($"[Monster] Set model position to {_renderer.transform.localPosition} for combined monster");
-        }
-        
-        // Фиксируем объект в пространстве - отключаем все компоненты движения
-        if (_agent != null)
-        {
-            _agent.enabled = false; // Оставляем отключенным
-            Debug.Log($"[Monster] NavMeshAgent remains disabled for {name} - object frozen");
-        }
-        
-        // Отключаем Rigidbody если есть
-        Rigidbody rb = GetComponent<Rigidbody>();
-        if (rb != null)
-        {
-            rb.isKinematic = true;
-            Debug.Log($"[Monster] Rigidbody set to kinematic for {name} - object frozen");
-        }
-        
-        Debug.Log($"[Monster] FallCoroutine completed: {name} at position {transform.position} - OBJECT FROZEN");
+        Debug.LogWarning($"[Monster] Old Fall() method called - should use FallInstantly() instead");
+        FallInstantly(); // Перенаправляем на новый метод
     }
+    
+    // Старый RpcFall() удален - используем RpcFallInstantly()
+    
+    // FallCoroutine() удален - теперь используется мгновенное падение FallInstantly()
 
     // private void OnMonsterIdChanged(int oldId, int newId)
     // {
     // }
+    
+    private Transform FindHeadTransform(Transform modelTransform)
+    {
+        // Ищем по имени "Head" или содержащему "head"
+        Transform head = modelTransform.Find("Head");
+        if (head == null)
+        {
+            // Ищем среди всех дочерних объектов
+            foreach (Transform child in modelTransform)
+            {
+                if (child.name.ToLower().Contains("head"))
+                {
+                    head = child;
+                    break;
+                }
+            }
+        }
+        return head;
+    }
+    
+    private Transform FindBoneByName(Transform modelTransform, string boneName)
+    {
+        // Рекурсивный поиск кости по имени
+        if (modelTransform.name == boneName)
+        {
+            return modelTransform;
+        }
+        
+        foreach (Transform child in modelTransform)
+        {
+            Transform found = FindBoneByName(child, boneName);
+            if (found != null)
+            {
+                return found;
+            }
+        }
+        
+        return null;
+    }
+    
+    // Debug Gizmos для визуализации радиусов
+    private void OnDrawGizmosSelected()
+    {
+        if (info == null) return;
+        
+        // Цвета для разных радиусов
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, info.attackRange);
+        
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, info.detectionRange);
+        
+        Gizmos.color = Color.blue;
+        Gizmos.DrawWireSphere(transform.position, info.patrolRadius);
+        
+        // Для combined монстров показываем дополнительные радиусы
+        if (info.isCombined)
+        {
+            // Радиус атаки головы (на высоте головы или на земле если упала)
+            Vector3 headPos;
+            if (isCombinedHead && IsDead)
+            {
+                // Голова упала - показываем радиус на земле
+                headPos = new Vector3(transform.position.x, transform.position.y, transform.position.z);
+            }
+            else if (isCombinedHead)
+            {
+                // Голова на высоте - показываем радиус на высоте головы (transform.position уже на высоте 15f)
+                headPos = new Vector3(transform.position.x, transform.position.y, transform.position.z);
+            }
+            else
+            {
+                // Это legs объект - показываем радиус головы на высоте головы
+                headPos = new Vector3(transform.position.x, transform.position.y + 15f, transform.position.z);
+            }
+            Gizmos.color = Color.magenta;
+            Gizmos.DrawWireSphere(headPos, info.headAttackRange);
+            
+            // Радиус атаки ног (на высоте ног)
+            Vector3 legsPos = new Vector3(transform.position.x, transform.position.y, transform.position.z);
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawWireSphere(legsPos, info.legsAttackRange);
+            
+            // Линия между головой и ногами
+            Gizmos.color = Color.white;
+            Gizmos.DrawLine(headPos, legsPos);
+        }
+        
+        // Показываем направление взгляда
+        Gizmos.color = Color.green;
+        Gizmos.DrawRay(transform.position, transform.forward * 2f);
+    }
 }

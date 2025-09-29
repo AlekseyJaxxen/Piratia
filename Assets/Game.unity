@@ -3036,12 +3036,12 @@ MonoBehaviour:
   - monsterId: 2
     position: {x: 380, y: 0.5, z: 350}
     radius: 40
-    count: 3
+    count: 1
     respawnTime: 1
   - monsterId: 3
     position: {x: 384, y: 0.5, z: 400}
     radius: 40
-    count: 3
+    count: 1
     respawnTime: 1
   chestSpawnPoint: {fileID: 1456860375}
 --- !u!114 &1372684383
@@ -3070,7 +3070,7 @@ Transform:
   m_GameObject: {fileID: 1372684381}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 171.12001, y: 1, z: 336.13}
+  m_LocalPosition: {x: 313.1, y: 1, z: 451.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3895,6 +3895,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 98da5bee077b24744a433bfaf95a8a74, type: 2}
   - {fileID: 11400000, guid: 9304033d9f889c74688e6e90b8d857d1, type: 2}
   - {fileID: 11400000, guid: 8cec8c0118119a14c83125b8f8184130, type: 2}
+  - {fileID: 11400000, guid: 2e4b6d924e6355c49a10e1a88a9c213d, type: 2}
   archerSkills:
   - {fileID: 11400000, guid: b6306e214bb395b4192626b3912fc0c6, type: 2}
   - {fileID: 11400000, guid: ebbf47ecd1d49094dac17c306e5f32af, type: 2}

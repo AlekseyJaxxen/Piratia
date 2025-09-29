@@ -58,19 +58,28 @@ MonoBehaviour:
   appearTime: 0
   holdTime: 0.4
   fadeOutTime: 0.1
-  damageColor: {r: 1, g: 0.029678378, b: 0, a: 1}
-  healColor: {r: 0, g: 1, b: 0, a: 1}
-  criticalColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   maxScale: 2
   startOffsetY: 1
+  healColor: {r: 0, g: 1, b: 0, a: 1}
+  otherPlayerDamageColor: {r: 1, g: 1, b: 1, a: 1}
+  missColor: {r: 0, g: 1, b: 1, a: 1}
   useDamageGradient: 1
+  useHealGradient: 0
+  useMissGradient: 0
   damageGradientTop: {r: 1, g: 0, b: 0, a: 1}
   damageGradientBottom: {r: 1, g: 0.5797377, b: 0, a: 1}
+  healGradientTop: {r: 0, g: 1, b: 0, a: 1}
+  healGradientBottom: {r: 0, g: 0, b: 0, a: 1}
+  missGradientTop: {r: 0, g: 1, b: 1, a: 1}
+  missGradientBottom: {r: 0, g: 0, b: 0, a: 1}
   horizontalRandomness: 1
   verticalRandomness: 1
   rotationRandomness: 0
-  normalFontSize: 4
-  criticalFontSize: 4
+  normalFontSize: 6
+  criticalFontSize: 6
+  ownDamageOutlineColor: {r: 1, g: 1, b: 1, a: 1}
+  receivedDamageOutlineColor: {r: 1, g: 0, b: 0, a: 1}
+  outlineWidth: 0.13
 --- !u!23 &6612171701822489547
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -96,7 +105,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  - {fileID: 2164040, guid: 5302535af1044152a457ed104f1f4b91, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -142,7 +151,7 @@ MonoBehaviour:
   m_text: 123
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 5302535af1044152a457ed104f1f4b91, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2164040, guid: 5302535af1044152a457ed104f1f4b91, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -166,8 +175,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 4
-  m_fontSizeBase: 4
+  m_fontSize: 6
+  m_fontSizeBase: 6
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -210,7 +219,7 @@ MonoBehaviour:
   _SortingLayer: 0
   _SortingLayerID: 0
   _SortingOrder: 0
-  m_hasFontAssetChanged: 1
+  m_hasFontAssetChanged: 0
   m_renderer: {fileID: 6612171701822489547}
   m_maskType: 0
 --- !u!114 &3971645891753331210

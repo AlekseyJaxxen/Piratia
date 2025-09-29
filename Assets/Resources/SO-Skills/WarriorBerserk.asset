@@ -13,18 +13,19 @@ MonoBehaviour:
   m_Name: WarriorBerserk
   m_EditorClassIdentifier: Assembly-CSharp::BuffStatSkill
   castType: 4
-  ignoreGlobalCooldown: 0
   _icon: {fileID: 21300000, guid: 9d1bd08616d4c674790b13c23c7b960b, type: 3}
   _skillName: Berserk
+  _description: 
   _hotkey: 286
   _range: 0
   _cooldown: 30
-  _castTime: 0.1
+  _castTime: 0.2
   _castCursor: {fileID: 0}
   _manaCost: 0
   _damageType: 0
   _weight: 1
   _effectRadius: 0
+  _ignoreGlobalCooldown: 0
   castRangePrefab: {fileID: 0}
   effectRadiusPrefab: {fileID: 0}
   VFXPrefab: {fileID: 0}
@@ -33,6 +34,6 @@ MonoBehaviour:
     multiplier: 2
     rawValue: 0
     duration: 15
-    vfxPrefab: {fileID: 4637046911172921311, guid: c15b3b55bb35f9440bcfd4cba104686b,
+    vfxPrefab: {fileID: 4637046911172921311, guid: c38c4b4fc39b24047af4b01087cd2f70,
       type: 3}
     vfxOffset: {x: 0, y: 3, z: 0}

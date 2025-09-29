@@ -93,6 +93,8 @@ public class CharacterStats : NetworkBehaviour
     private Health healthComponent;
     private Inventory inventory;
     public readonly List<SlowEffect> activeSlowEffects = new List<SlowEffect>();
+    [SyncVar(hook = nameof(OnActiveStatEffectsChanged))]
+    public string activeStatEffectsData = "";
     public readonly List<StatEffect> activeStatEffects = new List<StatEffect>();
     public struct SlowEffect
     {
@@ -102,6 +104,7 @@ public class CharacterStats : NetworkBehaviour
         public float EndTime;
         public string Source;
     }
+    [System.Serializable]
     public struct StatEffect
     {
         public string Stat;
@@ -109,10 +112,14 @@ public class CharacterStats : NetworkBehaviour
         public float OriginalValue;
         public float EndTime;
         public bool IsToggle;
-        public GameObject VFXPrefab;
+        public string VFXPrefabName; // Имя префаба для синхронизации
         public Vector3 VFXOffset;
         public int SkillWeight;
-        public bool IsActive => IsToggle || EndTime > Time.time;
+        public bool IsActive => IsToggle || EndTime > (float)NetworkTime.time;
+        
+        // Для локального использования
+        [System.NonSerialized]
+        public GameObject VFXPrefab;
     }
 
     private void Awake()
@@ -149,6 +156,64 @@ public class CharacterStats : NetworkBehaviour
     public override void OnStartClient()
     {
         base.OnStartClient();
+    }
+
+    [Client]
+    private void OnActiveStatEffectsChanged(string oldData, string newData)
+    {
+        if (string.IsNullOrEmpty(newData)) 
+        {
+            activeStatEffects.Clear();
+            return;
+        }
+        
+        try
+        {
+            // Десериализуем данные эффектов
+            var effects = JsonUtility.FromJson<StatEffectList>(newData);
+            activeStatEffects.Clear();
+            activeStatEffects.AddRange(effects.effects);
+            
+            // Очищаем истекшие эффекты на клиенте
+            CleanupExpiredEffects();
+            
+            // Принудительно обновляем VFX при изменении эффектов
+            BuffVFXController vfxController = GetComponent<BuffVFXController>();
+            if (vfxController != null)
+            {
+                vfxController.ForceUpdateVFX();
+            }
+            
+            Debug.Log($"[CharacterStats] Synced {effects.effects.Length} stat effects to client on {gameObject.name}");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"[CharacterStats] Failed to deserialize stat effects: {e.Message}");
+        }
+    }
+    
+    [Client]
+    private void CleanupExpiredEffects()
+    {
+        var expiredEffects = activeStatEffects.Where(e => !e.IsToggle && e.EndTime <= (float)NetworkTime.time).ToList();
+        foreach (var effect in expiredEffects)
+        {
+            activeStatEffects.Remove(effect);
+            Debug.Log($"[CharacterStats] Removed expired effect {effect.Stat} on {gameObject.name}");
+        }
+    }
+
+    [System.Serializable]
+    private class StatEffectList
+    {
+        public StatEffect[] effects;
+    }
+
+    [Server]
+    private void SyncStatEffects()
+    {
+        var effectList = new StatEffectList { effects = activeStatEffects.ToArray() };
+        activeStatEffectsData = JsonUtility.ToJson(effectList);
     }
 
     [Server]
@@ -296,8 +361,8 @@ public class CharacterStats : NetworkBehaviour
         float slowMultiplier = CalculateSlowMultiplier();
         movementSpeed = baseMovementSpeed * slowMultiplier;
         attackSpeed = 1.0f + (agility * 0.05f * classData.agilityMultiplier);
-        dodgeChance = 5.0f + (agility * 0.5f * classData.agilityMultiplier);
-        hitChance = 80.0f + (accuracy * 1.0f * classData.accuracyMultiplier);
+        dodgeChance = 10 + level * 2 + agility * 0.6f; // Dodge as number, not percentage
+        hitChance = 10 + level * 2 + accuracy * 0.6f; // Hit rate as number, not percentage
         criticalHitChance = 15.0f + (agility * 0.2f * classData.agilityMultiplier) + (luck * 0.1f);
         physicalResistance = classData.basePhysicalResistance;
         magicDamageMultiplier = 1.0f + (spirit * 0.05f * classData.spiritMultiplier);
@@ -714,12 +779,14 @@ public class CharacterStats : NetworkBehaviour
             Stat = stat,
             Value = newValue,
             OriginalValue = original,
-            EndTime = Time.time + dur,
+            EndTime = (float)NetworkTime.time + dur,
             IsToggle = false,
             VFXPrefab = vfxPrefab,
+            VFXPrefabName = vfxPrefab != null ? vfxPrefab.name : "",
             VFXOffset = vfxOffset,
             SkillWeight = skillWeight
         });
+        SyncStatEffects(); // Синхронизируем с клиентами
         StartCoroutine(RemoveBuff(stat, original, dur));
         Debug.Log($"[CharacterStats] Applied buff for {stat}, value={newValue}, duration={dur}, weight={skillWeight}");
     }
@@ -737,7 +804,17 @@ public class CharacterStats : NetworkBehaviour
         {
             SetStat(stat, Mathf.RoundToInt(newValue));
         }
-        activeStatEffects.Add(new StatEffect { Stat = stat, Value = newValue, OriginalValue = original, EndTime = Time.time + dur, IsToggle = false, VFXPrefab = vfxPrefab, VFXOffset = vfxOffset });
+        activeStatEffects.Add(new StatEffect { 
+            Stat = stat, 
+            Value = newValue, 
+            OriginalValue = original, 
+            EndTime = (float)NetworkTime.time + dur, 
+            IsToggle = false, 
+            VFXPrefab = vfxPrefab, 
+            VFXPrefabName = vfxPrefab != null ? vfxPrefab.name : "",
+            VFXOffset = vfxOffset 
+        });
+        SyncStatEffects(); // Синхронизируем с клиентами
         StartCoroutine(RemoveBuff(stat, original, dur));
     }
 
@@ -767,8 +844,8 @@ public class CharacterStats : NetworkBehaviour
             case "minattack": baseValue = classData.baseMinAttack; break;
             case "maxattack": baseValue = classData.baseMaxAttack; break;
             case "attackspeed": baseValue = 1.0f + (classData.agility * 0.05f * classData.agilityMultiplier); break;
-            case "dodgechance": baseValue = 5.0f + (classData.agility * 0.5f * classData.agilityMultiplier); break;
-            case "hitchance": baseValue = 80.0f + (classData.accuracy * 1.0f * classData.accuracyMultiplier); break;
+            case "dodgechance": baseValue = 10 + level * 2 + classData.agility * 0.6f; break;
+            case "hitchance": baseValue = 10 + level * 2 + classData.accuracy * 0.6f; break;
             case "criticalhitchance": baseValue = 15.0f + (classData.agility * 0.2f * classData.agilityMultiplier); break;
             case "criticalhitmultiplier": baseValue = criticalHitMultiplier; break;
             case "physicalresistance": baseValue = classData.basePhysicalResistance; break;
@@ -792,7 +869,14 @@ public class CharacterStats : NetworkBehaviour
         }
         else
         {
-            activeStatEffects.Add(new StatEffect { Stat = stat, Value = value, OriginalValue = baseValue, EndTime = -1f, IsToggle = true });
+            activeStatEffects.Add(new StatEffect { 
+                Stat = stat, 
+                Value = value, 
+                OriginalValue = baseValue, 
+                EndTime = -1f, 
+                IsToggle = true,
+                VFXPrefabName = ""
+            });
             if (IsFloatStat(stat))
             {
                 SetStat(stat, value);
@@ -803,13 +887,14 @@ public class CharacterStats : NetworkBehaviour
             }
             Debug.Log($"[CharacterStats] ToggleBuff: Applied buff for {stat}, set to {value}");
         }
+        SyncStatEffects(); // Синхронизируем с клиентами
         CalculateDerivedStats();
     }
 
     private IEnumerator RemoveBuff(string stat, float original, float dur)
     {
         yield return new WaitForSeconds(dur);
-        activeStatEffects.RemoveAll(e => e.Stat == stat && !e.IsToggle && e.EndTime <= Time.time);
+        activeStatEffects.RemoveAll(e => e.Stat == stat && !e.IsToggle && e.EndTime <= (float)NetworkTime.time);
         if (IsFloatStat(stat))
         {
             SetStat(stat, original);
@@ -818,6 +903,7 @@ public class CharacterStats : NetworkBehaviour
         {
             SetStat(stat, Mathf.RoundToInt(original));
         }
+        SyncStatEffects(); // Синхронизируем с клиентами
         CalculateDerivedStats();
     }
 

@@ -77,7 +77,13 @@ public class PlayerActionSystem : NetworkBehaviour
             {
                 var skillBase = (SkillBase)skillToCast;
                 bool isTargeted = skillBase.SkillCastType == SkillBase.CastType.TargetedEnemy || skillBase.SkillCastType == SkillBase.CastType.TargetedAlly;
-                if (!isTargeted && targetPosition.HasValue)
+                bool isSelf = skillBase.SkillCastType == SkillBase.CastType.SelfBuff || skillBase.SkillCastType == SkillBase.CastType.ToggleBuff;
+                
+                if (isSelf && targetObject != null)
+                {
+                    canInterruptAndStart = true;
+                }
+                else if (!isTargeted && targetPosition.HasValue)
                 {
                     canInterruptAndStart = true;
                 }
@@ -87,7 +93,7 @@ public class PlayerActionSystem : NetworkBehaviour
                 }
                 else
                 {
-                    Debug.LogWarning($"[PlayerActionSystem] Invalid SkillCast parameters for {skillBase.SkillName}: AoE needs targetPosition, targeted needs targetObject");
+                    Debug.LogWarning($"[PlayerActionSystem] Invalid SkillCast parameters for {skillBase.SkillName}: SelfBuff needs targetObject, AoE needs targetPosition, targeted needs targetObject");
                     canInterruptAndStart = false;
                 }
             }
@@ -155,7 +161,15 @@ public class PlayerActionSystem : NetworkBehaviour
                 return true;
             case PlayerAction.SkillCast:
                 _currentSkill = skillToCast;
-                if (targetObject != null)
+                var skillBase = (SkillBase)skillToCast;
+                bool isSelf = skillBase.SkillCastType == SkillBase.CastType.SelfBuff || skillBase.SkillCastType == SkillBase.CastType.ToggleBuff;
+                
+                if (isSelf && targetObject != null)
+                {
+                    // SelfBuff выполняется мгновенно, но прерывает текущие действия
+                    _currentAction = StartCoroutine(CastSelfBuffAction(targetObject, skillToCast));
+                }
+                else if (targetObject != null)
                 {
                     _currentAction = StartCoroutine(CastSkillAction(targetObject, skillToCast));
                 }
@@ -194,6 +208,31 @@ public class PlayerActionSystem : NetworkBehaviour
             yield return null;
         }
         // Movement action completed
+        CompleteAction();
+    }
+
+    private IEnumerator CastSelfBuffAction(GameObject targetObject, ISkill skillToCast)
+    {
+        if (_core == null)
+        {
+            Debug.LogError("[PlayerActionSystem] Cannot perform CastSelfBuffAction: _core is null");
+            CompleteAction();
+            yield break;
+        }
+
+        // SelfBuff выполняется мгновенно, но прерывает текущие действия
+        Debug.Log($"[PlayerActionSystem] Executing SelfBuff: {((SkillBase)skillToCast).SkillName}");
+        
+        // Останавливаем движение
+        _core.Movement.StopMovement();
+        
+        // Выполняем скилл
+        _core.Skills.CmdExecuteSkill(_core, null, targetObject.GetComponent<NetworkIdentity>().netId, skillToCast.SkillName, ((SkillBase)skillToCast).Weight);
+        
+        // Отменяем выбор скилла
+        _core.Skills.CancelSkillSelection();
+        
+        // Завершаем действие
         CompleteAction();
     }
     private IEnumerator AttackAction(GameObject target, ISkill skill = null)

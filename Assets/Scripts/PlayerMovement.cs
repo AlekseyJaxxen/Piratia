@@ -89,7 +89,8 @@ public class PlayerMovement : NetworkBehaviour
                 bool isSelf = skill.SkillCastType == SkillBase.CastType.SelfBuff || skill.SkillCastType == SkillBase.CastType.ToggleBuff;
                 if (isSelf)
                 {
-                    _core.Skills.CmdExecuteSkill(_core, null, _core.netId, skill.SkillName, skill.Weight);
+                    // SelfBuff теперь проходит через PlayerActionSystem для прерывания действий
+                    _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, null, _core.gameObject, skill);
                     _core.Skills.CancelSkillSelection();
                     return;
                 }

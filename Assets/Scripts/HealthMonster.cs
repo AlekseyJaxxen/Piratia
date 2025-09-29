@@ -32,7 +32,7 @@ public class HealthMonster : Health
         Debug.Log($"[HealthMonster] Initialized health for {gameObject.name}: {CurrentHealth}");
     }
     [Server]
-    public new void TakeDamage(int damage, DamageType damageType, bool isCritical, NetworkIdentity attacker)
+    public new void TakeDamage(int damage, DamageType damageType, bool isCritical, NetworkIdentity attacker, bool isBasicAttack = false)
     {
         Debug.Log($"[HealthMonster] TakeDamage called on {gameObject.name}, currentHealth: {CurrentHealth}, damage: {damage}, attacker: {attacker?.name}");
         if (CurrentHealth <= 0) return;
@@ -47,7 +47,7 @@ public class HealthMonster : Health
         }
         // Aggro ����� ������
         _monster.UpdateAggro(attacker.netId, damage);
-        base.TakeDamage(damage, damageType, isCritical, attacker);
+        base.TakeDamage(damage, damageType, isCritical, attacker, 1f, isBasicAttack);
         // Damage taken
         _monster.RpcUpdateMonsterUI(CurrentHealth, MaxHealth);
         RpcPlayDamageFlash();
@@ -55,7 +55,7 @@ public class HealthMonster : Health
         // Проверяем, умрет ли монстр после этого урона
         if (CurrentHealth <= 0)
         {
-            Debug.Log($"[HealthMonster] Monster {gameObject.name} will die, headNetId: {_monster.headNetId}, legsNetId: {_monster.legsNetId}");
+            Debug.Log($"[HealthMonster] Monster {gameObject.name} will die, isCombinedHead: {_monster.isCombinedHead}, isCombinedLegs: {_monster.isCombinedLegs}");
         }
         // Death is handled by base.TakeDamage() in Health.cs
         // Damage text is also handled by base.TakeDamage() in Health.cs
