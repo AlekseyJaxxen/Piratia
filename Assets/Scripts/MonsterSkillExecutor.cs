@@ -167,7 +167,7 @@ public class MonsterSkillExecutor : NetworkBehaviour
             if (targetHealthMonster != null)
             {
                 PlayerCore targetCore = col.GetComponent<PlayerCore>();
-                if (targetCore != null) // Only damage players, not other monsters
+                if (targetCore != null && !targetCore.isDead) // Only damage living players, not other monsters
                 {
                     targetHealthMonster.TakeDamage(totalDamage, skill.SkillDamageType, false, monster.netIdentity, skill.damageMultiplier);
                 }
@@ -175,7 +175,7 @@ public class MonsterSkillExecutor : NetworkBehaviour
             else if (targetHealth != null)
             {
                 PlayerCore targetCore = col.GetComponent<PlayerCore>();
-                if (targetCore != null) // Only damage players, not other monsters
+                if (targetCore != null && !targetCore.isDead) // Only damage living players, not other monsters
                 {
                     targetHealth.TakeDamage(totalDamage, skill.SkillDamageType, false, monster.netIdentity, skill.damageMultiplier);
                 }

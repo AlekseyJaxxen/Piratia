@@ -28,13 +28,22 @@ public class HealthBarUI : MonoBehaviour
         }
     }
 
+    // Оптимизация: интервалы обновления для UI
+    private float _lastUIUpdate = 0f;
+    private const float UI_UPDATE_INTERVAL = 0.1f; // Обновляем UI каждые 100мс
+    
     void LateUpdate()
     {
-        if (target != null && mainCamera != null)
+        // Оптимизация: обновляем позицию UI с интервалом
+        if (Time.time - _lastUIUpdate >= UI_UPDATE_INTERVAL)
         {
-            transform.position = target.position + offset;
-            transform.LookAt(mainCamera.transform);
-            transform.rotation = Quaternion.Euler(0f, transform.rotation.eulerAngles.y, 0f);
+            if (target != null && mainCamera != null)
+            {
+                transform.position = target.position + offset;
+                transform.LookAt(mainCamera.transform);
+                transform.rotation = Quaternion.Euler(0f, transform.rotation.eulerAngles.y, 0f);
+            }
+            _lastUIUpdate = Time.time;
         }
     }
 

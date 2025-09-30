@@ -253,6 +253,11 @@ public class PlayerActionSystem : NetworkBehaviour
         // Starting AttackAction on target
         PlayerCore targetPlayerCore = target.GetComponent<PlayerCore>();
         Monster targetMonster = target.GetComponent<Monster>();
+        if (targetPlayerCore == null)
+        {
+            // Try to get PlayerCore from parent (for reviveCollider)
+            targetPlayerCore = target.GetComponentInParent<PlayerCore>();
+        }
         if (targetPlayerCore == null && targetMonster == null)
         {
             Debug.LogError($"[PlayerActionSystem] Target {target.name} has neither PlayerCore nor Monster component");
@@ -425,7 +430,20 @@ public class PlayerActionSystem : NetworkBehaviour
             {
                 _core.Movement.StopMovement();
                 _core.Movement.RotateTo(targetObject.transform.position - transform.position);
-                _core.Skills.CmdExecuteSkill(_core, targetObject.transform.position, targetObject.GetComponent<NetworkIdentity>().netId, skillToCast.SkillName, ((SkillBase)skillToCast).Weight);
+                NetworkIdentity targetNetId = targetObject.GetComponent<NetworkIdentity>();
+                if (targetNetId == null)
+                {
+                    // Try to get NetworkIdentity from parent (for reviveCollider)
+                    targetNetId = targetObject.GetComponentInParent<NetworkIdentity>();
+                }
+                if (targetNetId != null)
+                {
+                    _core.Skills.CmdExecuteSkill(_core, targetObject.transform.position, targetNetId.netId, skillToCast.SkillName, ((SkillBase)skillToCast).Weight);
+                }
+                else
+                {
+                    Debug.LogError($"[PlayerActionSystem] No NetworkIdentity found on target: {targetObject.name}");
+                }
                 if (((SkillBase)skillToCast).CastTime > 0)
                 {
                     _isCasting = true;

@@ -10,7 +10,7 @@ public class HealingSkill : SkillBase
 
     protected override void ExecuteSkillImplementation(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
     {
-        // Проверка, если тип каста SelfBuff
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ SelfBuff
         if (SkillCastType == CastType.SelfBuff)
         {
             CharacterStats casterStats = caster.GetComponent<CharacterStats>();
@@ -27,7 +27,7 @@ public class HealingSkill : SkillBase
             return;
         }
 
-        // Существующая логика для других типов каста
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
         if (targetObject == null)
         {
             Debug.LogWarning("[HealingSkill] Target object is null");
@@ -35,9 +35,20 @@ public class HealingSkill : SkillBase
         }
 
         PlayerCore targetCore = targetObject.GetComponent<PlayerCore>();
+        if (targetCore == null)
+        {
+            // Try to get PlayerCore from parent (for reviveCollider)
+            targetCore = targetObject.GetComponentInParent<PlayerCore>();
+        }
         if (targetCore == null || targetCore.team != caster.team)
         {
             Debug.LogWarning("[HealingSkill] Invalid target: not ally or self");
+            return;
+        }
+        // Don't allow healing dead players
+        if (targetCore.isDead)
+        {
+            Debug.LogWarning("[HealingSkill] Cannot heal dead player");
             return;
         }
 
@@ -49,6 +60,11 @@ public class HealingSkill : SkillBase
         }
 
         NetworkIdentity targetIdentity = targetObject.GetComponent<NetworkIdentity>();
+        if (targetIdentity == null)
+        {
+            // Try to get NetworkIdentity from parent (for reviveCollider)
+            targetIdentity = targetObject.GetComponentInParent<NetworkIdentity>();
+        }
         if (targetIdentity == null)
         {
             Debug.LogWarning($"[HealingSkill] Target {targetObject.name} has no NetworkIdentity");

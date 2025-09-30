@@ -94,8 +94,15 @@ public class PlayerMovement : NetworkBehaviour
                     _core.Skills.CancelSkillSelection();
                     return;
                 }
+                // Special case for ReviveSkill - prevent self-cast
+                if (skill is ReviveSkill)
+                {
+                    // ReviveSkill cannot be cast on self, but allow targeting others
+                    // Continue to targeted skill logic below
+                }
                 if (isTargeted)
                 {
+                    Debug.Log($"[PlayerMovement] Targeted skill selected: {skill.SkillName}, isTargeted: {isTargeted}");
                     if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
                     {
                         // Raycast hit
@@ -103,14 +110,33 @@ public class PlayerMovement : NetworkBehaviour
                         bool validTarget = false;
                         PlayerCore targetCore = target.GetComponentInParent<PlayerCore>();
                         Monster targetMonster = target.GetComponentInParent<Monster>();
+                        Debug.Log($"[PlayerMovement] Skill cast raycast hit: {target.name}, skill: {skill.SkillName}, skillType: {skill.SkillCastType}");
+                        Debug.Log($"[PlayerMovement] Target core: {targetCore?.name}, isDead: {targetCore?.isDead}, team: {targetCore?.team}, caster team: {_core.team}");
                         if (skill.SkillCastType == SkillBase.CastType.TargetedAlly)
                         {
                             if (targetCore != null && (targetCore.team == _core.team || target == _core.gameObject))
-                                validTarget = true;
+                            {
+                                // Special case for ReviveSkill - only allow dead allies, not self
+                                if (skill is ReviveSkill)
+                                {
+                                    Debug.Log($"[PlayerMovement] ReviveSkill check - isDead: {targetCore.isDead}, same team: {targetCore.team == _core.team}, isSelf: {target == _core.gameObject}");
+                                    if (targetCore.isDead && targetCore.team == _core.team && target != _core.gameObject)
+                                    {
+                                        validTarget = true;
+                                        Debug.Log($"[PlayerMovement] ReviveSkill valid target!");
+                                    }
+                                }
+                                else
+                                {
+                                    // For all other skills, only allow living allies
+                                    if (!targetCore.isDead)
+                                        validTarget = true;
+                                }
+                            }
                         }
                         else if (skill.SkillCastType == SkillBase.CastType.TargetedEnemy)
                         {
-                            if (targetCore != null && targetCore.team != _core.team)
+                            if (targetCore != null && targetCore.team != _core.team && !targetCore.isDead)
                                 validTarget = true;
                             else if (targetMonster != null)
                                 validTarget = true;
@@ -118,16 +144,19 @@ public class PlayerMovement : NetworkBehaviour
                         if (validTarget)
                         {
                             // Starting SkillCast on target
+                            Debug.Log($"[PlayerMovement] Starting SkillCast on valid target: {target.name}");
                             _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, null, target, _core.Skills.ActiveSkill);
                         }
                         else
                         {
                             // Ignored: invalid target for skill
+                            Debug.Log($"[PlayerMovement] Invalid target for skill {skill.SkillName}: {target.name}");
                         }
                     }
                     else
                     {
                         // Raycast missed for targeted skill
+                        Debug.Log($"[PlayerMovement] Raycast missed for skill {skill.SkillName}");
                     }
                 }
                 else
@@ -174,18 +203,31 @@ public class PlayerMovement : NetworkBehaviour
                         }
                         return;
                     }
-                    if (hit.collider.CompareTag("Player"))
+                    if (hit.collider.CompareTag("Player") || hit.collider.gameObject.layer == LayerMask.NameToLayer("ReviveLayer"))
                     {
                         PlayerCore targetCore = hit.collider.GetComponentInParent<PlayerCore>();
-                        if (targetCore != null && targetCore.team != _core.team)
+                        Debug.Log($"[PlayerMovement] Hit object: {hit.collider.name}, layer: {hit.collider.gameObject.layer}, ReviveLayer: {LayerMask.NameToLayer("ReviveLayer")}");
+                        Debug.Log($"[PlayerMovement] Target core: {targetCore?.name}, isDead: {targetCore?.isDead}, team: {targetCore?.team}, caster team: {_core.team}");
+                        Debug.Log($"[PlayerMovement] IsSkillSelected: {_core.Skills.IsSkillSelected}, ActiveSkill: {_core.Skills.ActiveSkill?.SkillName}");
+                        if (targetCore != null)
                         {
-                            // Starting Attack on target
-                            if (_core.Skills.GetGlobalRemainingCooldown() > 0) return;
-                            _core.ActionSystem.TryStartAction(PlayerAction.Attack, null, hit.collider.gameObject);
-                        }
-                        else
-                        {
-                            // Attack ignored: same team or invalid
+                            if (targetCore.team != _core.team && !targetCore.isDead)
+                            {
+                                // Starting Attack on enemy
+                                if (_core.Skills.GetGlobalRemainingCooldown() > 0) return;
+                                _core.ActionSystem.TryStartAction(PlayerAction.Attack, null, hit.collider.gameObject);
+                            }
+                            else if (targetCore.isDead && _core.Skills.IsSkillSelected)
+                            {
+                                // Revive dead ally
+                                ISkill selectedSkill = _core.Skills.ActiveSkill;
+                                Debug.Log($"[PlayerMovement] Selected skill: {selectedSkill?.SkillName}, is ReviveSkill: {selectedSkill is ReviveSkill}");
+                                if (selectedSkill is ReviveSkill)
+                                {
+                                    Debug.Log($"[PlayerMovement] Starting revive action on {targetCore.name}");
+                                    _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, null, hit.collider.gameObject, selectedSkill);
+                                }
+                            }
                         }
                     }
                     else if (hit.collider.CompareTag("Enemy"))

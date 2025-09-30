@@ -16,7 +16,7 @@ public class PlayerAnimationSystem : NetworkBehaviour
     private Renderer modelRenderer;
     private Color originalColor;
     private Sequence damageFlashSequence;
-    private string _currentAnimation = "Idle"; // Трекинг текущей для избежания повторных вызовов
+    private string _currentAnimation = "Idle"; // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     private Inventory _inventory;
     private Item.WeaponType _currentWeaponType = Item.WeaponType.None;
     private Dictionary<string, List<string>> _actionAnimations = new Dictionary<string, List<string>>();
@@ -108,18 +108,18 @@ public class PlayerAnimationSystem : NetworkBehaviour
             Debug.LogError($"[PlayerAnimationSystem] No Renderer found on active model {_activeModel.name} or its children!");
         }
         Debug.Log($"[PlayerAnimationSystem] Set model {_activeModel.name} and animator for {_stats.characterClass}");
-        UpdateWeaponAnimations(); // Инициализация анимаций
+        UpdateWeaponAnimations(); // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     }
 
     private void UpdateWeaponAnimations()
     {
-        // Памятка по именованию анимаций в Animator Controller:
-        // - Базовые стейты: Idle, Player_Walk, Player_Attack, Player_Cast, Death
-        // - Вариации базовых: Player_Attack2, Player_Attack3, Player_Walk2 и т.д. (до 5 вариаций, код проверяет до Player_Attack5)
-        // - С типом оружия: Player_Attack_OneHandedSword, Player_Walk_TwoHandedSword, Player_Cast_Staff и т.д. (WeaponType из Item)
-        // - Вариации с оружием: Player_Attack_OneHandedSword2, Player_Attack_OneHandedSword3 и т.д.
-        // - Если стейт с суффиксом оружия существует, он приоритетен; fallback на базовый без суффикса
-        // - Все стейты должны быть в базовом слое (layer 0), без переходов (transitions), с loop для Walk/Idle/Attack если нужно
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ Animator Controller:
+        // - пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ: Idle, Player_Walk, Player_Attack, Player_Cast, Death
+        // - пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ: Player_Attack2, Player_Attack3, Player_Walk2 пїЅ пїЅ.пїЅ. (пїЅпїЅ 5 пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ Player_Attack5)
+        // - пїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ: Player_Attack_OneHandedSword, Player_Walk_TwoHandedSword, Player_Cast_Staff пїЅ пїЅ.пїЅ. (WeaponType пїЅпїЅ Item)
+        // - пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ: Player_Attack_OneHandedSword2, Player_Attack_OneHandedSword3 пїЅ пїЅ.пїЅ.
+        // - пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ; fallback пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+        // - пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ (layer 0), пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ (transitions), пїЅ loop пїЅпїЅпїЅ Walk/Idle/Attack пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
 
         _currentWeaponType = GetCurrentWeaponType();
         _actionAnimations.Clear();
@@ -133,9 +133,9 @@ public class PlayerAnimationSystem : NetworkBehaviour
             {
                 baseName = suffixed;
             }
-            // Собираем вариации (1,2,3...)
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ (1,2,3...)
             List<string> anims = new List<string>();
-            for (int i = 1; i <= 5; i++) // Увеличьте, если нужно больше
+            for (int i = 1; i <= 5; i++) // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
             {
                 string name = i == 1 ? baseName : $"{baseName}{i}";
                 hash = Animator.StringToHash(name);
@@ -146,7 +146,7 @@ public class PlayerAnimationSystem : NetworkBehaviour
             }
             if (anims.Count == 0)
             {
-                // Fallback на базовую без суффикса и вариаций
+                // Fallback пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
                 anims.Add($"Player_{action}");
             }
             _actionAnimations[action] = anims;
@@ -191,9 +191,15 @@ public class PlayerAnimationSystem : NetworkBehaviour
         }
     }
 
+    // РћРїС‚РёРјРёР·Р°С†РёСЏ: РёРЅС‚РµСЂРІР°Р»С‹ РѕР±РЅРѕРІР»РµРЅРёСЏ РґР»СЏ Р°РЅРёРјР°С†РёР№
+    private float _lastAnimationUpdate = 0f;
+    private const float ANIMATION_UPDATE_INTERVAL = 0.1f; // РћР±РЅРѕРІР»СЏРµРј Р°РЅРёРјР°С†РёРё РєР°Р¶РґС‹Рµ 100РјСЃ
+    
     private void Update()
     {
         if (_actionSystem == null || _animator == null || _core == null || !isOwned) return;
+        
+        // РћРїС‚РёРјРёР·Р°С†РёСЏ: РїСЂРѕРІРµСЂСЏРµРј РєСЂРёС‚РёС‡РµСЃРєРёРµ СЃРѕСЃС‚РѕСЏРЅРёСЏ РєР°Р¶РґС‹Р№ РєР°РґСЂ, Р°РЅРёРјР°С†РёРё - СЃ РёРЅС‚РµСЂРІР°Р»РѕРј
         if (_core.isDead && _currentAnimation != "Death")
         {
             CmdPlayAnimation("Death");
@@ -203,12 +209,19 @@ public class PlayerAnimationSystem : NetworkBehaviour
         {
             ResetAnimations();
         }
+        
         if (_wasPerformingAction && !_actionSystem.IsPerformingAction)
         {
             ResetAnimations();
         }
         _wasPerformingAction = _actionSystem.IsPerformingAction;
-        UpdateAnimations();
+        
+        // РћРїС‚РёРјРёР·Р°С†РёСЏ: РѕР±РЅРѕРІР»СЏРµРј Р°РЅРёРјР°С†РёРё СЃ РёРЅС‚РµСЂРІР°Р»РѕРј
+        if (Time.time - _lastAnimationUpdate >= ANIMATION_UPDATE_INTERVAL)
+        {
+            UpdateAnimations();
+            _lastAnimationUpdate = Time.time;
+        }
     }
 
     [Client]
@@ -236,13 +249,13 @@ public class PlayerAnimationSystem : NetworkBehaviour
             {
                 if (_actionSystem.CurrentSkill is BasicAttackSkill)
                 {
-                    if (_currentAnimation.Contains("Attack")) // Если уже атака, сохраняем текущую вариацию
+                    if (_currentAnimation.Contains("Attack")) // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
                     {
                         targetAnimation = _currentAnimation;
                     }
                     else
                     {
-                        targetAnimation = GetRandomAnimation("Attack"); // Выбираем новую только при переходе к атаке
+                        targetAnimation = GetRandomAnimation("Attack"); // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅ
                     }
                 }
             }
@@ -272,7 +285,7 @@ public class PlayerAnimationSystem : NetworkBehaviour
             }
             else
             {
-                if (_animator.GetCurrentAnimatorStateInfo(0).normalizedTime < 1f && _currentAnimation.Contains("Cast")) return; // Не прерывать каст
+                if (_animator.GetCurrentAnimatorStateInfo(0).normalizedTime < 1f && _currentAnimation.Contains("Cast")) return; // пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
                 targetAnimation = GetRandomAnimation("Cast");
             }
         }
@@ -307,13 +320,13 @@ public class PlayerAnimationSystem : NetworkBehaviour
             }
             if (stateName == _currentAnimation)
             {
-                _animator.Play(stateName, 0, 0f); // Restart анимации
+                _animator.Play(stateName, 0, 0f); // Restart пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
             }
             else
             {
                 _animator.CrossFade(stateName, 0.1f, 0);
             }
-            _currentAnimation = stateName; // Обновляем локально на всех клиентах
+            _currentAnimation = stateName; // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         }
     }
 

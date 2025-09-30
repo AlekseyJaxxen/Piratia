@@ -29,7 +29,15 @@ public class PlayerCombat : NetworkBehaviour
     }
     public void SetCurrentTarget(GameObject target)
     {
-        _targetNetId = target ? target.GetComponent<NetworkIdentity>().netId : 0;
+        if (target != null)
+        {
+            NetworkIdentity netId = target.GetComponent<NetworkIdentity>();
+            _targetNetId = netId != null ? netId.netId : 0;
+        }
+        else
+        {
+            _targetNetId = 0;
+        }
         _targetCache = target;
     }
     public void ClearTarget()

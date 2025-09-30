@@ -12,6 +12,12 @@ public class PlayerAnimationSync : NetworkBehaviour
     [SyncVar(hook = nameof(OnAnimationStateChanged))]
     private bool isPlaying;
 
+    // Оптимизация: кэширование для предотвращения избыточных сетевых вызовов
+    private string _lastSentAnimation = "";
+    private bool _lastSentIsPlaying = false;
+    private float _lastAnimationCheck = 0f;
+    private const float ANIMATION_CHECK_INTERVAL = 0.1f; // Проверяем анимации каждые 100мс
+
     void Awake()
     {
         animationComponent = GetComponent<Animation>();
@@ -21,26 +27,36 @@ public class PlayerAnimationSync : NetworkBehaviour
     {
         if (isLocalPlayer)
         {
-            // ������������� ������� ��������
+            // Оптимизация: проверяем анимации не каждый кадр, а с интервалом
+            if (Time.time - _lastAnimationCheck < ANIMATION_CHECK_INTERVAL)
+                return;
+            _lastAnimationCheck = Time.time;
+            
+            // Отслеживаем текущую анимацию
+            string currentPlayingAnimation = "";
+            bool currentlyPlaying = false;
+            
             foreach (AnimationState state in animationComponent)
             {
                 if (animationComponent.IsPlaying(state.name))
                 {
-                    if (currentAnimation != state.name)
-                    {
-                        CmdSetCurrentAnimation(state.name);
-                    }
-                    if (!isPlaying)
-                    {
-                        CmdSetAnimationState(true);
-                    }
-                    return;
+                    currentPlayingAnimation = state.name;
+                    currentlyPlaying = true;
+                    break;
                 }
             }
-
-            if (isPlaying)
+            
+            // Оптимизация: отправляем сетевые вызовы только при реальных изменениях
+            if (currentPlayingAnimation != _lastSentAnimation)
             {
-                CmdSetAnimationState(false);
+                CmdSetCurrentAnimation(currentPlayingAnimation);
+                _lastSentAnimation = currentPlayingAnimation;
+            }
+            
+            if (currentlyPlaying != _lastSentIsPlaying)
+            {
+                CmdSetAnimationState(currentlyPlaying);
+                _lastSentIsPlaying = currentlyPlaying;
             }
         }
     }

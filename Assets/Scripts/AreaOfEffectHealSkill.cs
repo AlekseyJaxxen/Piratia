@@ -38,7 +38,7 @@ public class AreaOfEffectHealSkill : SkillBase
             if (targetHealth != null)
             {
                 PlayerCore targetCore = col.GetComponent<PlayerCore>();
-                if (targetCore != null && targetCore.team == caster.team)
+                if (targetCore != null && targetCore.team == caster.team && !targetCore.isDead)
                 {
                     targetHealth.Heal(healAmount);
                 }

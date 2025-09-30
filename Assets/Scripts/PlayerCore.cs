@@ -524,6 +524,15 @@ public class PlayerCore : NetworkBehaviour
         if (nameTagUI != null) Destroy(nameTagUI.gameObject);
     }
 
+    public override void OnStopLocalPlayer()
+    {
+        if (localPlayerCoreInstance == this)
+        {
+            localPlayerCoreInstance = null;
+        }
+        base.OnStopLocalPlayer();
+    }
+
     public void OnDestroy()
     {
         if (healthBarUI != null) Destroy(healthBarUI.gameObject);

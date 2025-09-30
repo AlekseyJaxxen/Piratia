@@ -1179,7 +1179,7 @@ GameObject:
   - component: {fileID: 2145673392187326589}
   m_Layer: 10
   m_Name: ReviveCollider
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1218,7 +1218,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 0.04, z: 1}
+  m_Size: {x: 1.71, y: 1, z: 1.5}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &1526974360870546475
 GameObject:
@@ -5453,7 +5453,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1.3, y: 2, z: 1.3}
+  m_Size: {x: 2, y: 3, z: 2}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &3920754116015596352
 MonoBehaviour:
@@ -5763,7 +5763,7 @@ MonoBehaviour:
   toggleBuffVFXPrefab: {fileID: 0}
   toggleBuffVFXOffset: {x: 0, y: 1, z: 0}
   buffContainer: {fileID: 8947062729141110936}
-  buffSpacing: 0.2
+  buffSpacing: 0.3
 --- !u!114 &7836211492774739891
 MonoBehaviour:
   m_ObjectHideFlags: 0

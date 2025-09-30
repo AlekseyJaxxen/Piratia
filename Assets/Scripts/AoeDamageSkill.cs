@@ -57,7 +57,7 @@ public class AoeDamageSkill : SkillBase
             {
                 PlayerCore targetCore = col.GetComponent<PlayerCore>();
                 Monster targetMonster = col.GetComponent<Monster>();
-                if (targetCore != null && targetCore.team != caster.team)
+                if (targetCore != null && targetCore.team != caster.team && !targetCore.isDead)
                 {
                     targetHealthMonster.TakeDamage(totalBaseDamage, SkillDamageType, false, caster.netIdentity, damageMultiplier);
                 }
@@ -70,7 +70,7 @@ public class AoeDamageSkill : SkillBase
             {
                 PlayerCore targetCore = col.GetComponent<PlayerCore>();
                 Monster targetMonster = col.GetComponent<Monster>();
-                if (targetCore != null && targetCore.team != caster.team)
+                if (targetCore != null && targetCore.team != caster.team && !targetCore.isDead)
                 {
                     targetHealth.TakeDamage(totalBaseDamage, SkillDamageType, false, caster.netIdentity, damageMultiplier);
                 }

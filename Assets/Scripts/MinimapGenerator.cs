@@ -11,7 +11,7 @@ public class MinimapGenerator : NetworkBehaviour
     [SerializeField] private KeyCode toggleKey = KeyCode.Tab;
     [SerializeField] private int minimapSize = 256;
     [SerializeField] private float minimapRange = 50f;
-    [SerializeField] private float updateInterval = 0.1f;
+    [SerializeField] private float updateInterval = 0.5f; // Оптимизация: увеличили интервал с 0.1 до 0.5 секунды
     
     [Header("Player Reference")]
     [SerializeField] private Transform playerToFollow;
@@ -368,21 +368,35 @@ public class MinimapGenerator : NetworkBehaviour
         UpdateObjectMarkers();
     }
     
+    // Оптимизация: кэширование объектов для мини-карты
+    private PlayerCore[] _cachedPlayers = new PlayerCore[0];
+    private Monster[] _cachedMonsters = new Monster[0];
+    private float _lastObjectCacheUpdate = 0f;
+    private const float OBJECT_CACHE_UPDATE_INTERVAL = 1f; // Обновляем кэш объектов раз в секунду
+    
     void UpdateObjectMarkers()
     {
-        // Находим всех игроков
-        PlayerCore[] players = FindObjectsOfType<PlayerCore>();
-        foreach (PlayerCore player in players)
+        // Оптимизация: обновляем кэш объектов не каждый раз
+        if (Time.time - _lastObjectCacheUpdate > OBJECT_CACHE_UPDATE_INTERVAL)
         {
-            if (player == playerTransform.GetComponent<PlayerCore>()) continue;
+            _cachedPlayers = FindObjectsOfType<PlayerCore>();
+            _cachedMonsters = FindObjectsOfType<Monster>();
+            _lastObjectCacheUpdate = Time.time;
+        }
+        
+        // Находим всех игроков (используем кэш)
+        foreach (PlayerCore player in _cachedPlayers)
+        {
+            if (player == null || player == playerTransform.GetComponent<PlayerCore>()) continue;
             
             CreateOrUpdateMarker(player.transform, GetPlayerColor(player));
         }
         
-        // Находим всех монстров (только живых)
-        Monster[] monsters = FindObjectsOfType<Monster>();
-        foreach (Monster monster in monsters)
+        // Находим всех монстров (только живых, используем кэш)
+        foreach (Monster monster in _cachedMonsters)
         {
+            if (monster == null) continue;
+            
             // Показываем маркер только если монстр жив
             if (!monster.IsDead)
             {

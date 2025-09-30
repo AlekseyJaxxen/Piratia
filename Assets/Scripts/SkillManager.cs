@@ -31,6 +31,7 @@ public class SkillManager : MonoBehaviour
         {
             case CharacterClass.Warrior:
                 selectedSkills = warriorSkills;
+                Debug.Log($"[SkillManager] Getting Warrior skills: {selectedSkills.Count} skills found");
                 break;
             case CharacterClass.Mage:
                 selectedSkills = mageSkills;
@@ -48,6 +49,23 @@ public class SkillManager : MonoBehaviour
                 Debug.LogError($"[SkillManager] No skills defined for class {characterClass}");
                 return new List<SkillBase>();
         }
+        
+        // Если список пустой, попробуем загрузить BasicAttackSkill из ресурсов
+        if (selectedSkills.Count == 0 && characterClass == CharacterClass.Warrior)
+        {
+            Debug.LogWarning($"[SkillManager] No warrior skills configured, attempting to load BasicAttackSkill from resources");
+            BasicAttackSkill basicAttack = Resources.Load<BasicAttackSkill>("SO-Skills/NewBasicAttackSkill");
+            if (basicAttack != null)
+            {
+                selectedSkills.Add(basicAttack);
+                Debug.Log($"[SkillManager] Loaded BasicAttackSkill from resources: {basicAttack.SkillName}");
+            }
+            else
+            {
+                Debug.LogError($"[SkillManager] Failed to load BasicAttackSkill from resources");
+            }
+        }
+        
         // Returning skills for class
         return selectedSkills;
     }

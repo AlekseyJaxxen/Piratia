@@ -47,8 +47,17 @@ public class MonsterAI2 : MonoBehaviour
         }
     }
     
+    // Оптимизация: интервалы обновления для AI
+    private float lastAIUpdate = 0f;
+    private float aiUpdateInterval = 0.2f; // Обновляем AI каждые 200мс вместо каждого кадра
+    
     private void Update()
     {
+        // Оптимизация: обновляем AI не каждый кадр, а с интервалом
+        if (Time.time - lastAIUpdate < aiUpdateInterval)
+            return;
+        lastAIUpdate = Time.time;
+        
         // Упрощенная система для combined монстров
         if (monster.isCombinedHead)
         {

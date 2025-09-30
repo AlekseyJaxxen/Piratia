@@ -190,18 +190,8 @@ public class Health : NetworkBehaviour
             targetDodge = targetMonster.dodge;
         }
         
-        // Calculate hit chance: 
-        // If hit >= dodge: 100% chance
-        // If dodge > hit: max(10, dodge - hit)
-        int hitChance;
-        if (attackerHit >= targetDodge)
-        {
-            hitChance = 100; // 100% hit chance
-        }
-        else
-        {
-            hitChance = Mathf.Max(10, targetDodge - attackerHit);
-        }
+        // Calculate hit chance: 100 - (dodge - hit_rate + 10) = 100 - dodge + hit_rate - 10 = 90 + hit_rate - dodge (min 10, max 100)
+        int hitChance = Mathf.Clamp(90 + attackerHit - targetDodge, 10, 100);
         
         // Roll for hit
         int roll = Random.Range(1, 101); // 1-100

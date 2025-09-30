@@ -162,9 +162,15 @@ public class PlayerSkills : NetworkBehaviour
             Destroy(_silenceEffectInstance);
         }
         CancelAllSkillSelections();
-        foreach (var skill in skills)
+        if (skills != null)
         {
-            skill.CleanupIndicators();
+            foreach (var skill in skills)
+            {
+                if (skill != null)
+                {
+                    skill.CleanupIndicators();
+                }
+            }
         }
         if (_invisibilityCoroutine != null) StopCoroutine(_invisibilityCoroutine);
         SetInvisible(false);
@@ -186,9 +192,15 @@ public class PlayerSkills : NetworkBehaviour
             Destroy(_silenceEffectInstance);
         }
         CancelAllSkillSelections();
-        foreach (var skill in skills)
+        if (skills != null)
         {
-            skill.CleanupIndicators();
+            foreach (var skill in skills)
+            {
+                if (skill != null)
+                {
+                    skill.CleanupIndicators();
+                }
+            }
         }
         if (_invisibilityCoroutine != null) StopCoroutine(_invisibilityCoroutine);
         SetInvisible(false);
@@ -508,11 +520,14 @@ public class PlayerSkills : NetworkBehaviour
         {
             UpdateGlobalCooldownUI();
         }
-        if (isLocalPlayer)
+        if (isLocalPlayer && skills != null)
         {
             foreach (var skill in skills)
             {
-                UpdateSkillUI(skill.SkillName);
+                if (skill != null)
+                {
+                    UpdateSkillUI(skill.SkillName);
+                }
             }
         }
     }
@@ -534,35 +549,70 @@ public class PlayerSkills : NetworkBehaviour
             SetCursor(defaultCursor);
         }
     }
+    // Оптимизация: кэширование для курсора
+    private Texture2D _lastCursor = null;
+    private Vector3 _lastMousePosition = Vector3.zero;
+    private const float MOUSE_MOVEMENT_THRESHOLD = 5f; // Минимальное движение мыши для обновления
+    
     private void UpdateCursor()
     {
-        if ((float)NetworkTime.time - _lastCursorUpdate > cursorUpdateInterval)
+        // Оптимизация: обновляем курсор только при движении мыши или с интервалом
+        Vector3 currentMousePos = Input.mousePosition;
+        bool mouseMoved = Vector3.Distance(currentMousePos, _lastMousePosition) > MOUSE_MOVEMENT_THRESHOLD;
+        
+        if ((float)NetworkTime.time - _lastCursorUpdate > cursorUpdateInterval || mouseMoved)
         {
+            if (_core == null || _core.Camera == null || _core.Camera.CameraInstance == null) return;
+            
             Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
+            Texture2D newCursor = defaultCursor; // По умолчанию
+            
             if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
             {
                 GameObject hitObject = hit.collider.gameObject;
                 PlayerCore hitCore = hitObject.GetComponent<PlayerCore>();
                 Monster hitMonster = hitObject.GetComponent<Monster>();
-                if ((hitCore != null && hitCore.team != _core.team && !hitCore.Skills._isInvisible) || hitMonster != null)
+                
+                // Check for dead allies on ReviveLayer
+                if (hitObject.layer == LayerMask.NameToLayer("ReviveLayer"))
                 {
-                    SetCursor(attackCursor);
+                    hitCore = hitObject.GetComponentInParent<PlayerCore>();
                 }
-                else
+                
+                // Check for enemies
+                if ((hitCore != null && hitCore.team != _core.team && hitCore.Skills != null && !hitCore.Skills._isInvisible && !hitCore.isDead) || hitMonster != null)
                 {
-                    SetCursor(defaultCursor);
+                    newCursor = attackCursor;
+                }
+                // Check for dead allies (for revive)
+                else if (hitCore != null && hitCore.team == _core.team && hitCore.isDead && _activeSkill is ReviveSkill)
+                {
+                    newCursor = castCursor;
+                }
+                // Check for living allies (for other skills)
+                else if (hitCore != null && hitCore.team == _core.team && !hitCore.isDead && _activeSkill != null && _activeSkill is not ReviveSkill)
+                {
+                    newCursor = castCursor;
                 }
             }
-            else
+            
+            // Оптимизация: меняем курсор только если он действительно изменился
+            if (_lastCursor != newCursor)
             {
-                SetCursor(defaultCursor);
+                SetCursor(newCursor);
+                _lastCursor = newCursor;
             }
+            
+            _lastMousePosition = currentMousePos;
             _lastCursorUpdate = (float)NetworkTime.time;
         }
     }
     private void SetCursor(Texture2D cursor)
     {
-        Cursor.SetCursor(cursor, Vector2.zero, CursorMode.Auto);
+        if (cursor != null)
+        {
+            Cursor.SetCursor(cursor, Vector2.zero, CursorMode.Auto);
+        }
     }
     private void OnCooldownChanged(SyncDictionary<string, float>.Operation op, string key, float item)
     {

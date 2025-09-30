@@ -27,20 +27,6 @@ public class BombObject : NetworkBehaviour
     public float pulseIntensity = 0.3f;
     public Color warningColor = Color.red;
     
-    private void Start()
-    {
-        bombRenderer = GetComponent<Renderer>();
-        if (bombRenderer == null)
-        {
-            bombRenderer = GetComponentInChildren<Renderer>();
-        }
-        
-        // Запускаем таймер взрыва
-        if (isServer)
-        {
-            StartCoroutine(ExplosionTimer());
-        }
-    }
     
     public void Initialize(int damage, float multiplier, float radius, float delay, 
                           GameObject explosion, GameObject zone, Color color, float alpha,
@@ -111,12 +97,14 @@ public class BombObject : NetworkBehaviour
         
         // Bomb exploding
         
-        // Находим все цели в радиусе взрыва
+        // Оптимизация: кэшируем LayerMask и используем более эффективный поиск
         int explosionLayerMask = LayerMask.GetMask("Player", "Ignore Raycast", "Monster", "Enemy");
-        Collider[] hitColliders = Physics.OverlapSphere(transform.position, explosionRadius, explosionLayerMask);
+        Collider[] hitColliders = new Collider[50]; // Предварительно выделенный массив
+        int hitCount = Physics.OverlapSphereNonAlloc(transform.position, explosionRadius, hitColliders, explosionLayerMask);
         
-        foreach (Collider col in hitColliders)
+        for (int i = 0; i < hitCount; i++)
         {
+            Collider col = hitColliders[i];
             // Проверяем, что это не сам кастер
             if (col.GetComponent<NetworkIdentity>() == casterIdentity) continue;
             
@@ -184,13 +172,33 @@ public class BombObject : NetworkBehaviour
         }
     }
     
-    private void Update()
+    // Оптимизация: используем корутину вместо Update для анимации
+    private Coroutine _pulseCoroutine;
+    
+    private void Start()
     {
-        if (!hasExploded)
+        bombRenderer = GetComponent<Renderer>();
+        if (bombRenderer == null)
+        {
+            bombRenderer = GetComponentInChildren<Renderer>();
+        }
+        
+        // Запускаем таймер взрыва
+        if (isServer)
+        {
+            StartCoroutine(ExplosionTimer());
+        }
+        
+        // Оптимизация: запускаем анимацию пульсации через корутину
+        _pulseCoroutine = StartCoroutine(PulseAnimation());
+    }
+    
+    private IEnumerator PulseAnimation()
+    {
+        while (!hasExploded)
         {
             // Анимация пульсации бомбы
             timer += Time.deltaTime * pulseSpeed;
-            float pulse = Mathf.Sin(timer) * pulseIntensity + 1f;
             
             if (bombRenderer != null)
             {
@@ -210,6 +218,8 @@ public class BombObject : NetworkBehaviour
                     zoneRenderer.material.color = zoneColorWithPulse;
                 }
             }
+            
+            yield return null;
         }
     }
     
@@ -218,6 +228,12 @@ public class BombObject : NetworkBehaviour
         if (zoneIndicatorInstance != null)
         {
             Destroy(zoneIndicatorInstance);
+        }
+        
+        // Останавливаем корутину анимации
+        if (_pulseCoroutine != null)
+        {
+            StopCoroutine(_pulseCoroutine);
         }
     }
     

@@ -283,11 +283,19 @@ public class Monster : NetworkBehaviour
         }
     }
     
-    // Упрощенная синхронизация
+    // Оптимизация: синхронизация combined монстров с интервалом
+    private float _lastPositionSync = 0f;
+    private const float POSITION_SYNC_INTERVAL = 0.1f; // Синхронизируем каждые 100мс
+    
     private void Update()
     {
         if (isCombinedLegs && partnerMonster != null)
         {
+            // Оптимизация: обновляем позицию не каждый кадр
+            if (Time.time - _lastPositionSync < POSITION_SYNC_INTERVAL)
+                return;
+            _lastPositionSync = Time.time;
+            
             // Legs двигает Head только если head не упал И head не в процессе падения
             if (!partnerMonster.IsDead && partnerMonster.isFalling == false)
             {
@@ -297,10 +305,8 @@ public class Monster : NetworkBehaviour
                 {
                     partnerMonster.transform.position = expectedHeadPos;
                     partnerMonster.transform.rotation = transform.rotation;
-                    // Логи убраны - не спамим каждый Update
                 }
             }
-            // НЕ двигаем head если он мертв или падает - убраны спам логи
         }
     }
     public override void OnStartServer()

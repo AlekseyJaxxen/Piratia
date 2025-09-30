@@ -34,7 +34,7 @@ public class AreaOfEffectStunSkill : SkillBase
         {
             PlayerCore targetCore = col.GetComponent<PlayerCore>();
             Monster targetMonster = col.GetComponent<Monster>();
-            if (targetCore != null && targetCore.team != caster.team)
+            if (targetCore != null && targetCore.team != caster.team && !targetCore.isDead)
             {
                 targetCore.ApplyControlEffect(ControlEffectType.Stun, stunDuration, weight);
                 Debug.Log($"[AreaOfEffectStunSkill] Applied stun to player {targetCore.gameObject.name}, duration={stunDuration}, weight={weight}");

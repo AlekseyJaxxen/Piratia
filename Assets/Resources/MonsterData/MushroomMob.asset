@@ -28,7 +28,7 @@ MonoBehaviour:
     dropChance: 1
   droppedItemPrefab: {fileID: 8686491603925156450, guid: 133a99e109889094299eec33717cff52,
     type: 3}
-  maxHealth: 100000
+  maxHealth: 1000000
   stoppingDistance: 1
   basicAttackSkill: {fileID: 11400000, guid: a229fccd33ff10744a8a3c45ed1c4195, type: 2}
   hitRate: 10

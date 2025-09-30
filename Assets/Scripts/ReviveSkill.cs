@@ -4,24 +4,113 @@ using Mirror;
 [CreateAssetMenu(fileName = "ReviveSkill", menuName = "Skills/ReviveSkill")]
 public class ReviveSkill : SkillBase
 {
+    [Header("Revive Settings")]
     [SerializeField] private GameObject reviveVFXPrefab;
     [SerializeField] private float reviveHpFraction = 0.5f;
+    [SerializeField] private float reviveRange = 5f;
 
     protected override void ExecuteSkillImplementation(PlayerCore player, Vector3? targetPosition, GameObject targetObject)
     {
-        if (targetObject == null) return;
-        PlayerCore targetPlayer = targetObject.GetComponentInParent<PlayerCore>();
-        if (targetPlayer == null || !targetPlayer.isDead || targetPlayer.team != player.team) return;
+        Debug.Log($"[ReviveSkill] ExecuteSkillImplementation - targetObject: {targetObject?.name}");
+        
+        if (targetObject == null)
+        {
+            Debug.LogWarning("[ReviveSkill] Target object is null");
+            return;
+        }
+
+        // Get PlayerCore from target or its parent
+        PlayerCore targetPlayer = targetObject.GetComponent<PlayerCore>();
+        if (targetPlayer == null)
+        {
+            targetPlayer = targetObject.GetComponentInParent<PlayerCore>();
+        }
+
+        if (targetPlayer == null)
+        {
+            Debug.LogWarning("[ReviveSkill] No PlayerCore found on target");
+            return;
+        }
+
+        Debug.Log($"[ReviveSkill] Target: {targetPlayer.name}, isDead: {targetPlayer.isDead}, team: {targetPlayer.team}, caster team: {player.team}");
+
+        // Validate target
+        if (!targetPlayer.isDead)
+        {
+            Debug.LogWarning("[ReviveSkill] Target is not dead");
+            return;
+        }
+
+        if (targetPlayer.team != player.team)
+        {
+            Debug.LogWarning("[ReviveSkill] Target is not an ally");
+            return;
+        }
+
+        // Check range
+        float distance = Vector3.Distance(player.transform.position, targetPlayer.transform.position);
+        if (distance > reviveRange)
+        {
+            Debug.LogWarning($"[ReviveSkill] Target is out of range: {distance} > {reviveRange}");
+            return;
+        }
+
+        Debug.Log($"[ReviveSkill] Executing revive on {targetPlayer.name}");
+        
+        // Execute the skill
         player.Skills.CmdExecuteSkill(player, null, targetPlayer.netId, SkillName, Weight);
     }
 
     public override void ExecuteOnServer(PlayerCore caster, Vector3? targetPosition, GameObject targetObject, int weight)
     {
-        if (targetObject == null) return;
+        Debug.Log($"[ReviveSkill] ExecuteOnServer - targetObject: {targetObject?.name}");
+        
+        if (targetObject == null)
+        {
+            Debug.LogWarning("[ReviveSkill] Target object is null in ExecuteOnServer");
+            return;
+        }
+
+        // Get PlayerCore from target
         PlayerCore targetPlayer = targetObject.GetComponent<PlayerCore>();
-        if (targetPlayer == null || !targetPlayer.isDead || targetPlayer.team != caster.team) return;
+        if (targetPlayer == null)
+        {
+            Debug.LogWarning("[ReviveSkill] No PlayerCore found on target in ExecuteOnServer");
+            return;
+        }
+
+        Debug.Log($"[ReviveSkill] Server - Target: {targetPlayer.name}, isDead: {targetPlayer.isDead}, team: {targetPlayer.team}, caster team: {caster.team}");
+
+        // Validate target
+        if (!targetPlayer.isDead)
+        {
+            Debug.LogWarning("[ReviveSkill] Server - Target is not dead");
+            return;
+        }
+
+        if (targetPlayer.team != caster.team)
+        {
+            Debug.LogWarning("[ReviveSkill] Server - Target is not an ally");
+            return;
+        }
+
+        // Check range
+        float distance = Vector3.Distance(caster.transform.position, targetPlayer.transform.position);
+        if (distance > reviveRange)
+        {
+            Debug.LogWarning($"[ReviveSkill] Server - Target is out of range: {distance} > {reviveRange}");
+            return;
+        }
+
+        Debug.Log($"[ReviveSkill] Server - Executing revive on {targetPlayer.name}");
+        
+        // Set revive parameters
         targetPlayer.pendingReviveHpFraction = reviveHpFraction;
+        
+        // Show revive request UI to target
         targetPlayer.RpcShowReviveRequest(caster.netId);
+        
+        // Play VFX
         caster.Skills.RpcPlayReviveVFX(targetPlayer.netId, SkillName);
     }
 
