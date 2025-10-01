@@ -339,21 +339,14 @@ public class Inventory : NetworkBehaviour
 
     private void ApplyItemStats(Item item, bool apply)
     {
-        int mod = apply ? 1 : -1;
+        // НЕ изменяем базовые статы напрямую - это приводит к двойному учету
+        // Статы экипировки уже учитываются в CalculateDerivedStats() через GetEquippedItems()
         CharacterStats stats = playerCore.Stats;
-        stats.strength += (item.strengthMod + item.strModulusBonus + item.strConstantBonus) * mod;
-        stats.agility += (item.agilityMod + item.agiModulusBonus + item.agiConstantBonus) * mod;
-        stats.spirit += (item.spiritMod + item.sprModulusBonus) * mod;
-        stats.constitution += (item.constitutionMod + item.conModulusBonus + item.conConstantBonus) * mod;
-        stats.accuracy += (item.accuracyMod + item.hitRateModulusBonus + item.hitModulusBonus + item.hitConstantBonus) * mod;
-        stats.intelligence += (item.intelligenceMod + item.agiModulusBonus + item.agiConstantBonus) * mod;
-        stats.maxHealth += (item.maxHpModulusBonus + item.maxHpConstantBonus) * mod;
-        stats.maxMana += (item.maxSpModulusBonus + item.maxSpConstantBonus) * mod;
-        stats.armor += (item.defenseModulusBonus + item.physicalResist) * mod;
-        stats.criticalHitChance += (item.crtModulusBonus + item.crtConstantBonus) * mod;
-        stats.movementSpeed += (item.mspdModulusBonus + item.mspdConstantBonus) * mod;
+        
+        // Только пересчитываем производные статы
         stats.CalculateDerivedStats();
-        Debug.Log($"[Inventory] Applied stats for {item.itemName} (apply={apply}): strength={item.strengthMod + item.strModulusBonus + item.strConstantBonus}, agility={item.agilityMod + item.agiModulusBonus + item.agiConstantBonus}, spirit={item.spiritMod + item.sprModulusBonus}, constitution={item.constitutionMod + item.conModulusBonus + item.conConstantBonus}, accuracy={item.accuracyMod + item.hitRateModulusBonus + item.hitModulusBonus + item.hitConstantBonus}, intelligence={item.intelligenceMod + item.agiModulusBonus + item.agiConstantBonus}, maxHealth={item.maxHpModulusBonus + item.maxHpConstantBonus}, maxMana={item.maxSpModulusBonus + item.maxSpConstantBonus}, armor={item.defenseModulusBonus + item.physicalResist}, criticalHitChance={item.crtModulusBonus + item.crtConstantBonus}, movementSpeed={item.mspdModulusBonus + item.mspdConstantBonus}");
+        
+        Debug.Log($"[Inventory] Recalculated stats after equipment change: {item.itemName} (apply={apply}). New maxHealth: {stats.maxHealth}, maxMana: {stats.maxMana}");
     }
 
     public ItemInfo GetEquipped(EquipmentSlot slot)

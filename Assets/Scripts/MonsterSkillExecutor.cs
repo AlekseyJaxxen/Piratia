@@ -21,11 +21,18 @@ public class MonsterSkillExecutor : NetworkBehaviour
         availableSkills = new List<MonsterSkillEntry>(skills);
         skillCooldowns.Clear();
         
+        Debug.Log($"[MonsterSkillExecutor] Initializing skills for {monster.name}: {skills.Count} skills");
+        
         foreach (var skillEntry in availableSkills)
         {
             if (skillEntry.skill != null)
             {
                 skillCooldowns[skillEntry.skill] = 0f;
+                Debug.Log($"[MonsterSkillExecutor] Added skill: {skillEntry.skill.name}, cooldown: {skillEntry.cooldown}s, chance: {skillEntry.useChance:P}");
+            }
+            else
+            {
+                Debug.LogWarning($"[MonsterSkillExecutor] Skill entry has null skill!");
             }
         }
     }

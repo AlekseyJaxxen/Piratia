@@ -256,7 +256,9 @@ public class Monster : NetworkBehaviour
         _skillExecutor = GetComponent<MonsterSkillExecutor>();
         if (_skillExecutor == null)
         {
-            Debug.LogWarning("[Monster] MonsterSkillExecutor component missing!");
+            // Автоматически добавляем MonsterSkillExecutor если его нет
+            _skillExecutor = gameObject.AddComponent<MonsterSkillExecutor>();
+            Debug.Log($"[Monster] Added MonsterSkillExecutor component to {monsterName}");
         }
         _renderer = GetComponentInChildren<SkinnedMeshRenderer>();
         if (_renderer == null)
@@ -349,7 +351,7 @@ public class Monster : NetworkBehaviour
         experienceReward = info.experienceReward;
         dropTable = info.dropTable;
         droppedItemPrefab = info.droppedItemPrefab;
-        stoppingDistance = info.stoppingDistance;
+        // stoppingDistance теперь вычисляется динамически в MonsterAI2
         basicAttackSkill = info.basicAttackSkill;
         physicsModel = info.physicsModel;
         minForce = info.minForce;
@@ -554,11 +556,25 @@ public class Monster : NetworkBehaviour
     [Server]
     public void UpdateAggro(uint attackerNetId, int damage)
     {
-        // Aggro updated
-        if (aggroTargetNetId == 0 || damage > 0)
+        // Находим игрока по netId
+        if (NetworkServer.spawned.TryGetValue(attackerNetId, out NetworkIdentity attackerIdentity))
         {
-            aggroTargetNetId = attackerNetId;
-            // Aggro target updated
+            PlayerCore attackerPlayer = attackerIdentity.GetComponent<PlayerCore>();
+            if (attackerPlayer != null)
+            {
+                // Используем новую систему аггро из MonsterAI2
+                MonsterAI2 ai2 = GetComponent<MonsterAI2>();
+                if (ai2 != null)
+                {
+                    ai2.AddAggro(attackerPlayer, damage);
+                }
+                
+                // Сохраняем для совместимости со старой системой
+                if (aggroTargetNetId == 0 || damage > 0)
+                {
+                    aggroTargetNetId = attackerNetId;
+                }
+            }
         }
     }
 
@@ -1191,7 +1207,9 @@ public class Monster : NetworkBehaviour
         
         // Цвета для разных радиусов
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, info.attackRange);
+        // Используем радиус атаки из basicAttackSkill
+        float attackRange = info.basicAttackSkill != null ? info.basicAttackSkill.Range : 2f;
+        Gizmos.DrawWireSphere(transform.position, attackRange);
         
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, info.detectionRange);

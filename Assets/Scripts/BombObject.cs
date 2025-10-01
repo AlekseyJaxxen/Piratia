@@ -5,16 +5,20 @@ using System.Collections;
 public class BombObject : NetworkBehaviour
 {
     [Header("Bomb Settings")]
-    private int baseDamage;
-    private float damageMultiplier;
-    private float explosionRadius;
-    private float explosionDelay;
+    [SyncVar] private int baseDamage;
+    [SyncVar] private float damageMultiplier;
+    [SyncVar] private float explosionRadius;
+    [SyncVar] private float explosionDelay;
+    [SyncVar] private string explosionEffectName;
+    [SyncVar] private string zoneIndicatorName;
+    [SyncVar] private Color zoneColor;
+    [SyncVar] private float zoneAlpha;
+    [SyncVar] private int casterTeam;
+    [SyncVar] private NetworkIdentity casterIdentity;
+    
+    // Кэшированные префабы
     private GameObject explosionEffect;
     private GameObject zoneIndicator;
-    private Color zoneColor;
-    private float zoneAlpha;
-    private int casterTeam;
-    private NetworkIdentity casterIdentity;
     
     [Header("Visual Components")]
     private GameObject zoneIndicatorInstance;
@@ -28,44 +32,71 @@ public class BombObject : NetworkBehaviour
     public Color warningColor = Color.red;
     
     
+    [Server]
     public void Initialize(int damage, float multiplier, float radius, float delay, 
                           GameObject explosion, GameObject zone, Color color, float alpha,
                           int team, NetworkIdentity caster)
     {
-        Debug.Log($"[BombObject] Initialize called, isServer: {isServer}, isClient: {isClient}, zoneIndicator: {zone != null}");
+        Debug.Log($"[BombObject] Initialize called on server, explosionEffect={explosion != null}, zoneIndicator={zone != null}");
+        if (explosion != null) Debug.Log($"[BombObject] Received explosionEffect name: {explosion.name}");
+        if (zone != null) Debug.Log($"[BombObject] Received zoneIndicator name: {zone.name}");
+        
         baseDamage = damage;
         damageMultiplier = multiplier;
         explosionRadius = radius;
         explosionDelay = delay;
+        
+        // Сохраняем имена префабов для синхронизации
+        explosionEffectName = explosion != null ? explosion.name : "";
+        zoneIndicatorName = zone != null ? zone.name : "";
+        
+        // Кэшируем префабы на сервере
         explosionEffect = explosion;
         zoneIndicator = zone;
+        
         zoneColor = color;
         zoneAlpha = alpha;
         casterTeam = team;
         casterIdentity = caster;
         
-        // Создаем индикатор зоны после инициализации
+        // Создаем индикатор зоны только на сервере
         if (zoneIndicator != null)
         {
-            Debug.Log($"[BombObject] Creating zone indicator on {(isServer ? "server" : "client")}");
             CreateZoneIndicator();
         }
-        else
+    }
+    
+    // Вызывается на клиентах после синхронизации SyncVar
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+        
+        // Загружаем префабы по именам на клиентах
+        LoadPrefabsFromNames();
+    }
+    
+    private void LoadPrefabsFromNames()
+    {
+        // Загружаем префабы по именам из Resources/VFX/
+        if (!string.IsNullOrEmpty(explosionEffectName))
         {
-            Debug.LogWarning($"[BombObject] zoneIndicator is null!");
+            explosionEffect = Resources.Load<GameObject>($"VFX/{explosionEffectName}");
+        }
+        
+        if (!string.IsNullOrEmpty(zoneIndicatorName))
+        {
+            zoneIndicator = Resources.Load<GameObject>($"VFX/{zoneIndicatorName}");
         }
     }
     
     private void CreateZoneIndicator()
     {
-        Debug.Log($"[BombObject] CreateZoneIndicator called, zoneIndicator: {zoneIndicator != null}");
         if (zoneIndicator != null)
         {
             zoneIndicatorInstance = Instantiate(zoneIndicator, transform.position, Quaternion.identity);
             zoneIndicatorInstance.transform.SetParent(transform);
-            Debug.Log($"[BombObject] Zone indicator instantiated: {zoneIndicatorInstance != null}");
             
-            // Настраиваем размер зоны
+            // Настраиваем размер зоны (радиус * 2 для диаметра)
             float scale = explosionRadius * 2f;
             zoneIndicatorInstance.transform.localScale = new Vector3(scale, 1f, scale);
             
@@ -77,7 +108,11 @@ public class BombObject : NetworkBehaviour
                 zoneMaterial.color = new Color(zoneColor.r, zoneColor.g, zoneColor.b, zoneAlpha);
             }
         }
+        
+        // Префаб бомбы остается исходного размера
     }
+    
+    
     
     private IEnumerator ExplosionTimer()
     {
@@ -95,6 +130,9 @@ public class BombObject : NetworkBehaviour
         if (hasExploded) return;
         hasExploded = true;
         
+        bool casterAlive = casterIdentity != null && casterIdentity.GetComponent<PlayerCore>() != null && !casterIdentity.GetComponent<PlayerCore>().isDead;
+        Debug.Log($"[BombObject] Exploding bomb, caster: {casterIdentity?.name}, caster alive: {casterAlive}");
+        
         // Bomb exploding
         
         // Оптимизация: кэшируем LayerMask и используем более эффективный поиск
@@ -105,8 +143,12 @@ public class BombObject : NetworkBehaviour
         for (int i = 0; i < hitCount; i++)
         {
             Collider col = hitColliders[i];
-            // Проверяем, что это не сам кастер
-            if (col.GetComponent<NetworkIdentity>() == casterIdentity) continue;
+            // Проверяем, что это не сам кастер (если кастер еще жив)
+            if (casterIdentity != null && col.GetComponent<NetworkIdentity>() == casterIdentity) 
+            {
+                Debug.Log($"[BombObject] Skipping caster: {casterIdentity.name}");
+                continue;
+            }
             
             Health targetHealth = col.GetComponent<Health>();
             HealthMonster targetHealthMonster = col.GetComponent<HealthMonster>();
@@ -150,9 +192,16 @@ public class BombObject : NetworkBehaviour
         }
         
         // Воспроизводим эффект взрыва на всех клиентах
+        Debug.Log($"[BombObject] Calling RpcPlayExplosionEffect, explosionEffect: {explosionEffect != null}");
         RpcPlayExplosionEffect();
         
-        // Уничтожаем бомбу
+        // Уничтожаем бомбу с задержкой, чтобы RPC успел отправиться
+        StartCoroutine(DestroyAfterDelay(0.1f));
+    }
+    
+    private IEnumerator DestroyAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
         NetworkServer.Destroy(gameObject);
     }
     
@@ -162,7 +211,28 @@ public class BombObject : NetworkBehaviour
         if (explosionEffect != null)
         {
             GameObject explosion = Instantiate(explosionEffect, transform.position, Quaternion.identity);
-            Destroy(explosion, 3f);
+            
+            if (explosion != null)
+            {
+                // Масштабируем эффект взрыва в соответствии с радиусом
+                float baseRadius = 2.0f;
+                float effectScale = explosionRadius / baseRadius;
+                effectScale = Mathf.Clamp(effectScale, 0.5f, 3.0f);
+                explosion.transform.localScale = Vector3.one * effectScale;
+                
+                // Запускаем частицы если они не играют
+                ParticleSystem[] particles = explosion.GetComponentsInChildren<ParticleSystem>();
+                foreach (var ps in particles)
+                {
+                    if (!ps.isPlaying)
+                    {
+                        ps.Play();
+                    }
+                }
+                
+                // Уничтожаем эффект через время
+                Destroy(explosion, 5f);
+            }
         }
         
         // Удаляем индикатор зоны

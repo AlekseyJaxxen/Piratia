@@ -366,16 +366,20 @@ public class CharacterStats : NetworkBehaviour
         criticalHitChance = 15.0f + (agility * 0.2f * classData.agilityMultiplier) + (luck * 0.1f);
         physicalResistance = classData.basePhysicalResistance;
         magicDamageMultiplier = 1.0f + (spirit * 0.05f * classData.spiritMultiplier);
+        // Добавляем статы от экипировки
         if (inventory != null)
         {
-            maxHealth += inventory.GetEquippedItems().Sum(item => item.maxHpModulusBonus + item.maxHpConstantBonus);
-            maxMana += inventory.GetEquippedItems().Sum(item => item.maxSpModulusBonus + item.maxSpConstantBonus);
-            minAttack += inventory.GetEquippedItems().Sum(item => item.minAttackConstantBonus);
-            maxAttack += inventory.GetEquippedItems().Sum(item => item.maxAttackConstantBonus);
-            armor += inventory.GetEquippedItems().Sum(item => item.defenseModulusBonus + item.physicalResist);
-            criticalHitChance += inventory.GetEquippedItems().Sum(item => item.crtModulusBonus + item.crtConstantBonus);
-            movementSpeed += inventory.GetEquippedItems().Sum(item => item.mspdModulusBonus + item.mspdConstantBonus);
-            physicalResistance += inventory.GetEquippedItems().Sum(item => item.physicalResist);
+            var equippedItems = inventory.GetEquippedItems();
+            maxHealth += equippedItems.Sum(item => item.maxHpModulusBonus + item.maxHpConstantBonus);
+            maxMana += equippedItems.Sum(item => item.maxSpModulusBonus + item.maxSpConstantBonus);
+            minAttack += equippedItems.Sum(item => item.minAttackConstantBonus);
+            maxAttack += equippedItems.Sum(item => item.maxAttackConstantBonus);
+            armor += equippedItems.Sum(item => item.defenseModulusBonus + item.physicalResist);
+            criticalHitChance += equippedItems.Sum(item => item.crtModulusBonus + item.crtConstantBonus);
+            movementSpeed += equippedItems.Sum(item => item.mspdModulusBonus + item.mspdConstantBonus);
+            physicalResistance += equippedItems.Sum(item => item.physicalResist);
+            
+            Debug.Log($"[CharacterStats] Equipment stats added: {equippedItems.Length} items, maxHealth bonus: {equippedItems.Sum(item => item.maxHpModulusBonus + item.maxHpConstantBonus)}");
         }
         maxHealth = Mathf.Max(1, maxHealth);
         maxMana = Mathf.Max(0, maxMana);

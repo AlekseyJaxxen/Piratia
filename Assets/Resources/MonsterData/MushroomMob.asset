@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: MushroomMob
   m_EditorClassIdentifier: Assembly-CSharp::MonsterInfo
   monsterName: Moshroom
-  moveSpeed: 15
-  attackCooldown: 2
+  moveSpeed: 9
+  attackCooldown: 1
   deathVFXPrefab: {fileID: 142478, guid: 120d855bc18f7fa4f8c46575d5629105, type: 3}
   canMove: 1
   canAttack: 1
@@ -26,10 +26,13 @@ MonoBehaviour:
     dropChance: 1
   - item: {fileID: 11400000, guid: 9421be2e35934f940b518c516057cd91, type: 2}
     dropChance: 1
+  - item: {fileID: 11400000, guid: 8b28c694ce609d74b867c2004951b85b, type: 2}
+    dropChance: 1
+  - item: {fileID: 11400000, guid: 67af998acb8eaf047b50af2369bbf0ba, type: 2}
+    dropChance: 1
   droppedItemPrefab: {fileID: 8686491603925156450, guid: 133a99e109889094299eec33717cff52,
     type: 3}
-  maxHealth: 1000000
-  stoppingDistance: 1
+  maxHealth: 3000
   basicAttackSkill: {fileID: 11400000, guid: a229fccd33ff10744a8a3c45ed1c4195, type: 2}
   hitRate: 10
   dodge: 50
@@ -47,16 +50,15 @@ MonoBehaviour:
   patrolRadius: 10
   chaseTimeout: 30
   detectionRange: 10
-  attackRange: 2
   playerLayer:
     serializedVersion: 2
     m_Bits: 4294967295
   monsterSkills:
-  - skill: {fileID: 0}
-    cooldown: 0
-    useChance: 0
+  - skill: {fileID: 11400000, guid: bd353c03b09dc444fb5434eba1194be4, type: 2}
+    cooldown: 5
+    useChance: 0.5
     minHealthPercentage: 0
-    maxHealthPercentage: 0
-    minDistance: 0
-    maxDistance: 0
+    maxHealthPercentage: 1
+    minDistance: 2
+    maxDistance: 3
     requiresTarget: 0

@@ -37,8 +37,8 @@ MonoBehaviour:
   explosionDelay: 3
   bombPrefab: {fileID: 3299273662854126661, guid: d352079022d57ab4ab5462fbe582c63a,
     type: 3}
-  explosionEffect: {fileID: 130848, guid: d16221e794fe16e4e8994a7f8c770561, type: 3}
-  zoneIndicator: {fileID: 8212533921873324154, guid: e6230a171a068cd489eb410abd241717,
+  explosionEffect: {fileID: 130848, guid: 03208fac8eac8dc4eae72d8e389d1847, type: 3}
+  zoneIndicator: {fileID: 8212533921873324154, guid: 023875b4ab1b8b24184ec40f400fd350,
     type: 3}
   zoneColor: {r: 1, g: 0, b: 0, a: 1}
   zoneAlpha: 0.3

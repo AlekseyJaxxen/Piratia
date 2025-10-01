@@ -18,8 +18,7 @@ public class MonsterInfo : ScriptableObject
     public GameObject droppedItemPrefab;
     [Header("Health Settings")] // ���������
     public int maxHealth = 100;
-    public float stoppingDistance = 1f;
-    public MonsterBasicAttackSkill basicAttackSkill;
+    public MonsterBasicAttackSkill basicAttackSkill; // Радиус атаки берется из этого скилла
     
     [Header("Combat Stats")]
     public int hitRate = 10; // Hit rate for this monster
@@ -43,7 +42,7 @@ public class MonsterInfo : ScriptableObject
     public float patrolRadius = 10f;
     public float chaseTimeout = 30f;
     public float detectionRange = 10f;
-    public float attackRange = 2f;
+    // attackRange удален - теперь берется из basicAttackSkill.Range
     public LayerMask playerLayer = -1;
     
     [Header("Monster Skills")]

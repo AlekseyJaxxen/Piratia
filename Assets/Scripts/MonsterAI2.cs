@@ -1,6 +1,8 @@
 using UnityEngine;
 using UnityEngine.AI;
 using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 
 public class MonsterAI2 : MonoBehaviour
 {
@@ -16,6 +18,34 @@ public class MonsterAI2 : MonoBehaviour
     // Combined attack ranges
     private float headAttackRange = 3f;
     private float legsAttackRange = 2f;
+    
+    // Динамические параметры атаки
+    private float currentAttackRange = 2f;
+    private float currentStoppingDistance = 1f;
+    private float attackRangeVariation = 0.3f; // ±0.3 от базового радиуса
+    
+    // Система аггро
+    [System.Serializable]
+    public class AggroEntry
+    {
+        public PlayerCore player;
+        public float aggroValue;
+        public float lastDamageTime;
+        public float lastSeenTime;
+        
+        public AggroEntry(PlayerCore player, float aggroValue)
+        {
+            this.player = player;
+            this.aggroValue = aggroValue;
+            this.lastDamageTime = Time.time;
+            this.lastSeenTime = Time.time;
+        }
+    }
+    
+    private List<AggroEntry> aggroList = new List<AggroEntry>();
+    private const int maxAggroTargets = 5;
+    private float aggroDecayRate = 0.5f; // Уменьшение аггро в секунду
+    private float aggroTimeout = 10f; // Время до удаления из списка аггро
     
     private NavMeshAgent agent;
     private Monster monster;
@@ -39,17 +69,163 @@ public class MonsterAI2 : MonoBehaviour
             patrolRadius = monsterInfo.patrolRadius;
             chaseTimeout = monsterInfo.chaseTimeout;
             playerLayer = monsterInfo.playerLayer;
-            attackRange = monsterInfo.attackRange;
             detectionRange = monsterInfo.detectionRange;
             attackCooldown = monsterInfo.attackCooldown;
             headAttackRange = monsterInfo.headAttackRange;
             legsAttackRange = monsterInfo.legsAttackRange;
+            
+            // attackRange теперь берется из basicAttackSkill
+            if (monsterInfo.basicAttackSkill != null)
+            {
+                attackRange = monsterInfo.basicAttackSkill.Range;
+            }
+            
+            // Инициализируем динамические параметры атаки
+            UpdateAttackRanges();
         }
+    }
+    
+    private void UpdateAttackRanges()
+    {
+        // Получаем радиус атаки из MonsterBasicAttackSkill
+        float baseRange = attackRange;
+        if (monster.info != null && monster.info.basicAttackSkill != null)
+        {
+            baseRange = monster.info.basicAttackSkill.Range;
+        }
+        
+        // Добавляем случайную вариацию (±30% от базового радиуса)
+        float variation = Random.Range(-attackRangeVariation, attackRangeVariation);
+        currentAttackRange = Mathf.Max(0.5f, baseRange + variation);
+        
+        // stoppingDistance всегда меньше attackRange, чтобы монстр мог атаковать
+        // Используем 70-90% от текущего радиуса атаки для остановки
+        float stoppingPercentage = Random.Range(0.7f, 0.9f);
+        currentStoppingDistance = Mathf.Max(0.1f, currentAttackRange * stoppingPercentage);
+        
+        // Обновляем stopping distance у NavMeshAgent
+        if (agent != null)
+        {
+            agent.stoppingDistance = currentStoppingDistance;
+        }
+        
+        Debug.Log($"[MonsterAI2] Updated attack ranges: base={baseRange}, current={currentAttackRange:F2}, stopping={currentStoppingDistance:F2} (stopping is {stoppingPercentage*100:F0}% of attack range)");
+    }
+    
+    // Система аггро
+    public void AddAggro(PlayerCore player, float damage)
+    {
+        if (player == null || player.isDead) return;
+        
+        // Ищем существующую запись
+        AggroEntry existingEntry = aggroList.FirstOrDefault(entry => entry.player == player);
+        
+        if (existingEntry != null)
+        {
+            // Обновляем существующую запись
+            existingEntry.aggroValue += damage;
+            existingEntry.lastDamageTime = Time.time;
+            existingEntry.lastSeenTime = Time.time;
+        }
+        else
+        {
+            // Добавляем новую запись
+            if (aggroList.Count >= maxAggroTargets)
+            {
+                // Удаляем запись с наименьшим аггро
+                AggroEntry lowestAggro = aggroList.OrderBy(entry => entry.aggroValue).First();
+                aggroList.Remove(lowestAggro);
+            }
+            
+            aggroList.Add(new AggroEntry(player, damage));
+        }
+        
+        // Сортируем по аггро (по убыванию)
+        aggroList = aggroList.OrderByDescending(entry => entry.aggroValue).ToList();
+        
+        Debug.Log($"[MonsterAI2] Added aggro: {player.name} +{damage}, total aggro: {aggroList.Count}");
+    }
+    
+    private void UpdateAggroSystem()
+    {
+        float currentTime = Time.time;
+        
+        // Уменьшаем аггро со временем
+        for (int i = aggroList.Count - 1; i >= 0; i--)
+        {
+            AggroEntry entry = aggroList[i];
+            
+            // Уменьшаем аггро
+            entry.aggroValue -= aggroDecayRate * aggroUpdateInterval;
+            
+            // Удаляем записи с нулевым или отрицательным аггро
+            if (entry.aggroValue <= 0 || currentTime - entry.lastSeenTime > aggroTimeout)
+            {
+                aggroList.RemoveAt(i);
+                continue;
+            }
+            
+            // Проверяем, видим ли мы игрока
+            if (CanSeePlayer(entry.player))
+            {
+                entry.lastSeenTime = currentTime;
+            }
+        }
+        
+        // Обновляем цель на основе аггро
+        UpdateTargetFromAggro();
+    }
+    
+    private void UpdateTargetFromAggro()
+    {
+        // Ищем игрока с наибольшим аггро, которого мы можем видеть
+        AggroEntry bestTarget = aggroList.FirstOrDefault(entry => 
+            entry.player != null && 
+            !entry.player.isDead && 
+            !entry.player.Skills._isInvisible &&
+            CanSeePlayer(entry.player));
+        
+        if (bestTarget != null && bestTarget.player != target)
+        {
+            target = bestTarget.player;
+            Debug.Log($"[MonsterAI2] Target changed to {target.name} (aggro: {bestTarget.aggroValue:F1})");
+        }
+        else if (bestTarget == null && target != null)
+        {
+            // Текущая цель недоступна, ищем альтернативу в увеличенном радиусе
+            float extendedRange = detectionRange * 1.5f;
+            AggroEntry alternativeTarget = aggroList.FirstOrDefault(entry => 
+                entry.player != null && 
+                !entry.player.isDead && 
+                !entry.player.Skills._isInvisible &&
+                Vector3.Distance(transform.position, entry.player.transform.position) <= extendedRange);
+            
+            if (alternativeTarget != null)
+            {
+                target = alternativeTarget.player;
+                Debug.Log($"[MonsterAI2] Target switched to alternative: {target.name} (extended range)");
+            }
+            else
+            {
+                target = null;
+                Debug.Log($"[MonsterAI2] No valid targets found, clearing target");
+            }
+        }
+    }
+    
+    private bool CanSeePlayer(PlayerCore player)
+    {
+        if (player == null || player.isDead) return false;
+        
+        float distance = Vector3.Distance(transform.position, player.transform.position);
+        return distance <= detectionRange;
     }
     
     // Оптимизация: интервалы обновления для AI
     private float lastAIUpdate = 0f;
     private float aiUpdateInterval = 0.2f; // Обновляем AI каждые 200мс вместо каждого кадра
+    private float lastAggroUpdate = 0f;
+    private float aggroUpdateInterval = 1f; // Обновляем аггро каждую секунду
     
     private void Update()
     {
@@ -57,6 +233,13 @@ public class MonsterAI2 : MonoBehaviour
         if (Time.time - lastAIUpdate < aiUpdateInterval)
             return;
         lastAIUpdate = Time.time;
+        
+        // Обновляем систему аггро
+        if (Time.time - lastAggroUpdate >= aggroUpdateInterval)
+        {
+            UpdateAggroSystem();
+            lastAggroUpdate = Time.time;
+        }
         
         // Упрощенная система для combined монстров
         if (monster.isCombinedHead)
@@ -180,7 +363,8 @@ public class MonsterAI2 : MonoBehaviour
             {
                 // Проверяем расстояние до цели для атаки (от позиции головы)
                 float distance = Vector3.Distance(transform.position, target.transform.position);
-                if (distance <= headAttackRange && !monster.IsStunned && Time.time >= lastAttackTime + attackCooldown)
+                float effectiveHeadRange = headAttackRange + Random.Range(-attackRangeVariation, attackRangeVariation);
+                if (distance <= effectiveHeadRange && !monster.IsStunned && Time.time >= lastAttackTime + attackCooldown)
                 {
                     // Head атакует только после смерти legs
                     Debug.Log($"[MonsterAI2] Head attacking after legs death, distance: {distance}, range: {headAttackRange}");
@@ -199,7 +383,8 @@ public class MonsterAI2 : MonoBehaviour
                 Debug.Log($"[MonsterAI2] Head distance: {headDistance}, legs distance: {legsDistance}, head range: {headAttackRange}");
                 
                 // Head атакует только если он ближе к цели и в радиусе атаки
-                if (headDistance < legsDistance && headDistance <= headAttackRange && !monster.IsStunned && Time.time >= lastAttackTime + attackCooldown)
+                float effectiveHeadRange = headAttackRange + Random.Range(-attackRangeVariation, attackRangeVariation);
+                if (headDistance < legsDistance && headDistance <= effectiveHeadRange && !monster.IsStunned && Time.time >= lastAttackTime + attackCooldown)
                 {
                     Debug.Log($"[MonsterAI2] Head attacking, head closer to target");
                     monster.ExecuteAttack(target);
@@ -212,7 +397,8 @@ public class MonsterAI2 : MonoBehaviour
             {
                 // Head без партнера (legs мертв) - атакует с земли
                 float distance = Vector3.Distance(transform.position, target.transform.position);
-                if (distance <= headAttackRange && !monster.IsStunned && Time.time >= lastAttackTime + attackCooldown)
+                float effectiveHeadRange = headAttackRange + Random.Range(-attackRangeVariation, attackRangeVariation);
+                if (distance <= effectiveHeadRange && !monster.IsStunned && Time.time >= lastAttackTime + attackCooldown)
                 {
                     Debug.Log($"[MonsterAI2] Head attacking without partner, distance: {distance}, range: {headAttackRange}");
                     if (monster != null && !monster.IsDead)
@@ -241,6 +427,14 @@ public class MonsterAI2 : MonoBehaviour
     
     private void FindTarget()
     {
+        // Если у нас есть аггро список, используем его для выбора цели
+        if (aggroList.Count > 0)
+        {
+            UpdateTargetFromAggro();
+            return;
+        }
+        
+        // Иначе ищем ближайшего игрока в радиусе обнаружения
         Collider[] hits = Physics.OverlapSphere(transform.position, detectionRange, playerLayer);
         float closestDistance = float.MaxValue;
         PlayerCore closestPlayer = null;
@@ -299,7 +493,10 @@ public class MonsterAI2 : MonoBehaviour
         }
         float distance = Vector3.Distance(transform.position, target.transform.position);
         
-        if (distance <= legsAttackRange && !monster.IsStunned)
+        // Используем динамический радиус атаки
+        float effectiveAttackRange = monster.isCombinedLegs ? legsAttackRange : currentAttackRange;
+        
+        if (distance <= effectiveAttackRange && !monster.IsStunned)
         {
             if (agent != null && agent.isActiveAndEnabled && agent.isOnNavMesh) agent.isStopped = true;
             transform.LookAt(target.transform);
@@ -341,8 +538,18 @@ public class MonsterAI2 : MonoBehaviour
         }
         else if (!monster.IsStunned && agent != null && agent.isActiveAndEnabled && agent.isOnNavMesh)
         {
-            agent.isStopped = false;
-            agent.SetDestination(target.transform.position);
+            // Проверяем, не находимся ли мы уже слишком близко к цели
+            if (distance > currentStoppingDistance)
+            {
+                agent.isStopped = false;
+                agent.SetDestination(target.transform.position);
+            }
+            else
+            {
+                // Мы уже в оптимальной позиции для атаки, останавливаемся
+                agent.isStopped = true;
+                transform.LookAt(target.transform);
+            }
             
             // Анимация движения для combined legs
         if (monster.isCombinedLegs && agent.velocity.magnitude > 0.1f)

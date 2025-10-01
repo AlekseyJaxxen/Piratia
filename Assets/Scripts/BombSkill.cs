@@ -41,13 +41,23 @@ public class BombSkill : SkillBase
     {
         if (!targetPosition.HasValue) return;
         
+        Debug.Log($"[BombSkill] ExecuteOnServer called, explosionEffect={explosionEffect != null}, zoneIndicator={zoneIndicator != null}");
+        Debug.Log($"[BombSkill] Parameters: baseDamage={baseDamage}, explosionRadius={explosionRadius}, explosionDelay={explosionDelay}");
+        if (explosionEffect != null) Debug.Log($"[BombSkill] explosionEffect name: {explosionEffect.name}");
+        if (zoneIndicator != null) Debug.Log($"[BombSkill] zoneIndicator name: {zoneIndicator.name}");
+        
         // Создаем бомбу на сервере
-        GameObject bombObject = Instantiate(bombPrefab, targetPosition.Value, Quaternion.identity);
+        // Поднимаем бомбу на 0.2f чтобы избежать z-fighting с terrain
+        Vector3 spawnPosition = targetPosition.Value + Vector3.up * 0.2f;
+        GameObject bombObject = Instantiate(bombPrefab, spawnPosition, Quaternion.identity);
         BombObject bombScript = bombObject.GetComponent<BombObject>();
+        
+        // Спавним бомбу в сети ПЕРЕД инициализацией
+        NetworkServer.Spawn(bombObject);
         
         if (bombScript != null)
         {
-            // Настраиваем параметры бомбы
+            // Настраиваем параметры бомбы ПОСЛЕ спавна
             bombScript.Initialize(
                 baseDamage,
                 damageMultiplier,
@@ -62,9 +72,6 @@ public class BombSkill : SkillBase
             );
         }
         
-        // Спавним бомбу в сети
-        NetworkServer.Spawn(bombObject);
-        
         // Bomb placed
     }
     
@@ -78,12 +85,17 @@ public class BombSkill : SkillBase
         }
         
         // Создаем бомбу на сервере
-        GameObject bombObject = Instantiate(bombPrefab, targetPosition, Quaternion.identity);
+        // Поднимаем бомбу на 0.2f чтобы избежать z-fighting с terrain
+        Vector3 spawnPosition = targetPosition + Vector3.up * 0.2f;
+        GameObject bombObject = Instantiate(bombPrefab, spawnPosition, Quaternion.identity);
         BombObject bombScript = bombObject.GetComponent<BombObject>();
+        
+        // Спавним бомбу в сети ПЕРЕД инициализацией
+        NetworkServer.Spawn(bombObject);
         
         if (bombScript != null)
         {
-            // Настраиваем параметры бомбы для монстра
+            // Настраиваем параметры бомбы для монстра ПОСЛЕ спавна
             bombScript.Initialize(
                 baseDamage,
                 damageMultiplier,
@@ -97,9 +109,6 @@ public class BombSkill : SkillBase
                 caster.netIdentity
             );
         }
-        
-        // Спавним бомбу в сети
-        NetworkServer.Spawn(bombObject);
         
         // Monster bomb placed
     }
