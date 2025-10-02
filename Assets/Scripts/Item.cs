@@ -39,6 +39,7 @@ public class Item : ScriptableObject
     public int hpRecoveryBonus;
     public int spRecoveryBonus;
     public int dodgeBonus;
+    public int damageChanceBonus; // Шанс урона (%)
     
     [Header("Dynamic Stat Ranges")]
     public bool useDynamicStats = false;
@@ -63,6 +64,7 @@ public class Item : ScriptableObject
     public StatRange hpRecoveryRange = new StatRange { minValue = 0, maxValue = 0 };
     public StatRange spRecoveryRange = new StatRange { minValue = 0, maxValue = 0 };
     public StatRange dodgeRange = new StatRange { minValue = 0, maxValue = 0 };
+    public StatRange damageChanceRange = new StatRange { minValue = 0, maxValue = 0 }; // Шанс урона
     
     [System.Serializable]
     public class StatRange
@@ -226,6 +228,7 @@ public class Item : ScriptableObject
         target.hpRecoveryRange = new StatRange { minValue = source.hpRecoveryRange.minValue, maxValue = source.hpRecoveryRange.maxValue, chance = source.hpRecoveryRange.chance };
         target.spRecoveryRange = new StatRange { minValue = source.spRecoveryRange.minValue, maxValue = source.spRecoveryRange.maxValue, chance = source.spRecoveryRange.chance };
         target.dodgeRange = new StatRange { minValue = source.dodgeRange.minValue, maxValue = source.dodgeRange.maxValue, chance = source.dodgeRange.chance };
+        target.damageChanceRange = new StatRange { minValue = source.damageChanceRange.minValue, maxValue = source.damageChanceRange.maxValue, chance = source.damageChanceRange.chance };
         
         // Сбрасываем бонусные статы (они будут сгенерированы)
         target.strengthBonus = 0;
@@ -236,6 +239,7 @@ public class Item : ScriptableObject
         target.hpRecoveryBonus = 0;
         target.spRecoveryBonus = 0;
         target.dodgeBonus = 0;
+        target.damageChanceBonus = 0;
         
         // Сбрасываем бонусы урона и других статов (они будут сгенерированы)
         target.minAttackConstantBonus = 0;
@@ -325,6 +329,11 @@ public class Item : ScriptableObject
         if (item.movementSpeedRange.maxValue > 0 && Random.Range(0f, 1f) <= item.movementSpeedRange.chance)
         {
             item.mspdConstantBonus = Random.Range(item.movementSpeedRange.minValue, item.movementSpeedRange.maxValue + 1);
+        }
+        
+        if (item.damageChanceRange.maxValue > 0 && Random.Range(0f, 1f) <= item.damageChanceRange.chance)
+        {
+            item.damageChanceBonus = Random.Range(item.damageChanceRange.minValue, item.damageChanceRange.maxValue + 1);
         }
     }
     

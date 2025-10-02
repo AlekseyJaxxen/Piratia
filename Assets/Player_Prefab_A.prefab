@@ -1290,6 +1290,8 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
+    armorBonus: 0
+    physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
@@ -1847,6 +1849,8 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
+    armorBonus: 0
+    physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
@@ -2721,6 +2725,8 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
+    armorBonus: 0
+    physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
@@ -2833,6 +2839,8 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
+    armorBonus: 0
+    physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
@@ -3609,7 +3617,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 184.5, y: 287}
+  m_AnchoredPosition: {x: 137.8, y: 235.1}
   m_SizeDelta: {x: 10, y: 10}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &4337579286620954007
@@ -3869,12 +3877,12 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1933216191977230547}
-  m_Father: {fileID: 5089776245743228962}
+  m_Father: {fileID: 2722167175040543856}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 39.5, y: -244.8}
-  m_SizeDelta: {x: 35, y: 35}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &3079002101048237383
 CanvasRenderer:
@@ -3904,7 +3912,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Drag skills in to hotbar and close this by press K
+  m_text: 
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -3938,7 +3946,7 @@ MonoBehaviour:
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
-  m_HorizontalAlignment: 1
+  m_HorizontalAlignment: 2
   m_VerticalAlignment: 256
   m_textAlignment: 65535
   m_characterSpacing: 0
@@ -3969,7 +3977,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: -123.70346, w: -39.810562}
+  m_margin: {x: -68.228, y: 0, z: -94.24515, w: -39.810562}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -4181,6 +4189,8 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
+    armorBonus: 0
+    physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
@@ -4377,7 +4387,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: -199.6, y: -315.9}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5887716949472627706
@@ -4408,7 +4418,9 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 
+  m_text: 'Drag to panel
+
+    to close "K"'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -4473,7 +4485,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: 0, y: 0, z: -171.42273, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -4523,11 +4535,12 @@ RectTransform:
   - {fileID: 4689336978210680906}
   - {fileID: 8650606690360068342}
   - {fileID: 3845998154976597729}
+  - {fileID: 4489917828412096473}
   m_Father: {fileID: 3821187410621106270}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
-  m_AnchoredPosition: {x: 26.518799, y: 730.6}
+  m_AnchoredPosition: {x: 127, y: 604}
   m_SizeDelta: {x: 250, y: 450}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &8061273548069818341
@@ -5881,6 +5894,8 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
+    armorBonus: 0
+    physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
@@ -5902,6 +5917,8 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
+    armorBonus: 0
+    physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
@@ -5923,6 +5940,8 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
+    armorBonus: 0
+    physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
@@ -5944,6 +5963,8 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
+    armorBonus: 0
+    physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
@@ -5965,6 +5986,8 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
+    armorBonus: 0
+    physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
@@ -5986,6 +6009,8 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
+    armorBonus: 0
+    physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
@@ -6007,6 +6032,8 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
+    armorBonus: 0
+    physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
@@ -6028,6 +6055,8 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
+    armorBonus: 0
+    physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
@@ -6049,6 +6078,8 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
+    armorBonus: 0
+    physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
@@ -6070,6 +6101,8 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
+    armorBonus: 0
+    physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
@@ -6091,6 +6124,8 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
+    armorBonus: 0
+    physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
@@ -13132,11 +13167,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects:
-    - targetCorrespondingSourceObject: {fileID: 9212179077693422112, guid: e2b4a61cf3799564ea4d49fc13a5761b,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 4489917828412096473}
+    m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: e2b4a61cf3799564ea4d49fc13a5761b, type: 3}
 --- !u!224 &5089776245743228962 stripped
