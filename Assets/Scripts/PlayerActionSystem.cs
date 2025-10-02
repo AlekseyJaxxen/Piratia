@@ -298,6 +298,24 @@ public class PlayerActionSystem : NetworkBehaviour
         float attackCooldown = skill is BasicAttackSkill ? 1f / _core.Stats.attackSpeed : 0f;
         bool isLooping = skill is BasicAttackSkill;
         PlayerAnimationSystem animationSystem = GetComponent<PlayerAnimationSystem>();
+        // Проверяем, можем ли мы достичь цель
+        Vector3 closestPoint;
+        float distanceToTarget;
+        bool canReach = _core.Movement.CanReachTarget(target.transform.position, out closestPoint, out distanceToTarget);
+        
+        if (!canReach)
+        {
+            Debug.LogWarning($"[PlayerActionSystem] Target {target.name} is not reachable (closest distance: {distanceToTarget:F1}m)");
+            CompleteAction();
+            yield break;
+        }
+        
+        // Используем стандартную дальность атаки без увеличения
+        float effectiveAttackRange = attackRange;
+        
+        bool isMovingToTarget = false;
+        Vector3 actualDestination = Vector3.zero;
+        
         while (target != null && targetHealth.CurrentHealth > 0)
         {
             // Проверка невидимости цели
@@ -313,32 +331,49 @@ public class PlayerActionSystem : NetworkBehaviour
                 CompleteAction();
                 yield break;
             }
-            float distance = Vector3.Distance(transform.position, target.transform.position); // Full distance with Y
-            Debug.Log($"[PlayerActionSystem] Distance to target {target.name}: {distance}, skill range: {attackRange}");
-            if (distance > attackRange)
+            
+            float distanceToClosestPoint = Vector3.Distance(transform.position, closestPoint);
+            float distanceToActualTarget = Vector3.Distance(transform.position, target.transform.position);
+            
+            Debug.Log($"[PlayerActionSystem] Distance to target {target.name}: {distanceToActualTarget:F1}m, to closest point: {distanceToClosestPoint:F1}m, effective range: {effectiveAttackRange:F1}m");
+            
+            // Используем расстояние до реальной цели для проверки атаки
+            if (distanceToActualTarget > effectiveAttackRange)
             {
-                Vector3 direction = (target.transform.position - transform.position).normalized;
-                Vector3 tempPos = transform.position + direction * 1f; // Step size
-                tempPos.y = transform.position.y; // Уровень агента
-                NavMeshHit hit;
-                if (NavMesh.SamplePosition(tempPos, out hit, 1f, NavMesh.AllAreas))
+                // Начинаем движение к ближайшей доступной точке
+                if (!isMovingToTarget)
                 {
-                    _core.Movement.MoveTo(hit.position);
-                    _core.Movement.UpdateRotation();
-                    Debug.Log($"[PlayerActionSystem] No full path. Manual step to {hit.position}");
+                    if (_core.Movement.MoveToTarget(target.transform.position, out actualDestination))
+                    {
+                        isMovingToTarget = true;
+                        Debug.Log($"[PlayerActionSystem] Moving to closest reachable point: {actualDestination}");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[PlayerActionSystem] Failed to start movement to {target.name}");
+                        CompleteAction();
+                        yield break;
+                    }
                 }
-                else
+                
+                // Проверяем, достигли ли мы ближайшей точки
+                if (Vector3.Distance(transform.position, actualDestination) <= _core.Movement.Agent.stoppingDistance + 0.5f)
                 {
-                    Debug.Log($"[PlayerActionSystem] No NavMesh for manual step to target {target.name}. Stopping attack.");
-                    CompleteAction();
-                    yield break;
+                    // Мы дошли как можно ближе, но цель все еще далеко
+                    if (distanceToActualTarget > effectiveAttackRange)
+                    {
+                        Debug.Log($"[PlayerActionSystem] Reached closest point but target still out of attack range ({distanceToActualTarget:F1}m > {effectiveAttackRange:F1}m). Stopping attack.");
+                        CompleteAction();
+                        yield break;
+                    }
                 }
             }
             else
             {
+                isMovingToTarget = false;
                 _core.Movement.StopMovement();
                 _core.Movement.RotateTo(target.transform.position - transform.position);
-                Debug.Log($"[PlayerActionSystem] Target in range. Stopping to attack. Distance: {distance}");
+                Debug.Log($"[PlayerActionSystem] Target in range. Stopping to attack. Distance: {distanceToActualTarget:F1}m");
                 if (Time.time < _core.Combat._lastAttackTime + attackCooldown)
                 {
                     yield return null;
@@ -377,7 +412,7 @@ public class PlayerActionSystem : NetworkBehaviour
                     yield return new WaitForSeconds(attackCooldown);
                 }
             }
-            if (_core.Movement.Agent.hasPath && _core.Movement.Agent.remainingDistance <= _core.Movement.Agent.stoppingDistance && distance > attackRange)
+            if (_core.Movement.Agent.hasPath && _core.Movement.Agent.remainingDistance <= _core.Movement.Agent.stoppingDistance && distanceToActualTarget > effectiveAttackRange)
             {
                 Debug.Log($"[PlayerActionSystem] Cannot get closer to target {target.name}. Stopping attack.");
                 CompleteAction();
@@ -407,6 +442,26 @@ public class PlayerActionSystem : NetworkBehaviour
         _core.Movement.Agent.stoppingDistance = 0f;
         const float castRangeOffset = 0.2f;
         _core.Skills.CancelSkillSelection(); // Закрываем режим сразу после начала
+        
+        // Проверяем, можем ли мы достичь цель для каста
+        Vector3 closestPoint;
+        float distanceToTarget;
+        bool canReach = _core.Movement.CanReachTarget(targetObject.transform.position, out closestPoint, out distanceToTarget);
+        
+        if (!canReach)
+        {
+            Debug.LogWarning($"[PlayerActionSystem] Cast target {targetObject.name} is not reachable (closest distance: {distanceToTarget:F1}m)");
+            _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
+            CompleteAction();
+            yield break;
+        }
+        
+        // Используем стандартную дальность каста без увеличения
+        float effectiveRange = skillToCast.Range - castRangeOffset;
+        
+        bool isMovingToTarget = false;
+        Vector3 actualDestination = Vector3.zero;
+        
         while (true)
         {
             if (_core.isDead || _core.isStunned || (_core.isSilenced && !(skillToCast is BasicAttackSkill)))
@@ -424,9 +479,11 @@ public class PlayerActionSystem : NetworkBehaviour
                 CompleteAction();
                 yield break;
             }
-            float distance = Vector3.Distance(transform.position, targetObject.transform.position); // Full distance with Y
-            float effectiveRange = skillToCast.Range - castRangeOffset;
-            if (distance <= effectiveRange)
+            float distanceToActualTarget = Vector3.Distance(transform.position, targetObject.transform.position);
+            
+            Debug.Log($"[PlayerActionSystem] Distance to cast target {targetObject.name}: {distanceToActualTarget:F1}m, effective range: {effectiveRange:F1}m");
+            
+            if (distanceToActualTarget <= effectiveRange)
             {
                 _core.Movement.StopMovement();
                 _core.Movement.RotateTo(targetObject.transform.position - transform.position);
@@ -456,25 +513,37 @@ public class PlayerActionSystem : NetworkBehaviour
             }
             else
             {
-                Vector3 direction = (targetObject.transform.position - transform.position).normalized;
-                Vector3 tempPos = transform.position + direction * 1f; // Step size
-                tempPos.y = transform.position.y; // Уровень агента
-                NavMeshHit hit;
-                if (NavMesh.SamplePosition(tempPos, out hit, 1f, NavMesh.AllAreas))
+                // Начинаем движение к ближайшей доступной точке для каста
+                if (!isMovingToTarget)
                 {
-                    _core.Movement.MoveTo(hit.position);
-                    _core.Movement.UpdateRotation();
-                    Debug.Log($"[PlayerActionSystem] No full path. Manual step to {hit.position}");
+                    if (_core.Movement.MoveToTarget(targetObject.transform.position, out actualDestination))
+                    {
+                        isMovingToTarget = true;
+                        Debug.Log($"[PlayerActionSystem] Moving to closest reachable point for cast: {actualDestination}");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[PlayerActionSystem] Failed to start movement to cast target {targetObject.name}");
+                        _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
+                        CompleteAction();
+                        yield break;
+                    }
                 }
-                else
+                
+                // Проверяем, достигли ли мы ближайшей точки
+                if (Vector3.Distance(transform.position, actualDestination) <= _core.Movement.Agent.stoppingDistance + 0.5f)
                 {
-                    Debug.Log($"[PlayerActionSystem] No NavMesh for manual step to target {targetObject.name}. Stopping cast.");
-                    _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
-                    CompleteAction();
-                    yield break;
+                    // Мы дошли как можно ближе, но цель все еще далеко
+                    if (distanceToActualTarget > effectiveRange)
+                    {
+                        Debug.Log($"[PlayerActionSystem] Reached closest point but cast target still out of range ({distanceToActualTarget:F1}m > {effectiveRange:F1}m). Stopping cast.");
+                        _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
+                        CompleteAction();
+                        yield break;
+                    }
                 }
             }
-            if (_core.Movement.Agent.hasPath && _core.Movement.Agent.remainingDistance <= _core.Movement.Agent.stoppingDistance && distance > effectiveRange)
+            if (_core.Movement.Agent.hasPath && _core.Movement.Agent.remainingDistance <= _core.Movement.Agent.stoppingDistance && distanceToActualTarget > effectiveRange)
             {
                 Debug.Log($"[PlayerActionSystem] Cannot get closer to target {targetObject.name}. Stopping cast.");
                 _core.Movement.Agent.stoppingDistance = originalStoppingDistance;

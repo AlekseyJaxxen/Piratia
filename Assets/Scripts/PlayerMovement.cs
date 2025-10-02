@@ -314,6 +314,95 @@ public class PlayerMovement : NetworkBehaviour
             RotateTo(Agent.velocity);
         }
     }
+    /// <summary>
+    /// Находит ближайшую доступную точку к цели по NavMesh
+    /// </summary>
+    public Vector3 GetClosestReachablePoint(Vector3 targetPosition, float maxSearchDistance = 10f)
+    {
+        // Сначала пробуем прямой путь
+        NavMeshPath directPath = new NavMeshPath();
+        if (NavMesh.CalculatePath(transform.position, targetPosition, NavMesh.AllAreas, directPath))
+        {
+            if (directPath.status == NavMeshPathStatus.PathComplete)
+            {
+                return targetPosition; // Прямой путь доступен
+            }
+            
+            // Если путь частичный, берем последнюю доступную точку
+            if (directPath.status == NavMeshPathStatus.PathPartial && directPath.corners.Length > 1)
+            {
+                return directPath.corners[directPath.corners.Length - 1];
+            }
+        }
+        
+        // Ищем ближайшую точку на NavMesh к цели
+        NavMeshHit hit;
+        if (NavMesh.SamplePosition(targetPosition, out hit, maxSearchDistance, NavMesh.AllAreas))
+        {
+            // Проверяем, можем ли мы дойти до этой точки
+            NavMeshPath pathToClosest = new NavMeshPath();
+            if (NavMesh.CalculatePath(transform.position, hit.position, NavMesh.AllAreas, pathToClosest))
+            {
+                if (pathToClosest.status == NavMeshPathStatus.PathComplete)
+                {
+                    return hit.position;
+                }
+            }
+        }
+        
+        // Если ничего не найдено, возвращаем текущую позицию
+        Debug.LogWarning($"[PlayerMovement] Cannot find reachable point near {targetPosition}");
+        return transform.position;
+    }
+    
+    /// <summary>
+    /// Проверяет, можем ли мы достичь цель и возвращает информацию о пути
+    /// </summary>
+    public bool CanReachTarget(Vector3 targetPosition, out Vector3 closestPoint, out float distanceToTarget)
+    {
+        closestPoint = GetClosestReachablePoint(targetPosition);
+        distanceToTarget = Vector3.Distance(closestPoint, targetPosition);
+        
+        // Считаем, что цель достижима, если мы можем подойти к ней ближе чем на 15 метров
+        return distanceToTarget <= 15f;
+    }
+    
+    /// <summary>
+    /// Улучшенный MoveTo с возвратом результата
+    /// </summary>
+    public bool MoveToTarget(Vector3 targetPosition, out Vector3 actualDestination)
+    {
+        if (_agent == null)
+        {
+            Debug.LogError("[PlayerMovement] NavMeshAgent is null");
+            actualDestination = transform.position;
+            return false;
+        }
+        
+        // Находим ближайшую доступную точку
+        actualDestination = GetClosestReachablePoint(targetPosition);
+        
+        // Если мы уже находимся в этой точке, не двигаемся
+        if (Vector3.Distance(transform.position, actualDestination) < 0.5f)
+        {
+            return true; // Уже на месте
+        }
+        
+        _agent.isStopped = false;
+        bool pathSet = _agent.SetDestination(actualDestination);
+        
+        if (pathSet)
+        {
+            Debug.Log($"[PlayerMovement] Moving to closest reachable point: {actualDestination} (target was: {targetPosition})");
+        }
+        else
+        {
+            Debug.LogWarning($"[PlayerMovement] Failed to set path to {actualDestination}");
+        }
+        
+        return pathSet;
+    }
+    
     public void StopMovement()
     {
         if (_agent != null && !_agent.isStopped)

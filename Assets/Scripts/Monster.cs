@@ -265,6 +265,7 @@ public class Monster : NetworkBehaviour
     // Система анимаций
     private Animator _animator;        // Для гуманоидов (SkinnedMeshRenderer)
     private Animation _animation;      // Для не-гуманоидов (MeshRenderer)
+    private MonsterHitEffects _hitEffects; // DoTween эффекты для не-гуманоидов
     
     // Кэш анимаций для работы с ID
     private string[] _animationNames;  // Массив имен анимаций для быстрого доступа по индексу
@@ -507,6 +508,56 @@ public class Monster : NetworkBehaviour
     }
     
     /// <summary>
+    /// Проигрывает DoTween эффект получения удара для не-гуманоидных монстров
+    /// </summary>
+    public void PlayHitEffect(Vector3 hitDirection = default(Vector3))
+    {
+        if (IsNonHumanoidMonster() && _hitEffects != null)
+        {
+            if (isServer)
+            {
+                // На сервере вызываем RPC для всех клиентов
+                RpcPlayHitEffect(hitDirection);
+            }
+            else
+            {
+                // На клиенте играем локально
+                _hitEffects.PlayHitEffect(hitDirection);
+            }
+            
+            Debug.Log($"[Monster] Playing hit effect for non-humanoid monster {monsterName}");
+        }
+        else if (IsHumanoidMonster())
+        {
+            Debug.Log($"[Monster] Hit effects not implemented for humanoid monster {monsterName} (uses Animator)");
+        }
+        else
+        {
+            Debug.LogWarning($"[Monster] Cannot play hit effect for {monsterName}: no hit effects component or invalid monster type");
+        }
+    }
+    
+    /// <summary>
+    /// RPC для синхронизации эффектов удара по сети
+    /// </summary>
+    [ClientRpc]
+    private void RpcPlayHitEffect(Vector3 hitDirection)
+    {
+        if (IsNonHumanoidMonster() && _hitEffects != null)
+        {
+            _hitEffects.PlayHitEffect(hitDirection);
+        }
+    }
+    
+    /// <summary>
+    /// Проигрывает упрощенный эффект удара без направления
+    /// </summary>
+    public void PlaySimpleHitEffect()
+    {
+        PlayHitEffect(Vector3.zero);
+    }
+    
+    /// <summary>
     /// Проверяет, доступна ли анимация по универсальному ID
     /// </summary>
     public bool HasUniversalAnimation(UniversalAnimationId universalId)
@@ -576,6 +627,17 @@ public class Monster : NetworkBehaviour
                 {
                     Debug.Log($"[Monster] Found Animation component on {monsterName}");
                     InitializeAnimationCache();
+                    
+                    // Инициализируем DoTween эффекты для не-гуманоидов
+                    _hitEffects = GetComponentInChildren<MonsterHitEffects>();
+                    if (_hitEffects == null)
+                    {
+                        Debug.LogWarning($"[Monster] No MonsterHitEffects component found for non-humanoid monster {monsterName}. Consider adding it for hit effects.");
+                    }
+                    else
+                    {
+                        Debug.Log($"[Monster] MonsterHitEffects initialized for {monsterName}");
+                    }
                 }
             }
         }
@@ -805,6 +867,17 @@ public class Monster : NetworkBehaviour
                         {
                             Debug.Log($"[Monster] Found Animation component on {monsterName}");
                             InitializeAnimationCache();
+                            
+                            // Инициализируем DoTween эффекты для не-гуманоидов
+                            _hitEffects = model.GetComponentInChildren<MonsterHitEffects>();
+                            if (_hitEffects == null)
+                            {
+                                Debug.LogWarning($"[Monster] No MonsterHitEffects component found in instantiated model for non-humanoid monster {monsterName}");
+                            }
+                            else
+                            {
+                                Debug.Log($"[Monster] MonsterHitEffects initialized from instantiated model for {monsterName}");
+                            }
                         }
                     }
                 }

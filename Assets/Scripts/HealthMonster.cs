@@ -63,11 +63,25 @@ public class HealthMonster : Health
     [ClientRpc]
     private void RpcPlayDamageFlash()
     {
+        // Старые эффекты через MonsterAnimation (для совместимости)
         if (monsterAnimation != null)
         {
             monsterAnimation.PlayDamageFlash();
             monsterAnimation.PlayShake();
             // Damage flash triggered
+        }
+        
+        // Новые DoTween эффекты для не-гуманоидных монстров
+        if (_monster != null && _monster.IsNonHumanoidMonster())
+        {
+            try
+            {
+                _monster.PlaySimpleHitEffect();
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[HealthMonster] Error playing hit effect for {_monster.monsterName}: {e.Message}");
+            }
         }
     }
     private void UpdateMonsterHealth(int newHealth, int maxHealth)

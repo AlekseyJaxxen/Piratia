@@ -19,13 +19,14 @@ MonoBehaviour:
   spirit: 5
   accuracy: 5
   intelligence: 5
-  baseHealth: 20000
+  luck: 5
+  baseHealth: 1000
   baseMana: 100
-  baseMinAttack: 1000
-  baseMaxAttack: 1200
-  baseDef: 1000
-  baseMovementSpeed: 9
-  basePhysicalResistance: 35
+  baseMinAttack: 15
+  baseMaxAttack: 20
+  baseDef: 0
+  baseMovementSpeed: 6
+  basePhysicalResistance: 0
   strengthMultiplier: 1
   agilityMultiplier: 1
   constitutionMultiplier: 1
