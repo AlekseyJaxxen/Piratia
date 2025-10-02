@@ -57,6 +57,13 @@ public class CharacterStats : NetworkBehaviour
     public float criticalHitChance;
     [SyncVar]
     public float criticalHitMultiplier = 2.0f;
+    [Header("Total Attributes (Base + Equipment)")]
+    [SyncVar] public int totalStrength;
+    [SyncVar] public int totalAgility;
+    [SyncVar] public int totalSpirit;
+    [SyncVar] public int totalConstitution;
+    [SyncVar] public int totalAccuracy;
+    
     [Header("New Attributes")]
     [SyncVar(hook = nameof(OnMaxManaChanged))]
     public int maxMana;
@@ -350,36 +357,83 @@ public class CharacterStats : NetworkBehaviour
             LoadClassData();
             if (classData == null) return;
         }
-        maxHealth = classData.baseHealth + Mathf.RoundToInt(constitution * 20 * classData.constitutionMultiplier);
-        maxMana = classData.baseMana + Mathf.RoundToInt(spirit * 10 * classData.spiritMultiplier + intelligence * 5 * classData.intelligenceMultiplier);
-        float attackValue = classData.attackAttribute == AttackAttributeType.Strength ? strength : accuracy;
+        
+        // Сначала сбрасываем характеристики к базовым значениям (без бонусов экипировки)
+        int baseStrength = strength;
+        int baseAgility = agility;
+        int baseSpirit = spirit;
+        int baseConstitution = constitution;
+        int baseAccuracy = accuracy;
+        
+        // Вычисляем бонусы от экипировки
+        int equipmentStrengthBonus = 0;
+        int equipmentAgilityBonus = 0;
+        int equipmentSpiritBonus = 0;
+        int equipmentConstitutionBonus = 0;
+        int equipmentAccuracyBonus = 0;
+        
+        if (inventory != null)
+        {
+            var equippedItemInfos = inventory.GetEquippedItemInfos();
+            equipmentStrengthBonus = equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.Strength));
+            equipmentAgilityBonus = equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.Agility));
+            equipmentSpiritBonus = equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.Spirit));
+            equipmentConstitutionBonus = equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.Constitution));
+            equipmentAccuracyBonus = equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.Accuracy));
+        }
+        
+        // Вычисляем итоговые характеристики (базовые + бонусы экипировки)
+        int calculatedTotalStrength = baseStrength + equipmentStrengthBonus;
+        int calculatedTotalAgility = baseAgility + equipmentAgilityBonus;
+        int calculatedTotalSpirit = baseSpirit + equipmentSpiritBonus;
+        int calculatedTotalConstitution = baseConstitution + equipmentConstitutionBonus;
+        int calculatedTotalAccuracy = baseAccuracy + equipmentAccuracyBonus;
+        
+        // Сохраняем итоговые характеристики для отображения в UI
+        totalStrength = calculatedTotalStrength;
+        totalAgility = calculatedTotalAgility;
+        totalSpirit = calculatedTotalSpirit;
+        totalConstitution = calculatedTotalConstitution;
+        totalAccuracy = calculatedTotalAccuracy;
+        
+        // Вычисляем производные статы с учетом итоговых характеристик
+        maxHealth = classData.baseHealth + Mathf.RoundToInt(calculatedTotalConstitution * 20 * classData.constitutionMultiplier);
+        maxMana = classData.baseMana + Mathf.RoundToInt(calculatedTotalSpirit * 10 * classData.spiritMultiplier + intelligence * 5 * classData.intelligenceMultiplier);
+        float attackValue = classData.attackAttribute == AttackAttributeType.Strength ? calculatedTotalStrength : calculatedTotalAccuracy;
         float attackMultiplier = classData.attackAttribute == AttackAttributeType.Strength ? classData.strengthMultiplier : classData.accuracyMultiplier;
         minAttack = Mathf.RoundToInt(classData.baseMinAttack + attackValue * 2 * attackMultiplier);
         maxAttack = Mathf.RoundToInt(classData.baseMaxAttack + attackValue * 3 * attackMultiplier);
-        armor = Mathf.RoundToInt(classData.baseDef + strength * 1 * classData.strengthMultiplier);
+        armor = Mathf.RoundToInt(classData.baseDef + calculatedTotalStrength * 1 * classData.strengthMultiplier);
         float baseMovementSpeed = classData.baseMovementSpeed * classData.agilityMultiplier;
         float slowMultiplier = CalculateSlowMultiplier();
         movementSpeed = baseMovementSpeed * slowMultiplier;
-        attackSpeed = 1.0f + (agility * 0.05f * classData.agilityMultiplier);
-        dodgeChance = 10 + level * 2 + agility * 0.6f; // Dodge as number, not percentage
-        hitChance = 10 + level * 2 + accuracy * 0.6f; // Hit rate as number, not percentage
-        criticalHitChance = 15.0f + (agility * 0.2f * classData.agilityMultiplier) + (luck * 0.1f);
+        attackSpeed = 1.0f + (calculatedTotalAgility * 0.05f * classData.agilityMultiplier);
+        dodgeChance = 10 + level * 2 + calculatedTotalAgility * 0.6f;
+        hitChance = 10 + level * 2 + calculatedTotalAccuracy * 0.6f;
+        criticalHitChance = 15.0f + (calculatedTotalAgility * 0.2f * classData.agilityMultiplier) + (luck * 0.1f);
         physicalResistance = classData.basePhysicalResistance;
-        magicDamageMultiplier = 1.0f + (spirit * 0.05f * classData.spiritMultiplier);
-        // Добавляем статы от экипировки
+        magicDamageMultiplier = 1.0f + (calculatedTotalSpirit * 0.05f * classData.spiritMultiplier);
+        
+        // Добавляем прямые бонусы от экипировки
         if (inventory != null)
         {
-            var equippedItems = inventory.GetEquippedItems();
-            maxHealth += equippedItems.Sum(item => item.maxHpModulusBonus + item.maxHpConstantBonus);
-            maxMana += equippedItems.Sum(item => item.maxSpModulusBonus + item.maxSpConstantBonus);
-            minAttack += equippedItems.Sum(item => item.minAttackConstantBonus);
-            maxAttack += equippedItems.Sum(item => item.maxAttackConstantBonus);
-            armor += equippedItems.Sum(item => item.defenseModulusBonus + item.physicalResist);
-            criticalHitChance += equippedItems.Sum(item => item.crtModulusBonus + item.crtConstantBonus);
-            movementSpeed += equippedItems.Sum(item => item.mspdModulusBonus + item.mspdConstantBonus);
-            physicalResistance += equippedItems.Sum(item => item.physicalResist);
+            var equippedItemInfos = inventory.GetEquippedItemInfos();
+            maxHealth += equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.MaxHP));
+            maxMana += equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.MaxMP));
+            minAttack += equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.MinAttack));
+            maxAttack += equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.MaxAttack));
+            // Обратная совместимость: старый PhysicalResist влияет на оба стата
+            armor += equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.PhysicalResist));
+            physicalResistance += equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.PhysicalResist));
             
-            Debug.Log($"[CharacterStats] Equipment stats added: {equippedItems.Length} items, maxHealth bonus: {equippedItems.Sum(item => item.maxHpModulusBonus + item.maxHpConstantBonus)}");
+            // Новые отдельные статы
+            armor += equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.Armor));
+            physicalResistance += equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.PhysicalResistance));
+            
+            criticalHitChance += equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.Critical));
+            movementSpeed += equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.MovementSpeed));
+            
+            Debug.Log($"[CharacterStats] Equipment stats calculated: {equippedItemInfos.Length} items, Str+{equipmentStrengthBonus}, Agi+{equipmentAgilityBonus}, maxHealth bonus: {equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.MaxHP))}");
         }
         maxHealth = Mathf.Max(1, maxHealth);
         maxMana = Mathf.Max(0, maxMana);
@@ -393,6 +447,12 @@ public class CharacterStats : NetworkBehaviour
         if (healthComponent != null)
         {
             healthComponent.SetMaxHealth(maxHealth);
+        }
+        
+        // Обновляем UI характеристик на клиенте
+        if (isClient && isLocalPlayer)
+        {
+            UpdateCharacterStatsUI();
         }
         PlayerMovement movementComponent = GetComponent<PlayerMovement>();
         if (movementComponent != null)
@@ -987,6 +1047,15 @@ public class CharacterStats : NetworkBehaviour
             movement.SetMovementSpeed(movementSpeed);
         }
         Debug.Log($"[CharacterStats] Slow removed from {effect.Source}: total slowMultiplier={slowMultiplier}, movementSpeed restored to {movementSpeed}");
+    }
+
+    [Client]
+    private void UpdateCharacterStatsUI()
+    {
+        if (PlayerUI.Instance != null)
+        {
+            PlayerUI.Instance.UpdateAttributesPanel();
+        }
     }
 
     [Server]

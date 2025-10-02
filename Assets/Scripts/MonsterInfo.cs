@@ -1,5 +1,14 @@
 using System.Collections.Generic;
 using UnityEngine;
+
+[System.Serializable]
+public class GeneratedDropEntry
+{
+    public int level; // Уровень предмета для генерации
+    [Range(0f, 1f)] public float dropChance = 0.1f;
+    public ItemType itemType = ItemType.Weapon; // Тип предмета для генерации
+}
+
 [CreateAssetMenu(fileName = "MonsterInfo", menuName = "Monster/MonsterInfo", order = 1)]
 public class MonsterInfo : ScriptableObject
 {
@@ -16,6 +25,11 @@ public class MonsterInfo : ScriptableObject
     [Header("Drop Settings")]
     public List<DropEntry> dropTable = new List<DropEntry>();
     public GameObject droppedItemPrefab;
+    
+    [Header("Generated Item Drops")]
+    public bool useGeneratedItems = false;
+    public ItemGenerator itemGenerator;
+    public List<GeneratedDropEntry> generatedDropTable = new List<GeneratedDropEntry>();
     [Header("Health Settings")] // ���������
     public int maxHealth = 100;
     public MonsterBasicAttackSkill basicAttackSkill; // Радиус атаки берется из этого скилла

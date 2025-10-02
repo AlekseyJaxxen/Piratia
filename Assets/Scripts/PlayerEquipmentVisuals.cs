@@ -1,6 +1,7 @@
 using UnityEngine;
 using Mirror;
 using System.Linq;
+using System.Collections.Generic;
 
 public class PlayerEquipmentVisuals : NetworkBehaviour
 {
@@ -37,7 +38,8 @@ public class PlayerEquipmentVisuals : NetworkBehaviour
         }
 
         // ����� ����� ��� �����������
-        EquipmentSlot displaySlot = item.isTwoHanded ? item.primaryDisplaySlot : slot;
+        // Двуручное оружие всегда отображается на левой руке
+        EquipmentSlot displaySlot = item.isTwoHanded ? EquipmentSlot.LeftHand : slot;
         string boneName = item.GetBoneNameForSlot(displaySlot);
         Transform bone = FindBone(boneName);
 
@@ -125,10 +127,20 @@ public class PlayerEquipmentVisuals : NetworkBehaviour
         if (bone != null)
         {
             // ����������� ���� �������� �������� �� �����
+            // Удаляем все дочерние объекты с кости (создаем копию списка для безопасного удаления)
+            List<Transform> childrenToDestroy = new List<Transform>();
             foreach (Transform child in bone)
             {
+                childrenToDestroy.Add(child);
+            }
+            
+            foreach (Transform child in childrenToDestroy)
+            {
                 Debug.Log($"[PlayerEquipmentVisuals] Destroying child object {child.name} on bone {boneName} for slot {slot}");
-                Destroy(child.gameObject);
+                if (child != null)
+                {
+                    Destroy(child.gameObject);
+                }
             }
 
             // ������� � instantiatedObjects
@@ -138,6 +150,47 @@ public class PlayerEquipmentVisuals : NetworkBehaviour
                 Debug.Log($"[PlayerEquipmentVisuals] Destroying model for slot {slot} on bone {boneName} at index {transformIndex}");
                 Destroy(instantiatedObjects[transformIndex]);
                 instantiatedObjects[transformIndex] = null;
+            }
+        }
+        
+        // Для двуручного оружия также очищаем правую руку, если оно было экипировано в левую
+        if (slot == EquipmentSlot.LeftHand)
+        {
+            ItemInfo leftHandItem = playerCore.Inventory.GetEquipped(EquipmentSlot.LeftHand);
+            if (leftHandItem.id > 0)
+            {
+                Item leftItem = leftHandItem.GetItem();
+                if (leftItem != null && leftItem.isTwoHanded)
+                {
+                    // Очищаем правую руку для двуручного оружия
+                    string rightBoneName = "RightHandWeapon";
+                    Transform rightBone = FindBone(rightBoneName);
+                    if (rightBone != null)
+                    {
+                        List<Transform> rightChildrenToDestroy = new List<Transform>();
+                        foreach (Transform child in rightBone)
+                        {
+                            rightChildrenToDestroy.Add(child);
+                        }
+                        
+                        foreach (Transform child in rightChildrenToDestroy)
+                        {
+                            Debug.Log($"[PlayerEquipmentVisuals] Destroying child object {child.name} on bone {rightBoneName} for two-handed weapon");
+                            if (child != null)
+                            {
+                                Destroy(child.gameObject);
+                            }
+                        }
+
+                        int rightTransformIndex = System.Array.IndexOf(allTransforms, rightBone);
+                        if (rightTransformIndex >= 0 && rightTransformIndex < instantiatedObjects.Length && instantiatedObjects[rightTransformIndex] != null)
+                        {
+                            Debug.Log($"[PlayerEquipmentVisuals] Destroying model for right hand on bone {rightBoneName} at index {rightTransformIndex}");
+                            Destroy(instantiatedObjects[rightTransformIndex]);
+                            instantiatedObjects[rightTransformIndex] = null;
+                        }
+                    }
+                }
             }
         }
 

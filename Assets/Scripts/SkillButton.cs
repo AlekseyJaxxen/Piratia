@@ -119,7 +119,7 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
                         Debug.Log($"[SkillButton] Deactivating {skill.SkillName} during cooldown, index: {buttonIndex}");
                     }
                     core.Skills.CmdToggleBuff(skill.SkillName, targetState);
-                    // Добавь: локальный сет layer
+                    // пїЅпїЅпїЅпїЅпїЅпїЅ: пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ layer
                     int targetLayer = targetState ? LayerMask.NameToLayer("Ignore Raycast") : skillsComponent._originalLayer;
                     core.gameObject.layer = targetLayer;
                     Debug.Log($"[SkillButton] Local layer set to {targetLayer} for {skill.SkillName}");
@@ -138,11 +138,11 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         if (inventoryUI == null) return;
         if (skill != null)
         {
-            inventoryUI.ShowSkillTooltip(skill, transform.position + new Vector3(100f, 0f, 0f));
+            inventoryUI.ShowSkillTooltip(skill, transform.position);
         }
         else if (item != null)
         {
-            inventoryUI.ShowTooltip(item, transform.position + new Vector3(100f, 0f, 0f));
+            inventoryUI.ShowTooltip(item, transform.position);
         }
     }
 

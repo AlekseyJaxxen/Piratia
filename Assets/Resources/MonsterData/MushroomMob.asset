@@ -30,8 +30,13 @@ MonoBehaviour:
     dropChance: 1
   - item: {fileID: 11400000, guid: 67af998acb8eaf047b50af2369bbf0ba, type: 2}
     dropChance: 1
+  - item: {fileID: 11400000, guid: 48b0a80a4af3bb048a22332caf9d69c8, type: 2}
+    dropChance: 1
   droppedItemPrefab: {fileID: 8686491603925156450, guid: 133a99e109889094299eec33717cff52,
     type: 3}
+  useGeneratedItems: 0
+  itemGenerator: {fileID: 0}
+  generatedDropTable: []
   maxHealth: 3000
   basicAttackSkill: {fileID: 11400000, guid: a229fccd33ff10744a8a3c45ed1c4195, type: 2}
   hitRate: 10

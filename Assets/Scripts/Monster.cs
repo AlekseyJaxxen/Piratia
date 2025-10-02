@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.AI;
 using DG.Tweening;
+using System.Linq;
 
 [System.Serializable]
 public class DropEntry
@@ -34,13 +35,7 @@ public class Monster : NetworkBehaviour
         if (!NetworkServer.active && !NetworkClient.active)
         {
             // Вызываю локально (например в Editor)
-            if (_animator != null)
-            {
-                if (_animator != null)
-                {
-                    _animator.Play(animationName);
-                }
-            }
+            PlayAnimationLocal(animationName);
             return;
         }
         
@@ -56,26 +51,51 @@ public class Monster : NetworkBehaviour
                 }
                 partnerMonster.RpcPlayAnimation(animationName);
             }
-            else if (_animator != null)
+            else
             {
                 if (animationName != "Walk" && animationName != "Idle")
                 {
                     Debug.Log($"[Monster] Server - Monster {name} playing animation {animationName}");
                 }
-                _animator.Play(animationName);
+                PlayAnimationLocal(animationName);
             }
         }
         else if (NetworkClient.active)
         {
             // Клиент: играем анимацию локально
-            if (_animator != null)
+            if (animationName != "Walk" && animationName != "Idle")
             {
-                if (animationName != "Walk" && animationName != "Idle")
-                {
-                    Debug.Log($"[Monster] Client - Monster {name} playing animation {animationName}");
-                }
-                _animator.Play(animationName);
+                Debug.Log($"[Monster] Client - Monster {name} playing animation {animationName}");
             }
+            PlayAnimationLocal(animationName);
+        }
+    }
+    
+    /// <summary>
+    /// Локальное воспроизведение анимации с поддержкой обеих систем
+    /// </summary>
+    private void PlayAnimationLocal(string animationName)
+    {
+        if (IsHumanoidMonster())
+        {
+            // Гуманоидный монстр: используем Animator
+            _animator.Play(animationName);
+        }
+        else if (IsNonHumanoidMonster())
+        {
+            // Не-гуманоидный монстр: используем Animation
+            if (_animation[animationName] != null)
+            {
+                _animation.Play(animationName);
+            }
+            else
+            {
+                Debug.LogWarning($"[Monster] Animation clip '{animationName}' not found on {monsterName}");
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"[Monster] Cannot play animation '{animationName}' on {monsterName}: no animation system found");
         }
     }
     
@@ -92,10 +112,7 @@ public class Monster : NetworkBehaviour
                 {
                     Debug.Log($"[Monster] RPC: Legs {name} playing animation LegsKick on head {partnerMonster.name}");
                 }
-                if (partnerMonster._animator != null)
-                {
-                    partnerMonster._animator.Play("LegsKick");
-                }
+                partnerMonster.PlayAnimationLocal("LegsKick");
             }
             else
             {
@@ -107,21 +124,30 @@ public class Monster : NetworkBehaviour
                 partnerMonster.RpcPlayAnimation(animationName);
             }
         }
-        else if (_animator != null)
+        else
         {
-            // Head или обычный монстр управляет своим аниматором
+            // Head или обычный монстр управляет своей анимационной системой
             if (animationName != "Walk" && animationName != "Idle")
             {
-                Debug.Log($"[Monster] RPC: {name} playing animation {animationName} on own animator");
+                Debug.Log($"[Monster] RPC: {name} playing animation {animationName}");
             }
-            _animator.Play(animationName);
+            PlayAnimationLocal(animationName);
+        }
+    }
+    
+    [ClientRpc]
+    public void RpcPlayAnimationById(int animationId)
+    {
+        if (isCombinedLegs && partnerMonster != null)
+        {
+            // Для combined монстров передаем управление head
+            partnerMonster.RpcPlayAnimationById(animationId);
         }
         else
         {
-            if (animationName != "Walk" && animationName != "Idle")
-            {
-                Debug.LogWarning($"[Monster] RPC: {name} cannot play animation {animationName}: _animator is null");
-            }
+            // Head или обычный монстр управляет своей анимационной системой
+            Debug.Log($"[Monster] RPC: {name} playing animation by ID {animationId}");
+            PlayAnimationById(animationId);
         }
     }
     
@@ -227,8 +253,276 @@ public class Monster : NetworkBehaviour
     public Vector3 minForce = new Vector3(-5f, 2f, -5f);
     public Vector3 maxForce = new Vector3(5f, 5f, 0f);
     [SyncVar] public bool IsCooldown = false;
-    private SkinnedMeshRenderer _renderer;
-    private Animator _animator;
+    private SkinnedMeshRenderer _skinnedRenderer;
+    private MeshRenderer _meshRenderer;
+    
+    // Универсальный геттер для любого рендерера
+    public Renderer GetRenderer()
+    {
+        return (Renderer)_skinnedRenderer ?? _meshRenderer;
+    }
+    
+    // Система анимаций
+    private Animator _animator;        // Для гуманоидов (SkinnedMeshRenderer)
+    private Animation _animation;      // Для не-гуманоидов (MeshRenderer)
+    
+    // Кэш анимаций для работы с ID
+    private string[] _animationNames;  // Массив имен анимаций для быстрого доступа по индексу
+    private Dictionary<string, int> _animationIds; // Словарь имя -> ID для обратного поиска
+    
+    // Универсальный геттер для определения типа анимации
+    public bool IsHumanoidMonster()
+    {
+        return _skinnedRenderer != null && _animator != null;
+    }
+    
+    public bool IsNonHumanoidMonster()
+    {
+        return _meshRenderer != null && _animation != null;
+    }
+    
+    /// <summary>
+    /// Получает информацию о доступных анимациях
+    /// </summary>
+    public string[] GetAvailableAnimations()
+    {
+        if (IsHumanoidMonster())
+        {
+            // Для Animator получаем информацию из RuntimeAnimatorController
+            if (_animator.runtimeAnimatorController != null)
+            {
+                var clips = _animator.runtimeAnimatorController.animationClips;
+                string[] names = new string[clips.Length];
+                for (int i = 0; i < clips.Length; i++)
+                {
+                    names[i] = clips[i].name;
+                }
+                return names;
+            }
+        }
+        else if (IsNonHumanoidMonster())
+        {
+            // Для Animation получаем список клипов
+            var clips = new string[_animation.GetClipCount()];
+            int index = 0;
+            foreach (AnimationState state in _animation)
+            {
+                clips[index] = state.name;
+                index++;
+            }
+            return clips;
+        }
+        
+        return new string[0];
+    }
+    
+    /// <summary>
+    /// Проверяет, доступна ли анимация
+    /// </summary>
+    public bool HasAnimation(string animationName)
+    {
+        if (IsHumanoidMonster())
+        {
+            // Для Animator проверяем через HasState (требует hash)
+            return _animator.HasState(0, Animator.StringToHash(animationName));
+        }
+        else if (IsNonHumanoidMonster())
+        {
+            // Для Animation проверяем наличие клипа
+            return _animation[animationName] != null;
+        }
+        
+        return false;
+    }
+    
+    /// <summary>
+    /// Останавливает все анимации
+    /// </summary>
+    public void StopAllAnimations()
+    {
+        if (IsHumanoidMonster())
+        {
+            // Для Animator останавливаем через параметры или переходим в Idle
+            _animator.Play("Idle");
+        }
+        else if (IsNonHumanoidMonster())
+        {
+            // Для Animation останавливаем все клипы
+            _animation.Stop();
+        }
+    }
+    
+    /// <summary>
+    /// Инициализирует кэш анимаций для работы с ID
+    /// </summary>
+    private void InitializeAnimationCache()
+    {
+        if (IsHumanoidMonster())
+        {
+            // Для Animator получаем информацию из RuntimeAnimatorController
+            if (_animator.runtimeAnimatorController != null)
+            {
+                var clips = _animator.runtimeAnimatorController.animationClips;
+                _animationNames = new string[clips.Length];
+                _animationIds = new Dictionary<string, int>();
+                
+                for (int i = 0; i < clips.Length; i++)
+                {
+                    _animationNames[i] = clips[i].name;
+                    _animationIds[clips[i].name] = i;
+                }
+                
+                Debug.Log($"[Monster] Initialized animation cache for humanoid {monsterName}: {clips.Length} animations");
+            }
+            else
+            {
+                Debug.LogWarning($"[Monster] RuntimeAnimatorController is null for humanoid {monsterName}");
+            }
+        }
+        else if (IsNonHumanoidMonster())
+        {
+            // Для Animation получаем список клипов
+            int count = _animation.GetClipCount();
+            Debug.Log($"[Monster] Animation component has {count} clips for {monsterName}");
+            
+            if (count > 0)
+            {
+                _animationNames = new string[count];
+                _animationIds = new Dictionary<string, int>();
+                
+                int index = 0;
+                foreach (AnimationState state in _animation)
+                {
+                    string animName = state.name;
+                    if (string.IsNullOrEmpty(animName))
+                    {
+                        Debug.LogWarning($"[Monster] Found animation with empty name at index {index} for {monsterName}");
+                        animName = $"Animation_{index}"; // Fallback имя
+                    }
+                    
+                    _animationNames[index] = animName;
+                    _animationIds[animName] = index;
+                    Debug.Log($"[Monster] Cached animation {index}: '{animName}' for {monsterName}");
+                    index++;
+                }
+                
+                Debug.Log($"[Monster] Initialized animation cache for non-humanoid {monsterName}: {count} animations");
+            }
+            else
+            {
+                Debug.LogWarning($"[Monster] No animation clips found in Animation component for {monsterName}");
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"[Monster] Cannot initialize animation cache - no valid animation system found for {monsterName}");
+        }
+        
+        // Выводим список доступных анимаций с их ID
+        if (_animationNames != null && _animationNames.Length > 0)
+        {
+            Debug.Log($"[Monster] Available animations for {monsterName}: {string.Join(", ", _animationNames.Select((name, id) => $"{id}:{name}"))}");
+        }
+        else
+        {
+            Debug.LogWarning($"[Monster] No animations available for {monsterName}");
+        }
+    }
+    
+    /// <summary>
+    /// Воспроизводит анимацию по ID
+    /// </summary>
+    public void PlayAnimationById(int animationId)
+    {
+        if (_animationNames == null || animationId < 0 || animationId >= _animationNames.Length)
+        {
+            Debug.LogWarning($"[Monster] Invalid animation ID {animationId} for {monsterName}. Available IDs: 0-{(_animationNames?.Length - 1 ?? -1)}");
+            return;
+        }
+        
+        string animationName = _animationNames[animationId];
+        
+        // Дополнительная защита от пустых имен
+        if (string.IsNullOrEmpty(animationName))
+        {
+            Debug.LogWarning($"[Monster] Animation at ID {animationId} has empty name for {monsterName}. Skipping playback.");
+            return;
+        }
+        
+        Debug.Log($"[Monster] Playing animation by ID {animationId}: '{animationName}' on {monsterName}");
+        PlayAnimation(animationName);
+    }
+    
+    /// <summary>
+    /// Получает ID анимации по имени
+    /// </summary>
+    public int GetAnimationId(string animationName)
+    {
+        if (_animationIds != null && _animationIds.TryGetValue(animationName, out int id))
+        {
+            return id;
+        }
+        
+        Debug.LogWarning($"[Monster] Animation '{animationName}' not found for {monsterName}");
+        return -1;
+    }
+    
+    /// <summary>
+    /// Получает имя анимации по ID
+    /// </summary>
+    public string GetAnimationName(int animationId)
+    {
+        if (_animationNames != null && animationId >= 0 && animationId < _animationNames.Length)
+        {
+            return _animationNames[animationId];
+        }
+        
+        Debug.LogWarning($"[Monster] Invalid animation ID {animationId} for {monsterName}");
+        return null;
+    }
+    
+    /// <summary>
+    /// Получает количество доступных анимаций
+    /// </summary>
+    public int GetAnimationCount()
+    {
+        return _animationNames?.Length ?? 0;
+    }
+    
+    /// <summary>
+    /// Получает словарь всех анимаций (имя -> ID)
+    /// </summary>
+    public Dictionary<string, int> GetAnimationIdMap()
+    {
+        return new Dictionary<string, int>(_animationIds ?? new Dictionary<string, int>());
+    }
+    
+    /// <summary>
+    /// Воспроизводит анимацию по универсальному ID
+    /// </summary>
+    public void PlayUniversalAnimation(UniversalAnimationId universalId)
+    {
+        int animationId = (int)universalId;
+        PlayAnimationById(animationId);
+    }
+    
+    /// <summary>
+    /// Проверяет, доступна ли анимация по универсальному ID
+    /// </summary>
+    public bool HasUniversalAnimation(UniversalAnimationId universalId)
+    {
+        int animationId = (int)universalId;
+        return animationId >= 0 && animationId < GetAnimationCount();
+    }
+    
+    /// <summary>
+    /// Получает имя анимации по универсальному ID
+    /// </summary>
+    public string GetUniversalAnimationName(UniversalAnimationId universalId)
+    {
+        int animationId = (int)universalId;
+        return GetAnimationName(animationId);
+    }
     private HealthMonster _health;
     private MonsterSkillExecutor _skillExecutor;
     // ��� combined
@@ -260,10 +554,45 @@ public class Monster : NetworkBehaviour
             _skillExecutor = gameObject.AddComponent<MonsterSkillExecutor>();
             Debug.Log($"[Monster] Added MonsterSkillExecutor component to {monsterName}");
         }
-        _renderer = GetComponentInChildren<SkinnedMeshRenderer>();
-        if (_renderer == null)
+        // Ищем рендереры и анимационные компоненты
+        _skinnedRenderer = GetComponentInChildren<SkinnedMeshRenderer>();
+        if (_skinnedRenderer == null)
         {
-            Debug.LogWarning($"[Monster] SkinnedMeshRenderer not found on {monsterName}");
+            _meshRenderer = GetComponentInChildren<MeshRenderer>();
+            if (_meshRenderer == null)
+            {
+                Debug.LogWarning($"[Monster] Neither SkinnedMeshRenderer nor MeshRenderer found on {monsterName}");
+            }
+            else
+            {
+                Debug.Log($"[Monster] Found MeshRenderer on {monsterName} (non-humanoid)");
+                // Для не-гуманоидов ищем Animation компонент
+                _animation = GetComponentInChildren<Animation>();
+                if (_animation == null)
+                {
+                    Debug.LogWarning($"[Monster] Animation component not found for non-humanoid monster {monsterName}");
+                }
+                else
+                {
+                    Debug.Log($"[Monster] Found Animation component on {monsterName}");
+                    InitializeAnimationCache();
+                }
+            }
+        }
+        else
+        {
+            Debug.Log($"[Monster] Found SkinnedMeshRenderer on {monsterName} (humanoid)");
+            // Для гуманоидов ищем Animator компонент
+            _animator = GetComponentInChildren<Animator>();
+            if (_animator == null)
+            {
+                Debug.LogWarning($"[Monster] Animator not found for humanoid monster {monsterName}");
+            }
+            else
+            {
+                Debug.Log($"[Monster] Found Animator on {monsterName}");
+                InitializeAnimationCache();
+            }
         }
     }
     
@@ -447,34 +776,66 @@ public class Monster : NetworkBehaviour
             }
             // Добавляем tag для легкого поиска
             model.tag = "MonsterModel";
-            // Model prefab instantiated
-            _renderer = model.GetComponentInChildren<SkinnedMeshRenderer>();
-            if (_renderer == null)
+            // Model prefab instantiated - ищем рендереры и анимационные компоненты
+            _skinnedRenderer = model.GetComponentInChildren<SkinnedMeshRenderer>();
+            if (_skinnedRenderer == null)
             {
-                Debug.LogWarning($"[Monster] SkinnedMeshRenderer not found after instantiating model on {monsterName}");
-            }
-            
-            // Получаем Animator для управления анимациями
-            // Для legs монстра не ищем аниматор - он будет использовать аниматор head
-            if (!isCombinedLegs)
-            {
-                _animator = model.GetComponent<Animator>();
-                if (_animator == null)
+                _meshRenderer = model.GetComponentInChildren<MeshRenderer>();
+                if (_meshRenderer == null)
                 {
-                    _animator = model.GetComponentInChildren<Animator>();
-                }
-                if (_animator == null)
-                {
-                    Debug.LogWarning($"[Monster] Animator not found after instantiating model on {monsterName}");
+                    Debug.LogWarning($"[Monster] Neither SkinnedMeshRenderer nor MeshRenderer found after instantiating model on {monsterName}");
                 }
                 else
                 {
-                    Debug.Log($"[Monster] Found animator on {monsterName}");
+                    Debug.Log($"[Monster] Found MeshRenderer on instantiated model {monsterName} (non-humanoid)");
+                    
+                    // Для не-гуманоидов ищем Animation компонент
+                    if (!isCombinedLegs)
+                    {
+                        _animation = model.GetComponent<Animation>();
+                        if (_animation == null)
+                        {
+                            _animation = model.GetComponentInChildren<Animation>();
+                        }
+                        if (_animation == null)
+                        {
+                            Debug.LogWarning($"[Monster] Animation component not found after instantiating non-humanoid model on {monsterName}");
+                        }
+                        else
+                        {
+                            Debug.Log($"[Monster] Found Animation component on {monsterName}");
+                            InitializeAnimationCache();
+                        }
+                    }
                 }
             }
             else
             {
-                Debug.Log($"[Monster] Legs monster {monsterName} - animator will be shared with head");
+                Debug.Log($"[Monster] Found SkinnedMeshRenderer on instantiated model {monsterName} (humanoid)");
+                
+                // Получаем Animator для управления анимациями гуманоидов
+                // Для legs монстра не ищем аниматор - он будет использовать аниматор head
+                if (!isCombinedLegs)
+                {
+                    _animator = model.GetComponent<Animator>();
+                    if (_animator == null)
+                    {
+                        _animator = model.GetComponentInChildren<Animator>();
+                    }
+                    if (_animator == null)
+                    {
+                        Debug.LogWarning($"[Monster] Animator not found after instantiating humanoid model on {monsterName}");
+                    }
+                    else
+                    {
+                        Debug.Log($"[Monster] Found Animator on {monsterName}");
+                        InitializeAnimationCache();
+                    }
+                }
+                else
+                {
+                    Debug.Log($"[Monster] Legs monster {monsterName} - animator will be shared with head");
+                }
             }
         }
         else
@@ -682,10 +1043,14 @@ public class Monster : NetworkBehaviour
                 _slowEffectInstance = Instantiate(slowEffectPrefab, transform);
                 // Slow effect particles spawned
             }
-            else if (_renderer != null)
+            else
             {
-                _renderer.material.color = new Color(0.5f, 0.5f, 1f, 1f);
-                // Slow visual effect applied
+                Renderer renderer = GetRenderer();
+                if (renderer != null)
+                {
+                    renderer.material.color = new Color(0.5f, 0.5f, 1f, 1f);
+                    // Slow visual effect applied
+                }
             }
         }
         else
@@ -696,9 +1061,10 @@ public class Monster : NetworkBehaviour
                 _slowEffectInstance = null;
                 // Slow effect particles removed
             }
-            if (_renderer != null)
+            Renderer renderer = GetRenderer();
+            if (renderer != null)
             {
-                _renderer.material.color = Color.white;
+                renderer.material.color = Color.white;
                 // Slow visual effect removed
             }
         }
@@ -751,12 +1117,91 @@ public class Monster : NetworkBehaviour
         
         // Уничтожаем монстра сразу после смерти
         StartCoroutine(DespawnAfterDelay(0.1f));
+        
+        // Обычные предметы из дроп-таблицы
         foreach (var entry in dropTable)
         {
             if (entry.item != null && Random.value <= entry.dropChance)
             {
-                SpawnDroppedItem(entry.item.id, 1);
-                // Item dropped
+                // Проверяем, использует ли предмет динамические статы
+                if (entry.item.useDynamicStats)
+                {
+                    Item generatedItem = entry.item.GenerateDynamicItem();
+                    if (generatedItem != null)
+                    {
+                        // Создаем ItemInfo с динамическими статами
+                        ItemInfo dynamicItemInfo = new ItemInfo
+                        {
+                            id = entry.item.id,
+                            quantity = 1,
+                            hasDynamicStats = true,
+                            dynamicItemName = generatedItem.itemName,
+                            strengthBonus = generatedItem.strengthBonus,
+                            agilityBonus = generatedItem.agilityBonus,
+                            spiritBonus = generatedItem.spiritBonus,
+                            constitutionBonus = generatedItem.constitutionBonus,
+                            accuracyBonus = generatedItem.accuracyBonus,
+                            minAttackConstantBonus = generatedItem.minAttackConstantBonus,
+                            maxAttackConstantBonus = generatedItem.maxAttackConstantBonus,
+                            maxHpConstantBonus = generatedItem.maxHpConstantBonus,
+                            maxSpConstantBonus = generatedItem.maxSpConstantBonus,
+                            crtConstantBonus = generatedItem.crtConstantBonus,
+                            mspdConstantBonus = generatedItem.mspdConstantBonus,
+                            physicalResist = generatedItem.physicalResist,
+                            dynamicRarity = generatedItem.rarity
+                        };
+                        
+                        // Создаем дропнутый предмет с динамическими статами
+                        SpawnDroppedItemWithDynamicStats(dynamicItemInfo);
+                        Debug.Log($"[Monster] Dynamic item dropped: {generatedItem.itemName} (ID: {entry.item.id}, Stats: Str+{generatedItem.strengthBonus}, Agi+{generatedItem.agilityBonus})");
+                    }
+                }
+                else
+                {
+                    SpawnDroppedItem(entry.item.id, 1);
+                    // Item dropped
+                }
+            }
+        }
+        
+        // Сгенерированные предметы
+        if (info.useGeneratedItems && info.itemGenerator != null)
+        {
+            foreach (var entry in info.generatedDropTable)
+            {
+                if (Random.value <= entry.dropChance)
+                {
+                    // Используем новый метод для генерации динамических предметов
+                    Item generatedItem = info.itemGenerator.GenerateDynamicItemForDrop(entry.level);
+                    if (generatedItem != null)
+                    {
+                        // Создаем ItemInfo с динамическими статами
+                        ItemInfo dynamicItemInfo = new ItemInfo
+                        {
+                            id = generatedItem.id,
+                            quantity = 1,
+                            hasDynamicStats = true,
+                            dynamicItemName = generatedItem.itemName,
+                            strengthBonus = generatedItem.strengthBonus,
+                            agilityBonus = generatedItem.agilityBonus,
+                            spiritBonus = generatedItem.spiritBonus,
+                            constitutionBonus = generatedItem.constitutionBonus,
+                            accuracyBonus = generatedItem.accuracyBonus,
+                            minAttackConstantBonus = generatedItem.minAttackConstantBonus,
+                            maxAttackConstantBonus = generatedItem.maxAttackConstantBonus,
+                            maxHpConstantBonus = generatedItem.maxHpConstantBonus,
+                            maxSpConstantBonus = generatedItem.maxSpConstantBonus,
+                            crtConstantBonus = generatedItem.crtConstantBonus,
+                            mspdConstantBonus = generatedItem.mspdConstantBonus,
+                            physicalResist = generatedItem.physicalResist,
+                            dynamicRarity = generatedItem.rarity
+                        };
+                        
+                        // Создаем дропнутый предмет с динамическими статами
+                        SpawnDroppedItemWithDynamicStats(dynamicItemInfo);
+                        Debug.Log($"[Monster] Generated dynamic item dropped: {generatedItem.itemName} (Level {entry.level}, ID: {generatedItem.id})");
+                    }
+                }
             }
         }
         if (_agent != null && _agent.isOnNavMesh)
@@ -812,6 +1257,26 @@ public class Monster : NetworkBehaviour
         }
         NetworkServer.Spawn(droppedItem);
         // Dropped item spawned
+    }
+    
+    [Server]
+    private void SpawnDroppedItemWithDynamicStats(ItemInfo dynamicItemInfo)
+    {
+        if (droppedItemPrefab == null)
+        {
+            Debug.LogError("[Monster] DroppedItemPrefab not set!");
+            return;
+        }
+        GameObject droppedItem = Instantiate(droppedItemPrefab, transform.position + Random.insideUnitSphere * 1f + Vector3.up * 0.5f, Quaternion.identity);
+        DroppedItem droppedScript = droppedItem.GetComponent<DroppedItem>();
+        if (droppedScript != null)
+        {
+            droppedScript.InitializeWithDynamicItemInfo(dynamicItemInfo);
+            droppedScript.ownerNetId = aggroTargetNetId;
+            droppedScript.dropTime = Time.time;
+        }
+        NetworkServer.Spawn(droppedItem);
+        // Dynamic dropped item spawned
     }
 
     [ClientRpc]
@@ -1045,9 +1510,13 @@ public class Monster : NetworkBehaviour
         }
         
         // Обновляем позицию модели для combined монстра
-        if (info.isCombined && _renderer != null)
+        if (info.isCombined)
         {
-            _renderer.transform.localPosition = Vector3.zero;
+            Renderer renderer = GetRenderer();
+            if (renderer != null)
+            {
+                renderer.transform.localPosition = Vector3.zero;
+            }
         }
         
         // Проигрываем анимацию лежания для упавшей головы
@@ -1110,9 +1579,13 @@ public class Monster : NetworkBehaviour
         }
         
         // Сбрасываем позицию модели для combined монстра на клиенте
-        if (info.isCombined && _renderer != null)
+        if (info.isCombined)
         {
-            _renderer.transform.localPosition = Vector3.zero;
+            Renderer renderer = GetRenderer();
+            if (renderer != null)
+            {
+                renderer.transform.localPosition = Vector3.zero;
+            }
         }
         
         // Принудительно опускаем модель на землю на клиенте

@@ -43,7 +43,6 @@ public class ItemDatabase : ScriptableObject
         }
         if (itemMap.TryGetValue(id, out Item item))
         {
-            Debug.Log($"[ItemDatabase] Loaded item: {item.itemName} (ID: {id})");
             return item;
         }
         Debug.LogError($"[ItemDatabase] Item with ID {id} not found");

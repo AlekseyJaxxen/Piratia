@@ -27,19 +27,19 @@ MonoBehaviour:
   canUse: 0
   canHotbar: 0
   isTwoHanded: 1
-  strengthMod: 40
-  agilityMod: 0
-  spiritMod: 0
-  constitutionMod: 0
-  accuracyMod: 0
-  intelligenceMod: 0
+  preferRightHand: 1
+  strengthBonus: 0
+  agilityBonus: 0
+  spiritBonus: 0
+  constitutionBonus: 0
+  accuracyBonus: 0
   rarity: 2
   requiredLevel: 1
   characterClass: 0
   skillEffect: {fileID: 0}
   castRange: 5
   model1: ItemModels/2HandSword
-  boneName: RightHandWeapon
+  boneName: LeftHandWeapon
   alternativeBoneName: LeftHandWeapon
   modelRotation: {x: 0, y: 0, z: 0, w: 1}
   modelScale: {x: 1, y: 1, z: 1}
@@ -72,26 +72,6 @@ MonoBehaviour:
   location: 
   itemSwitchLocation: 
   itemObtainIntoLocation: 
-  strModulusBonus: 0
-  agiModulusBonus: 0
-  dexModulusBonus: 0
-  conModulusBonus: 0
-  sprModulusBonus: 0
-  lukModulusBonus: 0
-  hitRateModulusBonus: 0
-  minAttackModulusBonus: 0
-  maxAttackModulusBonus: 0
-  defenseModulusBonus: 0
-  maxHpModulusBonus: 0
-  maxSpModulusBonus: 0
-  fleeModulusBonus: 0
-  hitModulusBonus: 0
-  crtModulusBonus: 0
-  mfModulusBonus: 0
-  hrecModulusBonus: 0
-  srecModulusBonus: 0
-  mspdModulusBonus: 0
-  colModulusBonus: 0
   strConstantBonus: 0
   agiConstantBonus: 0
   dexConstantBonus: 0
@@ -136,7 +116,3 @@ MonoBehaviour:
   itemLevel: 0
   remark: 
   weaponType: 2
-  baseDamage: 100
-  attackSpeed: 1
-  criticalChance: 0
-  criticalMultiplier: 0

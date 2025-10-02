@@ -116,6 +116,80 @@ public class Inventory : NetworkBehaviour
     }
 
     [Server]
+    public bool AddItemInfo(ItemInfo itemInfo)
+    {
+        if (itemInfo.id < 0 || itemInfo.quantity <= 0)
+        {
+            Debug.LogError($"[Inventory] Cannot add item: ID is invalid or quantity <=0 ({itemInfo.quantity})");
+            return false;
+        }
+        
+        Item item = itemInfo.GetItem();
+        if (item == null)
+        {
+            Debug.LogError($"[Inventory] Cannot add item: Item with ID {itemInfo.id} not found");
+            return false;
+        }
+        
+        bool isStackable = item.stackable && item.maxStack > 1;
+        int remaining = itemInfo.quantity;
+        bool added = false;
+        
+        // Если предмет имеет динамические статы, он НЕ стакается
+        if (itemInfo.hasDynamicStats)
+        {
+            isStackable = false;
+        }
+        
+        if (isStackable)
+        {
+            for (int i = 0; i < items.Count; i++)
+            {
+                if (items[i].id == item.id && items[i].quantity < item.maxStack && !items[i].hasDynamicStats)
+                {
+                    int space = item.maxStack - items[i].quantity;
+                    int addAmount = Mathf.Min(remaining, space);
+                    ItemInfo updatedItemInfo = items[i];
+                    updatedItemInfo.quantity += addAmount;
+                    items[i] = updatedItemInfo;
+                    remaining -= addAmount;
+                    added = true;
+                    if (remaining <= 0) break;
+                }
+            }
+        }
+        
+        while (remaining > 0)
+        {
+            int emptyIndex = -1;
+            for (int i = 0; i < items.Count; i++)
+            {
+                if (items[i].id == 0)
+                {
+                    emptyIndex = i;
+                    break;
+                }
+            }
+            if (emptyIndex >= 0)
+            {
+                int addAmount = isStackable ? Mathf.Min(remaining, item.maxStack) : 1;
+                ItemInfo newInfo = itemInfo;
+                newInfo.quantity = addAmount;
+                items[emptyIndex] = newInfo;
+                remaining -= addAmount;
+                added = true;
+            }
+            else
+            {
+                Debug.LogWarning($"[Inventory] Cannot add item: {item.itemName}, inventory full");
+                break;
+            }
+        }
+        if (added) OnInventoryChanged.Invoke();
+        return added && remaining == 0;
+    }
+
+    [Server]
     public void AddGold(int amount)
     {
         if (amount <= 0) return;
@@ -162,63 +236,95 @@ public class Inventory : NetworkBehaviour
         if (slotItem.id != itemInfo.id || slotItem.quantity <= 0)
         {
             Debug.LogError($"[Inventory] Cannot equip item: {item.itemName} (ID: {itemInfo.id}), item mismatch (expected ID: {itemInfo.id}, found ID: {slotItem.id}, quantity: {slotItem.quantity}) at slot {slotIndex}");
+            Debug.LogError($"[Inventory] Inventory state: items count={items.Count}, slot {slotIndex} has item with ID={slotItem.id}, quantity={slotItem.quantity}");
+            
+            // Попробуем найти предмет в инвентаре по ID
+            for (int i = 0; i < items.Count; i++)
+            {
+                if (items[i].id == itemInfo.id && items[i].quantity > 0)
+                {
+                    Debug.LogWarning($"[Inventory] Found item {item.itemName} (ID: {itemInfo.id}) at slot {i} instead of {slotIndex}, attempting to equip from correct slot");
+                    EquipItem(itemInfo, slot, i);
+                    return;
+                }
+            }
+            
+            Debug.LogError($"[Inventory] Item {item.itemName} (ID: {itemInfo.id}) not found in inventory at all!");
             return;
         }
-        // �������� �� ������� ���������� ������
-        if (slot == EquipmentSlot.LeftHand || slot == EquipmentSlot.RightHand)
+        // Обработка двуручного оружия
+        if (item.isTwoHanded)
         {
+            // Двуручное оружие всегда экипируется в левую руку и блокирует правую
+            if (slot != EquipmentSlot.LeftHand)
+            {
+                Debug.LogError($"[Inventory] Two-handed weapon {item.itemName} can only be equipped in LeftHand slot");
+                return;
+            }
+            
+            // Освобождаем правую руку
+            ItemInfo rightHandItem = GetEquipped(EquipmentSlot.RightHand);
+            if (rightHandItem.id > 0)
+            {
+                Item rightHandItemObj = rightHandItem.GetItem();
+                if (rightHandItemObj != null)
+                {
+                    Debug.Log($"[Inventory] Unequipping item from RightHand to inventory due to two-handed item {item.itemName}");
+                    ApplyItemStats(rightHandItemObj, false);
+                    if (!AddItemInfo(rightHandItem))
+                    {
+                        Debug.LogWarning($"[Inventory] Failed to add unequipped item {rightHandItem.GetItemName()} from RightHand to inventory");
+                        return;
+                    }
+                    SetEquipped(EquipmentSlot.RightHand, new ItemInfo());
+                }
+            }
+        }
+        else if (slot == EquipmentSlot.LeftHand || slot == EquipmentSlot.RightHand)
+        {
+            // Обычное оружие - проверяем конфликты с двуручным и предпочтения руки
             EquipmentSlot otherSlot = (slot == EquipmentSlot.LeftHand) ? EquipmentSlot.RightHand : EquipmentSlot.LeftHand;
             ItemInfo otherSlotItem = GetEquipped(otherSlot);
             if (otherSlotItem.id > 0)
             {
                 Item otherItemObj = otherSlotItem.GetItem();
-                if (otherItemObj != null)
+                if (otherItemObj != null && otherItemObj.isTwoHanded)
                 {
-                    // ���� � ������ ����� ���-�� ����, � ������� ������ ���������, ������� ������� �� ������� �����
-                    if (item.isTwoHanded)
+                    Debug.Log($"[Inventory] Unequipping two-handed item: {otherSlotItem.GetItemName()} from {otherSlot} to inventory");
+                    ApplyItemStats(otherItemObj, false);
+                    if (!AddItemInfo(otherSlotItem))
                     {
-                        Debug.Log($"[Inventory] Unequipping item from {otherSlot} to inventory due to two-handed item {item.itemName}");
-                        ApplyItemStats(otherItemObj, false);
-                        if (!AddItem(otherItemObj, otherSlotItem.quantity))
-                        {
-                            Debug.LogWarning($"[Inventory] Failed to add unequipped item {otherItemObj.itemName} from {otherSlot} to inventory");
-                            return;
-                        }
-                        SetEquipped(otherSlot, new ItemInfo());
+                        Debug.LogWarning($"[Inventory] Failed to add unequipped item {otherSlotItem.GetItemName()} from {otherSlot} to inventory");
+                        return;
                     }
-                    // ���� � ������ ����� ��������� ������, ������� ���
-                    else if (otherItemObj.isTwoHanded)
-                    {
-                        Debug.Log($"[Inventory] Unequipping two-handed item: {otherItemObj.itemName} from {otherSlot} to inventory");
-                        ApplyItemStats(otherItemObj, false);
-                        if (!AddItem(otherItemObj, otherSlotItem.quantity))
-                        {
-                            Debug.LogWarning($"[Inventory] Failed to add unequipped item {otherItemObj.itemName} from {otherSlot} to inventory");
-                            return;
-                        }
-                        SetEquipped(otherSlot, new ItemInfo());
-                    }
+                    SetEquipped(otherSlot, new ItemInfo());
+                }
+            }
+            
+            // Проверяем предпочтения руки для одноручного оружия
+            if (!item.isTwoHanded && item.itemType == ItemType.Weapon)
+            {
+                if (!item.preferRightHand && slot == EquipmentSlot.RightHand)
+                {
+                    Debug.LogError($"[Inventory] Weapon {item.itemName} can only be equipped in LeftHand (preferRightHand=false)");
+                    return;
                 }
             }
         }
         ItemInfo oldItem = GetEquipped(slot);
         if (oldItem.id > 0)
         {
-            Item oldItemObj = oldItem.GetItem();
-            if (oldItemObj != null)
+            Debug.Log($"[Inventory] Unequipping old item: {oldItem.GetItemName()} from {slot} to inventory");
+            ApplyItemInfoStats(oldItem, false);
+            if (!AddItemInfo(oldItem))
             {
-                Debug.Log($"[Inventory] Unequipping old item: {oldItemObj.itemName} from {slot} to inventory");
-                ApplyItemStats(oldItemObj, false);
-                if (!AddItem(oldItemObj, oldItem.quantity))
-                {
-                    Debug.LogWarning($"[Inventory] Failed to add unequipped item {oldItemObj.itemName} back to inventory");
-                    return;
-                }
+                Debug.LogWarning($"[Inventory] Failed to add unequipped item {oldItem.GetItemName()} back to inventory");
+                return;
             }
         }
         Debug.Log($"[Inventory] Equipping item: {item.itemName} (ID: {itemInfo.id}) to {slot} from slot {slotIndex}");
-        ApplyItemStats(item, true);
         SetEquipped(slot, itemInfo);
+        ApplyItemInfoStats(itemInfo, true);
         ClearItemSlot(slotIndex);
     }
 
@@ -239,30 +345,26 @@ public class Inventory : NetworkBehaviour
             SetEquipped(slot, new ItemInfo());
             return;
         }
-        Debug.Log($"[Inventory] Unequipping item: {item.itemName} from {slot}, quantity: {itemInfo.quantity}");
-        ApplyItemStats(item, false);
-        if (!AddItem(item, itemInfo.quantity))
+        Debug.Log($"[Inventory] Unequipping item: {itemInfo.GetItemName()} from {slot}, quantity: {itemInfo.quantity}");
+        SetEquipped(slot, new ItemInfo());
+        ApplyItemInfoStats(itemInfo, false);
+        if (!AddItemInfo(itemInfo))
         {
-            Debug.LogWarning($"[Inventory] Failed to add unequipped item {item.itemName} back to inventory");
+            Debug.LogWarning($"[Inventory] Failed to add unequipped item {itemInfo.GetItemName()} back to inventory");
             return;
         }
-        SetEquipped(slot, new ItemInfo());
         if (item.isTwoHanded && item.alternativeSlot != EquipmentSlot.None)
         {
             ItemInfo otherSlotItem = GetEquipped(item.alternativeSlot);
             if (otherSlotItem.id > 0)
             {
-                Item otherItemObj = otherSlotItem.GetItem();
-                if (otherItemObj != null)
+                Debug.Log($"[Inventory] Unequipping second slot: {otherSlotItem.GetItemName()} from {item.alternativeSlot}");
+                ApplyItemInfoStats(otherSlotItem, false);
+                if (!AddItemInfo(otherSlotItem))
                 {
-                    Debug.Log($"[Inventory] Unequipping second slot: {otherItemObj.itemName} from {item.alternativeSlot}");
-                    ApplyItemStats(otherItemObj, false);
-                    if (!AddItem(otherItemObj, otherSlotItem.quantity))
-                    {
-                        Debug.LogWarning($"[Inventory] Failed to add unequipped item {otherItemObj.itemName} from {item.alternativeSlot} to inventory");
-                    }
-                    SetEquipped(item.alternativeSlot, new ItemInfo());
+                    Debug.LogWarning($"[Inventory] Failed to add unequipped item {otherSlotItem.GetItemName()} from {item.alternativeSlot} to inventory");
                 }
+                SetEquipped(item.alternativeSlot, new ItemInfo());
             }
         }
     }
@@ -348,6 +450,18 @@ public class Inventory : NetworkBehaviour
         
         Debug.Log($"[Inventory] Recalculated stats after equipment change: {item.itemName} (apply={apply}). New maxHealth: {stats.maxHealth}, maxMana: {stats.maxMana}");
     }
+    
+    private void ApplyItemInfoStats(ItemInfo itemInfo, bool apply)
+    {
+        // НЕ изменяем базовые статы напрямую - это приводит к двойному учету
+        // Статы экипировки уже учитываются в CalculateDerivedStats() через GetEquippedItems()
+        CharacterStats stats = playerCore.Stats;
+        
+        // Только пересчитываем производные статы
+        stats.CalculateDerivedStats();
+        
+        Debug.Log($"[Inventory] Recalculated stats after equipment change: {itemInfo.GetItemName()} (apply={apply}). New maxHealth: {stats.maxHealth}, maxMana: {stats.maxMana}");
+    }
 
     public ItemInfo GetEquipped(EquipmentSlot slot)
     {
@@ -402,6 +516,20 @@ public class Inventory : NetworkBehaviour
             }
         }
         return equippedItems.ToArray();
+    }
+    
+    public ItemInfo[] GetEquippedItemInfos()
+    {
+        List<ItemInfo> equippedItemInfos = new List<ItemInfo>();
+        ItemInfo[] slots = { headSlot, bodySlot, legsSlot, rightHandSlot, leftHandSlot, ringSlot, necklaceSlot, bootsSlot, glovesSlot, weaponSlot, offHandSlot };
+        foreach (var slot in slots)
+        {
+            if (slot.id > 0)
+            {
+                equippedItemInfos.Add(slot);
+            }
+        }
+        return equippedItemInfos.ToArray();
     }
 
     private void OnHeadChanged(ItemInfo oldItem, ItemInfo newItem)

@@ -9,28 +9,28 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7d7f7ae7c1addd747aebb713dd34b8c5, type: 3}
-  m_Name: BoeSword
-  m_EditorClassIdentifier: Assembly-CSharp::SwordItem
-  itemName: Blade of Enigma
+  m_Script: {fileID: 11500000, guid: 46f370e0ee085764289dc8106ba7eb8d, type: 3}
+  m_Name: BootsExample
+  m_EditorClassIdentifier: Assembly-CSharp::BootsItem
+  itemName: Cheat Boots
   originalName: 
-  id: 5
-  icon: {fileID: 21300000, guid: abe1d030c9f8cd148935e4a7e62ac578, type: 3}
-  dropModelPrefab: {fileID: 919132149155446097, guid: 23f44c9e41fbdf44f84fe58679fcf847,
+  id: 8
+  icon: {fileID: 21300000, guid: ea9ca2a79c486a141af295144fc85d4e, type: 3}
+  dropModelPrefab: {fileID: 919132149155446097, guid: 8e71ada036ebdbe4fb10b443d2935af1,
     type: 3}
-  itemType: 2
-  equipmentSlot: 4
-  alternativeSlot: 5
-  primaryDisplaySlot: 0
+  itemType: 3
+  equipmentSlot: 3
+  alternativeSlot: 0
+  primaryDisplaySlot: 3
   maxStack: 1
   canDrop: 1
   canSell: 1
   canUse: 0
-  canHotbar: 0
+  canHotbar: 1
   isTwoHanded: 0
-  preferRightHand: 1
-  strengthBonus: 1
-  agilityBonus: 1
+  preferRightHand: 0
+  strengthBonus: 0
+  agilityBonus: 0
   spiritBonus: 0
   constitutionBonus: 0
   accuracyBonus: 0
@@ -39,52 +39,52 @@ MonoBehaviour:
   dodgeBonus: 0
   useDynamicStats: 1
   minDamageRange:
-    minValue: 100
-    maxValue: 120
+    minValue: 0
+    maxValue: 0
     chance: 1
   maxDamageRange:
-    minValue: 120
-    maxValue: 130
+    minValue: 0
+    maxValue: 0
     chance: 1
   strengthRange:
     minValue: 0
-    maxValue: 10
+    maxValue: 12
     chance: 1
   agilityRange:
     minValue: 0
-    maxValue: 10
-    chance: 0.5
+    maxValue: 12
+    chance: 1
   spiritRange:
     minValue: 0
-    maxValue: 0
+    maxValue: 12
     chance: 1
   constitutionRange:
     minValue: 0
-    maxValue: 0
+    maxValue: 12
     chance: 1
   accuracyRange:
     minValue: 0
-    maxValue: 0
+    maxValue: 12
     chance: 1
   healthRange:
-    minValue: 0
-    maxValue: 0
+    minValue: 500
+    maxValue: 600
     chance: 1
   manaRange:
     minValue: 0
     maxValue: 0
     chance: 1
   defenseRange:
-    minValue: 0
-    maxValue: 0
+    minValue: 60
+    maxValue: 90
     chance: 1
   criticalRange:
     minValue: 0
     maxValue: 0
     chance: 1
   movementSpeedRange:
-    minValue: 0
-    maxValue: 0
+    minValue: 70
+    maxValue: 80
     chance: 1
   hpRecoveryRange:
     minValue: 0
@@ -95,17 +95,17 @@ MonoBehaviour:
     maxValue: 0
     chance: 1
   dodgeRange:
-    minValue: 0
-    maxValue: 0
+    minValue: 29
+    maxValue: 40
     chance: 1
-  rarity: 2
+  rarity: 4
   requiredLevel: 1
   characterClass: 0
   skillEffect: {fileID: 0}
   castRange: 5
-  model1: ItemModels/BoeSword
-  boneName: RightHandWeapon
-  alternativeBoneName: LeftHandWeapon
+  model1: 
+  boneName: 
+  alternativeBoneName: 
   modelRotation: {x: 0, y: 0, z: 0, w: 1}
   modelScale: {x: 1, y: 1, z: 1}
   model2: 
@@ -164,7 +164,7 @@ MonoBehaviour:
   displayItemEffect: 
   itemDropModelEffect: 
   itemUsageEffect: 
-  description: 
+  description: This boots  made for test
   itemLevel: 0
   remark: 
-  weaponType: 1
+  weaponType: 0

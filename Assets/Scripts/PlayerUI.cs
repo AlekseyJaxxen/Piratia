@@ -56,9 +56,7 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         public Image cooldownImage;
     }
     [SerializeField] private List<SkillCooldownEntry> skillCooldownEntries = new List<SkillCooldownEntry>();
-    [Header("Inventory and Equipment UI")]
-    [SerializeField] private InventorySlot[] inventorySlots;
-    [SerializeField] private EquipmentSlotUI[] equipmentSlots;
+    [Header("Skills and Hotbar UI")]
     private CharacterStats stats;
     private PlayerCore core;
     private RectTransform attributesPanelRect;
@@ -85,7 +83,8 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             return;
         }
         Instance = this;
-        equipmentSlots = GetComponentsInChildren<EquipmentSlotUI>(true);
+        
+        // PlayerUI теперь только для скиллов, hotbar и характеристик
         stats = core.GetComponent<CharacterStats>();
         if (stats == null)
         {
@@ -94,14 +93,13 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             return;
         }
         StartCoroutine(InitializeUI());
-        core.Inventory.OnInventoryChanged.AddListener(UpdateInventoryUI);
-        core.Inventory.OnEquipmentChanged.AddListener(UpdateEquipmentUI);
+        // PlayerUI больше не управляет инвентарем - это делает InventoryUI
     }
     private IEnumerator InitializeUI()
     {
         yield return new WaitForSeconds(2f);
         
-        equipmentSlots = GetComponentsInChildren<EquipmentSlotUI>(true);
+        // Инициализация UI для скиллов и характеристик
         if (!core.isLocalPlayer || !core.isClient)
         {
             // Waiting for client sync
@@ -271,8 +269,7 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         {
             Debug.LogError("[PlayerUI] PlayerSkills component not found!");
         }
-        UpdateInventoryUI();
-        UpdateEquipmentUI();
+        // UpdateInventoryUI и UpdateEquipmentUI теперь делает InventoryUI
     }
     private void Update()
     {
@@ -404,11 +401,7 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             stats.OnMinAttackChangedEvent -= (oldValue, newValue) => UpdateAttribute("minAttack", newValue);
             stats.OnMaxAttackChangedEvent -= (oldValue, newValue) => UpdateAttribute("maxAttack", newValue);
         }
-        if (core != null && core.Inventory != null)
-        {
-            core.Inventory.OnInventoryChanged.RemoveListener(UpdateInventoryUI);
-            core.Inventory.OnEquipmentChanged.RemoveListener(UpdateEquipmentUI);
-        }
+        // PlayerUI больше не слушает события инвентаря - это делает InventoryUI
     }
     public void UpdateHealthBar(int currentHealth, int maxHealth)
     {
@@ -478,14 +471,16 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         UpdateSkillPoints(stats.skillPoints);
         UpdateCharacteristicPoints(0, stats.characteristicPoints);
     }
-    private void UpdateAttributesPanel()
+    public void UpdateAttributesPanel()
     {
         if (!core.isLocalPlayer || stats == null) return;
-        if (strengthText != null) strengthText.text = $"{stats.strength}";
-        if (agilityText != null) agilityText.text = $"{stats.agility}";
-        if (spiritText != null) spiritText.text = $"{stats.spirit}";
-        if (constitutionText != null) constitutionText.text = $"{stats.constitution}";
-        if (accuracyText != null) accuracyText.text = $"{stats.accuracy}";
+        
+        // Показываем итоговые статы (базовые + экипировка) как одно число
+        if (strengthText != null) strengthText.text = $"{stats.totalStrength}";
+        if (agilityText != null) agilityText.text = $"{stats.totalAgility}";
+        if (spiritText != null) spiritText.text = $"{stats.totalSpirit}";
+        if (constitutionText != null) constitutionText.text = $"{stats.totalConstitution}";
+        if (accuracyText != null) accuracyText.text = $"{stats.totalAccuracy}";
         if (armorText != null) armorText.text = $"{stats.armor}";
         if (physicalResistanceText != null) physicalResistanceText.text = $"{stats.physicalResistance:F1}%";
         if (magicDamageMultiplierText != null) magicDamageMultiplierText.text = $"{stats.magicDamageMultiplier:F2}x";
@@ -778,64 +773,6 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         if (index != -1) return hotkeys3[index];
         return KeyCode.None;
     }
-    public void UpdateInventoryUI()
-    {
-        if (!core.isLocalPlayer) return;
-        for (int i = 0; i < inventorySlots.Length && i < core.Inventory.items.Count; i++)
-        {
-            inventorySlots[i].SetItem(core.Inventory.items[i]);
-        }
-        Debug.Log($"[PlayerUI] Inventory UI updated, slots assigned: {inventorySlots.Length}, items: {core.Inventory.items.Count}");
-    }
-    public void UpdateEquipmentUI()
-    {
-        if (!core.isLocalPlayer) return;
-        foreach (var slot in equipmentSlots)
-        {
-            ItemInfo equippedItem = core.Inventory.GetEquipped(slot.slotType);
-            slot.SetItem(equippedItem);
-            Debug.Log($"[PlayerUI] Equipment slot {slot.slotType} updated: {(equippedItem.id > 0 ? equippedItem.GetItem()?.itemName : "empty")}");
-        }
-        Debug.Log($"[PlayerUI] Equipment UI updated, slots checked: {equipmentSlots.Length}");
-    }
-    public EquipmentSlotUI FindMatchingEquipmentSlot(Item item)
-    {
-        if (item == null)
-        {
-            Debug.LogWarning("[PlayerUI] FindMatchingEquipmentSlot: Item is null");
-            return null;
-        }
-        if (equipmentSlots == null || equipmentSlots.Length == 0)
-        {
-            Debug.LogWarning($"[PlayerUI] FindMatchingEquipmentSlot: equipmentSlots is {(equipmentSlots == null ? "null" : "empty")}");
-            return null;
-        }
-        // Проверяем основной слот (принудительно, своп если занят)
-        EquipmentSlotUI mainSlot = equipmentSlots.FirstOrDefault(s => s.slotType == item.equipmentSlot);
-        if (mainSlot != null)
-        {
-            Debug.Log($"[PlayerUI] Found main slot: {item.equipmentSlot} for {item.itemName} (will swap if occupied)");
-            return mainSlot;
-        }
-        else
-        {
-            Debug.LogWarning($"[PlayerUI] No EquipmentSlotUI found for {item.equipmentSlot} in equipmentSlots");
-        }
-        // Проверяем альтернативный слот (принудительно)
-        if (item.alternativeSlot != EquipmentSlot.None)
-        {
-            EquipmentSlotUI altSlot = equipmentSlots.FirstOrDefault(s => s.slotType == item.alternativeSlot);
-            if (altSlot != null)
-            {
-                Debug.Log($"[PlayerUI] Found alternative slot: {item.alternativeSlot} for {item.itemName} (will swap if occupied)");
-                return altSlot;
-            }
-            else
-            {
-                Debug.LogWarning($"[PlayerUI] No EquipmentSlotUI found for {item.alternativeSlot} in equipmentSlots");
-            }
-        }
-        Debug.LogWarning($"[PlayerUI] No slots found for {item.itemName} (equipmentSlot: {item.equipmentSlot}, alternativeSlot: {item.alternativeSlot})");
-        return null;
-    }
+    // Методы UpdateInventoryUI и UpdateEquipmentUI удалены - теперь это делает InventoryUI
+    // Метод FindMatchingEquipmentSlot удален - теперь это делает InventoryUI
 }

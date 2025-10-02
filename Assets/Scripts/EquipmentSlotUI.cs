@@ -26,25 +26,34 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
     {
         itemInfo = info;
         Item item = info.GetItem();
+        Debug.Log($"[EquipmentSlotUI] SetItem for {slotType}: ID={info.id}, quantity={info.quantity}, item={item?.itemName ?? "null"}");
         if (item != null)
         {
             itemIcon.sprite = item.icon;
             itemIcon.enabled = true;
-            // Item set in slot
+            Debug.Log($"[EquipmentSlotUI] Item set in slot {slotType}: {item.itemName}");
         }
         else
         {
             itemIcon.sprite = null;
             itemIcon.enabled = false;
-            // Slot cleared
+            Debug.Log($"[EquipmentSlotUI] Slot {slotType} cleared");
         }
     }
     public void OnPointerEnter(PointerEventData eventData)
     {
-        Item item = itemInfo.GetItem();
-        if (item != null && tooltipCoroutine == null)
+        if (tooltipCoroutine == null)
         {
-            tooltipCoroutine = StartCoroutine(ShowTooltipAfterDelay(item, eventData.position));
+            if (itemInfo.id > 0)
+            {
+                // Показываем тултип предмета
+                tooltipCoroutine = StartCoroutine(ShowTooltipAfterDelay(itemInfo, eventData.position));
+            }
+            else
+            {
+                // Показываем тултип пустого слота
+                tooltipCoroutine = StartCoroutine(ShowEmptySlotTooltipAfterDelay(eventData.position));
+            }
         }
     }
     public void OnPointerExit(PointerEventData eventData)
@@ -54,16 +63,29 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
             StopCoroutine(tooltipCoroutine);
             tooltipCoroutine = null;
         }
-        inventoryUI.HideTooltip();
-        // Hiding tooltip
+        if (inventoryUI != null)
+            inventoryUI.HideTooltip();
     }
-    private IEnumerator ShowTooltipAfterDelay(Item item, Vector3 position)
+    private IEnumerator ShowTooltipAfterDelay(ItemInfo itemInfo, Vector3 position)
     {
-        yield return new WaitForSeconds(0.5f);
+        yield return new WaitForSeconds(0.3f);
         if (inventoryUI != null && !inventoryUI.isTooltipActive)
         {
-            inventoryUI.ShowTooltip(item, position);
-            // Showing tooltip
+            // Позиционируем tooltip левым верхним углом на 25px от курсора
+            Vector3 tooltipPosition = position + new Vector3(25f, 25f, 0f);
+            inventoryUI.ShowTooltip(itemInfo, tooltipPosition);
+        }
+        tooltipCoroutine = null;
+    }
+    
+    private IEnumerator ShowEmptySlotTooltipAfterDelay(Vector3 position)
+    {
+        yield return new WaitForSeconds(0.3f);
+        if (inventoryUI != null && !inventoryUI.isTooltipActive)
+        {
+            // Позиционируем tooltip левым верхним углом на 25px от курсора
+            Vector3 tooltipPosition = position + new Vector3(25f, 25f, 0f);
+            inventoryUI.ShowEmptySlotTooltip(slotType, tooltipPosition);
         }
         tooltipCoroutine = null;
     }
@@ -137,7 +159,8 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
         }
         if (!item.CanEquipToSlot(slotType))
         {
-            Debug.LogWarning($"[EquipmentSlotUI] Cannot equip {item.itemName}: slot {slotType} does not match item slot {item.equipmentSlot} or {item.alternativeSlot}");
+            string expectedSlots = item.isTwoHanded ? "LeftHand only" : $"{item.equipmentSlot} or {item.alternativeSlot}";
+            Debug.LogWarning($"[EquipmentSlotUI] Cannot equip {item.itemName}: slot {slotType} does not match expected slots ({expectedSlots})");
             inventoryUI.draggedSlot = null;
             return;
         }

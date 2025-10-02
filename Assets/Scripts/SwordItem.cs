@@ -3,15 +3,10 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "NewSwordItem", menuName = "Inventory/SwordItem")]
 public class SwordItem : Item
 {
-    [Header("Sword Properties")]
-    public int baseDamage = 10;
-    public float attackSpeed = 1f;
-    public float criticalChance = 0.05f;
-    public float criticalMultiplier = 1.5f;
 
     private void OnEnable()
     {
-        // Удаляем автоматическое заполнение полей, полагаемся на настройки из инспектора и базовый класс Item
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ Item
         base.OnEnable();
         weaponType = isTwoHanded ? WeaponType.TwoHandedSword : WeaponType.OneHandedSword;
     }
@@ -22,7 +17,7 @@ public class SwordItem : Item
         {
             if (IsEquipable(player.Stats.level, player.Stats.characterClass))
             {
-                EquipmentSlotUI slotUI = PlayerUI.Instance.FindMatchingEquipmentSlot(this);
+                EquipmentSlotUI slotUI = InventoryUI.Instance.FindMatchingEquipmentSlot(this);
                 if (slotUI != null)
                 {
                     int slotIndex = player.Inventory.items.FindIndex(item => item.id == id);
@@ -48,15 +43,4 @@ public class SwordItem : Item
         }
     }
 
-    public virtual int CalculateDamage()
-    {
-        bool isCritical = Random.value < criticalChance;
-        int damage = baseDamage;
-        if (isCritical)
-        {
-            damage = Mathf.RoundToInt(damage * criticalMultiplier);
-            Debug.Log($"[SwordItem] Critical hit with {itemName}! Damage: {damage}");
-        }
-        return damage;
-    }
 }

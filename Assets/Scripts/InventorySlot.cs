@@ -75,10 +75,9 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
 
     public void OnPointerEnter(PointerEventData eventData)
     {
-        Item item = itemInfo.GetItem();
-        if (item != null && tooltipCoroutine == null)
+        if (itemInfo.id > 0 && tooltipCoroutine == null)
         {
-            tooltipCoroutine = StartCoroutine(ShowTooltipAfterDelay(item, eventData.position));
+            tooltipCoroutine = StartCoroutine(ShowTooltipAfterDelay(itemInfo, eventData.position));
         }
     }
 
@@ -89,16 +88,18 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
             StopCoroutine(tooltipCoroutine);
             tooltipCoroutine = null;
         }
-        tooltipCoroutine = StartCoroutine(DelayedHideTooltip());
+        if (inventoryUI != null)
+            inventoryUI.HideTooltip();
     }
 
-    private IEnumerator ShowTooltipAfterDelay(Item item, Vector3 position)
+    private IEnumerator ShowTooltipAfterDelay(ItemInfo itemInfo, Vector3 position)
     {
-        yield return new WaitForSeconds(0.5f);
+        yield return new WaitForSeconds(0.3f);
         if (inventoryUI != null && !inventoryUI.isTooltipActive)
         {
-            inventoryUI.ShowTooltip(item, transform.position + new Vector3(100f, 0f, 0f));
-            // Showing tooltip
+            // Позиционируем tooltip левым верхним углом на 25px от курсора
+            Vector3 tooltipPosition = position + new Vector3(25f, 25f, 0f);
+            inventoryUI.ShowTooltip(itemInfo, tooltipPosition);
         }
         tooltipCoroutine = null;
     }
@@ -169,7 +170,17 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
             }
             else
             {
-                Debug.LogWarning($"[InventorySlot] Cannot equip {item.itemName}: slot {targetEquipSlot.slotType} does not match {item.equipmentSlot} or {item.alternativeSlot} or level {core.Stats.level} < {item.requiredLevel} or class {core.Stats.characterClass} != {item.characterClass}");
+                // Если не подходит к конкретному слоту, попробуем найти подходящий слот автоматически
+                EquipmentSlotUI autoSlot = InventoryUI.Instance.FindMatchingEquipmentSlot(item);
+                if (autoSlot != null && item.IsEquipable(core.Stats.level, core.Stats.characterClass))
+                {
+                    Debug.Log($"[InventorySlot] Auto-equipping {item.itemName} to {autoSlot.slotType} instead of {targetEquipSlot.slotType}");
+                    core.CmdEquipItem(itemInfo, slotIndex, autoSlot.slotType);
+                }
+                else
+                {
+                    Debug.LogWarning($"[InventorySlot] Cannot equip {item.itemName}: slot {targetEquipSlot.slotType} does not match {item.equipmentSlot} or {item.alternativeSlot} or level {core.Stats.level} < {item.requiredLevel} or class {core.Stats.characterClass} != {item.characterClass}");
+                }
             }
         }
         else if (targetButton != null && item.canHotbar && targetButton.buttonIndex != 0)
@@ -200,22 +211,28 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
                 Item item = itemInfo.GetItem();
                 if (item != null && item.IsEquipable(core.Stats.level, core.Stats.characterClass))
                 {
-                    EquipmentSlotUI matchingSlot = inventoryUI.FindMatchingEquipmentSlot(item.equipmentSlot);
-                    if (matchingSlot == null && item.alternativeSlot != EquipmentSlot.None)
-                        matchingSlot = inventoryUI.FindMatchingEquipmentSlot(item.alternativeSlot);
+                    // Проверяем InventoryUI.Instance
+                    if (InventoryUI.Instance == null)
+                    {
+                        Debug.LogError("[InventorySlot] InventoryUI.Instance is null, cannot equip item");
+                        return;
+                    }
+                    
+                    // Используем InventoryUI.FindMatchingEquipmentSlot для правильной логики двуручного оружия
+                    EquipmentSlotUI matchingSlot = InventoryUI.Instance.FindMatchingEquipmentSlot(item);
                     if (matchingSlot != null)
                     {
-                        Debug.Log($"[InventorySlot] Double-click equipping item: {item.itemName} (ID: {itemInfo.id}) to {matchingSlot.slotType} from slot {slotIndex}");
+                        Debug.Log($"[InventorySlot] Double-click equipping item: {itemInfo.GetItemName()} (ID: {itemInfo.id}) to {matchingSlot.slotType} from slot {slotIndex}");
                         core.CmdEquipItem(itemInfo, slotIndex, matchingSlot.slotType);
                     }
                     else
                     {
-                        Debug.LogWarning($"[InventorySlot] Cannot equip {item.itemName} on double-click: no matching slot for {item.equipmentSlot} or {item.alternativeSlot}");
+                        Debug.LogWarning($"[InventorySlot] Cannot equip {itemInfo.GetItemName()} on double-click: no matching slot found");
                     }
                 }
                 else
                 {
-                    Debug.LogWarning($"[InventorySlot] Cannot equip {item?.itemName ?? "null"} on double-click: item is null or level {core.Stats.level} < {item?.requiredLevel} or class {core.Stats.characterClass} != {item?.characterClass}");
+                    Debug.LogWarning($"[InventorySlot] Cannot equip {itemInfo.GetItemName()} on double-click: item is null or level {core.Stats.level} < {item?.requiredLevel} or class {core.Stats.characterClass} != {item?.characterClass}");
                 }
             }
             lastClickTime = Time.time;
@@ -229,11 +246,4 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         return string.Join(", ", System.Linq.Enumerable.Select(components, c => c.GetType().Name));
     }
 
-    private IEnumerator DelayedHideTooltip()
-    {
-        yield return new WaitForSeconds(0.2f);
-        if (inventoryUI != null)
-            inventoryUI.HideTooltip();
-        tooltipCoroutine = null;
-    }
 }

@@ -617,8 +617,8 @@ public class PlayerCore : NetworkBehaviour
             this.Inventory.ClearItemSlot(slotIndex);
             RpcUpdateInventoryUI();
             RpcClearHotbarItem(itemID);
-            // Item dropped
-            SpawnDroppedItem(itemID, dropQuantity);
+            // Item dropped - передаем ItemInfo с динамическими статами
+            SpawnDroppedItemWithItemInfo(instance, dropQuantity);
         }
     }
 
@@ -639,6 +639,31 @@ public class PlayerCore : NetworkBehaviour
         }
         NetworkServer.Spawn(droppedItem);
         // Dropped item spawned
+    }
+    
+    [Server]
+    private void SpawnDroppedItemWithItemInfo(ItemInfo itemInfo, int quantity)
+    {
+        if (quantity <= 0 || droppedItemPrefab == null)
+        {
+            Debug.LogError($"[PlayerCore] Cannot spawn dropped item: quantity {quantity} or prefab null");
+            return;
+        }
+        GameObject droppedItem = Instantiate(droppedItemPrefab, transform.position + Random.insideUnitSphere * 1f + Vector3.up * 0.5f, Quaternion.identity);
+        DroppedItem droppedScript = droppedItem.GetComponent<DroppedItem>();
+        if (droppedScript != null)
+        {
+            // Создаем ItemInfo с правильным количеством
+            ItemInfo dropItemInfo = itemInfo;
+            dropItemInfo.quantity = quantity;
+            
+            // Инициализируем дропнутый предмет с ItemInfo
+            droppedScript.InitializeWithDynamicItemInfo(dropItemInfo);
+            droppedScript.ownerNetId = netId;
+            droppedScript.dropTime = Time.time;
+        }
+        NetworkServer.Spawn(droppedItem);
+        Debug.Log($"[PlayerCore] Dropped item with dynamic stats: {itemInfo.GetItemName()} (ID: {itemInfo.id}, quantity: {quantity})");
     }
 
     [Command]

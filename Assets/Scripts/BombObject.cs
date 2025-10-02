@@ -130,8 +130,9 @@ public class BombObject : NetworkBehaviour
         if (hasExploded) return;
         hasExploded = true;
         
-        bool casterAlive = casterIdentity != null && casterIdentity.GetComponent<PlayerCore>() != null && !casterIdentity.GetComponent<PlayerCore>().isDead;
-        Debug.Log($"[BombObject] Exploding bomb, caster: {casterIdentity?.name}, caster alive: {casterAlive}");
+        bool casterAlive = casterIdentity != null && casterIdentity.gameObject != null && casterIdentity.GetComponent<PlayerCore>() != null && !casterIdentity.GetComponent<PlayerCore>().isDead;
+        string casterName = casterIdentity != null && casterIdentity.gameObject != null ? casterIdentity.name : "null";
+        Debug.Log($"[BombObject] Exploding bomb, caster: {casterName}, caster alive: {casterAlive}");
         
         // Bomb exploding
         
@@ -144,9 +145,9 @@ public class BombObject : NetworkBehaviour
         {
             Collider col = hitColliders[i];
             // Проверяем, что это не сам кастер (если кастер еще жив)
-            if (casterIdentity != null && col.GetComponent<NetworkIdentity>() == casterIdentity) 
+            if (casterIdentity != null && casterIdentity.gameObject != null && col.GetComponent<NetworkIdentity>() == casterIdentity) 
             {
-                Debug.Log($"[BombObject] Skipping caster: {casterIdentity.name}");
+                Debug.Log($"[BombObject] Skipping caster: {casterName}");
                 continue;
             }
             
@@ -161,13 +162,15 @@ public class BombObject : NetworkBehaviour
                 // Урон игрокам другой команды
                 if (targetCore != null && (int)targetCore.team != casterTeam)
                 {
-                    targetHealthMonster.TakeDamage(baseDamage, DamageType.Physical, false, casterIdentity, damageMultiplier);
+                    NetworkIdentity safeCasterIdentity = (casterIdentity != null && casterIdentity.gameObject != null) ? casterIdentity : null;
+                    targetHealthMonster.TakeDamage(baseDamage, DamageType.Physical, false, safeCasterIdentity, damageMultiplier);
                     // Player damaged
                 }
                 // Урон монстрам (если кастер - игрок)
                 else if (targetMonster != null && casterTeam != (int)PlayerTeam.None)
                 {
-                    targetHealthMonster.TakeDamage(baseDamage, DamageType.Physical, false, casterIdentity, damageMultiplier);
+                    NetworkIdentity safeCasterIdentity = (casterIdentity != null && casterIdentity.gameObject != null) ? casterIdentity : null;
+                    targetHealthMonster.TakeDamage(baseDamage, DamageType.Physical, false, safeCasterIdentity, damageMultiplier);
                     // Monster damaged
                 }
             }
@@ -179,13 +182,15 @@ public class BombObject : NetworkBehaviour
                 // Урон игрокам другой команды
                 if (targetCore != null && (int)targetCore.team != casterTeam)
                 {
-                    targetHealth.TakeDamage(baseDamage, DamageType.Physical, false, casterIdentity, damageMultiplier);
+                    NetworkIdentity safeCasterIdentity = (casterIdentity != null && casterIdentity.gameObject != null) ? casterIdentity : null;
+                    targetHealth.TakeDamage(baseDamage, DamageType.Physical, false, safeCasterIdentity, damageMultiplier);
                     // Player damaged
                 }
                 // Урон монстрам (если кастер - игрок)
                 else if (targetMonster != null && casterTeam != (int)PlayerTeam.None)
                 {
-                    targetHealth.TakeDamage(baseDamage, DamageType.Physical, false, casterIdentity, damageMultiplier);
+                    NetworkIdentity safeCasterIdentity = (casterIdentity != null && casterIdentity.gameObject != null) ? casterIdentity : null;
+                    targetHealth.TakeDamage(baseDamage, DamageType.Physical, false, safeCasterIdentity, damageMultiplier);
                     // Monster damaged
                 }
             }

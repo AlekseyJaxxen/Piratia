@@ -156,13 +156,36 @@ public class PlayerAnimationSystem : NetworkBehaviour
 
     private Item.WeaponType GetCurrentWeaponType()
     {
+        // Проверяем двуручное оружие
+        Item twoHandedWeapon = _inventory.leftHandSlot.GetItem();
+        if (twoHandedWeapon != null && twoHandedWeapon.itemType == ItemType.Weapon && twoHandedWeapon.isTwoHanded)
+        {
+            return twoHandedWeapon.weaponType;
+        }
+
+        // Проверяем дуальное оружие (два одноручных оружия)
+        Item rightHandWeapon = _inventory.rightHandSlot.GetItem();
+        Item leftHandWeapon = _inventory.leftHandSlot.GetItem();
+        
+        bool hasRightWeapon = rightHandWeapon != null && rightHandWeapon.itemType == ItemType.Weapon && !rightHandWeapon.isTwoHanded;
+        bool hasLeftWeapon = leftHandWeapon != null && leftHandWeapon.itemType == ItemType.Weapon && !leftHandWeapon.isTwoHanded;
+        
+        if (hasRightWeapon && hasLeftWeapon)
+        {
+            // Дуальное оружие - возвращаем специальный тип
+            return Item.WeaponType.DualWeapons;
+        }
+        else if (hasRightWeapon)
+        {
+            return rightHandWeapon.weaponType;
+        }
+        else if (hasLeftWeapon)
+        {
+            return leftHandWeapon.weaponType;
+        }
+
+        // Проверяем старый слот weapon (для совместимости)
         Item weapon = _inventory.weaponSlot.GetItem();
-        if (weapon != null && weapon.itemType == ItemType.Weapon) return weapon.weaponType;
-
-        weapon = _inventory.rightHandSlot.GetItem();
-        if (weapon != null && weapon.itemType == ItemType.Weapon) return weapon.weaponType;
-
-        weapon = _inventory.leftHandSlot.GetItem();
         if (weapon != null && weapon.itemType == ItemType.Weapon) return weapon.weaponType;
 
         return Item.WeaponType.None;
