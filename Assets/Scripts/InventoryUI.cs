@@ -227,7 +227,7 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         if (item.maxSpConstantBonus != 0)
             sb.AppendLine($"<size=10>Mana: +{item.maxSpConstantBonus}</size>");
         if (item.mspdConstantBonus != 0)
-            sb.AppendLine($"<size=10>Movement Speed: +{item.mspdConstantBonus}</size>");
+            sb.AppendLine($"<size=10>Movement Speed: +{Mathf.RoundToInt(item.mspdConstantBonus * 100)}</size>");
         
         // Пустая строка
         sb.AppendLine("");
@@ -305,9 +305,9 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         sb.AppendLine($"<size=16><b><color={rarityColor}>{itemInfo.GetItemName()}</color></b></size>");
         
         // Защита / урон (с динамическими статами)
-        int totalPhysicalResist = itemInfo.GetTotalStatBonus(ItemInfo.StatType.PhysicalResist);
-        int totalMinAttack = itemInfo.GetTotalStatBonus(ItemInfo.StatType.MinAttack);
-        int totalMaxAttack = itemInfo.GetTotalStatBonus(ItemInfo.StatType.MaxAttack);
+        int totalPhysicalResist = Mathf.RoundToInt(itemInfo.GetTotalStatBonus(ItemInfo.StatType.PhysicalResist));
+        int totalMinAttack = Mathf.RoundToInt(itemInfo.GetTotalStatBonus(ItemInfo.StatType.MinAttack));
+        int totalMaxAttack = Mathf.RoundToInt(itemInfo.GetTotalStatBonus(ItemInfo.StatType.MaxAttack));
         
         if (totalPhysicalResist != 0 || totalMinAttack != 0 || totalMaxAttack != 0)
         {
@@ -331,7 +331,7 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         }
         
         // Шанс урона / уворот (с динамическими статами)
-        int totalCritical = itemInfo.GetTotalStatBonus(ItemInfo.StatType.Critical);
+        int totalCritical = Mathf.RoundToInt(itemInfo.GetTotalStatBonus(ItemInfo.StatType.Critical));
         if (totalCritical != 0)
         {
             sb.AppendLine($"<size=11>Critical Chance (+{totalCritical}%)</size>");
@@ -350,11 +350,11 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         sb.AppendLine("");
         
         // Основные статы (с динамическими статами)
-        int totalStrength = itemInfo.GetTotalStatBonus(ItemInfo.StatType.Strength);
-        int totalAgility = itemInfo.GetTotalStatBonus(ItemInfo.StatType.Agility);
-        int totalSpirit = itemInfo.GetTotalStatBonus(ItemInfo.StatType.Spirit);
-        int totalConstitution = itemInfo.GetTotalStatBonus(ItemInfo.StatType.Constitution);
-        int totalAccuracy = itemInfo.GetTotalStatBonus(ItemInfo.StatType.Accuracy);
+        int totalStrength = Mathf.RoundToInt(itemInfo.GetTotalStatBonus(ItemInfo.StatType.Strength));
+        int totalAgility = Mathf.RoundToInt(itemInfo.GetTotalStatBonus(ItemInfo.StatType.Agility));
+        int totalSpirit = Mathf.RoundToInt(itemInfo.GetTotalStatBonus(ItemInfo.StatType.Spirit));
+        int totalConstitution = Mathf.RoundToInt(itemInfo.GetTotalStatBonus(ItemInfo.StatType.Constitution));
+        int totalAccuracy = Mathf.RoundToInt(itemInfo.GetTotalStatBonus(ItemInfo.StatType.Accuracy));
         
         if (totalStrength != 0 || totalAgility != 0 || totalSpirit != 0 || totalConstitution != 0 || totalAccuracy != 0)
         {
@@ -368,9 +368,9 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         }
         
         // Другие статы (с динамическими статами)
-        int totalMaxHP = itemInfo.GetTotalStatBonus(ItemInfo.StatType.MaxHP);
-        int totalMaxMP = itemInfo.GetTotalStatBonus(ItemInfo.StatType.MaxMP);
-        int totalMovementSpeed = itemInfo.GetTotalStatBonus(ItemInfo.StatType.MovementSpeed);
+        int totalMaxHP = Mathf.RoundToInt(itemInfo.GetTotalStatBonus(ItemInfo.StatType.MaxHP));
+        int totalMaxMP = Mathf.RoundToInt(itemInfo.GetTotalStatBonus(ItemInfo.StatType.MaxMP));
+        int totalMovementSpeed = itemInfo.GetDisplayValue(ItemInfo.StatType.MovementSpeed);
         
         if (totalMaxHP != 0 || totalMaxMP != 0 || totalMovementSpeed != 0)
         {

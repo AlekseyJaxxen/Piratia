@@ -37,7 +37,7 @@ MonoBehaviour:
   useGeneratedItems: 0
   itemGenerator: {fileID: 0}
   generatedDropTable: []
-  maxHealth: 3000
+  maxHealth: 1000
   basicAttackSkill: {fileID: 11400000, guid: a229fccd33ff10744a8a3c45ed1c4195, type: 2}
   hitRate: 10
   dodge: 50

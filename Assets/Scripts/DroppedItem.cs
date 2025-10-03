@@ -27,7 +27,7 @@ public class DroppedItem : NetworkBehaviour, IPointerEnterHandler, IPointerExitH
     [SyncVar] public int armorBonus = 0; // Плоская броня
     [SyncVar] public int physicalResistBonus = 0; // Процентное сопротивление
     [SyncVar] public int crtConstantBonus = 0;
-    [SyncVar] public int mspdConstantBonus = 0;
+    [SyncVar] public float mspdConstantBonus = 0.0f;
     [SyncVar] public string dynamicItemName = "";
     [SyncVar] public Rarity dynamicRarity = Rarity.Common;
     [SerializeField] private Transform modelParent;
@@ -287,7 +287,7 @@ public class DroppedItem : NetworkBehaviour, IPointerEnterHandler, IPointerExitH
         if (source.criticalRange != null)
             target.criticalRange = new Item.StatRange { minValue = source.criticalRange.minValue, maxValue = source.criticalRange.maxValue, chance = source.criticalRange.chance };
         if (source.movementSpeedRange != null)
-            target.movementSpeedRange = new Item.StatRange { minValue = source.movementSpeedRange.minValue, maxValue = source.movementSpeedRange.maxValue, chance = source.movementSpeedRange.chance };
+            target.movementSpeedRange = new Item.FloatStatRange { minValue = source.movementSpeedRange.minValue, maxValue = source.movementSpeedRange.maxValue, chance = source.movementSpeedRange.chance };
         if (source.hpRecoveryRange != null)
             target.hpRecoveryRange = new Item.StatRange { minValue = source.hpRecoveryRange.minValue, maxValue = source.hpRecoveryRange.maxValue, chance = source.hpRecoveryRange.chance };
         if (source.spRecoveryRange != null)

@@ -53,6 +53,14 @@ public class ItemGenerator : ScriptableObject
             int scaledMax = Mathf.RoundToInt(range.y + (level - 1) * levelMultiplier);
             return new Vector2Int(range.x, scaledMax);
         }
+        
+        public Vector2 GetScaledFloatRange(int level)
+        {
+            if (level <= 1) return new Vector2(range.x, range.y);
+            
+            float scaledMax = range.y + (level - 1) * levelMultiplier;
+            return new Vector2(range.x, scaledMax);
+        }
     }
     
     [System.Serializable]
@@ -93,7 +101,7 @@ public class ItemGenerator : ScriptableObject
         [Tooltip("Шанс урона % (мин-макс)")]
         public Vector2Int damageChanceRange = new Vector2Int(0, 0);
         [Tooltip("Скорость движения (мин-макс)")]
-        public Vector2Int movementSpeedRange = new Vector2Int(0, 0);
+        public Vector2 movementSpeedRange = new Vector2(0, 0);
         [Tooltip("Уклонение (мин-макс)")]
         public Vector2Int dodgeRange = new Vector2Int(0, 0);
         [Tooltip("Восстановление HP (мин-макс)")]
@@ -493,7 +501,7 @@ public class ItemGenerator : ScriptableObject
         
         if (config.canHaveMovementSpeed && config.movementSpeedRange.y > 0)
         {
-        item.movementSpeedRange = new Item.StatRange 
+        item.movementSpeedRange = new Item.FloatStatRange 
         { 
             minValue = config.movementSpeedRange.x, 
             maxValue = config.movementSpeedRange.y, 

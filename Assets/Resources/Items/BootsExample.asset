@@ -37,6 +37,7 @@ MonoBehaviour:
   hpRecoveryBonus: 0
   spRecoveryBonus: 0
   dodgeBonus: 0
+  damageChanceBonus: 0
   useDynamicStats: 1
   minDamageRange:
     minValue: 0
@@ -75,16 +76,24 @@ MonoBehaviour:
     maxValue: 0
     chance: 1
   defenseRange:
-    minValue: 60
-    maxValue: 90
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  armorRange:
+    minValue: 30
+    maxValue: 50
+    chance: 1
+  physicalResistRange:
+    minValue: 0
+    maxValue: 0
     chance: 1
   criticalRange:
     minValue: 0
     maxValue: 0
     chance: 1
   movementSpeedRange:
-    minValue: 70
-    maxValue: 80
+    minValue: 1
+    maxValue: 1
     chance: 1
   hpRecoveryRange:
     minValue: 0
@@ -97,6 +106,10 @@ MonoBehaviour:
   dodgeRange:
     minValue: 29
     maxValue: 40
+    chance: 1
+  damageChanceRange:
+    minValue: 0
+    maxValue: 0
     chance: 1
   rarity: 4
   requiredLevel: 1
@@ -144,6 +157,8 @@ MonoBehaviour:
   crtConstantBonus: 0
   mspdConstantBonus: 0
   physicalResist: 0
+  armorBonus: 0
+  physicalResistBonus: 0
   itemLeftHandExertIdentifier: 
   itemEnergy: 0
   durability: 0

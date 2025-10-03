@@ -26,6 +26,7 @@ MonoBehaviour:
   baseMaxAttack: 25
   baseDef: 0
   baseMovementSpeed: 6
+  baseAttackSpeed: 0.7
   basePhysicalResistance: 0
   strengthMultiplier: 1
   agilityMultiplier: 1

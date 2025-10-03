@@ -431,8 +431,9 @@ public class AdvancedItemGenerator : ScriptableObject
         // Адаптируем значения под наш уровень 15 (75/5 = 15)
         // Base stats: STR/AGI/ACC/CON/SPR могут быть у любых предметов
         
-        // Защитные характеристики
-        bootsTemplate.defaultStats.Add(new StatTemplate("Armor Defense", "armorBonus", new Vector2Int(0, 9), 1.2f));
+        // Защитные характеристики (раздельно)
+        bootsTemplate.defaultStats.Add(new StatTemplate("Armor Defense", "armorBonus", new Vector2Int(0, 6), 1.0f));
+        bootsTemplate.defaultStats.Add(new StatTemplate("Physical Resist %", "physicalResistBonus", new Vector2Int(0, 3), 0.6f));
         bootsTemplate.defaultStats.Add(new StatTemplate("Maximum HP", "maxHpConstantBonus", new Vector2Int(0, 18), 1.8f));
         
         // Уворот (важная характеристика ботинок)
@@ -445,8 +446,9 @@ public class AdvancedItemGenerator : ScriptableObject
         bootsTemplate.defaultStats.Add(new StatTemplate("Accuracy", "accuracyBonus", new Vector2Int(0, 1), 0.1f));
         bootsTemplate.defaultStats.Add(new StatTemplate("Spirit", "spiritBonus", new Vector2Int(0, 1), 0.1f));
         
-        // Скорость движения (специфично для ботинок)
-        bootsTemplate.defaultStats.Add(new StatTemplate("Movement Speed", "mspdConstantBonus", new Vector2Int(0, 18), 1.2f));
+        // Скорость движения (специфично для ботинок) - хранится 0.8 максимум на 75 уровне, отображается +80
+        // Формула: база + (range.max * levelMultiplier * уровень) = 0 + (2.67 * 0.004f * 75) = 0.8
+        bootsTemplate.defaultStats.Add(new StatTemplate("Movement Speed", "mspdConstantBonus", new Vector2Int(0, 2), 0.00533f));
         
         // Вспомогательные характеристики
         bootsTemplate.defaultStats.Add(new StatTemplate("HP Recovery", "hpRecoveryBonus", new Vector2Int(0, 1), 0.1f));

@@ -5746,8 +5746,8 @@ MonoBehaviour:
   defaultCursor: {fileID: 2800000, guid: f75349a286817b6479976a10636d3b2c, type: 3}
   castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
   attackCursor: {fileID: 2800000, guid: 8f25a92609cc5a748a87869de53d5614, type: 3}
-  cursorUpdateInterval: 0.1
-  globalCooldown: 0.1
+  cursorUpdateInterval: 0.05
+  globalCooldown: 0.05
   _isInvisible: 0
   OnToggleBuffChanged:
     m_PersistentCalls:

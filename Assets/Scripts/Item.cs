@@ -60,7 +60,7 @@ public class Item : ScriptableObject
     public StatRange armorRange = new StatRange { minValue = 0, maxValue = 0 }; // Плоская броня (вычитается из урона)
     public StatRange physicalResistRange = new StatRange { minValue = 0, maxValue = 0 }; // Процентное сопротивление (0-100%)
     public StatRange criticalRange = new StatRange { minValue = 0, maxValue = 0 };
-    public StatRange movementSpeedRange = new StatRange { minValue = 0, maxValue = 0 };
+    public FloatStatRange movementSpeedRange = new FloatStatRange { minValue = 0, maxValue = 0 };
     public StatRange hpRecoveryRange = new StatRange { minValue = 0, maxValue = 0 };
     public StatRange spRecoveryRange = new StatRange { minValue = 0, maxValue = 0 };
     public StatRange dodgeRange = new StatRange { minValue = 0, maxValue = 0 };
@@ -71,6 +71,14 @@ public class Item : ScriptableObject
     {
         public int minValue;
         public int maxValue;
+        public float chance = 1.0f; // Вероятность появления этого стата
+    }
+    
+    [System.Serializable]
+    public class FloatStatRange
+    {
+        public float minValue;
+        public float maxValue;
         public float chance = 1.0f; // Вероятность появления этого стата
     }
     [Header("MMO Properties")]
@@ -122,7 +130,7 @@ public class Item : ScriptableObject
     public int maxHpConstantBonus;
     public int maxSpConstantBonus;
     public int crtConstantBonus;
-    public int mspdConstantBonus;
+    public float mspdConstantBonus;
     public int physicalResist; // УСТАРЕЛО: используйте armorBonus и physicalResistBonus
     public int armorBonus; // Плоская броня (прямое вычитание из урона)
     public int physicalResistBonus; // Процентное сопротивление физическому урону (0-100%)
@@ -224,7 +232,7 @@ public class Item : ScriptableObject
         target.armorRange = new StatRange { minValue = source.armorRange.minValue, maxValue = source.armorRange.maxValue, chance = source.armorRange.chance };
         target.physicalResistRange = new StatRange { minValue = source.physicalResistRange.minValue, maxValue = source.physicalResistRange.maxValue, chance = source.physicalResistRange.chance };
         target.criticalRange = new StatRange { minValue = source.criticalRange.minValue, maxValue = source.criticalRange.maxValue, chance = source.criticalRange.chance };
-        target.movementSpeedRange = new StatRange { minValue = source.movementSpeedRange.minValue, maxValue = source.movementSpeedRange.maxValue, chance = source.movementSpeedRange.chance };
+        target.movementSpeedRange = new FloatStatRange { minValue = source.movementSpeedRange.minValue, maxValue = source.movementSpeedRange.maxValue, chance = source.movementSpeedRange.chance };
         target.hpRecoveryRange = new StatRange { minValue = source.hpRecoveryRange.minValue, maxValue = source.hpRecoveryRange.maxValue, chance = source.hpRecoveryRange.chance };
         target.spRecoveryRange = new StatRange { minValue = source.spRecoveryRange.minValue, maxValue = source.spRecoveryRange.maxValue, chance = source.spRecoveryRange.chance };
         target.dodgeRange = new StatRange { minValue = source.dodgeRange.minValue, maxValue = source.dodgeRange.maxValue, chance = source.dodgeRange.chance };
@@ -247,7 +255,7 @@ public class Item : ScriptableObject
         target.maxHpConstantBonus = 0;
         target.maxSpConstantBonus = 0;
         target.crtConstantBonus = 0;
-        target.mspdConstantBonus = 0;
+        target.mspdConstantBonus = 0.0f;
         target.physicalResist = 0;
         target.armorBonus = 0;
         target.physicalResistBonus = 0;
@@ -328,7 +336,7 @@ public class Item : ScriptableObject
         
         if (item.movementSpeedRange.maxValue > 0 && Random.Range(0f, 1f) <= item.movementSpeedRange.chance)
         {
-            item.mspdConstantBonus = Random.Range(item.movementSpeedRange.minValue, item.movementSpeedRange.maxValue + 1);
+            item.mspdConstantBonus = Random.Range(item.movementSpeedRange.minValue, item.movementSpeedRange.maxValue);
         }
         
         if (item.damageChanceRange.maxValue > 0 && Random.Range(0f, 1f) <= item.damageChanceRange.chance)

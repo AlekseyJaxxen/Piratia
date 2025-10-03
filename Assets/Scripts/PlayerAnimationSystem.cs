@@ -27,10 +27,11 @@ public class PlayerAnimationSystem : NetworkBehaviour
         _core = GetComponent<PlayerCore>();
         _stats = GetComponent<CharacterStats>();
         _inventory = GetComponent<Inventory>();
-        if (_actionSystem == null) Debug.LogError("[PlayerAnimationSystem] PlayerActionSystem is null!");
-        if (_core == null) Debug.LogError("[PlayerAnimationSystem] PlayerCore is null!");
-        if (_stats == null) Debug.LogError("[PlayerAnimationSystem] CharacterStats is null!");
-        if (_inventory == null) Debug.LogError("[PlayerAnimationSystem] Inventory is null!");
+        // Debug logs commented out - user requested reduction of non-experience logs
+        // if (_actionSystem == null) Debug.LogError("[PlayerAnimationSystem] PlayerActionSystem is null!");
+        // if (_core == null) Debug.LogError("[PlayerAnimationSystem] PlayerCore is null!");
+        // if (_stats == null) Debug.LogError("[PlayerAnimationSystem] CharacterStats is null!");
+        // if (_inventory == null) Debug.LogError("[PlayerAnimationSystem] Inventory is null!");
         characterModels = GetComponentsInChildren<Transform>(true)
             .Where(t => t.CompareTag("CharacterModel"))
             .Select(t => t.gameObject)
@@ -58,13 +59,13 @@ public class PlayerAnimationSystem : NetworkBehaviour
     {
         if (_stats == null || characterModels == null || characterModels.Length == 0)
         {
-            Debug.LogError("[PlayerAnimationSystem] Stats or characterModels are null or empty!");
+            // Debug.LogError("[PlayerAnimationSystem] Stats or characterModels are null or empty!");
             return;
         }
         ClassData classData = Resources.Load<ClassData>($"ClassData/{_stats.characterClass}");
         if (classData == null)
         {
-            Debug.LogError($"[PlayerAnimationSystem] Failed to load ClassData for {_stats.characterClass}");
+            // Debug.LogError($"[PlayerAnimationSystem] Failed to load ClassData for {_stats.characterClass}");
             return;
         }
         if (_activeModel != null)
@@ -74,14 +75,14 @@ public class PlayerAnimationSystem : NetworkBehaviour
         _activeModel = characterModels.FirstOrDefault(model => model.name == classData.modelPrefab.name);
         if (_activeModel == null)
         {
-            Debug.LogError($"[PlayerAnimationSystem] Model for {_stats.characterClass} not found! Available models: {string.Join(", ", characterModels.Select(m => m.name))}");
+            // Debug.LogError($"[PlayerAnimationSystem] Model for {_stats.characterClass} not found! Available models: {string.Join(", ", characterModels.Select(m => m.name))}");
             return;
         }
         _activeModel.SetActive(true);
         _animator = _activeModel.GetComponent<Animator>();
         if (_animator == null)
         {
-            Debug.LogError($"[PlayerAnimationSystem] Animator not found on model {_activeModel.name} for {_stats.characterClass}");
+            // Debug.LogError($"[PlayerAnimationSystem] Animator not found on model {_activeModel.name} for {_stats.characterClass}");
             return;
         }
         if (classData.animatorController != null)
@@ -90,7 +91,7 @@ public class PlayerAnimationSystem : NetworkBehaviour
         }
         else
         {
-            Debug.LogWarning($"[PlayerAnimationSystem] AnimatorController not set in ClassData for {_stats.characterClass}");
+            // Debug.LogWarning($"[PlayerAnimationSystem] AnimatorController not set in ClassData for {_stats.characterClass}");
         }
         modelRenderer = _activeModel.GetComponentInChildren<Renderer>();
         if (modelRenderer != null)
@@ -101,13 +102,13 @@ public class PlayerAnimationSystem : NetworkBehaviour
             damageFlashSequence.Append(modelRenderer.material.DOColor(originalColor, 0.1f));
             damageFlashSequence.SetAutoKill(false);
             damageFlashSequence.Pause();
-            Debug.Log($"[PlayerAnimationSystem] Renderer found on {_activeModel.name} or its children");
+            // Debug.Log($"[PlayerAnimationSystem] Renderer found on {_activeModel.name} or its children");
         }
         else
         {
-            Debug.LogError($"[PlayerAnimationSystem] No Renderer found on active model {_activeModel.name} or its children!");
+            // Debug.LogError($"[PlayerAnimationSystem] No Renderer found on active model {_activeModel.name} or its children!");
         }
-        Debug.Log($"[PlayerAnimationSystem] Set model {_activeModel.name} and animator for {_stats.characterClass}");
+        // Debug.Log($"[PlayerAnimationSystem] Set model {_activeModel.name} and animator for {_stats.characterClass}");
         UpdateWeaponAnimations(); // ������������� ��������
     }
 
@@ -150,7 +151,7 @@ public class PlayerAnimationSystem : NetworkBehaviour
                 anims.Add($"Player_{action}");
             }
             _actionAnimations[action] = anims;
-            Debug.Log($"[PlayerAnimationSystem] Cached {action} animations for {_currentWeaponType}: {string.Join(", ", anims)}");
+            // Debug.Log($"[PlayerAnimationSystem] Cached {action} animations for {_currentWeaponType}: {string.Join(", ", anims)}");
         }
     }
 
@@ -226,7 +227,7 @@ public class PlayerAnimationSystem : NetworkBehaviour
         if (_core.isDead && _currentAnimation != "Death")
         {
             CmdPlayAnimation("Death");
-            Debug.Log("[PlayerAnimationSystem] Played Death animation");
+            // Debug.Log("[PlayerAnimationSystem] Played Death animation");
         }
         else if (!_core.isDead && _currentAnimation == "Death")
         {
@@ -320,7 +321,7 @@ public class PlayerAnimationSystem : NetworkBehaviour
         if (_currentAnimation != targetAnimation)
         {
             CmdPlayAnimation(targetAnimation);
-            Debug.Log($"[PlayerAnimationSystem] Played {targetAnimation}, CurrentAction: {_actionSystem.CurrentAction}");
+            // Debug.Log($"[PlayerAnimationSystem] Played {targetAnimation}, CurrentAction: {_actionSystem.CurrentAction}");
         }
     }
 
@@ -360,7 +361,7 @@ public class PlayerAnimationSystem : NetworkBehaviour
         {
             _animator.speed = 1f;
             CmdPlayAnimation("Idle");
-            Debug.Log("[PlayerAnimationSystem] Animations reset to Idle");
+            // Debug.Log("[PlayerAnimationSystem] Animations reset to Idle");
         }
     }
 

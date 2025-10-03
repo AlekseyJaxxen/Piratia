@@ -19,7 +19,7 @@ public struct ItemInfo
     public int maxHpConstantBonus;
     public int maxSpConstantBonus;
     public int crtConstantBonus;
-    public int mspdConstantBonus;
+    public float mspdConstantBonus;
     public int physicalResist; // УСТАРЕЛО: используйте armorBonus и physicalResistBonus
     public int armorBonus; // Плоская броня
     public int physicalResistBonus; // Процентное сопротивление
@@ -92,13 +92,13 @@ public struct ItemInfo
     /// <summary>
     /// Получает итоговые статы предмета (базовые + динамические)
     /// </summary>
-    public int GetTotalStatBonus(StatType statType)
+    public float GetTotalStatBonus(StatType statType)
     {
         Item item = GetItem();
         if (item == null) return 0;
         
-        int baseStat = 0;
-        int dynamicStat = 0;
+        float baseStat = 0;
+        float dynamicStat = 0;
         
         switch (statType)
         {
@@ -175,10 +175,30 @@ public struct ItemInfo
         return baseStat + dynamicStat;
     }
     
+    /// <summary>
+    /// Получает визуальное значение для отображения в UI (MovementSpeed умножается на 100 для отображения)
+    /// </summary>
+    public int GetDisplayValue(StatType statType)
+    {
+        Item item = GetItem();
+        if (item == null) return 0;
+        
+        if (statType == StatType.MovementSpeed)
+        {
+            int baseValue = Mathf.RoundToInt(item.mspdConstantBonus * 100);
+            int dynamicValue = hasDynamicStats ? Mathf.RoundToInt(mspdConstantBonus * 100) : 0;
+            return baseValue + dynamicValue;
+        }
+        
+        // Для всех других статов возвращаем обычное значение
+        return Mathf.RoundToInt(GetTotalStatBonus(statType));
+    }
+    
     public enum StatType
     {
         Strength,
         Agility,
+        AttackSpeed,
         Spirit,
         Constitution,
         Accuracy,

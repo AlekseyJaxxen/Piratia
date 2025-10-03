@@ -19,6 +19,7 @@ public class ClassData : ScriptableObject
     public int baseMaxAttack = 20;
     public float baseDef = 10f;
     public float baseMovementSpeed = 8f;
+    public float baseAttackSpeed = 1.0f;
     public float basePhysicalResistance = 0f;
     [Header("Attribute Multipliers")]
     public float strengthMultiplier = 1f;

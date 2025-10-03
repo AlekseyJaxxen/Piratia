@@ -21,14 +21,14 @@ public class PlayerMovement : NetworkBehaviour
     {
         if (core == null)
         {
-            Debug.LogError("[PlayerMovement] Init failed: PlayerCore is null");
+            // Debug.LogError("[PlayerMovement] Init failed: PlayerCore is null");
             return;
         }
         _core = core;
         _agent = GetComponent<NavMeshAgent>();
         if (_agent == null)
         {
-            Debug.LogError("[PlayerMovement] NavMeshAgent component missing!");
+            // Debug.LogError("[PlayerMovement] NavMeshAgent component missing!");
             return;
         }
         _agent.speed = moveSpeed;
@@ -48,7 +48,7 @@ public class PlayerMovement : NetworkBehaviour
     {
         if (_core == null)
         {
-            Debug.LogError("[PlayerMovement] HandleMovement failed: _core is null");
+            // Debug.LogError("[PlayerMovement] HandleMovement failed: _core is null");
             return;
         }
         if (_core.isDead || _core.isStunned)
@@ -68,7 +68,7 @@ public class PlayerMovement : NetworkBehaviour
         }
         if (_core.Camera == null || _core.Camera.CameraInstance == null)
         {
-            Debug.LogError("[PlayerMovement] Camera or CameraInstance is null");
+            // Debug.LogError("[PlayerMovement] Camera or CameraInstance is null");
             return;
         }
         if (Input.GetMouseButtonDown(0))

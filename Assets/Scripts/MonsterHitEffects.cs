@@ -35,9 +35,18 @@ public class MonsterHitEffects : MonoBehaviour
     [SerializeField] private float knockbackForce = 0.3f;
     [SerializeField] private float knockbackDuration = 0.2f;
     
+    [Header("Death Animation Settings")]
+    [SerializeField] private float deathFallDuration = 1.5f;
+    [SerializeField] private Vector3 deathFallAngle = new Vector3(0, 0, 90f); // Поворот на бок
+    [SerializeField] private Vector3 deathFallPositionOffset = new Vector3(0, -0.3f, 0); // Немного опускается
+    [SerializeField] private float deathColorFadeDuration = 2f;
+    [SerializeField] private Color deathTintColor = new Color(0.3f, 0.3f, 0.3f, 1f);
+    
     private Sequence _hitEffectSequence;
+    private Sequence _deathEffectSequence;
     private Tweener _shakeTween;
     private bool _isPlayingHitEffect = false;
+    private bool _isPlayingDeathAnimation = false;
     
     private void Awake()
     {
@@ -214,23 +223,112 @@ public class MonsterHitEffects : MonoBehaviour
     }
     
     /// <summary>
+    /// Проигрывает анимацию смерти - падение на бок
+    /// </summary>
+    public void PlayDeathAnimation()
+    {
+        if (_isPlayingDeathAnimation || _meshRenderer == null) return;
+        
+        _isPlayingDeathAnimation = true;
+        Debug.Log($"[MonsterHitEffects] Playing death animation for {_monster.monsterName}");
+        
+        // Останавливаем все предыдущие эффекты
+        StopAllEffects();
+        
+        // Создаем последовательность для анимации смерти
+        _deathEffectSequence = DOTween.Sequence();
+        
+        // 1️⃣ Добавляем эффект падения на бок
+        AddDeathFallEffect();
+        
+        // 2️⃣ Добавляем эффект постепенного затемнения
+        AddDeathColorFadeEffect();
+        
+        // Завершение анимации смерти
+        _deathEffectSequence.OnComplete(() => {
+            _isPlayingDeathAnimation = false;
+            Debug.Log($"[MonsterHitEffects] Death animation completed for {_monster.monsterName}");
+        });
+        
+        _deathEffectSequence.Play();
+    }
+    
+    /// <summary>
+    /// Добавляет эффект падения на бок
+    /// </summary>
+    private void AddDeathFallEffect()
+    {
+        // Поворачиваем монстра на бок (вращение вокруг оси Z)
+        Vector3 targetRotation = transform.rotation.eulerAngles + deathFallAngle;
+        
+        var rotationTween = transform.DORotate(targetRotation, deathFallDuration * 0.7f)
+            .SetEase(Ease.InOutBack);
+        
+        // Одновременно опускаем монстра немного
+        Vector3 targetPosition = _originalPosition + deathFallPositionOffset;
+        var positionTween = transform.DOLocalMove(targetPosition, deathFallDuration * 0.7f)
+            .SetEase(Ease.InOutBack);
+        
+        // Объединяем поворот и движение
+        _deathEffectSequence.Join(rotationTween);
+        _deathEffectSequence.Join(positionTween);
+    }
+    
+    /// <summary>
+    /// Добавляет эффект постепенного затемнения материала
+    /// </summary>
+    private void AddDeathColorFadeEffect()
+    {
+        if (_meshRenderer == null || _meshRenderer.material == null) return;
+        
+        // Сначала затемняем цвет до death tint
+        Color targetColor = _originalColor * deathTintColor;
+        var colorTween = _meshRenderer.material.DOColor(targetColor, deathColorFadeDuration * 0.5f)
+            .SetEase(Ease.InOutQuad);
+        
+        // Затем постепенно уменьшаем альфу до 0 (исчезновение)
+        var alphaTween = _meshRenderer.material.DOFade(0f, deathColorFadeDuration * 0.5f)
+            .SetDelay(deathColorFadeDuration * 0.5f)
+            .SetEase(Ease.InQuad);
+        
+        _deathEffectSequence.Append(colorTween);
+        _deathEffectSequence.Append(alphaTween);
+    }
+    
+    /// <summary>
     /// Останавливает все эффекты
     /// </summary>
     public void StopAllEffects()
     {
         _hitEffectSequence?.Kill();
+        _deathEffectSequence?.Kill();
         _shakeTween?.Kill();
         
-        // Возвращаем исходные значения
-        if (_meshRenderer != null && _meshRenderer.material != null)
+        // Возвращаем исходные значения только если НЕ играет анимация смерти
+        if (!_isPlayingDeathAnimation)
         {
-            _meshRenderer.material.color = _originalColor;
+            if (_meshRenderer != null && _meshRenderer.material != null)
+            {
+                _meshRenderer.material.color = _originalColor;
+            }
+            
+            transform.localPosition = _originalPosition;
+            transform.localScale = _originalScale;
         }
         
-        transform.localPosition = _originalPosition;
-        transform.localScale = _originalScale;
-        
         _isPlayingHitEffect = false;
+    }
+    
+    /// <summary>
+    /// Останавливает только эффекты удара, сохраняя анимацию смерти
+    /// </summary>
+    public void StopHitEffectsOnly()
+    {
+        _hitEffectSequence?.Kill();
+        _shakeTween?.Kill();
+        _isPlayingHitEffect = false;
+        
+        Debug.Log($"[MonsterHitEffects] Stopped hit effects only, death animation continues");
     }
     
     /// <summary>
@@ -252,6 +350,14 @@ public class MonsterHitEffects : MonoBehaviour
     public bool IsPlayingHitEffect()
     {
         return _isPlayingHitEffect;
+    }
+    
+    /// <summary>
+    /// Проверка, проигрывается ли анимация смерти
+    /// </summary>
+    public bool IsPlayingDeathAnimation()
+    {
+        return _isPlayingDeathAnimation;
     }
     
     private void OnDestroy()
@@ -278,6 +384,18 @@ public class MonsterHitEffects : MonoBehaviour
         if (Application.isPlaying)
         {
             PlayHitEffectLocal(Vector3.back);
+        }
+    }
+    
+    /// <summary>
+    /// Тестирование анимации смерти в редакторе
+    /// </summary>
+    [ContextMenu("Test Death Animation")]
+    private void TestDeathAnimation()
+    {
+        if (Application.isPlaying)
+        {
+            PlayDeathAnimation();
         }
     }
     #endif

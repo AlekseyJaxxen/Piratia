@@ -13,6 +13,25 @@ public class DropEntry
     [Range(0f, 1f)] public float dropChance = 0.1f;
 }
 
+[System.Serializable]
+public struct AggroEntry
+{
+    public uint playerNetId;
+    public string playerName;
+    public int damageDealt;
+    public float damagePercentage;
+    public float timestamp;
+    
+    public AggroEntry(uint netId, string name, int damage, float percentage, float time)
+    {
+        playerNetId = netId;
+        playerName = name;
+        damageDealt = damage;
+        damagePercentage = percentage;
+        timestamp = time;
+    }
+}
+
 public class Monster : NetworkBehaviour
 {
     [SyncVar(hook = nameof(OnMonsterIdChanged))] public int monsterId;
@@ -45,28 +64,29 @@ public class Monster : NetworkBehaviour
             if (isCombinedLegs && partnerMonster != null)
             {
                 // Legs управляет аниматором head
-                if (animationName != "Walk" && animationName != "Idle")
-                {
-                    Debug.Log($"[Monster] Server - Legs {name} playing animation {animationName} on head {partnerMonster.name}");
-                }
+                // Debug logs commented out - user requested reduction of non-experience logs
+                // if (animationName != "Walk" && animationName != "Idle")
+                // {
+                //     Debug.Log($"[Monster] Server - Legs {name} playing animation {animationName} on head {partnerMonster.name}");
+                // }
                 partnerMonster.RpcPlayAnimation(animationName);
             }
             else
             {
-                if (animationName != "Walk" && animationName != "Idle")
-                {
-                    Debug.Log($"[Monster] Server - Monster {name} playing animation {animationName}");
-                }
+                // if (animationName != "Walk" && animationName != "Idle")
+                // {
+                //     Debug.Log($"[Monster] Server - Monster {name} playing animation {animationName}");
+                // }
                 PlayAnimationLocal(animationName);
             }
         }
         else if (NetworkClient.active)
         {
             // Клиент: играем анимацию локально
-            if (animationName != "Walk" && animationName != "Idle")
-            {
-                Debug.Log($"[Monster] Client - Monster {name} playing animation {animationName}");
-            }
+            // if (animationName != "Walk" && animationName != "Idle")
+            // {
+            //     Debug.Log($"[Monster] Client - Monster {name} playing animation {animationName}");
+            // }
             PlayAnimationLocal(animationName);
         }
     }
@@ -90,12 +110,12 @@ public class Monster : NetworkBehaviour
             }
             else
             {
-                Debug.LogWarning($"[Monster] Animation clip '{animationName}' not found on {monsterName}");
+                // Debug.LogWarning($"[Monster] Animation clip '{animationName}' not found on {monsterName}");
             }
         }
         else
         {
-            Debug.LogWarning($"[Monster] Cannot play animation '{animationName}' on {monsterName}: no animation system found");
+            // Debug.LogWarning($"[Monster] Cannot play animation '{animationName}' on {monsterName}: no animation system found");
         }
     }
     
@@ -108,29 +128,29 @@ public class Monster : NetworkBehaviour
             if (animationName == "LegsKick")
             {
                 // Для legs атаки играем Kick на head аниматоре
-                if (animationName != "Walk" && animationName != "Idle")
-                {
-                    Debug.Log($"[Monster] RPC: Legs {name} playing animation LegsKick on head {partnerMonster.name}");
-                }
+                // if (animationName != "Walk" && animationName != "Idle")
+                // {
+                //     Debug.Log($"[Monster] RPC: Legs {name} playing animation LegsKick on head {partnerMonster.name}");
+                // }
                 partnerMonster.PlayAnimationLocal("LegsKick");
             }
             else
             {
                 // Для остальных анимаций передаем управление head
-                if (animationName != "Walk" && animationName != "Idle")
-                {
-                    Debug.Log($"[Monster] RPC: Legs {name} delegating animation {animationName} to head {partnerMonster.name}");
-                }
+                // if (animationName != "Walk" && animationName != "Idle")
+                // {
+                //     Debug.Log($"[Monster] RPC: Legs {name} delegating animation {animationName} to head {partnerMonster.name}");
+                // }
                 partnerMonster.RpcPlayAnimation(animationName);
             }
         }
         else
         {
             // Head или обычный монстр управляет своей анимационной системой
-            if (animationName != "Walk" && animationName != "Idle")
-            {
-                Debug.Log($"[Monster] RPC: {name} playing animation {animationName}");
-            }
+            // if (animationName != "Walk" && animationName != "Idle")
+            // {
+            //     Debug.Log($"[Monster] RPC: {name} playing animation {animationName}");
+            // }
             PlayAnimationLocal(animationName);
         }
     }
@@ -146,7 +166,7 @@ public class Monster : NetworkBehaviour
         else
         {
             // Head или обычный монстр управляет своей анимационной системой
-            Debug.Log($"[Monster] RPC: {name} playing animation by ID {animationId}");
+            // Debug.Log($"[Monster] RPC: {name} playing animation by ID {animationId}");
             PlayAnimationById(animationId);
         }
     }
@@ -230,7 +250,21 @@ public class Monster : NetworkBehaviour
     private GameObject slowEffectPrefab;
     [Header("Aggro & Experience")]
     [SyncVar] public uint aggroTargetNetId = 0;
-    private int experienceReward = 50;
+    
+    [Header("Death Settings")]
+    [SerializeField] private float corpseVisibilityTime = 10f; // Время видимости трупа
+    [SerializeField] private float corpseFadeStartTime = 8f; // Когда начинается исчезновение
+    [SerializeField] private float corpseFadeDuration = 2f; // Длительность исчезновения
+    private uint lastAttackerNetId = 0; // Последний игрок, который атаковал монстра
+    
+    // Система распределения опыта по урону
+    private System.Collections.Generic.Dictionary<uint, int> damageDealers = new System.Collections.Generic.Dictionary<uint, int>();
+    private int totalDamageDealt = 0;
+    
+    // Список последних атакующих (аггро список)
+    private System.Collections.Generic.List<AggroEntry> aggroList = new System.Collections.Generic.List<AggroEntry>();
+    private const int MAX_AGGRO_ENTRIES = 5;
+    private int experienceReward;
     [Header("Drop Settings")]
     private List<DropEntry> dropTable = new List<DropEntry>();
     private GameObject droppedItemPrefab;
@@ -373,18 +407,18 @@ public class Monster : NetworkBehaviour
                     _animationIds[clips[i].name] = i;
                 }
                 
-                Debug.Log($"[Monster] Initialized animation cache for humanoid {monsterName}: {clips.Length} animations");
+                // Debug.Log($"[Monster] Initialized animation cache for humanoid {monsterName}: {clips.Length} animations");
             }
             else
             {
-                Debug.LogWarning($"[Monster] RuntimeAnimatorController is null for humanoid {monsterName}");
+                // Debug.LogWarning($"[Monster] RuntimeAnimatorController is null for humanoid {monsterName}");
             }
         }
         else if (IsNonHumanoidMonster())
         {
             // Для Animation получаем список клипов
             int count = _animation.GetClipCount();
-            Debug.Log($"[Monster] Animation component has {count} clips for {monsterName}");
+            // Debug.Log($"[Monster] Animation component has {count} clips for {monsterName}");
             
             if (count > 0)
             {
@@ -397,36 +431,36 @@ public class Monster : NetworkBehaviour
                     string animName = state.name;
                     if (string.IsNullOrEmpty(animName))
                     {
-                        Debug.LogWarning($"[Monster] Found animation with empty name at index {index} for {monsterName}");
+                        // Debug.LogWarning($"[Monster] Found animation with empty name: {index} for {monsterName}");
                         animName = $"Animation_{index}"; // Fallback имя
                     }
                     
                     _animationNames[index] = animName;
                     _animationIds[animName] = index;
-                    Debug.Log($"[Monster] Cached animation {index}: '{animName}' for {monsterName}");
+                    // Debug.Log($"[Monster] Cached animation {index}: '{animName}' for {monsterName}");
                     index++;
                 }
                 
-                Debug.Log($"[Monster] Initialized animation cache for non-humanoid {monsterName}: {count} animations");
+                // Debug.Log($"[Monster] Initialized animation cache for non-humanoid {monsterName}: {count} animations");
             }
             else
             {
-                Debug.LogWarning($"[Monster] No animation clips found in Animation component for {monsterName}");
+                // Debug.LogWarning($"[Monster] No animation clips found in Animation component for {monsterName}");
             }
         }
         else
         {
-            Debug.LogWarning($"[Monster] Cannot initialize animation cache - no valid animation system found for {monsterName}");
+            // Debug.LogWarning($"[Monster] Cannot initialize animation cache - no valid animation system found for {monsterName}");
         }
         
         // Выводим список доступных анимаций с их ID
         if (_animationNames != null && _animationNames.Length > 0)
         {
-            Debug.Log($"[Monster] Available animations for {monsterName}: {string.Join(", ", _animationNames.Select((name, id) => $"{id}:{name}"))}");
+            // Debug.Log($"[Monster] Available animations for {monsterName}: {string.Join(", ", _animationNames.Select((name, id) => $"{id}:{name}"))}");
         }
         else
         {
-            Debug.LogWarning($"[Monster] No animations available for {monsterName}");
+            // Debug.LogWarning($"[Monster] No animations available for {monsterName}");
         }
     }
     
@@ -437,7 +471,7 @@ public class Monster : NetworkBehaviour
     {
         if (_animationNames == null || animationId < 0 || animationId >= _animationNames.Length)
         {
-            Debug.LogWarning($"[Monster] Invalid animation ID {animationId} for {monsterName}. Available IDs: 0-{(_animationNames?.Length - 1 ?? -1)}");
+            // Debug.LogWarning($"[Monster] Invalid animation ID {animationId} for {monsterName}. Available IDs: 0-{(_animationNames?.Length - 1 ?? -1)}");
             return;
         }
         
@@ -446,11 +480,11 @@ public class Monster : NetworkBehaviour
         // Дополнительная защита от пустых имен
         if (string.IsNullOrEmpty(animationName))
         {
-            Debug.LogWarning($"[Monster] Animation at ID {animationId} has empty name for {monsterName}. Skipping playback.");
+            // Debug.LogWarning($"[Monster] Animation at ID {animationId} has empty name for {monsterName}. Skipping playback.");
             return;
         }
         
-        Debug.Log($"[Monster] Playing animation by ID {animationId}: '{animationName}' on {monsterName}");
+        // Debug.Log($"[Monster] Playing animation by ID {animationId}: '{animationName}' on {monsterName}");
         PlayAnimation(animationName);
     }
     
@@ -555,6 +589,48 @@ public class Monster : NetworkBehaviour
     public void PlaySimpleHitEffect()
     {
         PlayHitEffect(Vector3.zero);
+    }
+    
+    /// <summary>
+    /// Проигрывает анимацию смерти для не-гуманоидного монстра
+    /// </summary>
+    public void PlayDeathAnimation()
+    {
+        if (IsNonHumanoidMonster() && _hitEffects != null)
+        {
+            if (isServer)
+            {
+                // На сервере вызываем RPC для всех клиентов
+                RpcPlayDeathAnimation();
+            }
+            else
+            {
+                // На клиенте играем локально
+                _hitEffects.PlayDeathAnimation();
+            }
+            
+            Debug.Log($"[Monster] Playing death animation for non-humanoid monster {monsterName}");
+        }
+        else if (IsHumanoidMonster())
+        {
+            Debug.Log($"[Monster] Death animation not implemented for humanoid monster {monsterName} (uses Animator)");
+        }
+        else
+        {
+            Debug.LogWarning($"[Monster] Cannot play death animation for {monsterName}: no hit effects component or invalid monster type");
+        }
+    }
+    
+    /// <summary>
+    /// RPC для синхронизации анимации смерти по сети
+    /// </summary>
+    [ClientRpc]
+    private void RpcPlayDeathAnimation()
+    {
+        if (IsNonHumanoidMonster() && _hitEffects != null)
+        {
+            _hitEffects.PlayDeathAnimation();
+        }
     }
     
     /// <summary>
@@ -777,6 +853,14 @@ public class Monster : NetworkBehaviour
         hitRate = info.hitRate;
         dodge = info.dodge;
 
+        // Инициализируем аггро систему для нового монстра
+        damageDealers.Clear();
+        totalDamageDealt = 0;
+        aggroList.Clear();
+        lastAttackerNetId = 0;
+        aggroTargetNetId = 0;
+        Debug.Log($"[Monster] Initialized aggro system for {monsterName}");
+
         // Initialize AI with SO parameters
         MonsterAI2 ai2 = GetComponent<MonsterAI2>();
         if (ai2 != null)
@@ -929,6 +1013,12 @@ public class Monster : NetworkBehaviour
 
     private void OnMonsterIdChanged(int oldId, int newId)
     {
+        // Перезагружаем данные монстра когда ID изменился
+        Debug.Log($"[Monster] Monster ID changed from {oldId} to {newId}. Reloading monster data.");
+        if (isServer)
+        {
+            LoadAndInitializeServer();
+        }
     }
 
     public override void OnStopClient()
@@ -990,6 +1080,14 @@ public class Monster : NetworkBehaviour
     [Server]
     public void UpdateAggro(uint attackerNetId, int damage)
     {
+        Debug.Log($"[Monster] UpdateAggro called: attacker={attackerNetId}, damage={damage}");
+        
+        // Отслеживаем последнего атакующего независимо от аггро системы
+        lastAttackerNetId = attackerNetId;
+        
+        // Отслеживаем урон для распределения опыта
+        RecordDamage(attackerNetId, damage);
+        
         // Находим игрока по netId
         if (NetworkServer.spawned.TryGetValue(attackerNetId, out NetworkIdentity attackerIdentity))
         {
@@ -1009,6 +1107,131 @@ public class Monster : NetworkBehaviour
                     aggroTargetNetId = attackerNetId;
                 }
             }
+        }
+    }
+    
+    [Server]
+    private void RecordDamage(uint attackerNetId, int damage)
+    {
+        // Получаем имя игрока для логирования
+        string playerName = "Unknown";
+        if (NetworkServer.spawned.TryGetValue(attackerNetId, out var identity))
+        {
+            PlayerCore player = identity.GetComponent<PlayerCore>();
+            if (player != null) playerName = player.name;
+        }
+        
+        // Записываем урон от игрока для распределения опыта
+        if (damageDealers.ContainsKey(attackerNetId))
+        {
+            damageDealers[attackerNetId] += damage;
+        }
+        else
+        {
+            damageDealers[attackerNetId] = damage;
+        }
+        
+        totalDamageDealt += damage;
+        
+        // Обновляем аггро список
+        UpdateAggroList(attackerNetId, playerName, damage);
+        
+        Debug.Log($"[Monster] Player {playerName} ({attackerNetId}) dealt {damage} damage. Total: {damageDealers[attackerNetId]}/{totalDamageDealt}");
+    }
+    
+    [Server]
+    private void UpdateAggroList(uint playerNetId, string playerName, int newDamage)
+    {
+        // Проверяем, есть ли уже игрок в аггро списке
+        var existingEntry = aggroList.FirstOrDefault(entry => entry.playerNetId == playerNetId);
+        
+        if (existingEntry.playerNetId != 0)
+        {
+            // Обновляем существующую запись
+            int index = aggroList.FindIndex(entry => entry.playerNetId == playerNetId);
+            int totalDamage = damageDealers[playerNetId];
+            float percentage = (float)totalDamage / totalDamageDealt;
+            
+            aggroList[index] = new AggroEntry(playerNetId, playerName, totalDamage, percentage, Time.time);
+        }
+        else
+        {
+            // Добавляем новую запись
+            int totalDamage = damageDealers[playerNetId];
+            float percentage = (float)totalDamage / totalDamageDealt;
+            var newEntry = new AggroEntry(playerNetId, playerName, totalDamage, percentage, Time.time);
+            aggroList.Add(newEntry);
+            
+            // Сортируем по урону (больший урон первым)
+            aggroList = aggroList.OrderByDescending(entry => entry.damageDealt).ToList();
+            
+            // Ограничиваем количество записей
+            if (aggroList.Count > MAX_AGGRO_ENTRIES)
+            {
+                aggroList.RemoveAt(aggroList.Count - 1);
+            }
+        }
+        
+        Debug.Log($"[Monster] Aggro list updated: {aggroList.Count} entries");
+    }
+    
+    [Server]
+    private void DistributeExperienceByDamage()
+    {
+        Debug.Log($"[Monster] Distributing experience to aggro list ({aggroList.Count} entries). Total damage: {totalDamageDealt}, Base XP: {experienceReward}");
+        
+        // Дополнительная диагностика
+        Debug.Log($"[Monster] Experience distribution check:");
+        Debug.Log($"[Monster] - aggroList.Count: {aggroList.Count}");
+        Debug.Log($"[Monster] - damageDealers.Count: {damageDealers.Count}");
+        Debug.Log($"[Monster] - totalDamageDealt: {totalDamageDealt}");
+        Debug.Log($"[Monster] - experienceReward: {experienceReward}");
+        Debug.Log($"[Monster] - lastAttackerNetId: {lastAttackerNetId}");
+        Debug.Log($"[Monster] - aggroTargetNetId: {aggroTargetNetId}");
+        
+        if (aggroList.Count == 0)
+        {
+            Debug.LogWarning($"[Monster] No aggro entries found - no XP distributed");
+            return;
+        }
+        
+        // Распределяем опыт между игроками в аггро списке
+        foreach (var aggroEntry in aggroList)
+        {
+            uint playerNetId = aggroEntry.playerNetId;
+            
+            // Вычисляем процент урона игрока
+            float damagePercentage = aggroEntry.damagePercentage;
+            int playerXP = Mathf.RoundToInt(experienceReward * damagePercentage);
+            
+            if (playerXP > 0)
+            {
+                PlayerCore player = null;
+                
+                // Пытаемся найти игрока
+                if (NetworkServer.spawned.TryGetValue(playerNetId, out var identity))
+                {
+                    player = identity.GetComponent<PlayerCore>();
+                }
+                
+                if (player != null && player.Stats != null)
+                {
+                    player.Stats.AddExperience(playerXP);
+                    Debug.Log($"[Monster] XP distributed: {player.name} gets {playerXP} XP ({damagePercentage:P1} of {experienceReward}) - {aggroEntry.damageDealt} damage");
+                }
+                else
+                {
+                    Debug.LogWarning($"[Monster] Player {aggroEntry.playerName} ({playerNetId}) disconnected but earned {playerXP} XP ({damagePercentage:P1})");
+                }
+            }
+        }
+        
+        // Выводим аггро список в консоль для отладки
+        Debug.Log($"[Monster] Final aggro list:");
+        for (int i = 0; i < aggroList.Count; i++)
+        {
+            var entry = aggroList[i];
+            Debug.Log($"[Monster] #{i + 1}: {entry.playerName} - {entry.damageDealt} damage ({entry.damagePercentage:P1})");
         }
     }
 
@@ -1148,24 +1371,10 @@ public class Monster : NetworkBehaviour
     {
         if (IsDead) return;
         IsDead = true;
-        // Monster died
-        if (aggroTargetNetId != 0 && NetworkServer.spawned.TryGetValue(aggroTargetNetId, out var identity))
-        {
-            PlayerCore killer = identity.GetComponent<PlayerCore>();
-            if (killer != null && killer.Stats != null)
-            {
-                killer.Stats.AddExperience(experienceReward);
-                // XP given to killer
-            }
-            else
-            {
-                Debug.LogWarning($"[Monster] Killer null: identity={identity?.gameObject?.name}");
-            }
-        }
-        else
-        {
-            Debug.LogWarning($"[Monster] No aggroTarget or not spawned: {aggroTargetNetId}");
-        }
+        Debug.Log($"[Monster] Monster DIES! Name: {monsterName}, AggroEntries: {aggroList.Count}, DamageDealers: {damageDealers.Count}");
+        
+        // Распределяем опыт по нанесенному урону
+        DistributeExperienceByDamage();
         // Уведомляем всех клиентов о смерти монстра
         RpcOnMonsterDeath();
         
@@ -1188,8 +1397,8 @@ public class Monster : NetworkBehaviour
             RpcOnLegsDeath(partnerMonster.netIdentity.netId);
         }
         
-        // Уничтожаем монстра сразу после смерти
-        StartCoroutine(DespawnAfterDelay(0.1f));
+        // Уничтожаем монстра через время (оставляем труп видимым)
+        StartCoroutine(DespawnAfterDelay(corpseVisibilityTime));
         
         // Обычные предметы из дроп-таблицы
         foreach (var entry in dropTable)
@@ -1298,17 +1507,21 @@ public class Monster : NetworkBehaviour
         {
             Debug.LogWarning($"[Monster] No Rigidbody found on {(physicsModel != null ? physicsModel.name : "default GameObject")} for {monsterName}");
         }
+        // Отключаем колайдер и перемещаем на слой игнорируемых лучей
         BoxCollider boxCollider = GetComponent<BoxCollider>();
         if (boxCollider != null)
         {
             boxCollider.enabled = false;
             gameObject.layer = LayerMask.NameToLayer("Ignore Raycast");
-            // Set to Ignore Raycast layer
         }
+        
         canMove = false;
         canAttack = false;
+        
+        // Визуальные эффекты смерти
         RpcDie();
         RpcHideMonsterUI();
+        RpcMakeCorpseVisually();
     }
 
     [Server]
@@ -1381,6 +1594,92 @@ public class Monster : NetworkBehaviour
         {
             _monsterUI.gameObject.SetActive(false);
             // Monster UI hidden
+        }
+    }
+    
+    [ClientRpc]
+    private void RpcMakeCorpseVisually()
+    {
+        // Делаем монстра визуально мертвым для всех клиентов
+        Debug.Log($"[Monster] Making corpse visually dead for {monsterName}");
+        
+        // Изменяем материал на более темный/мертвый вид
+        Renderer[] renderers = GetComponentsInChildren<Renderer>();
+        foreach (var renderer in renderers)
+        {
+            Material[] materials = renderer.materials;
+            foreach (Material mat in materials)
+            {
+                mat.color = new Color(mat.color.r * 0.5f, mat.color.g * 0.5f, mat.color.b * 0.5f, mat.color.a);
+            }
+            
+            // Отключаем тени чтобы труп не отбрасывал активные тени
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+        
+        // Отключаем физику Rigidbody если есть
+        Rigidbody rb = GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.isKinematic = true;
+        }
+        
+        // Запускаем DOTween анимацию смерти для не-гуманоидных монстров
+        PlayDeathAnimation();
+        
+        // Добавляем эффект постепенного исчезновения через несколько секунд
+        StartCoroutine(FadeOutCorpse());
+    }
+    
+    private System.Collections.IEnumerator FadeOutCorpse()
+    {
+        // Ждем указанное время перед началом исчезновения
+        yield return new WaitForSeconds(corpseFadeStartTime);
+        
+        // Проверяем, используется ли DOTween анимация смерти
+        bool usingDOTweenDeath = IsNonHumanoidMonster() && _hitEffects != null;
+        
+        if (usingDOTweenDeath)
+        {
+            // Если используется DOTween, он сам управляет исчезновением
+            Debug.Log($"[Monster] Using DOTween death animation fade-out for {monsterName}");
+            yield break;
+        }
+        
+        // Плавно исчезаем в течение указанного времени (для монстров без DOTween)
+        Renderer[] renderers = GetComponentsInChildren<Renderer>();
+        float fadeDuration = corpseFadeDuration;
+        float elapsed = 0f;
+        
+        while (elapsed < fadeDuration)
+        {
+            elapsed += Time.deltaTime;
+            float alpha = 1f - (elapsed / fadeDuration);
+            
+            foreach (var renderer in renderers)
+            {
+                Material[] materials = renderer.materials;
+                foreach (Material mat in materials)
+                {
+                    Color color = mat.color;
+                    color.a = alpha;
+                    mat.color = color;
+                }
+            }
+            
+            yield return null;
+        }
+        
+        // В конце делаем полностью прозрачным
+        foreach (var renderer in renderers)
+        {
+            Material[] materials = renderer.materials;
+            foreach (Material mat in materials)
+            {
+                Color color = mat.color;
+                color.a = 0f;
+                mat.color = color;
+            }
         }
     }
     

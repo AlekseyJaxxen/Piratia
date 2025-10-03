@@ -315,6 +315,7 @@ public class PlayerActionSystem : NetworkBehaviour
         
         bool isMovingToTarget = false;
         Vector3 actualDestination = Vector3.zero;
+        int frameCounter = 0; // Счетчик кадров для оптимизации обновления пути
         
         while (target != null && targetHealth.CurrentHealth > 0)
         {
@@ -337,16 +338,31 @@ public class PlayerActionSystem : NetworkBehaviour
             
             Debug.Log($"[PlayerActionSystem] Distance to target {target.name}: {distanceToActualTarget:F1}m, to closest point: {distanceToClosestPoint:F1}m, effective range: {effectiveAttackRange:F1}m");
             
-            // Используем расстояние до реальной цели для проверки атаки
-            if (distanceToActualTarget > effectiveAttackRange)
+            // Проверяем нужно ли начать/продолжить преследование
+            bool needsPursuit = distanceToActualTarget > effectiveAttackRange;
+            
+            // Дополнительная проверка: если цель убежала от нашей точки назначения, продолжаем преследование
+            float distanceToCurrentDestination = Vector3.Distance(actualDestination, target.transform.position);
+            if (distanceToCurrentDestination > 3.0f) // Если цель отклонилась больше чем на 3 метра от нашего пути
             {
-                // Начинаем движение к ближайшей доступной точке
+                needsPursuit = true;
+                Debug.Log($"[PlayerActionSystem] Target drifted from destination path by {distanceToCurrentDestination:F1}m, continuing pursuit");
+            }
+            
+            if (needsPursuit)
+            {
+                // ПОСТОЯННО ОБНОВЛЯЕМ ЦЕЛЬ ДВИЖЕНИЯ К АКТУАЛЬНОМУ ПОЛОЖЕНИЮ ЦЕЛИ
                 if (!isMovingToTarget)
                 {
+                    // ПОВОРАЧИВАЕМСЯ К ЦЕЛИ ПЕРЕД НАЧАЛОМ ДВИЖЕНИЯ
+                    Vector3 lookDirection = target.transform.position - transform.position;
+                    _core.Movement.RotateTo(lookDirection);
+                    
+                    // Немедленно начинаем движение к цели
                     if (_core.Movement.MoveToTarget(target.transform.position, out actualDestination))
                     {
                         isMovingToTarget = true;
-                        Debug.Log($"[PlayerActionSystem] Moving to closest reachable point: {actualDestination}");
+                        Debug.Log($"[PlayerActionSystem] Started movement to target: {actualDestination}");
                     }
                     else
                     {
@@ -356,15 +372,54 @@ public class PlayerActionSystem : NetworkBehaviour
                     }
                 }
                 
-                // Проверяем, достигли ли мы ближайшей точки
+                // Обновляем путь с более агрессивной проверкой
+                frameCounter++;
+                Vector3 currentTargetPosition = target.transform.position;
+                float distanceFromOldDestination = Vector3.Distance(currentTargetPosition, actualDestination);
+                
+                // СРОЧНОЕ обновление пути если цель активно убегает
+                if (distanceFromOldDestination > 5.0f) // Если цель убежала больше чем на 5 метров
+                {
+                    if (_core.Movement.MoveToTarget(currentTargetPosition, out actualDestination))
+                    {
+                        Debug.Log($"[PlayerActionSystem] URGENT path update! Target ran away {distanceFromOldDestination:F1}m!");
+                    }
+                }
+                else if (frameCounter % 2 == 0) // Обычная проверка каждые 2 каdra
+                {
+                    // Обновляем путь, если цель отклонилась больше чем на 1 метр от нашего текущего пути
+                    if (distanceFromOldDestination > 1.0f)
+                    {
+                        if (_core.Movement.MoveToTarget(currentTargetPosition, out actualDestination))
+                        {
+                            Debug.Log($"[PlayerActionSystem] Updated movement to current target position: {actualDestination} (target moved {distanceFromOldDestination:F1}m)");
+                        }
+                    }
+                }
+                
+                // ПОВОРАЧИВАЕМСЯ В СТОРОНУ ДВИЖЕНИЯ КАЖДЫЕ 3 КАДРОВ
+                if (frameCounter % 3 == 0 && _core.Movement.Agent.isStopped == false)
+                {
+                    _core.Movement.UpdateRotation(); // Используем правильный метод из PlayerMovement
+                }
+                
+                // Чекнеем, достигли ли мы ближайшей точки
                 if (Vector3.Distance(transform.position, actualDestination) <= _core.Movement.Agent.stoppingDistance + 0.5f)
                 {
                     // Мы дошли как можно ближе, но цель все еще далеко
                     if (distanceToActualTarget > effectiveAttackRange)
                     {
-                        Debug.Log($"[PlayerActionSystem] Reached closest point but target still out of attack range ({distanceToActualTarget:F1}m > {effectiveAttackRange:F1}m). Stopping attack.");
-                        CompleteAction();
-                        yield break;
+                        // Если цель слишком далеко (>150 метров), прекращаем преследование
+                        if (distanceToActualTarget > 150.0f)
+                        {
+                            Debug.Log($"[PlayerActionSystem] Target {target.name} too far ({distanceToActualTarget:F1}m > 150m), stopping pursuit");
+                            _core.Movement.StopMovement();
+                            isMovingToTarget = false;
+                            CompleteAction();
+                            yield break;
+                        }
+                        
+                        Debug.Log($"[PlayerActionSystem] Reached closest point but target still out of attack range ({distanceToActualTarget:F1}m > {effectiveAttackRange:F1}m). Continuing pursuit.");
                     }
                 }
             }
@@ -461,6 +516,7 @@ public class PlayerActionSystem : NetworkBehaviour
         
         bool isMovingToTarget = false;
         Vector3 actualDestination = Vector3.zero;
+        int frameCounter = 0; // Счетчик кадров для оптимизации обновления пути
         
         while (true)
         {
@@ -481,9 +537,19 @@ public class PlayerActionSystem : NetworkBehaviour
             }
             float distanceToActualTarget = Vector3.Distance(transform.position, targetObject.transform.position);
             
-            Debug.Log($"[PlayerActionSystem] Distance to cast target {targetObject.name}: {distanceToActualTarget:F1}m, effective range: {effectiveRange:F1}m");
             
-            if (distanceToActualTarget <= effectiveRange)
+            // Проверяем нужно ли начать/продолжить преследование для каста
+            bool needsPursuit = distanceToActualTarget > effectiveRange;
+            
+            // Дополнительная проверка: если цель убежала от нашей точки назначения, продолжаем преследование
+            float distanceToCurrentDestination = Vector3.Distance(actualDestination, targetObject.transform.position);
+            if (distanceToCurrentDestination > 3.0f) // Если цель отклонилась больше чем на 3 метра от нашего пути
+            {
+                needsPursuit = true;
+                Debug.Log($"[PlayerActionSystem] Cast target drifted from destination path by {distanceToCurrentDestination:F1}m, continuing pursuit");
+            }
+            
+            if (!needsPursuit)
             {
                 _core.Movement.StopMovement();
                 _core.Movement.RotateTo(targetObject.transform.position - transform.position);
@@ -513,13 +579,18 @@ public class PlayerActionSystem : NetworkBehaviour
             }
             else
             {
-                // Начинаем движение к ближайшей доступной точке для каста
+                // ПОСТОЯННО ОБНОВЛЯЕМ ЦЕЛЬ ДВИЖЕНИЯ К АКТУАЛЬНОМУ ПОЛОЖЕНИЮ ЦЕЛИ ДЛЯ КАСТА
                 if (!isMovingToTarget)
                 {
+                    // ПОВОРАЧИВАЕМСЯ К ЦЕЛИ ПЕРЕД НАЧАЛОМ ДВИЖЕНИЯ
+                    Vector3 lookDirection = targetObject.transform.position - transform.position;
+                    _core.Movement.RotateTo(lookDirection);
+                    
+                    // Немедленно начинаем движение к цели
                     if (_core.Movement.MoveToTarget(targetObject.transform.position, out actualDestination))
                     {
                         isMovingToTarget = true;
-                        Debug.Log($"[PlayerActionSystem] Moving to closest reachable point for cast: {actualDestination}");
+                        Debug.Log($"[PlayerActionSystem] Started movement to cast target: {actualDestination}");
                     }
                     else
                     {
@@ -530,16 +601,55 @@ public class PlayerActionSystem : NetworkBehaviour
                     }
                 }
                 
-                // Проверяем, достигли ли мы ближайшей точки
+                // Обновляем путь с более агрессивной проверкой
+                frameCounter++;
+                Vector3 currentTargetPosition = targetObject.transform.position;
+                float distanceFromOldDestination = Vector3.Distance(currentTargetPosition, actualDestination);
+                
+                // СРОЧНОЕ обновление пути если цель активно убегает
+                if (distanceFromOldDestination > 5.0f) // Если цель убежала больше чем на 5 метров
+                {
+                    if (_core.Movement.MoveToTarget(currentTargetPosition, out actualDestination))
+                    {
+                        Debug.Log($"[PlayerActionSystem] URGENT cast path update! Target ran away {distanceFromOldDestination:F1}m!");
+                    }
+                }
+                else if (frameCounter % 2 == 0) // Обычная проверка каждые 2 кадра
+                {
+                    // Обновляем путь, если цель отклонилась больше чем на 1 метр от нашего текущего пути
+                    if (distanceFromOldDestination > 1.0f)
+                    {
+                        if (_core.Movement.MoveToTarget(currentTargetPosition, out actualDestination))
+                        {
+                            Debug.Log($"[PlayerActionSystem] Updated cast movement to current target position: {actualDestination} (target moved {distanceFromOldDestination:F1}m)");
+                        }
+                    }
+                }
+                
+                // ПОВОРАЧИВАЕМСЯ В СТОРОНУ ДВИЖЕНИЯ КАЖДЫЕ 3 КАДРОВ
+                if (frameCounter % 3 == 0 && _core.Movement.Agent.isStopped == false)
+                {
+                    _core.Movement.UpdateRotation(); // Используем правильный метод из PlayerMovement
+                }
+                
+                // Чекнем, достигли ли мы ближайшей точки
                 if (Vector3.Distance(transform.position, actualDestination) <= _core.Movement.Agent.stoppingDistance + 0.5f)
                 {
                     // Мы дошли как можно ближе, но цель все еще далеко
                     if (distanceToActualTarget > effectiveRange)
                     {
-                        Debug.Log($"[PlayerActionSystem] Reached closest point but cast target still out of range ({distanceToActualTarget:F1}m > {effectiveRange:F1}m). Stopping cast.");
-                        _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
-                        CompleteAction();
-                        yield break;
+                        // Если цель слишком далеко (>150 метров), прекращаем преследование
+                        if (distanceToActualTarget > 150.0f)
+                        {
+                            Debug.Log($"[PlayerActionSystem] Cast target {targetObject.name} too far ({distanceToActualTarget:F1}m > 150m), stopping pursuit");
+                            _core.Movement.StopMovement();
+                            isMovingToTarget = false;
+                            _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
+                            CompleteAction();
+                            yield break;
+                        }
+                        
+                        Debug.Log($"[PlayerActionSystem] Reached closest point but cast target still out of range ({distanceToActualTarget:F1}m > {effectiveRange:F1}m). Continuing pursuit.");
                     }
                 }
             }

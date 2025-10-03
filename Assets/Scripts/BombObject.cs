@@ -170,7 +170,16 @@ public class BombObject : NetworkBehaviour
                 else if (targetMonster != null && casterTeam != (int)PlayerTeam.None)
                 {
                     NetworkIdentity safeCasterIdentity = (casterIdentity != null && casterIdentity.gameObject != null) ? casterIdentity : null;
+                    int actualDamage = Mathf.RoundToInt(baseDamage * damageMultiplier);
                     targetHealthMonster.TakeDamage(baseDamage, DamageType.Physical, false, safeCasterIdentity, damageMultiplier);
+                    
+                    // Устанавливаем аггро для монстра
+                    if (safeCasterIdentity != null)
+                    {
+                        targetMonster.UpdateAggro(safeCasterIdentity.netId, actualDamage);
+                        Debug.Log($"[BombObject] Set aggro for monster {targetMonster.name}: attacker={safeCasterIdentity.name}, damage={actualDamage}");
+                    }
+                    
                     // Monster damaged
                 }
             }
@@ -190,7 +199,16 @@ public class BombObject : NetworkBehaviour
                 else if (targetMonster != null && casterTeam != (int)PlayerTeam.None)
                 {
                     NetworkIdentity safeCasterIdentity = (casterIdentity != null && casterIdentity.gameObject != null) ? casterIdentity : null;
+                    int actualDamage = Mathf.RoundToInt(baseDamage * damageMultiplier);
                     targetHealth.TakeDamage(baseDamage, DamageType.Physical, false, safeCasterIdentity, damageMultiplier);
+                    
+                    // Устанавливаем аггро для монстра (для ветки Health компонента)
+                    if (safeCasterIdentity != null)
+                    {
+                        targetMonster.UpdateAggro(safeCasterIdentity.netId, actualDamage);
+                        Debug.Log($"[BombObject] Set aggro for monster {targetMonster.name} via Health: attacker={safeCasterIdentity.name}, damage={actualDamage}");
+                    }
+                    
                     // Monster damaged
                 }
             }

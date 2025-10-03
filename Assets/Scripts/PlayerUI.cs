@@ -72,7 +72,7 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         core = GetComponentInParent<PlayerCore>();
         if (core == null)
         {
-            Debug.LogError("[PlayerUI] PlayerCore not found!");
+            // Debug.LogError("[PlayerUI] PlayerCore not found!");
             gameObject.SetActive(false);
             return;
         }
@@ -88,7 +88,7 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         stats = core.GetComponent<CharacterStats>();
         if (stats == null)
         {
-            Debug.LogError("[PlayerUI] CharacterStats not found!");
+            // Debug.LogError("[PlayerUI] CharacterStats not found!");
             gameObject.SetActive(false);
             return;
         }
@@ -113,7 +113,7 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         }
         else
         {
-            Debug.LogError("[PlayerUI] Health component not found!");
+            // Debug.LogError("[PlayerUI] Health component not found!");
         }
         UpdateLevel(stats.level);
         UpdateExperience(stats.currentExperience, stats.level);

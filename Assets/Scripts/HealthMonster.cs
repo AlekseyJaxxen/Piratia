@@ -34,6 +34,12 @@ public class HealthMonster : Health
     [Server]
     public new void TakeDamage(int damage, DamageType damageType, bool isCritical, NetworkIdentity attacker, bool isBasicAttack = false)
     {
+        TakeDamage(damage, damageType, isCritical, attacker, 1f, isBasicAttack);
+    }
+    
+    [Server]
+    public new void TakeDamage(int damage, DamageType damageType, bool isCritical, NetworkIdentity attacker, float damageMultiplier, bool isBasicAttack = false)
+    {
         Debug.Log($"[HealthMonster] TakeDamage called on {gameObject.name}, currentHealth: {CurrentHealth}, damage: {damage}, attacker: {attacker?.name}");
         if (CurrentHealth <= 0) return;
         if (_monster == null)
@@ -45,9 +51,11 @@ public class HealthMonster : Health
                 return;
             }
         }
-        // Aggro ����� ������
-        _monster.UpdateAggro(attacker.netId, damage);
-        base.TakeDamage(damage, damageType, isCritical, attacker, 1f, isBasicAttack);
+        // Рассчитываем реальный урон для аггро
+        int actualDamage = Mathf.RoundToInt(damage * damageMultiplier);
+        Debug.Log($"[HealthMonster] Damage: {damage} * {damageMultiplier} = {actualDamage}, Attacker: {attacker?.name} (netId: {attacker.netId})");
+        _monster.UpdateAggro(attacker.netId, actualDamage);
+        base.TakeDamage(damage, damageType, isCritical, attacker, damageMultiplier, isBasicAttack);
         // Damage taken
         _monster.RpcUpdateMonsterUI(CurrentHealth, MaxHealth);
         RpcPlayDamageFlash();
@@ -55,7 +63,7 @@ public class HealthMonster : Health
         // Проверяем, умрет ли монстр после этого урона
         if (CurrentHealth <= 0)
         {
-            Debug.Log($"[HealthMonster] Monster {gameObject.name} will die, isCombinedHead: {_monster.isCombinedHead}, isCombinedLegs: {_monster.isCombinedLegs}");
+            // Monster will die
         }
         // Death is handled by base.TakeDamage() in Health.cs
         // Damage text is also handled by base.TakeDamage() in Health.cs

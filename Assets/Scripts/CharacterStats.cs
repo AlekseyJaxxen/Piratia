@@ -375,11 +375,11 @@ public class CharacterStats : NetworkBehaviour
         if (inventory != null)
         {
             var equippedItemInfos = inventory.GetEquippedItemInfos();
-            equipmentStrengthBonus = equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.Strength));
-            equipmentAgilityBonus = equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.Agility));
-            equipmentSpiritBonus = equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.Spirit));
-            equipmentConstitutionBonus = equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.Constitution));
-            equipmentAccuracyBonus = equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.Accuracy));
+            equipmentStrengthBonus = Mathf.RoundToInt(equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.Strength)));
+            equipmentAgilityBonus = Mathf.RoundToInt(equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.Agility)));
+            equipmentSpiritBonus = Mathf.RoundToInt(equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.Spirit)));
+            equipmentConstitutionBonus = Mathf.RoundToInt(equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.Constitution)));
+            equipmentAccuracyBonus = Mathf.RoundToInt(equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.Accuracy)));
         }
         
         // Вычисляем итоговые характеристики (базовые + бонусы экипировки)
@@ -407,10 +407,10 @@ public class CharacterStats : NetworkBehaviour
         float baseMovementSpeed = classData.baseMovementSpeed * classData.agilityMultiplier;
         float slowMultiplier = CalculateSlowMultiplier();
         movementSpeed = baseMovementSpeed * slowMultiplier;
-        attackSpeed = 1.0f + (calculatedTotalAgility * 0.05f * classData.agilityMultiplier);
+        attackSpeed = classData.baseAttackSpeed + (calculatedTotalAgility * 0.01f * classData.agilityMultiplier);
         dodgeChance = 10 + level * 2 + calculatedTotalAgility * 0.6f;
         hitChance = 10 + level * 2 + calculatedTotalAccuracy * 0.6f;
-        criticalHitChance = 15.0f + (calculatedTotalAgility * 0.2f * classData.agilityMultiplier) + (luck * 0.1f);
+        criticalHitChance = 15.0f + (luck * 0.1f);
         physicalResistance = classData.basePhysicalResistance;
         magicDamageMultiplier = 1.0f + (calculatedTotalSpirit * 0.05f * classData.spiritMultiplier);
         
@@ -418,23 +418,25 @@ public class CharacterStats : NetworkBehaviour
         if (inventory != null)
         {
             var equippedItemInfos = inventory.GetEquippedItemInfos();
-            maxHealth += equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.MaxHP));
-            maxMana += equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.MaxMP));
-            minAttack += equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.MinAttack));
-            maxAttack += equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.MaxAttack));
+        maxHealth += Mathf.RoundToInt(equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.MaxHP)));
+        maxMana += Mathf.RoundToInt(equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.MaxMP)));
+        minAttack += Mathf.RoundToInt(equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.MinAttack)));
+        maxAttack += Mathf.RoundToInt(equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.MaxAttack)));
             // Обратная совместимость: старый PhysicalResist влияет на оба стата
-            armor += equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.PhysicalResist));
-            physicalResistance += equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.PhysicalResist));
+            armor += Mathf.RoundToInt(equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.PhysicalResist)));
+            physicalResistance += Mathf.RoundToInt(equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.PhysicalResist)));
             
             // Новые отдельные статы
-            armor += equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.Armor));
-            physicalResistance += equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.PhysicalResistance));
+            armor += Mathf.RoundToInt(equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.Armor)));
+            physicalResistance += Mathf.RoundToInt(equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.PhysicalResistance)));
             
             criticalHitChance += equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.Critical));
             movementSpeed += equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.MovementSpeed));
             
-            Debug.Log($"[CharacterStats] Equipment stats calculated: {equippedItemInfos.Length} items, Str+{equipmentStrengthBonus}, Agi+{equipmentAgilityBonus}, maxHealth bonus: {equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.MaxHP))}");
+            Debug.Log($"[CharacterStats] Equipment stats calculated: {equippedItemInfos.Length} items, Str+{equipmentStrengthBonus}, Agi+{equipmentAgilityBonus}, maxHealth bonus: {Mathf.RoundToInt(equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.MaxHP)))}");
         }
+        
+        
         maxHealth = Mathf.Max(1, maxHealth);
         maxMana = Mathf.Max(0, maxMana);
         minAttack = Mathf.Max(0, minAttack);
@@ -602,7 +604,7 @@ public class CharacterStats : NetworkBehaviour
     {
         if (isLocalPlayer)
         {
-            Debug.Log($"Mana changed: {oldMana} -> {newMana}");
+            // Debug.Log($"Mana changed: {oldMana} -> {newMana}");
         }
         OnManaChangedEvent?.Invoke(oldMana, newMana);
     }
@@ -612,7 +614,7 @@ public class CharacterStats : NetworkBehaviour
     {
         if (isLocalPlayer)
         {
-            Debug.Log($"Level changed: {oldLevel} -> {newLevel}");
+            // Debug.Log($"Level changed: {oldLevel} -> {newLevel}");
         }
         OnLevelChangedEvent?.Invoke(oldLevel, newLevel);
         if (newLevel > oldLevel && levelUpVFXPrefab != null)
@@ -631,7 +633,7 @@ public class CharacterStats : NetworkBehaviour
         {
             GameObject vfx = Instantiate(levelUpVFXPrefab, transform.position + Vector3.up * 2f, Quaternion.identity);
             Destroy(vfx, 2f);
-            Debug.Log($"[CharacterStats] Spawned level up VFX for {gameObject.name}");
+            // Debug.Log($"[CharacterStats] Spawned level up VFX for {gameObject.name}");
         }
     }
 
@@ -640,7 +642,7 @@ public class CharacterStats : NetworkBehaviour
     {
         if (isLocalPlayer)
         {
-            Debug.Log($"Characteristic Points changed: {oldPoints} -> {newPoints}");
+            // Debug.Log($"Characteristic Points changed: {oldPoints} -> {newPoints}");
         }
         OnCharacteristicPointsChangedEvent?.Invoke(oldPoints, newPoints);
     }
@@ -650,7 +652,7 @@ public class CharacterStats : NetworkBehaviour
     {
         if (isLocalPlayer)
         {
-            Debug.Log($"Strength changed: {oldValue} -> {newValue}");
+            // Debug.Log($"Strength changed: {oldValue} -> {newValue}");
         }
         OnStrengthChangedEvent?.Invoke(oldValue, newValue);
     }
@@ -660,7 +662,7 @@ public class CharacterStats : NetworkBehaviour
     {
         if (isLocalPlayer)
         {
-            Debug.Log($"Agility changed: {oldValue} -> {newValue}");
+            // Debug.Log($"Agility changed: {oldValue} -> {newValue}");
         }
         OnAgilityChangedEvent?.Invoke(oldValue, newValue);
     }
@@ -670,7 +672,7 @@ public class CharacterStats : NetworkBehaviour
     {
         if (isLocalPlayer)
         {
-            Debug.Log($"Spirit changed: {oldValue} -> {newValue}");
+            // Debug.Log($"Spirit changed: {oldValue} -> {newValue}");
         }
         OnSpiritChangedEvent?.Invoke(oldValue, newValue);
     }
@@ -680,7 +682,7 @@ public class CharacterStats : NetworkBehaviour
     {
         if (isLocalPlayer)
         {
-            Debug.Log($"Constitution changed: {oldValue} -> {newValue}");
+            // Debug.Log($"Constitution changed: {oldValue} -> {newValue}");
         }
         OnConstitutionChangedEvent?.Invoke(oldValue, newValue);
     }
@@ -690,7 +692,7 @@ public class CharacterStats : NetworkBehaviour
     {
         if (isLocalPlayer)
         {
-            Debug.Log($"Accuracy changed: {oldValue} -> {newValue}");
+            // Debug.Log($"Accuracy changed: {oldValue} -> {newValue}");
         }
         OnAccuracyChangedEvent?.Invoke(oldValue, newValue);
     }
@@ -700,7 +702,7 @@ public class CharacterStats : NetworkBehaviour
     {
         if (isLocalPlayer)
         {
-            Debug.Log($"Intelligence changed: {oldValue} -> {newValue}");
+            // Debug.Log($"Intelligence changed: {oldValue} -> {newValue}");
         }
         OnIntelligenceChangedEvent?.Invoke(oldValue, newValue);
     }
@@ -710,7 +712,7 @@ public class CharacterStats : NetworkBehaviour
     {
         if (isLocalPlayer)
         {
-            Debug.Log($"Luck changed: {oldValue} -> {newValue}");
+            // Debug.Log($"Luck changed: {oldValue} -> {newValue}");
         }
         OnLuckChangedEvent?.Invoke(oldValue, newValue);
     }
@@ -720,7 +722,7 @@ public class CharacterStats : NetworkBehaviour
     {
         if (isLocalPlayer)
         {
-            Debug.Log($"MovementSpeed changed: {oldValue} -> {newValue}");
+            // Debug.Log($"MovementSpeed changed: {oldValue} -> {newValue}");
         }
         OnMovementSpeedChangedEvent?.Invoke(oldValue, newValue);
     }
@@ -730,7 +732,7 @@ public class CharacterStats : NetworkBehaviour
     {
         if (isLocalPlayer)
         {
-            Debug.Log($"MaxHealth changed: {oldValue} -> {newValue}");
+            // Debug.Log($"MaxHealth changed: {oldValue} -> {newValue}");
         }
         OnMaxHealthChangedEvent?.Invoke(oldValue, newValue);
     }
@@ -740,7 +742,7 @@ public class CharacterStats : NetworkBehaviour
     {
         if (isLocalPlayer)
         {
-            Debug.Log($"MaxMana changed: {oldValue} -> {newValue}");
+            // Debug.Log($"MaxMANA changed: {oldValue} -> {newValue}");
         }
         OnMaxManaChangedEvent?.Invoke(oldValue, newValue);
     }
@@ -750,7 +752,7 @@ public class CharacterStats : NetworkBehaviour
     {
         if (isLocalPlayer)
         {
-            Debug.Log($"Armor changed: {oldValue} -> {newValue}");
+            // Debug.Log($"Armor changed: {oldValue} -> {newValue}");
         }
         OnArmorChangedEvent?.Invoke(oldValue, newValue);
     }
@@ -760,7 +762,7 @@ public class CharacterStats : NetworkBehaviour
     {
         if (isLocalPlayer)
         {
-            Debug.Log($"PhysicalResistance changed: {oldValue} -> {newValue}");
+            // Debug.Log($"PhysicalResistance changed: {oldValue} -> {newValue}");
         }
         OnPhysicalResistanceChangedEvent?.Invoke(oldValue, newValue);
     }
@@ -770,7 +772,7 @@ public class CharacterStats : NetworkBehaviour
     {
         if (isLocalPlayer)
         {
-            Debug.Log($"CriticalHitChance changed: {oldValue} -> {newValue}");
+            // Debug.Log($"CriticalHitChance changed: {oldValue} -> {newValue}");
         }
         OnCriticalHitChanceChangedEvent?.Invoke(oldValue, newValue);
     }
@@ -780,7 +782,7 @@ public class CharacterStats : NetworkBehaviour
     {
         if (isLocalPlayer)
         {
-            Debug.Log($"[Client] minAttack changed: {oldValue} -> {newValue}");
+            // Debug.Log($"[Client] minAttack changed: {oldValue} -> {newValue}");
         }
         OnMinAttackChangedEvent?.Invoke(oldValue, newValue);
     }
@@ -790,7 +792,7 @@ public class CharacterStats : NetworkBehaviour
     {
         if (isLocalPlayer)
         {
-            Debug.Log($"[Client] maxAttack changed: {oldValue} -> {newValue}");
+            // Debug.Log($"[Client] maxAttack changed: {oldValue} -> {newValue}");
         }
         OnMaxAttackChangedEvent?.Invoke(oldValue, newValue);
     }
@@ -907,10 +909,10 @@ public class CharacterStats : NetworkBehaviour
             case "armor": baseValue = classData.baseDef; break;
             case "minattack": baseValue = classData.baseMinAttack; break;
             case "maxattack": baseValue = classData.baseMaxAttack; break;
-            case "attackspeed": baseValue = 1.0f + (classData.agility * 0.05f * classData.agilityMultiplier); break;
+            case "attackspeed": baseValue = classData.baseAttackSpeed + (classData.agility * 0.01f * classData.agilityMultiplier); break;
             case "dodgechance": baseValue = 10 + level * 2 + classData.agility * 0.6f; break;
             case "hitchance": baseValue = 10 + level * 2 + classData.accuracy * 0.6f; break;
-            case "criticalhitchance": baseValue = 15.0f + (classData.agility * 0.2f * classData.agilityMultiplier); break;
+            case "criticalhitchance": baseValue = 15.0f + (classData.luck * 0.1f); break;
             case "criticalhitmultiplier": baseValue = criticalHitMultiplier; break;
             case "physicalresistance": baseValue = classData.basePhysicalResistance; break;
             case "magicdamagemultiplier": baseValue = 1.0f + (classData.spirit * 0.05f * classData.spiritMultiplier); break;

@@ -186,7 +186,7 @@ public class ItemGeneratorWindow : EditorWindow
             DrawStatRange("Mana", ref config.manaRange);
             DrawStatRange("Defense", ref config.defenseRange);
             DrawStatRange("Critical", ref config.criticalRange);
-            DrawStatRange("Movement Speed", ref config.movementSpeedRange);
+            DrawFloatStatRange("Movement Speed", ref config.movementSpeedRange);
             
             EditorGUI.indentLevel--;
         }
@@ -201,6 +201,16 @@ public class ItemGeneratorWindow : EditorWindow
         range.x = EditorGUILayout.IntField(range.x, GUILayout.Width(50));
         EditorGUILayout.LabelField("-", GUILayout.Width(10));
         range.y = EditorGUILayout.IntField(range.y, GUILayout.Width(50));
+        EditorGUILayout.EndHorizontal();
+    }
+    
+    private void DrawFloatStatRange(string label, ref Vector2 range)
+    {
+        EditorGUILayout.BeginHorizontal();
+        EditorGUILayout.LabelField(label + ":", GUILayout.Width(100));
+        range.x = EditorGUILayout.FloatField(range.x, GUILayout.Width(50));
+        EditorGUILayout.LabelField("-", GUILayout.Width(10));
+        range.y = EditorGUILayout.FloatField(range.y, GUILayout.Width(50));
         EditorGUILayout.EndHorizontal();
     }
 }
