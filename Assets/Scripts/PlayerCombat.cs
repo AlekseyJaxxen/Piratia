@@ -6,6 +6,8 @@ public class PlayerCombat : NetworkBehaviour
     [SyncVar] private uint _targetNetId;
     [HideInInspector]
     public float _lastAttackTime = -Mathf.Infinity;
+    [HideInInspector] 
+    public float _lastAttackAttemptTime = -Mathf.Infinity; // Время последней попытки атаки (включая отмененные)
     private GameObject _targetCache; // Кэш для локального доступа
     public GameObject Target
     {

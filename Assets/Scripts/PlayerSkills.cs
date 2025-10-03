@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Collections;
 using UnityEngine.Events;
-public class PlayerSkills : NetworkBehaviour
+public partial class PlayerSkills : NetworkBehaviour
 {
     [Header("Skills")]
     public List<SkillBase> skills = new List<SkillBase>();
@@ -42,6 +42,7 @@ public class PlayerSkills : NetworkBehaviour
     {
         _skillLastUseTimes.OnChange += OnCooldownChanged;
         toggleBuffStates.OnChange += OnToggleBuffStateChanged;
+        InitPredictionSystem(); // Инициализируем систему предсказания
     }
     private void Start()
     {
@@ -384,6 +385,12 @@ public class PlayerSkills : NetworkBehaviour
     public void StartGlobalCooldown()
     {
         _lastGlobalUseTime = (float)NetworkTime.time;
+    }
+    
+    [Server]
+    public void ClearSkillCooldown(string skillName)
+    {
+        _skillLastUseTimes.Remove(skillName);
     }
     private void HandleSkills()
     {

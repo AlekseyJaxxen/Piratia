@@ -295,8 +295,11 @@ public class PlayerActionSystem : NetworkBehaviour
         }
         _currentSkill = skill;
         float attackRange = skill.Range;
-        float attackCooldown = skill is BasicAttackSkill ? 1f / _core.Stats.attackSpeed : 0f;
+        float attackCooldown = skill is BasicAttackSkill ? CalculateBasicAttackCooldown() : 0f;
         bool isLooping = skill is BasicAttackSkill;
+        
+        // Записываем время начала попытки атаки (для предотвращения эксплойтов с отменой)
+        _core.Combat._lastAttackAttemptTime = Time.time;
         PlayerAnimationSystem animationSystem = GetComponent<PlayerAnimationSystem>();
         // Проверяем, можем ли мы достичь цель
         Vector3 closestPoint;
@@ -429,8 +432,14 @@ public class PlayerActionSystem : NetworkBehaviour
                 _core.Movement.StopMovement();
                 _core.Movement.RotateTo(target.transform.position - transform.position);
                 Debug.Log($"[PlayerActionSystem] Target in range. Stopping to attack. Distance: {distanceToActualTarget:F1}m");
-                if (Time.time < _core.Combat._lastAttackTime + attackCooldown)
+                Debug.Log($"[PlayerActionSystem] Attack cooldown check: Time.time={Time.time:F3}, _lastAttackTime={_core.Combat._lastAttackTime:F3}, attackCooldown={attackCooldown:F3}");
+                
+                // Проверяем кулдаун с учетом времени последней попытки атаки
+                bool isOnCooldown = (_core.Combat._lastAttackTime > -Mathf.Infinity && Time.time < _core.Combat._lastAttackTime + attackCooldown) ||
+                                   (_core.Combat._lastAttackAttemptTime > -Mathf.Infinity && Time.time < _core.Combat._lastAttackAttemptTime + attackCooldown);
+                if (isOnCooldown)
                 {
+                    Debug.Log($"[PlayerActionSystem] Attack on cooldown, waiting... Time remaining: {(_core.Combat._lastAttackTime + attackCooldown - Time.time):F3}s");
                     yield return null;
                     continue;
                 }
@@ -441,8 +450,27 @@ public class PlayerActionSystem : NetworkBehaviour
                     yield break;
                 }
                 Debug.Log($"[PlayerActionSystem] Executing attack with skill: {((SkillBase)skill).SkillName}");
+                
+                // Проверяем кулдаун для первого удара или если прошло недостаточно времени с попытки
+                float timeSinceLastAttempt = Time.time - _core.Combat._lastAttackAttemptTime;
+                
+                // Простой случай: Если это первая атака в принципе
+                if (_core.Combat._lastAttackTime <= -Mathf.Infinity)
+                {
+                    Debug.Log($"[PlayerActionSystem] First attack ever - applying full cooldown: {attackCooldown:F3}s");
+                    yield return new WaitForSeconds(attackCooldown);
+                }
+                // Проверяем кулдаун между попытками атаки
+                else if (timeSinceLastAttempt < attackCooldown)
+                {
+                    float remainingCooldown = attackCooldown - timeSinceLastAttempt;
+                    Debug.Log($"[PlayerActionSystem] Attack cooldown from previous attempt: {remainingCooldown:F3}s remaining");
+                    yield return new WaitForSeconds(remainingCooldown);
+                }
+                
                 _core.Skills.CmdExecuteSkill(_core, null, target.GetComponent<NetworkIdentity>().netId, skill.SkillName, ((SkillBase)skill).Weight);
                 _core.Combat._lastAttackTime = Time.time;
+                _core.Combat._lastAttackAttemptTime = Time.time; // Обновляем время попытки на момент успешного удара
                 if (!isLooping)
                 {
                     if (((SkillBase)skill).CastTime > 0)
@@ -464,7 +492,8 @@ public class PlayerActionSystem : NetworkBehaviour
                     {
                         animationSystem.TriggerAttackAnimation();
                     }
-                    yield return new WaitForSeconds(attackCooldown);
+                    // Для более агрессивного преследования - не ждем полный кулдаун
+                    yield return new WaitForSeconds(attackCooldown * 0.3f); // Ждем только 30% кулдауна
                 }
             }
             if (_core.Movement.Agent.hasPath && _core.Movement.Agent.remainingDistance <= _core.Movement.Agent.stoppingDistance && distanceToActualTarget > effectiveAttackRange)
@@ -754,6 +783,19 @@ public class PlayerActionSystem : NetworkBehaviour
         }
         GetComponent<PlayerAnimationSystem>()?.ResetAnimations();
         ClearTargetIndicator();
+    }
+    
+    /// <summary>
+    /// Рассчитать кулдаун для базовой атаки с учетом баланса
+    /// </summary>
+    private float CalculateBasicAttackCooldown()
+    {
+        if (_core?.Stats == null) return 1.0f;
+        
+        float baseCooldown = 1f / _core.Stats.attackSpeed;
+        
+        // Ограничиваем кулдаун разумными пределами для непрерывного преследования
+        return Mathf.Clamp(baseCooldown, 0.3f, 2.0f);
     }
     [Client]
     private void UpdateTargetIndicator()

@@ -10,6 +10,12 @@ public class TargetedStunSkill : SkillBase
     public float damageMultiplier = 1f;
     public float stunDuration = 2f;
     public GameObject effectPrefab;
+    
+    // Для lag compensation
+    public float GetSkillRangeOrDefault()
+    {
+        return 20f; // Дефолтный радиус
+    }
 
     protected override void ExecuteSkillImplementation(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
     {
@@ -39,8 +45,18 @@ public class TargetedStunSkill : SkillBase
         }
         PlayerSkills skills = caster.GetComponent<PlayerSkills>();
         
-        // Attempting to stun target
-        skills.CmdExecuteSkill(caster, null, targetIdentity.netId, _skillName, Weight);
+        // CLIENT-SIDE PREDICTION: Показываем мгновенный эффект
+        if (caster.isLocalPlayer)
+        {
+            var predictionManager = caster.GetComponent<SkillPredictionManager>();
+            if (predictionManager != null)
+            {
+                predictionManager.PredictSkillExecution(_skillName, targetIdentity.netId, Weight);
+            }
+        }
+        
+        // LAG-COMPENSATED SKILL EXECUTION: Отправляем с временной меткой
+        skills.CmdExecuteSkillWithCompensation(caster, null, targetIdentity.netId, _skillName, Weight, NetworkTime.time);
         caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
     }
 
