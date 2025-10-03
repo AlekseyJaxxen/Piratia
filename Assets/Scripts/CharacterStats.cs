@@ -184,12 +184,18 @@ public class CharacterStats : NetworkBehaviour
             // Очищаем истекшие эффекты на клиенте
             CleanupExpiredEffects();
             
-            // Принудительно обновляем VFX при изменении эффектов
-            BuffVFXController vfxController = GetComponent<BuffVFXController>();
-            if (vfxController != null)
-            {
-                vfxController.ForceUpdateVFX();
-            }
+        // Принудительно обновляем VFX при изменении эффектов
+        BuffVFXController vfxController = GetComponent<BuffVFXController>();
+        if (vfxController != null)
+        {
+            vfxController.ForceUpdateVFX();
+        }
+        
+        // Пересчитываем статы на клиенте при изменении эффектов
+        if (isClient)
+        {
+            CalculateDerivedStats();
+        }
             
             Debug.Log($"[CharacterStats] Synced {effects.effects.Length} stat effects to client on {gameObject.name}");
         }

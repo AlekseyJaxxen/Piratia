@@ -124,13 +124,22 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         stats.OnManaChangedEvent += UpdateManaBar;
         stats.OnLevelChangedEvent += UpdateLevelAndExperience;
         stats.OnCharacteristicPointsChangedEvent += UpdateCharacteristicPoints;
-        stats.OnStrengthChangedEvent += (oldValue, newValue) => UpdateAttribute("strength", newValue);
-        stats.OnAgilityChangedEvent += (oldValue, newValue) => UpdateAttribute("agility", newValue);
-        stats.OnSpiritChangedEvent += (oldValue, newValue) => UpdateAttribute("spirit", newValue);
-        stats.OnConstitutionChangedEvent += (oldValue, newValue) => UpdateAttribute("constitution", newValue);
-        stats.OnAccuracyChangedEvent += (oldValue, newValue) => UpdateAttribute("accuracy", newValue);
-        stats.OnMinAttackChangedEvent += (oldValue, newValue) => UpdateAttribute("minAttack", newValue);
-        stats.OnMaxAttackChangedEvent += (oldValue, newValue) => UpdateAttribute("maxAttack", newValue);
+        // ИСПРАВЛЕНО: События изменения характеристик теперь вызывают UpdateAttributesPanel() 
+        // чтобы показывать итоговые значения (базовые + бонусы экипировки)
+        stats.OnStrengthChangedEvent += (oldValue, newValue) => UpdateAttributesPanel();
+        stats.OnAgilityChangedEvent += (oldValue, newValue) => UpdateAttributesPanel();
+        stats.OnSpiritChangedEvent += (oldValue, newValue) => UpdateAttributesPanel();
+        stats.OnConstitutionChangedEvent += (oldValue, newValue) => UpdateAttributesPanel();
+        stats.OnAccuracyChangedEvent += (oldValue, newValue) => UpdateAttributesPanel();
+        stats.OnMinAttackChangedEvent += (oldValue, newValue) => UpdateAttributesPanel();
+        stats.OnMaxAttackChangedEvent += (oldValue, newValue) => UpdateAttributesPanel();
+        // Дополнительные события для обновления UI при изменении статов
+        stats.OnMovementSpeedChangedEvent += (oldValue, newValue) => UpdateAttributesPanel();
+        stats.OnCriticalHitChanceChangedEvent += (oldValue, newValue) => UpdateAttributesPanel();
+        stats.OnPhysicalResistanceChangedEvent += (oldValue, newValue) => UpdateAttributesPanel();
+        stats.OnArmorChangedEvent += (oldValue, newValue) => UpdateAttributesPanel();
+        stats.OnMaxHealthChangedEvent += (oldValue, newValue) => UpdateAttributesPanel();
+        stats.OnMaxManaChangedEvent += (oldValue, newValue) => UpdateAttributesPanel();
         if (strengthButton != null)
         {
             strengthButton.onClick.AddListener(() => { core.CmdIncreaseStat("strength"); });
@@ -393,13 +402,20 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             stats.OnManaChangedEvent -= UpdateManaBar;
             stats.OnLevelChangedEvent -= UpdateLevelAndExperience;
             stats.OnCharacteristicPointsChangedEvent -= UpdateCharacteristicPoints;
-            stats.OnStrengthChangedEvent -= (oldValue, newValue) => UpdateAttribute("strength", newValue);
-            stats.OnAgilityChangedEvent -= (oldValue, newValue) => UpdateAttribute("agility", newValue);
-            stats.OnSpiritChangedEvent -= (oldValue, newValue) => UpdateAttribute("spirit", newValue);
-            stats.OnConstitutionChangedEvent -= (oldValue, newValue) => UpdateAttribute("constitution", newValue);
-            stats.OnAccuracyChangedEvent -= (oldValue, newValue) => UpdateAttribute("accuracy", newValue);
-            stats.OnMinAttackChangedEvent -= (oldValue, newValue) => UpdateAttribute("minAttack", newValue);
-            stats.OnMaxAttackChangedEvent -= (oldValue, newValue) => UpdateAttribute("maxAttack", newValue);
+            // Обновленные события для правильного unsubscribe
+            stats.OnStrengthChangedEvent -= (oldValue, newValue) => UpdateAttributesPanel();
+            stats.OnAgilityChangedEvent -= (oldValue, newValue) => UpdateAttributesPanel();
+            stats.OnSpiritChangedEvent -= (oldValue, newValue) => UpdateAttributesPanel();
+            stats.OnConstitutionChangedEvent -= (oldValue, newValue) => UpdateAttributesPanel();
+            stats.OnAccuracyChangedEvent -= (oldValue, newValue) => UpdateAttributesPanel();
+            stats.OnMinAttackChangedEvent -= (oldValue, newValue) => UpdateAttributesPanel();
+            stats.OnMaxAttackChangedEvent -= (oldValue, newValue) => UpdateAttributesPanel();
+            stats.OnMovementSpeedChangedEvent -= (oldValue, newValue) => UpdateAttributesPanel();
+            stats.OnCriticalHitChanceChangedEvent -= (oldValue, newValue) => UpdateAttributesPanel();
+            stats.OnPhysicalResistanceChangedEvent -= (oldValue, newValue) => UpdateAttributesPanel();
+            stats.OnArmorChangedEvent -= (oldValue, newValue) => UpdateAttributesPanel();
+            stats.OnMaxHealthChangedEvent -= (oldValue, newValue) => UpdateAttributesPanel();
+            stats.OnMaxManaChangedEvent -= (oldValue, newValue) => UpdateAttributesPanel();
         }
         // PlayerUI больше не слушает события инвентаря - это делает InventoryUI
     }

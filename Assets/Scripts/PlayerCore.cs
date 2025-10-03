@@ -821,6 +821,9 @@ public class PlayerCore : NetworkBehaviour
         }
         Debug.Log($"[PlayerCore] Equipping item: {item.itemName} (ID: {itemInfo.id}) to {slot} from slot {slotIndex}");
         Inventory.EquipItem(itemInfo, slot, slotIndex);
+        
+        // Принудительно обновляем визуалы экипировки на всех клиентах
+        Inventory.RpcForceUpdateAllEquipmentVisuals();
     }
 
     [Command]
@@ -834,6 +837,9 @@ public class PlayerCore : NetworkBehaviour
         this.Inventory.UnequipItem(slotType);
         RpcUpdateInventoryUI();
         RpcUpdateEquipmentUI();
+        
+        // Принудительно обновляем визуалы экипировки на всех клиентах
+        Inventory.RpcForceUpdateAllEquipmentVisuals();
         Debug.Log($"[PlayerCore] Unequipped item from slot: {slotType}");
     }
 

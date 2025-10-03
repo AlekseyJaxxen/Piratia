@@ -318,6 +318,30 @@ public class PlayerSkills : NetworkBehaviour
         _isCasting = true;
         yield return new WaitForSeconds(skill.CastTime);
         _isCasting = false;
+        
+        // КРИТИЧНО: Проверяем состояние еще раз после каста для предотвращения каста под ставом/молчанием
+        if (_core.isStunned)
+        {
+            Debug.LogWarning($"[PlayerSkills] Skill cast interrupted: {skill.SkillName} canceled due to stun: {_core.name}");
+            // Возвращаем ману и очищаем кулдаун если каст был прерван
+            CharacterStats stats = _core.GetComponent<CharacterStats>();
+            if (stats != null) stats.RestoreMana(skill.ManaCost);
+            _skillLastUseTimes.Remove(skill.SkillName); // Очищаем кулдаун для каста
+            RpcCancelSkillSelection();
+            yield break;
+        }
+        
+        if (_core.isSilenced && !(skill is BasicAttackSkill))
+        {
+            Debug.LogWarning($"[PlayerSkills] Skill cast interrupted: {skill.SkillName} canceled due to silence: {_core.name}");
+            // Возвращаем ману и очищаем кулдаун если каст был прерван
+            CharacterStats stats = _core.GetComponent<CharacterStats>();
+            if (stats != null) stats.RestoreMana(skill.ManaCost);
+            _skillLastUseTimes.Remove(skill.SkillName); // Очищаем кулдаун для каста
+            RpcCancelSkillSelection();
+            yield break;
+        }
+        
         skill.ExecuteOnServer(_core, targetPosition, targetObject, weight);
         StartSkillCooldown(skill.SkillName);
         if (!skill.ignoreGlobalCooldown) StartGlobalCooldown();

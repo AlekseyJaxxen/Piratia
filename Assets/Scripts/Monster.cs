@@ -70,6 +70,9 @@ public class Monster : NetworkBehaviour
                 //     Debug.Log($"[Monster] Server - Legs {name} playing animation {animationName} on head {partnerMonster.name}");
                 // }
                 partnerMonster.RpcPlayAnimation(animationName);
+
+                // Играем локально для комбинированного legs монстра тоже
+                PlayAnimationLocal(animationName);
             }
             else
             {
@@ -78,6 +81,9 @@ public class Monster : NetworkBehaviour
                 //     Debug.Log($"[Monster] Server - Monster {name} playing animation {animationName}");
                 // }
                 PlayAnimationLocal(animationName);
+                
+                // КРИТИЧНО: Отправляем RPC всем клиентам для синхронизации анимации
+                RpcPlayAnimation(animationName);
             }
         }
         else if (NetworkClient.active)
@@ -200,14 +206,14 @@ public class Monster : NetworkBehaviour
                 // Голова упала - играем анимацию лежа
                 Debug.Log($"[Monster] ExecuteAttack(PlayerCore) Playing HeadPunchLying for FALLEN head");
                 PlayAnimation("HeadPunchLying");
-                RpcPlayAnimation("HeadPunchLying");
+                // RPC автоматически отправляется через PlayAnimation()
             }
             else
             {
                 // Голова стоит - играем обычную анимацию
                 Debug.Log($"[Monster] ExecuteAttack(PlayerCore) Playing HeadPunch for STANDING head");
                 PlayAnimation("HeadPunch");
-                RpcPlayAnimation("HeadPunch");
+                // RPC автоматически отправляется через PlayAnimation()
             }
             
             // Используем MonsterBasicAttackSkill для нанесения урона
@@ -226,7 +232,7 @@ public class Monster : NetworkBehaviour
             // Атака ног
             Debug.Log($"[Monster] Legs attacking: {name}, partner: {partnerMonster?.name}");
             PlayAnimation("LegsKick");
-            RpcPlayAnimation("LegsKick");
+            // RPC автоматически отправляется через PlayAnimation()
             
             // Используем MonsterBasicAttackSkill для нанесения урона
             if (basicAttackSkill != null && target != null)
@@ -241,9 +247,10 @@ public class Monster : NetworkBehaviour
         }
         else if (basicAttackSkill != null)
         {
-            // Обычная атака - используем существующий метод
+            // Обычная атака - воспроизводим анимацию атаки
             Debug.Log($"[Monster] Regular monster attacking: {name}");
-            // basicAttackSkill.ExecuteAttack(this);
+            PlayAnimation("Attack"); // Стандартная анимация атаки для обычных монстров
+            basicAttackSkill.Execute(this, null, target.gameObject);
         }
     }
     private bool canAttack = true;
@@ -1749,21 +1756,27 @@ public class Monster : NetworkBehaviour
                 // Голова упала - играем анимацию лежа
                 Debug.Log($"[Monster] Playing HeadPunchLying animation for FALLEN head");
                 PlayAnimation("HeadPunchLying");
-                RpcPlayAnimation("HeadPunchLying");
+                // RPC автоматически отправляется через PlayAnimation()
             }
             else
             {
                 // Голова стоит - играем обычную анимацию
                 Debug.Log($"[Monster] Playing HeadPunch animation for STANDING head");
                 PlayAnimation("HeadPunch");
-                RpcPlayAnimation("HeadPunch");
+                // RPC автоматически отправляется через PlayAnimation()
             }
         }
         else if (isCombinedLegs)
         {
             Debug.Log($"[Monster] Legs attacking: {name}");
             PlayAnimation("LegsKick");
-            RpcPlayAnimation("LegsKick");
+            // RPC автоматически отправляется через PlayAnimation()
+        }
+        else
+        {
+            // Обычные монстры (не комбинированные) - воспроизводим анимацию атаки
+            Debug.Log($"[Monster] Regular monster executing attack: {name}");
+            PlayAnimation("Attack"); // Стандартная анимация атаки для обычных монстров
         }
         
         GameObject targetObject = NetworkServer.spawned.ContainsKey(targetNetId) ? NetworkServer.spawned[targetNetId].gameObject : null;

@@ -22,6 +22,7 @@ public class AreaOfEffectStunSkill : SkillBase
             Debug.LogWarning("[AreaOfEffectStunSkill] PlayerSkills component missing on caster");
             return;
         }
+        
         Debug.Log($"[AreaOfEffectStunSkill] Attempting to AOE stun at position: {targetPosition.Value}, weight: {Weight}");
         skills.CmdExecuteSkill(caster, targetPosition, 0, _skillName, Weight);
     }

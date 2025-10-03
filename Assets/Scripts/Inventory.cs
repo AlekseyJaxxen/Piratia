@@ -606,7 +606,17 @@ public class Inventory : NetworkBehaviour
     [ClientRpc]
     private void RpcUpdateEquipmentVisual(EquipmentSlot slot, ItemInfo itemInfo)
     {
+        if (!isClient) return;
         visuals?.UpdateEquipmentVisual(slot, itemInfo);
+        Debug.Log($"[Inventory] RPC: Updated equipment visual for slot {slot}");
+    }
+    
+    [ClientRpc]
+    public void RpcForceUpdateAllEquipmentVisuals()
+    {
+        if (!isClient) return;
+        UpdateEquipmentVisuals();
+        Debug.Log($"[Inventory] RPC: Force updated all equipment visuals");
     }
 
     [Client]

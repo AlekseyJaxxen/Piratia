@@ -31,9 +31,9 @@ public class BuffVFXController : NetworkBehaviour
 
     private Dictionary<string, GameObject> _activeVFX = new Dictionary<string, GameObject>();
     
-    // Оптимизация: обновление VFX 20 раз в секунду вместо каждого кадра
+    // Оптимизация: обновление VFX с интервалом вместо каждого кадра
     private float _lastVFXUpdate = 0f;
-    private const float VFX_UPDATE_INTERVAL = 0.05f; // 20 раз в секунду
+    private const float VFX_UPDATE_INTERVAL = 0.5f; // 2 раза в секунду - экономично для VFX буффов
 
     private void Awake()
     {
@@ -69,7 +69,12 @@ public class BuffVFXController : NetworkBehaviour
         var expiredKeys = new List<string>();
         foreach (var kvp in _activeVFX)
         {
-            if (kvp.Value == null) continue;
+            // Очищаем записи где объект стал null
+            if (kvp.Value == null)
+            {
+                expiredKeys.Add(kvp.Key);
+                continue;
+            }
             
             // Проверяем, истек ли эффект
             bool isExpired = true;
@@ -186,6 +191,22 @@ public class BuffVFXController : NetworkBehaviour
             UpdateBuffPositions();
             
             Debug.Log($"[BuffVFXController] Restored VFX for {key} on {gameObject.name} in {(buffContainer != null ? "container" : "character")}");
+        }
+        
+        // ИСПРАВЛЕНИЕ ПРОБЛЕМЫ: Дополнительная проверка для объектов которые стали null
+        else if (isActive && vfxPrefab != null && _activeVFX.ContainsKey(key) && 
+                 (_activeVFX[key] == null || _activeVFX[key].Equals(null)))
+        {
+            // VFX должен быть активен, но объект был уничтожен - восстанавливаем его
+            Transform parent = buffContainer != null ? buffContainer : transform;
+            Vector3 position = buffContainer != null ? Vector3.zero : transform.position + offset;
+            GameObject vfx = Instantiate(vfxPrefab, position, Quaternion.identity, parent);
+            _activeVFX[key] = vfx;
+            
+            // Обновляем позиции всех баффов
+            UpdateBuffPositions();
+            
+            Debug.Log($"[BuffVFXController] Fixed missing VFX for {key} on {gameObject.name}");
         }
     }
     

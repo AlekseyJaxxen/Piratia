@@ -161,6 +161,21 @@ public abstract class SkillBase : ScriptableObject, ISkill
             Debug.LogWarning($"[SkillBase] Skill execution failed for {_skillName}: Player lacks authority.");
             return;
         }
+        
+        // КРИТИЧНО: Проверяем стан и тишину перед кастом на клиенте для предотвращения кликспамма
+        if (player.isStunned)
+        {
+            Debug.LogWarning($"[SkillBase] Cannot cast skill {_skillName} while stunned: {player.name}");
+            return;
+        }
+        
+        // Проверяем тишину (кроме простых атак)
+        if (player.isSilenced && !(this is BasicAttackSkill))
+        {
+            Debug.LogWarning($"[SkillBase] Cannot cast skill {_skillName} while silenced: {player.name}");
+            return;
+        }
+        
         // Executing skill
         ExecuteSkillImplementation(player, targetPosition, targetObject);
     }
