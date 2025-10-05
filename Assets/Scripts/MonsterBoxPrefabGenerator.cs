@@ -122,10 +122,8 @@ public class MonsterBoxPrefabGenerator : MonoBehaviour
         meshFilter.mesh = CreateCubeMesh();
         
         // Настраиваем материал
-        Material material = new Material(Shader.Find("Standard"));
-        material.color = config.color;
-        material.SetFloat("_Metallic", config.metallic);
-        material.SetFloat("_Smoothness", config.smoothness);
+        // Создаем материал для URP
+        Material material = URPMaterialHelper.CreateMonsterBoxMaterial(config.color, config.boxType);
         renderer.material = material;
         
         // Масштабируем box
@@ -167,10 +165,8 @@ public class MonsterBoxPrefabGenerator : MonoBehaviour
         
         // Настраиваем цвет текста
         MeshRenderer textRenderer = textMesh.GetComponent<MeshRenderer>();
-        Material textMaterial = new Material(Shader.Find("Standard"));
-        textMaterial.color = Color.white;
-        textMaterial.SetFloat("_Metallic", 0f);
-        textMaterial.SetFloat("_Smoothness", 0f);
+        // Создаем материал для текста (URP)
+        Material textMaterial = URPMaterialHelper.CreateURPMaterial(Color.white, 0f, 0f);
         textRenderer.material = textMaterial;
         
         // Удаляем коллайдер у текста
@@ -310,10 +306,8 @@ public class MonsterBoxPrefabGenerator : MonoBehaviour
         meshFilter.mesh = CreateCubeMesh();
         
         // Настраиваем материал
-        Material material = new Material(Shader.Find("Standard"));
-        material.color = monsterInfo.boxColor;
-        material.SetFloat("_Metallic", 0.3f);
-        material.SetFloat("_Smoothness", 0.7f);
+        // Создаем материал для URP
+        Material material = URPMaterialHelper.CreateMonsterBoxMaterial(monsterInfo.boxColor, monsterInfo.boxType);
         renderer.material = material;
         
         // Масштабируем box
@@ -355,10 +349,8 @@ public class MonsterBoxPrefabGenerator : MonoBehaviour
         
         // Настраиваем цвет текста
         MeshRenderer textRenderer = textMesh.GetComponent<MeshRenderer>();
-        Material textMaterial = new Material(Shader.Find("Standard"));
-        textMaterial.color = Color.white;
-        textMaterial.SetFloat("_Metallic", 0f);
-        textMaterial.SetFloat("_Smoothness", 0f);
+        // Создаем материал для текста (URP)
+        Material textMaterial = URPMaterialHelper.CreateURPMaterial(Color.white, 0f, 0f);
         textRenderer.material = textMaterial;
         
         // Удаляем коллайдер у текста

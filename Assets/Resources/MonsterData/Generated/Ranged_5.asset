@@ -29,11 +29,14 @@ MonoBehaviour:
   basicAttackSkill: {fileID: 11400000, guid: 7bbed8c6ef038aa418d85853fbc14319, type: 2}
   hitRate: 35
   dodge: 27
-  minAttack: 20
-  maxAttack: 24
+  minAttack: 100
+  maxAttack: 200
   defense: 16
   physicalResistance: 5
-  attackRange: 3
+  attackRange: 7
+  projectilePrefab: {fileID: 113030, guid: 0ca489c29a20ffd479b5505057c3a9b0, type: 3}
+  projectileSpeed: 25
+  useProjectile: 1
   physicsModel: {fileID: 0}
   minForce: {x: -5, y: 2, z: -5}
   maxForce: {x: 5, y: 5, z: 0}

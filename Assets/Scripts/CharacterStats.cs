@@ -7,7 +7,7 @@ using System.Collections;
 public class CharacterStats : NetworkBehaviour
 {
     [Header("Character Class")]
-    [SerializeField] private ClassData classData;
+    [SerializeField] public ClassData classData;
     [SyncVar(hook = nameof(OnCharacterClassChanged))]
     public CharacterClass characterClass = CharacterClass.Warrior;
     [Header("Level and Experience")]
@@ -71,6 +71,8 @@ public class CharacterStats : NetworkBehaviour
     public int armor;
     [SyncVar(hook = nameof(OnPhysicalResistanceChanged))]
     public float physicalResistance;
+    [SyncVar(hook = nameof(OnAttackRangeChanged))]
+    public float attackRange;
     [SyncVar]
     public float magicDamageMultiplier;
     [Header("Current Stats")]
@@ -93,6 +95,7 @@ public class CharacterStats : NetworkBehaviour
     public event System.Action<int, int> OnMaxManaChangedEvent;
     public event System.Action<int, int> OnArmorChangedEvent;
     public event System.Action<float, float> OnPhysicalResistanceChangedEvent;
+    public event System.Action<float, float> OnAttackRangeChangedEvent;
     public event System.Action<float, float> OnCriticalHitChanceChangedEvent;
     public event System.Action<CharacterClass, CharacterClass> OnCharacterClassChangedEvent;
     private static readonly int[] ExperiencePerLevel = new int[100];
@@ -543,6 +546,7 @@ public class CharacterStats : NetworkBehaviour
         hitChance = 10 + level * 2 + calculatedTotalAccuracy * 0.6f;
         criticalHitChance = 15.0f + (luck * 0.1f);
         physicalResistance = classData.basePhysicalResistance;
+        attackRange = classData.baseAttackRange;
         magicDamageMultiplier = 1.0f + (calculatedTotalSpirit * 0.05f * classData.spiritMultiplier);
         
         // Добавляем прямые бонусы от экипировки
@@ -563,6 +567,7 @@ public class CharacterStats : NetworkBehaviour
             
             criticalHitChance += equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.Critical));
             movementSpeed += equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.MovementSpeed));
+            attackRange += equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.AttackRange));
             float attackSpeedBonus = equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.AttackSpeed));
             // Only apply equipment bonus if no skill buffs are active
             if (!activeStatEffects.Any(e => e.Stat.ToLower() == "attackspeed" && e.IsActive))
@@ -710,6 +715,7 @@ public class CharacterStats : NetworkBehaviour
             case "criticalhitchance": criticalHitChance = value; break;
             case "criticalhitmultiplier": criticalHitMultiplier = value; break;
             case "physicalresistance": physicalResistance = value; break;
+            case "attackrange": attackRange = value; break;
             case "magicdamagemultiplier": magicDamageMultiplier = value; break;
             default: Debug.LogWarning($"[CharacterStats] Cannot set float for stat: {stat}"); break;
         }
@@ -903,6 +909,16 @@ public class CharacterStats : NetworkBehaviour
             // Debug.Log($"PhysicalResistance changed: {oldValue} -> {newValue}");
         }
         OnPhysicalResistanceChangedEvent?.Invoke(oldValue, newValue);
+    }
+
+    [Client]
+    public void OnAttackRangeChanged(float oldValue, float newValue)
+    {
+        if (isLocalPlayer)
+        {
+            Debug.Log($"[CharacterStats] AttackRange changed: {oldValue} -> {newValue}");
+        }
+        OnAttackRangeChangedEvent?.Invoke(oldValue, newValue);
     }
 
     [Client]

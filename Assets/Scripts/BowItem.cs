@@ -9,6 +9,9 @@ public class BowItem : Item
         // Устанавливаем тип оружия как лук при создании предмета
         base.OnEnable();
         weaponType = WeaponType.Bow;
+        
+        // Устанавливаем бонус к дальности атаки для луков
+        attackRangeBonus = 6f;
     }
 
     public override void Use(PlayerCore player)

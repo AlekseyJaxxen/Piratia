@@ -37,6 +37,7 @@ public class Item : ScriptableObject
     public int spiritBonus;
     public int constitutionBonus;
     public int accuracyBonus;
+    public float attackRangeBonus = 0f; // Бонус к дальности атаки
     
     [Header("Recovery & Special Stats")]
     public int hpRecoveryBonus;

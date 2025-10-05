@@ -48,7 +48,7 @@ public abstract class SkillBase : ScriptableObject, ISkill
     [SerializeField] protected CastType castType;
     public CastType SkillCastType => castType;
     public virtual float Cooldown => _cooldown;
-    public float Range => _range;
+    public virtual float Range => _range;
     public float CastTime => _castTime;
     public KeyCode Hotkey { get => _hotkey; set => _hotkey = value; }
     public Texture2D CastCursor => _castCursor;
@@ -83,8 +83,8 @@ public abstract class SkillBase : ScriptableObject, ISkill
     [Header("Indicator Prefabs")]
     [SerializeField] public GameObject castRangePrefab;
     [SerializeField] public GameObject effectRadiusPrefab;
-    private GameObject castRangeIndicator;
-    private GameObject effectRadiusIndicator;
+    protected GameObject castRangeIndicator;
+    protected GameObject effectRadiusIndicator;
     public GameObject VFXPrefab; // ������� VFX-������ (��� �������������)
     public GameObject GetVFXPrefab() => VFXPrefab;
 

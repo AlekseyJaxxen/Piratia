@@ -12,22 +12,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 166ab9c335b576c47b39c87988a6a9c1, type: 3}
   m_Name: NewMonsterBasicAttackSkill
   m_EditorClassIdentifier: Assembly-CSharp::MonsterBasicAttackSkill
-  ignoreGlobalCooldown: 1
+  castType: 0
   _icon: {fileID: 0}
   _skillName: mobMelee
+  _description: 
   _hotkey: 0
-  _range: 0
-  _cooldown: 0
+  _range: 1
+  _cooldown: 1
   _castTime: 0
   _castCursor: {fileID: 0}
   _manaCost: 0
   _damageType: 0
   _weight: 1
   _effectRadius: 0
+  _ignoreGlobalCooldown: 0
   castRangePrefab: {fileID: 0}
   effectRadiusPrefab: {fileID: 0}
-  castRangeIndicator: {fileID: 0}
-  effectRadiusIndicator: {fileID: 0}
+  VFXPrefab: {fileID: 0}
   vfxPrefab: {fileID: 0}
   projectilePrefab: {fileID: 0}
   projectileSpeed: 20
@@ -37,3 +38,6 @@ MonoBehaviour:
   baseDamage: 100
   criticalChance: 0.1
   criticalMultiplier: 1.5
+  useUniversalAnimationIds: 1
+  customAttackAnimationName: 
+  customAttackAnimationId: -1

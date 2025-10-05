@@ -1,6 +1,7 @@
 using UnityEngine;
 using Mirror;
 using System.Collections;
+using System.Linq;
 
 [CreateAssetMenu(fileName = "NewBasicAttackSkill", menuName = "Skills/BasicAttackSkill")]
 public class BasicAttackSkill : SkillBase
@@ -16,6 +17,25 @@ public class BasicAttackSkill : SkillBase
     public GameObject criticalHitVfxPrefab;
     public GameObject impactEffectPrefab;
     public Color criticalHitColor = Color.yellow;
+
+    /// <summary>
+    /// Переопределяем Range чтобы использовать attackRange из CharacterStats
+    /// </summary>
+    public override float Range
+    {
+        get
+        {
+            if (_player != null)
+            {
+                CharacterStats stats = _player.GetComponent<CharacterStats>();
+                if (stats != null)
+                {
+                    return stats.attackRange;
+                }
+            }
+            return base.Range; // Fallback на базовую дальность скилла
+        }
+    }
 
 
     protected override void ExecuteSkillImplementation(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
@@ -155,6 +175,44 @@ public class BasicAttackSkill : SkillBase
                 Debug.Log($"[BasicAttackSkill] Spawned impact effect at target position: {end}");
             }
             Object.Destroy(projectile);
+        }
+    }
+    
+    /// <summary>
+    /// Переопределяем SetIndicatorVisibility для использования эффективной дальности
+    /// </summary>
+    public override void SetIndicatorVisibility(bool isVisible)
+    {
+        if (_player != null)
+        {
+            if (isVisible)
+            {
+                if (castRangeIndicator == null && castRangePrefab != null)
+                {
+                    castRangeIndicator = Object.Instantiate(castRangePrefab, _player.transform);
+                    castRangeIndicator.transform.localPosition = Vector3.up * 0.01f;
+                    castRangeIndicator.transform.localRotation = Quaternion.Euler(0, 0, 0);
+                    castRangeIndicator.name = $"{SkillName} Cast Range";
+                }
+                if (castRangeIndicator != null)
+                {
+                    // Используем Range (который теперь возвращает attackRange из CharacterStats)
+                    castRangeIndicator.transform.localScale = new Vector3(Range * 2, 0.1f, Range * 2);
+                    castRangeIndicator.SetActive(true);
+                }
+                if (effectRadiusIndicator == null && effectRadiusPrefab != null && EffectRadius > 0)
+                {
+                    effectRadiusIndicator = Object.Instantiate(effectRadiusPrefab);
+                    effectRadiusIndicator.transform.localScale = new Vector3(EffectRadius * 2, 0.1f, EffectRadius * 2);
+                    effectRadiusIndicator.name = $"{SkillName} Effect Radius";
+                }
+                if (effectRadiusIndicator != null) effectRadiusIndicator.SetActive(true);
+            }
+            else
+            {
+                if (castRangeIndicator != null) castRangeIndicator.SetActive(false);
+                if (effectRadiusIndicator != null) effectRadiusIndicator.SetActive(false);
+            }
         }
     }
 }

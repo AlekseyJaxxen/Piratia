@@ -51,6 +51,11 @@ public class MonsterInfo : ScriptableObject
     public int physicalResistance = 3; // Физическая защита монстра
     public float attackRange = 2f; // Дальность атаки монстра
     
+    [Header("Projectile Settings")]
+    public GameObject projectilePrefab; // Префаб projectile для дальних атак
+    public float projectileSpeed = 10f; // Скорость projectile
+    public bool useProjectile = false; // Использовать projectile вместо ближней атаки
+    
     [Header("Physics Settings")]
     public GameObject physicsModel;
     public Vector3 minForce = new Vector3(-5f, 2f, -5f);

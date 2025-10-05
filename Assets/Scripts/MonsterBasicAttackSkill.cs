@@ -77,6 +77,51 @@ public class MonsterBasicAttackSkill : SkillBase
     }
     
     /// <summary>
+    /// Получает projectile префаб для атаки (приоритет у MonsterInfo)
+    /// </summary>
+    public GameObject GetProjectilePrefab(Monster monster)
+    {
+        // Сначала проверяем MonsterInfo
+        if (monster.info != null && monster.info.useProjectile && monster.info.projectilePrefab != null)
+        {
+            return monster.info.projectilePrefab;
+        }
+        
+        // Fallback на настройки скилла
+        return projectilePrefab;
+    }
+    
+    /// <summary>
+    /// Получает скорость projectile для атаки (приоритет у MonsterInfo)
+    /// </summary>
+    public float GetProjectileSpeed(Monster monster)
+    {
+        // Сначала проверяем MonsterInfo
+        if (monster.info != null && monster.info.useProjectile)
+        {
+            return monster.info.projectileSpeed;
+        }
+        
+        // Fallback на настройки скилла
+        return projectileSpeed;
+    }
+    
+    /// <summary>
+    /// Проверяет должен ли монстр использовать projectile для атаки
+    /// </summary>
+    public bool ShouldUseProjectile(Monster monster)
+    {
+        // Сначала проверяем MonsterInfo
+        if (monster.info != null && monster.info.useProjectile)
+        {
+            return true;
+        }
+        
+        // Fallback на настройки скилла
+        return projectilePrefab != null;
+    }
+    
+    /// <summary>
     /// Рассчитывает урон монстра на основе его характеристик
     /// </summary>
     private int CalculateMonsterDamage(Monster monster, bool isCritical)

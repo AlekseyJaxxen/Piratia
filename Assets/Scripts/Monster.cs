@@ -35,7 +35,7 @@ public struct AggroEntry
 public class Monster : NetworkBehaviour
 {
     [SyncVar(hook = nameof(OnMonsterIdChanged))] public int monsterId;
-    [SyncVar] public bool isElite = false;
+    [SyncVar(hook = nameof(OnEliteChanged))] public bool isElite = false;
     public MonsterInfo info;
     [Header("Monster Settings")]
     [SyncVar(hook = nameof(OnNameChanged))] public string monsterName = "Monster";
@@ -47,6 +47,18 @@ public class Monster : NetworkBehaviour
     [Header("Combat Stats")]
     [SyncVar] public int hitRate = 10;
     [SyncVar] public int dodge = 10;
+    [SyncVar] public int minAttack = 10;
+    [SyncVar] public int maxAttack = 15;
+    [SyncVar] public int defense = 5;
+    [SyncVar] public int physicalResistance = 3;
+    
+    [Header("Spawn Memory")]
+    [SyncVar] public Vector3 originalSpawnPosition = Vector3.zero; // Место где монстр появился изначально
+    [SyncVar] public bool hasSpawnMemory = false; // Флаг что у монстра есть память о месте спавна
+    
+    [Header("Projectile Settings")]
+    [SyncVar] public bool useProjectile = false; // Использовать projectile вместо ближней атаки
+    [SyncVar] public float projectileSpeed = 10f; // Скорость projectile
     
     // Методы для управления анимациями combined монстра
     // PlayAnimation работает и на сервере и на клиенте
@@ -1020,6 +1032,10 @@ public class Monster : NetworkBehaviour
     public override void OnStartClient()
     {
         base.OnStartClient();
+        
+        // ДИАГНОСТИКА: Логируем начальные значения SyncVar
+        Debug.Log($"[Monster] OnStartClient - monsterId: {monsterId}, isElite: {isElite}, monsterName: {monsterName}");
+        
         LoadAndInitializeClient();
         _monsterUI = GetComponentInChildren<MonsterUI>();
         if (_monsterUI == null)
@@ -1121,6 +1137,10 @@ public class Monster : NetworkBehaviour
             _health.CurrentHealth = _health.MaxHealth;
             hitRate = Mathf.RoundToInt(info.hitRate * info.eliteStatMultiplier);
             dodge = Mathf.RoundToInt(info.dodge * info.eliteStatMultiplier);
+            minAttack = Mathf.RoundToInt(info.minAttack * info.eliteStatMultiplier);
+            maxAttack = Mathf.RoundToInt(info.maxAttack * info.eliteStatMultiplier);
+            defense = Mathf.RoundToInt(info.defense * info.eliteStatMultiplier);
+            physicalResistance = Mathf.RoundToInt(info.physicalResistance * info.eliteStatMultiplier);
         }
         else
         {
@@ -1128,7 +1148,16 @@ public class Monster : NetworkBehaviour
             _health.CurrentHealth = info.maxHealth;
             hitRate = info.hitRate;
             dodge = info.dodge;
+            minAttack = info.minAttack;
+            maxAttack = info.maxAttack;
+            defense = info.defense;
+            physicalResistance = info.physicalResistance;
         }
+        
+        // Инициализируем projectile настройки
+        useProjectile = info.useProjectile;
+        projectileSpeed = info.projectileSpeed;
+        Debug.Log($"[Monster] {monsterName} projectile settings - useProjectile: {useProjectile}, speed: {projectileSpeed}");
 
         // Инициализируем аггро систему для нового монстра
         damageDealers.Clear();
@@ -1248,76 +1277,81 @@ public class Monster : NetworkBehaviour
 
     private void LoadAndInitializeClient()
     {
+        Debug.Log($"[Monster] LoadAndInitializeClient - Loading MonsterInfo for ID: {monsterId}");
+        
         info = LoadMonsterInfo();
         if (info == null)
         {
             Debug.LogError($"[Monster] MonsterInfo not loaded for ID {monsterId}!");
             return;
         }
+        
+        Debug.Log($"[Monster] LoadAndInitializeClient - Loaded MonsterInfo: {info.monsterName}");
         if (info.useTemporaryBox)
         {
-            // Создаем временный box вместо модели
-            GameObject temporaryBox = CreateTemporaryBox(info);
-            if (temporaryBox != null)
+            // Проверяем что временный box уже существует
+            Transform existingBox = transform.Find($"{info.monsterName}_TemporaryBox");
+            if (existingBox != null)
             {
-                temporaryBox.tag = "MonsterModel";
-                Debug.Log($"[Monster] Created temporary box for {monsterName} on client");
+                Debug.Log($"[Monster] Found existing temporary box on client: {existingBox.name}");
+            }
+            else
+            {
+                // ИСПРАВЛЕНИЕ: Если box не существует, создаем его на клиенте
+                Debug.Log($"[Monster] Creating temporary box for {monsterName} on client");
+                GameObject temporaryBox = CreateTemporaryBox(info);
+                if (temporaryBox != null)
+                {
+                    temporaryBox.tag = "MonsterModel";
+                    Debug.Log($"[Monster] Created temporary box for {monsterName} on client");
+                }
             }
         }
         else if (info.modelPrefab != null)
         {
-            GameObject model = Instantiate(info.modelPrefab, transform.position, transform.rotation, transform);
-            if (info.isCombined)
+            // Проверяем что модель уже существует
+            Transform existingModel = null;
+            for (int i = 0; i < transform.childCount; i++)
             {
-                model.transform.localPosition = Vector3.down * 15f;
+                Transform child = transform.GetChild(i);
+                if (child.tag == "MonsterModel" || child.name.Contains("Model"))
+                {
+                    existingModel = child;
+                    break;
+                }
+            }
+            
+            if (existingModel != null)
+            {
+                Debug.Log($"[Monster] Found existing model on client: {existingModel.name}");
             }
             else
             {
-                model.transform.localPosition = Vector3.zero;
-            }
-            // Добавляем tag для легкого поиска
-            model.tag = "MonsterModel";
-            
-            // Масштабируем модель для Elite монстров
-            if (isElite)
-            {
-                model.transform.localScale = Vector3.one * info.eliteModelScale;
-                Debug.Log($"[Monster] Elite model scaled for {monsterName} on client: {info.eliteModelScale}");
-            }
-            
-            // Масштабируем BoxCollider если нужно
-            if (info.scaleBoxCollider)
-            {
-                BoxCollider boxCollider = GetComponent<BoxCollider>();
-                if (boxCollider != null)
+                // ИСПРАВЛЕНИЕ: Если модель не существует, создаем ее на клиенте
+                Debug.Log($"[Monster] Creating model for {monsterName} on client");
+                GameObject model = Instantiate(info.modelPrefab, transform.position, transform.rotation, transform);
+                if (info.isCombined)
                 {
-                    Vector3 finalScale = info.boxColliderScale;
-                    // Если монстр Elite, дополнительно масштабируем коллайдер
-                    if (isElite)
-                    {
-                        finalScale *= info.eliteModelScale;
-                    }
-                    boxCollider.size = Vector3.Scale(boxCollider.size, finalScale);
-                    Debug.Log($"[Monster] Scaled BoxCollider for {monsterName} on client: {finalScale}");
+                    model.transform.localPosition = Vector3.down * 15f;
                 }
                 else
                 {
-                    Debug.LogWarning($"[Monster] BoxCollider not found on {monsterName} for scaling on client");
+                    model.transform.localPosition = Vector3.zero;
                 }
-            }
-            else if (isElite)
-            {
-                // Если не масштабируем коллайдер специально, но монстр Elite - масштабируем по модели
-                BoxCollider boxCollider = GetComponent<BoxCollider>();
-                if (boxCollider != null)
+                model.tag = "MonsterModel";
+                
+                // Масштабируем модель для Elite монстров
+                if (isElite)
                 {
-                    boxCollider.size = Vector3.Scale(boxCollider.size, Vector3.one * info.eliteModelScale);
-                    Debug.Log($"[Monster] Elite BoxCollider auto-scaled for {monsterName} on client: {info.eliteModelScale}");
+                    model.transform.localScale = Vector3.one * info.eliteModelScale;
                 }
+                else
+                {
+                    model.transform.localScale = Vector3.one; // Используем базовый масштаб
+                }
+                
+                Debug.Log($"[Monster] Created model for {monsterName} on client");
             }
-            
-            // Инициализируем анимационные компоненты из модели
-            InitializeAnimationComponentsFromModel(model);
         }
         else
         {
@@ -1330,9 +1364,84 @@ public class Monster : NetworkBehaviour
         MonsterDatabase db = Resources.Load<MonsterDatabase>("MonsterData/MonsterDatabase");
         if (db != null && monsterId - 1 >= 0 && monsterId - 1 < db.monsters.Count)
         {
+            Debug.Log($"[Monster] LoadMonsterInfo - Found in MonsterDatabase: {db.monsters[monsterId - 1].monsterName}");
             return db.monsters[monsterId - 1];
         }
+        
+        // ИСПРАВЛЕНИЕ: Если не найден в базе, ищем в сгенерированных монстрах
+        Debug.LogWarning($"[Monster] MonsterInfo not found in MonsterDatabase for ID {monsterId}. Searching in generated monsters...");
+        
+        // Загружаем все сгенерированные монстры
+        MonsterInfo[] generatedMonsters = Resources.LoadAll<MonsterInfo>("MonsterData/Generated");
+        Debug.Log($"[Monster] Found {generatedMonsters.Length} generated monsters in Resources");
+        
+        // Ищем монстра по ID
+        foreach (MonsterInfo monsterInfo in generatedMonsters)
+        {
+            if (monsterInfo != null && monsterInfo.monsterId == monsterId)
+            {
+                Debug.Log($"[Monster] LoadMonsterInfo - Found in Generated: {monsterInfo.monsterName}");
+                return monsterInfo;
+            }
+        }
+        
+        Debug.LogError($"[Monster] MonsterInfo not found anywhere for ID {monsterId}!");
+        Debug.LogError($"[Monster] Available generated monsters:");
+        foreach (MonsterInfo monsterInfo in generatedMonsters)
+        {
+            if (monsterInfo != null)
+            {
+                Debug.LogError($"  - ID: {monsterInfo.monsterId}, Name: {monsterInfo.monsterName}");
+            }
+        }
+        
         return null;
+    }
+    
+    /// <summary>
+    /// Устанавливает память о месте спавна монстра
+    /// </summary>
+    [Server]
+    public void SetSpawnMemory(Vector3 spawnPosition)
+    {
+        originalSpawnPosition = spawnPosition;
+        hasSpawnMemory = true;
+        Debug.Log($"[Monster] {monsterName} remembers spawn position: {spawnPosition}");
+    }
+    
+    /// <summary>
+    /// Получает место для респавна (оригинальное место спавна или текущую позицию)
+    /// </summary>
+    public Vector3 GetRespawnPosition()
+    {
+        if (hasSpawnMemory)
+        {
+            return originalSpawnPosition;
+        }
+        else
+        {
+            return transform.position; // Fallback на текущую позицию
+        }
+    }
+    
+    /// <summary>
+    /// Получает projectile префаб для атаки
+    /// </summary>
+    public GameObject GetProjectilePrefab()
+    {
+        if (info != null && info.useProjectile && info.projectilePrefab != null)
+        {
+            return info.projectilePrefab;
+        }
+        return null;
+    }
+    
+    /// <summary>
+    /// Проверяет должен ли монстр использовать projectile для атаки
+    /// </summary>
+    public bool ShouldUseProjectile()
+    {
+        return useProjectile && info != null && info.projectilePrefab != null;
     }
     
     /// <summary>
@@ -1352,12 +1461,22 @@ public class Monster : NetworkBehaviour
         // Создаем куб
         meshFilter.mesh = CreateCubeMesh();
         
-        // Настраиваем материал
-        Material material = new Material(Shader.Find("Standard"));
-        material.color = monsterInfo.boxColor;
-        material.SetFloat("_Metallic", 0.3f);
-        material.SetFloat("_Smoothness", 0.7f);
-        renderer.material = material;
+        // Настраиваем материал для URP
+        Material material = URPMaterialHelper.CreateMonsterBoxMaterial(monsterInfo.boxColor, monsterInfo.boxType);
+        if (material != null && material.shader != null)
+        {
+            renderer.material = material;
+            Debug.Log($"[Monster] Created URP material for {monsterInfo.monsterName}: {material.shader.name}");
+        }
+        else
+        {
+            Debug.LogError($"[Monster] Failed to create material for {monsterInfo.monsterName}! Material: {material}, Shader: {material?.shader}");
+            // Fallback - создаем простой материал
+            Material fallbackMaterial = new Material(Shader.Find("Legacy Shaders/Diffuse"));
+            fallbackMaterial.color = monsterInfo.boxColor;
+            renderer.material = fallbackMaterial;
+            Debug.LogWarning($"[Monster] Using fallback material for {monsterInfo.monsterName}");
+        }
         
         // Масштабируем box
         boxObject.transform.localScale = monsterInfo.boxSize;
@@ -1440,10 +1559,8 @@ public class Monster : NetworkBehaviour
         
         // Настраиваем цвет текста
         MeshRenderer textRenderer = textMesh.GetComponent<MeshRenderer>();
-        Material textMaterial = new Material(Shader.Find("Standard"));
-        textMaterial.color = Color.white;
-        textMaterial.SetFloat("_Metallic", 0f);
-        textMaterial.SetFloat("_Smoothness", 0f);
+        // Создаем материал для текста (URP)
+        Material textMaterial = URPMaterialHelper.CreateURPMaterial(Color.white, 0f, 0f);
         textRenderer.material = textMaterial;
         
         // Удаляем коллайдер у текста
@@ -1458,9 +1575,33 @@ public class Monster : NetworkBehaviour
     {
         // Перезагружаем данные монстра когда ID изменился
         Debug.Log($"[Monster] Monster ID changed from {oldId} to {newId}. Reloading monster data.");
+        
+        // ИСПРАВЛЕНИЕ: Клиенты тоже должны перезагружать данные
         if (isServer)
         {
             LoadAndInitializeServer();
+        }
+        else
+        {
+            // Клиенты перезагружают данные на клиенте
+            LoadAndInitializeClient();
+        }
+    }
+    
+    private void OnEliteChanged(bool oldValue, bool newValue)
+    {
+        // Перезагружаем данные монстра когда Elite статус изменился
+        Debug.Log($"[Monster] Elite status changed from {oldValue} to {newValue}. Reloading monster data.");
+        
+        // ИСПРАВЛЕНИЕ: Клиенты тоже должны перезагружать данные
+        if (isServer)
+        {
+            LoadAndInitializeServer();
+        }
+        else
+        {
+            // Клиенты перезагружают данные на клиенте
+            LoadAndInitializeClient();
         }
     }
 
@@ -2502,7 +2643,7 @@ public class Monster : NetworkBehaviour
         // Цвета для разных радиусов
         Gizmos.color = Color.red;
         // Используем радиус атаки из basicAttackSkill
-        float attackRange = info.basicAttackSkill != null ? info.basicAttackSkill.Range : 2f;
+        float attackRange = info.attackRange;
         Gizmos.DrawWireSphere(transform.position, attackRange);
         
         Gizmos.color = Color.yellow;

@@ -15,6 +15,9 @@ public class SpawnConfig
     public float respawnTime = 60f; // в секундах
     [Header("Elite Settings")]
     [Range(0f, 100f)] public float eliteChance = 10f; // Процент Elite монстров
+    [Header("Spawn Memory Settings")]
+    public bool useSpawnMemory = true; // Использовать память о месте спавна для респавна
+    public float spawnMemoryRadius = 5f; // Радиус вокруг оригинального места спавна
 }
 
 public class MonsterSpawner : NetworkBehaviour
@@ -195,6 +198,9 @@ public class MonsterSpawner : NetworkBehaviour
                     {
                         monsterScript.monsterId = config.monsterId;
                         
+                        // ДИАГНОСТИКА: Логируем назначение ID
+                        Debug.Log($"[MonsterSpawner] Assigned monsterId {config.monsterId} to monster {monster.name}");
+                        
                         // Определяем, будет ли монстр Elite
                         float roll = UnityEngine.Random.Range(0f, 100f);
                         if (roll <= config.eliteChance)
@@ -206,6 +212,7 @@ public class MonsterSpawner : NetworkBehaviour
                     else
                     {
                         Debug.LogError($"[MonsterSpawner] No MonsterInfo for ID {config.monsterId}");
+                        Debug.LogError($"[MonsterSpawner] Database has {db?.monsters.Count ?? 0} monsters");
                         Destroy(monster);
                         continue;
                     }

@@ -340,6 +340,9 @@ public class MonsterInfoGenerator : MonoBehaviour
         // Дальность атаки (ИСПРАВЛЕНИЕ 3: добавляем attackRange)
         monsterInfo.attackRange = template.baseAttackRange / 100f; // Делим на 100 для соответствия масштабу игры
         
+        // Projectile настройки (ИСПРАВЛЕНИЕ 4: добавляем projectile настройки)
+        ConfigureProjectileSettings(monsterInfo, template, level);
+        
         // AI настройки
         monsterInfo.patrolRadius = template.patrolRadius;
         monsterInfo.detectionRange = template.detectionRange;
@@ -398,6 +401,28 @@ public class MonsterInfoGenerator : MonoBehaviour
         Debug.Log($"  Speed: {monsterInfo.moveSpeed}, Attack Cooldown: {monsterInfo.attackCooldown}");
         Debug.Log($"  Attack Range: {monsterInfo.attackRange}");
         Debug.Log($"  Experience: {monsterInfo.experienceReward}");
+    }
+    
+    /// <summary>
+    /// Настраивает projectile параметры для монстра
+    /// </summary>
+    void ConfigureProjectileSettings(MonsterInfo monsterInfo, MonsterTemplate template, int level)
+    {
+        // Ranged монстры используют projectile
+        if (template.category == MonsterCategory.Ranged)
+        {
+            monsterInfo.useProjectile = true;
+            monsterInfo.projectileSpeed = 15f + (level * 0.5f); // Скорость растет с уровнем
+            monsterInfo.projectilePrefab = null; // Будет назначен вручную или через систему
+            
+            Debug.Log($"[MonsterInfoGenerator] {monsterInfo.monsterName} configured as ranged monster with projectile speed: {monsterInfo.projectileSpeed}");
+        }
+        else
+        {
+            monsterInfo.useProjectile = false;
+            monsterInfo.projectileSpeed = 10f; // Базовое значение
+            monsterInfo.projectilePrefab = null;
+        }
     }
     
     /// <summary>

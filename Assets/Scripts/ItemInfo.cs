@@ -170,6 +170,10 @@ public struct ItemInfo
                 baseStat = item.dodgeBonus;
                 dynamicStat = hasDynamicStats ? dodgeBonus : 0;
                 break;
+            case StatType.AttackRange:
+                baseStat = item.attackRangeBonus;
+                dynamicStat = 0; // Пока не поддерживаем динамические бонусы к дальности
+                break;
         }
         
         return baseStat + dynamicStat;
@@ -213,7 +217,8 @@ public struct ItemInfo
         PhysicalResistance, // Процентное сопротивление
         HPRecovery,
         SPRecovery,
-        Dodge
+        Dodge,
+        AttackRange
     }
     
 }

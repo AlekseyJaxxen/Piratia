@@ -30,6 +30,7 @@ public class ClassData : ScriptableObject
     public float intelligenceMultiplier = 1f;
     [Header("Attack Settings")]
     public AttackAttributeType attackAttribute = AttackAttributeType.Strength;
+    public float baseAttackRange = 2f; // Базовая дальность атаки класса
     [Header("Visuals")]
     public GameObject modelPrefab;
     public RuntimeAnimatorController animatorController;

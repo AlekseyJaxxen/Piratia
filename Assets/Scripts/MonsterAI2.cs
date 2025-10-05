@@ -12,7 +12,7 @@ public class MonsterAI2 : MonoBehaviour
     private float patrolRadius = 10f;
     private float chaseTimeout = 30f;
     private LayerMask playerLayer;
-    private float attackRange = 2f;
+    public float attackRange = 2f;
     private float detectionRange = 10f;
     private float attackCooldown = 2f;
     // Combined attack ranges
@@ -20,8 +20,8 @@ public class MonsterAI2 : MonoBehaviour
     private float legsAttackRange = 2f;
     
     // Динамические параметры атаки
-    private float currentAttackRange = 2f;
-    private float currentStoppingDistance = 1f;
+    public float currentAttackRange = 2f;
+    public float currentStoppingDistance = 1f;
     private float attackRangeVariation = 0.3f; // ±0.3 от базового радиуса
     
     // Система аггро
@@ -74,11 +74,11 @@ public class MonsterAI2 : MonoBehaviour
             headAttackRange = monsterInfo.headAttackRange;
             legsAttackRange = monsterInfo.legsAttackRange;
             
-            // attackRange теперь берется из basicAttackSkill
-            if (monsterInfo.basicAttackSkill != null)
-            {
-                attackRange = monsterInfo.basicAttackSkill.Range;
-            }
+            // ИСПРАВЛЕНИЕ: attackRange берется из MonsterInfo, а не из basicAttackSkill
+            attackRange = monsterInfo.attackRange;
+            
+            // ИСПРАВЛЕНИЕ: Не пытаемся изменить read-only свойство Range
+            Debug.Log($"[MonsterAI2] Using attackRange {monsterInfo.attackRange} from MonsterInfo");
             
             // Инициализируем динамические параметры атаки
             UpdateAttackRanges();
@@ -87,11 +87,11 @@ public class MonsterAI2 : MonoBehaviour
     
     private void UpdateAttackRanges()
     {
-        // Получаем радиус атаки из MonsterBasicAttackSkill
+        // ИСПРАВЛЕНИЕ: Получаем радиус атаки из MonsterInfo, а не из basicAttackSkill
         float baseRange = attackRange;
-        if (monster.info != null && monster.info.basicAttackSkill != null)
+        if (monster.info != null)
         {
-            baseRange = monster.info.basicAttackSkill.Range;
+            baseRange = monster.info.attackRange;
         }
         
         // Добавляем случайную вариацию (±30% от базового радиуса)
