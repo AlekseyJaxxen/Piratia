@@ -73,6 +73,12 @@ public class BombObject : NetworkBehaviour
         
         // Загружаем префабы по именам на клиентах
         LoadPrefabsFromNames();
+        
+        // Создаем индикатор зоны на клиентах
+        if (zoneIndicator != null)
+        {
+            CreateZoneIndicator();
+        }
     }
     
     private void LoadPrefabsFromNames()

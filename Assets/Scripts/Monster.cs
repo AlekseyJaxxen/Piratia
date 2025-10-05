@@ -51,12 +51,6 @@ public class Monster : NetworkBehaviour
     // PlayAnimation работает и на сервере и на клиенте
     public void PlayAnimation(string animationName)
     {
-        // Диагностика для отладки проблем с анимациями
-        if (animationName != "Walk" && animationName != "Idle")
-        {
-            Debug.Log($"[Monster] PlayAnimation called: {name} playing {animationName} (Server: {NetworkServer.active}, Client: {NetworkClient.active}, Connections: {NetworkServer.connections.Count})");
-        }
-        
         if (!NetworkServer.active && !NetworkClient.active)
         {
             // Вызываю локально (например в Editor)
@@ -70,46 +64,24 @@ public class Monster : NetworkBehaviour
             if (isCombinedLegs && partnerMonster != null)
             {
                 // Legs управляет аниматором head
-                if (animationName != "Walk" && animationName != "Idle")
-                {
-                    Debug.Log($"[Monster] Server - Legs {name} playing animation {animationName} on head {partnerMonster.name}");
-                }
                 partnerMonster.RpcPlayAnimation(animationName);
-
                 // Играем локально для комбинированного legs монстра тоже
                 PlayAnimationLocal(animationName);
             }
             else
             {
-                if (animationName != "Walk" && animationName != "Idle")
-                {
-                    Debug.Log($"[Monster] Server - Monster {name} playing animation {animationName}");
-                }
                 PlayAnimationLocal(animationName);
                 
-                // КРИТИЧНО: Отправляем RPC всем клиентам для синхронизации анимации
-                // Проверяем, что есть подключенные клиенты перед отправкой RPC
+                // Отправляем RPC всем клиентам для синхронизации анимации
                 if (NetworkServer.connections.Count > 0)
                 {
                     RpcPlayAnimation(animationName);
-                    if (animationName != "Walk" && animationName != "Idle")
-                    {
-                        Debug.Log($"[Monster] RPC sent to {NetworkServer.connections.Count} clients for animation {animationName}");
-                    }
-                }
-                else
-                {
-                    Debug.LogWarning($"[Monster] No clients connected, animation {animationName} not synced for {monsterName}");
                 }
             }
         }
         else if (NetworkClient.active)
         {
             // Клиент: играем анимацию локально
-            if (animationName != "Walk" && animationName != "Idle")
-            {
-                Debug.Log($"[Monster] Client - Monster {name} playing animation {animationName}");
-            }
             PlayAnimationLocal(animationName);
         }
     }
@@ -119,17 +91,24 @@ public class Monster : NetworkBehaviour
     /// </summary>
     private void PlayAnimationLocal(string animationName)
     {
-        // Диагностика для отладки проблем с анимациями
-        if (animationName != "Walk" && animationName != "Idle")
-        {
-            Debug.Log($"[Monster] PlayAnimationLocal: {name} playing {animationName} (IsHumanoid: {IsHumanoidMonster()}, IsNonHumanoid: {IsNonHumanoidMonster()})");
-        }
-        
         // ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА: Если анимационные компоненты не инициализированы, пытаемся их инициализировать
         if (_animator == null && _animation == null)
         {
-            Debug.LogWarning($"[Monster] Animation components not initialized for {name}, attempting to initialize");
             EnsureAnimationComponentsInitialized();
+        }
+        
+        // Проверяем, есть ли анимационная система
+        if (!IsHumanoidMonster() && !IsNonHumanoidMonster())
+        {
+            // У монстра нет анимационной системы - это нормально для некоторых монстров
+            return;
+        }
+        
+        // Проверяем, есть ли анимация с таким именем
+        if (!HasAnimation(animationName))
+        {
+            // Анимация не найдена - это нормально, не все монстры имеют все анимации
+            return;
         }
         
         if (IsHumanoidMonster())
@@ -138,14 +117,6 @@ public class Monster : NetworkBehaviour
             if (_animator != null)
             {
                 _animator.Play(animationName);
-                if (animationName != "Walk" && animationName != "Idle")
-                {
-                    Debug.Log($"[Monster] Animator.Play({animationName}) called on {name}");
-                }
-            }
-            else
-            {
-                Debug.LogError($"[Monster] Animator is null for humanoid monster {name}!");
             }
         }
         else if (IsNonHumanoidMonster())
@@ -153,27 +124,8 @@ public class Monster : NetworkBehaviour
             // Не-гуманоидный монстр: используем Animation
             if (_animation != null)
             {
-                if (_animation[animationName] != null)
-                {
-                    _animation.Play(animationName);
-                    if (animationName != "Walk" && animationName != "Idle")
-                    {
-                        Debug.Log($"[Monster] Animation.Play({animationName}) called on {name}");
-                    }
-                }
-                else
-                {
-                    Debug.LogWarning($"[Monster] Animation clip '{animationName}' not found on {monsterName}");
-                }
+                _animation.Play(animationName);
             }
-            else
-            {
-                Debug.LogError($"[Monster] Animation component is null for non-humanoid monster {name}!");
-            }
-        }
-        else
-        {
-            Debug.LogWarning($"[Monster] Cannot play animation '{animationName}' on {monsterName}: no animation system found");
         }
     }
     
@@ -184,41 +136,23 @@ public class Monster : NetworkBehaviour
         // если они еще не были инициализированы
         EnsureAnimationComponentsInitialized();
         
-        // Диагностика для отладки проблем с анимациями на dedicated сервере
-        if (animationName != "Walk" && animationName != "Idle")
-        {
-            Debug.Log($"[Monster] RPC received: {name} playing animation {animationName} (isCombinedLegs: {isCombinedLegs}, partnerMonster: {partnerMonster != null})");
-        }
-        
         if (isCombinedLegs && partnerMonster != null)
         {
             // Legs управляет аниматором head НО для атаки используем правильную анимацию
             if (animationName == "LegsKick")
             {
                 // Для legs атаки играем Kick на head аниматоре
-                if (animationName != "Walk" && animationName != "Idle")
-                {
-                    Debug.Log($"[Monster] RPC: Legs {name} playing animation LegsKick on head {partnerMonster.name}");
-                }
                 partnerMonster.PlayAnimationLocal("LegsKick");
             }
             else
             {
                 // Для остальных анимаций передаем управление head
-                if (animationName != "Walk" && animationName != "Idle")
-                {
-                    Debug.Log($"[Monster] RPC: Legs {name} delegating animation {animationName} to head {partnerMonster.name}");
-                }
                 partnerMonster.RpcPlayAnimation(animationName);
             }
         }
         else
         {
             // Head или обычный монстр управляет своей анимационной системой
-            if (animationName != "Walk" && animationName != "Idle")
-            {
-                Debug.Log($"[Monster] RPC: {name} playing animation {animationName}");
-            }
             PlayAnimationLocal(animationName);
         }
     }
@@ -428,12 +362,18 @@ public class Monster : NetworkBehaviour
     /// </summary>
     public bool HasAnimation(string animationName)
     {
-        if (IsHumanoidMonster())
+        // Если анимационные компоненты не инициализированы, пытаемся их инициализировать
+        if (_animator == null && _animation == null)
+        {
+            EnsureAnimationComponentsInitialized();
+        }
+        
+        if (IsHumanoidMonster() && _animator != null)
         {
             // Для Animator проверяем через HasState (требует hash)
             return _animator.HasState(0, Animator.StringToHash(animationName));
         }
-        else if (IsNonHumanoidMonster())
+        else if (IsNonHumanoidMonster() && _animation != null)
         {
             // Для Animation проверяем наличие клипа
             return _animation[animationName] != null;
@@ -640,18 +580,26 @@ public class Monster : NetworkBehaviour
     {
         if (IsNonHumanoidMonster() && _hitEffects != null)
         {
-            if (isServer)
+            if (NetworkServer.active)
             {
-                // На сервере вызываем RPC для всех клиентов
-                RpcPlayHitEffect(hitDirection);
+                // На сервере играем локально (для Host режима)
+                _hitEffects.PlayHitEffect(hitDirection);
+                
+                // И отправляем RPC для всех клиентов
+                if (NetworkServer.connections.Count > 0)
+                {
+                    RpcPlayHitEffect(hitDirection);
+                }
             }
-            else
+            else if (NetworkClient.active)
             {
                 // На клиенте играем локально
                 _hitEffects.PlayHitEffect(hitDirection);
             }
-            
-            Debug.Log($"[Monster] Playing hit effect for non-humanoid monster {monsterName}");
+        }
+        else if (IsNonHumanoidMonster() && _hitEffects == null)
+        {
+            Debug.LogWarning($"[Monster] DoTween effects not initialized for non-humanoid monster {monsterName}");
         }
         else if (IsHumanoidMonster())
         {
@@ -690,18 +638,22 @@ public class Monster : NetworkBehaviour
     {
         if (IsNonHumanoidMonster() && _hitEffects != null)
         {
-            if (isServer)
+            if (NetworkServer.active)
             {
-                // На сервере вызываем RPC для всех клиентов
-                RpcPlayDeathAnimation();
+                // На сервере играем локально (для Host режима)
+                _hitEffects.PlayDeathAnimation();
+                
+                // И отправляем RPC для всех клиентов
+                if (NetworkServer.connections.Count > 0)
+                {
+                    RpcPlayDeathAnimation();
+                }
             }
-            else
+            else if (NetworkClient.active)
             {
                 // На клиенте играем локально
                 _hitEffects.PlayDeathAnimation();
             }
-            
-            Debug.Log($"[Monster] Playing death animation for non-humanoid monster {monsterName}");
         }
         else if (IsHumanoidMonster())
         {
@@ -739,21 +691,13 @@ public class Monster : NetworkBehaviour
     /// </summary>
     private void InitializeAnimationComponentsFromModel(GameObject model)
     {
-        Debug.Log($"[Monster] Initializing animation components from model for {monsterName}");
-        
         // Ищем рендереры и анимационные компоненты
         _skinnedRenderer = model.GetComponentInChildren<SkinnedMeshRenderer>();
         if (_skinnedRenderer == null)
         {
             _meshRenderer = model.GetComponentInChildren<MeshRenderer>();
-            if (_meshRenderer == null)
+            if (_meshRenderer != null)
             {
-                Debug.LogWarning($"[Monster] Neither SkinnedMeshRenderer nor MeshRenderer found on model for {monsterName}");
-            }
-            else
-            {
-                Debug.Log($"[Monster] Found MeshRenderer on model {monsterName} (non-humanoid)");
-                
                 // Для не-гуманоидов ищем Animation компонент
                 if (!isCombinedLegs)
                 {
@@ -764,7 +708,6 @@ public class Monster : NetworkBehaviour
                     }
                     if (_animation != null)
                     {
-                        Debug.Log($"[Monster] Found Animation component on model {monsterName}");
                         InitializeAnimationCache();
                         
                         // Инициализируем DoTween эффекты для не-гуманоидов
@@ -774,17 +717,11 @@ public class Monster : NetworkBehaviour
                             Debug.LogWarning($"[Monster] No MonsterHitEffects component found for non-humanoid monster {monsterName}");
                         }
                     }
-                    else
-                    {
-                        Debug.LogWarning($"[Monster] Animation component not found on model for non-humanoid monster {monsterName}");
-                    }
                 }
             }
         }
         else
         {
-            Debug.Log($"[Monster] Found SkinnedMeshRenderer on model {monsterName} (humanoid)");
-            
             // Для гуманоидов ищем Animator компонент
             if (!isCombinedLegs)
             {
@@ -795,12 +732,7 @@ public class Monster : NetworkBehaviour
                 }
                 if (_animator != null)
                 {
-                    Debug.Log($"[Monster] Found Animator on model {monsterName}");
                     InitializeAnimationCache();
-                }
-                else
-                {
-                    Debug.LogWarning($"[Monster] Animator not found on model for humanoid monster {monsterName}");
                 }
             }
         }
@@ -817,8 +749,6 @@ public class Monster : NetworkBehaviour
             return;
         }
         
-        Debug.Log($"[Monster] Ensuring animation components initialized for {monsterName} on client");
-        
         // Ищем модель монстра
         GameObject model = null;
         Transform[] children = GetComponentsInChildren<Transform>();
@@ -833,7 +763,6 @@ public class Monster : NetworkBehaviour
         
         if (model == null)
         {
-            Debug.LogWarning($"[Monster] MonsterModel not found for {monsterName}, trying to find any child with renderer");
             // Ищем любой дочерний объект с рендерером
             _skinnedRenderer = GetComponentInChildren<SkinnedMeshRenderer>();
             if (_skinnedRenderer == null)
@@ -852,8 +781,6 @@ public class Monster : NetworkBehaviour
         
         if (model != null)
         {
-            Debug.Log($"[Monster] Found model for {monsterName}: {model.name}");
-            
             // Ищем анимационные компоненты
             _skinnedRenderer = model.GetComponentInChildren<SkinnedMeshRenderer>();
             if (_skinnedRenderer == null)
@@ -861,8 +788,6 @@ public class Monster : NetworkBehaviour
                 _meshRenderer = model.GetComponentInChildren<MeshRenderer>();
                 if (_meshRenderer != null)
                 {
-                    Debug.Log($"[Monster] Found MeshRenderer on {monsterName} (non-humanoid)");
-                    
                     // Для не-гуманоидов ищем Animation компонент
                     if (!isCombinedLegs)
                     {
@@ -873,27 +798,16 @@ public class Monster : NetworkBehaviour
                         }
                         if (_animation != null)
                         {
-                            Debug.Log($"[Monster] Found Animation component on {monsterName}");
                             InitializeAnimationCache();
                             
                             // Инициализируем DoTween эффекты для не-гуманоидов
                             _hitEffects = model.GetComponentInChildren<MonsterHitEffects>();
-                            if (_hitEffects == null)
-                            {
-                                Debug.LogWarning($"[Monster] No MonsterHitEffects component found for non-humanoid monster {monsterName}");
-                            }
-                        }
-                        else
-                        {
-                            Debug.LogWarning($"[Monster] Animation component not found for non-humanoid monster {monsterName}");
                         }
                     }
                 }
             }
             else
             {
-                Debug.Log($"[Monster] Found SkinnedMeshRenderer on {monsterName} (humanoid)");
-                
                 // Для гуманоидов ищем Animator компонент
                 if (!isCombinedLegs)
                 {
@@ -904,19 +818,10 @@ public class Monster : NetworkBehaviour
                     }
                     if (_animator != null)
                     {
-                        Debug.Log($"[Monster] Found Animator on {monsterName}");
                         InitializeAnimationCache();
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"[Monster] Animator not found for humanoid monster {monsterName}");
                     }
                 }
             }
-        }
-        else
-        {
-            Debug.LogError($"[Monster] Could not find model for {monsterName} to initialize animation components");
         }
     }
     
@@ -1139,12 +1044,7 @@ public class Monster : NetworkBehaviour
         // Проверяем, инициализированы ли анимационные компоненты
         if (_animator == null && _animation == null)
         {
-            Debug.Log($"[Monster] Animation components not initialized after LoadAndInitializeClient, forcing initialization for {monsterName}");
             EnsureAnimationComponentsInitialized();
-        }
-        else
-        {
-            Debug.Log($"[Monster] Animation components already initialized for {monsterName}");
         }
     }
     private void LoadAndInitializeServer()
@@ -1239,8 +1139,6 @@ public class Monster : NetworkBehaviour
             
             // Инициализируем анимационные компоненты на сервере
             InitializeAnimationComponentsFromModel(model);
-            
-            Debug.Log($"[Monster] Model created on server for {monsterName}");
         }
 
         // Combined

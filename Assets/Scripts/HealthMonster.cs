@@ -71,12 +71,22 @@ public class HealthMonster : Health
     [ClientRpc]
     private void RpcPlayDamageFlash()
     {
+        // Инициализируем _monster на клиенте если он не инициализирован
+        if (_monster == null)
+        {
+            _monster = GetComponent<Monster>();
+            if (_monster == null)
+            {
+                Debug.LogError($"[HealthMonster] Monster component missing on client for {gameObject.name}");
+                return;
+            }
+        }
+        
         // Старые эффекты через MonsterAnimation (для совместимости)
         if (monsterAnimation != null)
         {
             monsterAnimation.PlayDamageFlash();
             monsterAnimation.PlayShake();
-            // Damage flash triggered
         }
         
         // Новые DoTween эффекты для не-гуманоидных монстров

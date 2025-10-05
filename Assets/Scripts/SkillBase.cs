@@ -149,9 +149,9 @@ public abstract class SkillBase : ScriptableObject, ISkill
 
     public virtual void Execute(PlayerCore player, Vector3? targetPosition, GameObject targetObject)
     {
-        if (!NetworkClient.active)
+        if (!NetworkClient.active && !NetworkServer.active)
         {
-            Debug.LogWarning($"[SkillBase] Skill execution failed for {_skillName}: Client is not connected.");
+            Debug.LogWarning($"[SkillBase] Skill execution failed for {_skillName}: Neither client nor server is active.");
             return;
         }
         if (!player.isLocalPlayer)
