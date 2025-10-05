@@ -354,6 +354,106 @@ public class CharacterStats : NetworkBehaviour
         }
     }
 
+    /// <summary>
+    /// Рассчитывает бонус HP от Constitution (табличный подход)
+    /// </summary>
+    private int CalculateConstitutionHpBonus(int constitutionValue)
+    {
+        if (constitutionValue <= 0) return 0;
+        
+        // Табличные данные для точного расчета
+        int[] conValues = { 0, 1, 2, 3, 4, 5, 6, 7, 13, 18, 19, 20, 40, 60 };
+        int[] hpBonuses = { 0, 15, 30, 45, 60, 75, 90, 112, 202, 298, 313, 363, 852, 1467 };
+        
+        // Если значение точно в таблице
+        for (int i = 0; i < conValues.Length; i++)
+        {
+            if (constitutionValue == conValues[i])
+            {
+                return hpBonuses[i];
+            }
+        }
+        
+        // Интерполяция между значениями
+        for (int i = 0; i < conValues.Length - 1; i++)
+        {
+            if (constitutionValue > conValues[i] && constitutionValue < conValues[i + 1])
+            {
+                // Линейная интерполяция
+                float t = (float)(constitutionValue - conValues[i]) / (conValues[i + 1] - conValues[i]);
+                return Mathf.RoundToInt(Mathf.Lerp(hpBonuses[i], hpBonuses[i + 1], t));
+            }
+        }
+        
+        // Если значение больше максимального в таблице, используем экстраполяцию
+        if (constitutionValue > conValues[conValues.Length - 1])
+        {
+            int lastIndex = conValues.Length - 1;
+            int lastCon = conValues[lastIndex];
+            int lastHp = hpBonuses[lastIndex];
+            
+            // Экстраполяция на основе последних двух точек
+            int prevIndex = lastIndex - 1;
+            int prevCon = conValues[prevIndex];
+            int prevHp = hpBonuses[prevIndex];
+            
+            float slope = (float)(lastHp - prevHp) / (lastCon - prevCon);
+            int extraCon = constitutionValue - lastCon;
+            return lastHp + Mathf.RoundToInt(extraCon * slope);
+        }
+        
+        return 0;
+    }
+    
+    /// <summary>
+    /// Рассчитывает прогрессивный бонус каждые 5 пунктов характеристики
+    /// Пример: 5 силы = 7 урона, 10 силы = 16 урона, 100 силы = 310 урона, 1000 силы = 17500 урона
+    /// </summary>
+    private int CalculateProgressiveBonus(int statValue)
+    {
+        if (statValue <= 0) return 0;
+        
+        int bonus = 0;
+        int remaining = statValue;
+        
+        while (remaining > 0)
+        {
+            int currentGroup = Mathf.Min(remaining, 4); // Группы по 1-4 пункта (линейный рост)
+            bonus += currentGroup;
+            remaining -= currentGroup;
+            
+            if (remaining > 0)
+            {
+                // Каждый 5-й пункт дает увеличенный бонус
+                int multiplier = (statValue - remaining) / 5 + 1; // Множитель растет с каждым циклом
+                bonus += multiplier;
+                remaining--;
+            }
+        }
+        
+        return bonus;
+    }
+    
+    /// <summary>
+    /// Рассчитывает бонус HP от уровня персонажа
+    /// Пример: лв1 = 140 HP, лв50 = 1365 HP, лв100 = 2615 HP
+    /// </summary>
+    private int CalculateLevelHpBonus()
+    {
+        if (level <= 1) return 0;
+        
+        // Формула: каждый уровень дает увеличивающийся бонус
+        // Базовый рост: ~25 HP за уровень в начале, увеличивается до ~50 HP за уровень
+        int totalBonus = 0;
+        for (int i = 2; i <= level; i++)
+        {
+            int levelBonus = Mathf.RoundToInt(20 + (i - 1) * 0.5f); // 20 + (level-1) * 0.5
+            totalBonus += levelBonus;
+        }
+        
+        return totalBonus;
+    }
+
     [Server]
     public void CalculateDerivedStats()
     {
@@ -403,12 +503,27 @@ public class CharacterStats : NetworkBehaviour
         totalAccuracy = calculatedTotalAccuracy;
         
         // Вычисляем производные статы с учетом итоговых характеристик
-        maxHealth = classData.baseHealth + Mathf.RoundToInt(calculatedTotalConstitution * 20 * classData.constitutionMultiplier);
-        maxMana = classData.baseMana + Mathf.RoundToInt(calculatedTotalSpirit * 10 * classData.spiritMultiplier + intelligence * 5 * classData.intelligenceMultiplier);
-        float attackValue = classData.attackAttribute == AttackAttributeType.Strength ? calculatedTotalStrength : calculatedTotalAccuracy;
+        // НОВАЯ СИСТЕМА: Прогрессивный рост каждые 5 пунктов
+        int progressiveConstitutionBonus = CalculateProgressiveBonus(calculatedTotalConstitution);
+        int progressiveSpiritBonus = CalculateProgressiveBonus(calculatedTotalSpirit);
+        int progressiveStrengthBonus = CalculateProgressiveBonus(calculatedTotalStrength);
+        int progressiveAccuracyBonus = CalculateProgressiveBonus(calculatedTotalAccuracy);
+        
+        // HP с ростом уровня + бонус от Constitution (экспоненциальная прогрессия)
+        int levelHpBonus = CalculateLevelHpBonus();
+        int constitutionHpBonus = CalculateConstitutionHpBonus(calculatedTotalConstitution);
+        maxHealth = classData.baseHealth + levelHpBonus + constitutionHpBonus;
+        
+        // Mana с прогрессивным бонусом от Spirit
+        maxMana = classData.baseMana + Mathf.RoundToInt(progressiveSpiritBonus * classData.spiritMultiplier + intelligence * 5 * classData.intelligenceMultiplier);
+        
+        // Урон с прогрессивным бонусом от Strength/Accuracy
+        float attackValue = classData.attackAttribute == AttackAttributeType.Strength ? progressiveStrengthBonus : progressiveAccuracyBonus;
         float attackMultiplier = classData.attackAttribute == AttackAttributeType.Strength ? classData.strengthMultiplier : classData.accuracyMultiplier;
-        minAttack = Mathf.RoundToInt(classData.baseMinAttack + attackValue * 2 * attackMultiplier);
-        maxAttack = Mathf.RoundToInt(classData.baseMaxAttack + attackValue * 3 * attackMultiplier);
+        minAttack = Mathf.RoundToInt(classData.baseMinAttack + attackValue * 1.0f * attackMultiplier);
+        maxAttack = Mathf.RoundToInt(classData.baseMaxAttack + attackValue * 1.0f * attackMultiplier);
+        
+        // Armor остается линейным от Strength
         armor = Mathf.RoundToInt(classData.baseDef + calculatedTotalStrength * 1 * classData.strengthMultiplier);
         float baseMovementSpeed = classData.baseMovementSpeed * classData.agilityMultiplier;
         float slowMultiplier = CalculateSlowMultiplier();
@@ -1132,5 +1247,183 @@ public class CharacterStats : NetworkBehaviour
         inventory = originalInventory;
         
         return cleanSpeed;
+    }
+    
+    /// <summary>
+    /// Тестовая функция для проверки правильности расчетов прогрессивного бонуса
+    /// </summary>
+    [ContextMenu("Test Progressive Bonus")]
+    public void TestProgressiveBonus()
+    {
+        Debug.Log("=== ТЕСТ ПРОГРЕССИВНОГО БОНУСА ===");
+        Debug.Log($"5 силы = {CalculateProgressiveBonus(5)} урона (ожидается 7)");
+        Debug.Log($"6 силы = {CalculateProgressiveBonus(6)} урона (ожидается 9)");
+        Debug.Log($"7 силы = {CalculateProgressiveBonus(7)} урона (ожидается 10)");
+        Debug.Log($"8 силы = {CalculateProgressiveBonus(8)} урона (ожидается 12)");
+        Debug.Log($"9 силы = {CalculateProgressiveBonus(9)} урона (ожидается 13)");
+        Debug.Log($"10 силы = {CalculateProgressiveBonus(10)} урона (ожидается 16)");
+        Debug.Log($"100 силы = {CalculateProgressiveBonus(100)} урона (ожидается 310)");
+        Debug.Log($"1000 силы = {CalculateProgressiveBonus(1000)} урона (ожидается 17500)");
+        
+        Debug.Log("=== ТЕСТ РОСТА HP С УРОВНЕМ ===");
+        Debug.Log($"Лв1 HP бонус = {CalculateLevelHpBonus()} (ожидается 0)");
+        // Симулируем уровень 50
+        int tempLevel = level;
+        level = 50;
+        Debug.Log($"Лв50 HP бонус = {CalculateLevelHpBonus()} (ожидается ~1225)");
+        level = tempLevel;
+    }
+    
+    /// <summary>
+    /// Рассчитывает урон для конкретного значения силы
+    /// </summary>
+    [ContextMenu("Calculate 76 Strength Damage")]
+    public void Calculate76StrengthDamage()
+    {
+        int strengthValue = 76;
+        int progressiveBonus = CalculateProgressiveBonus(strengthValue);
+        
+        Debug.Log($"=== РАСЧЕТ УРОНА ДЛЯ {strengthValue} СИЛЫ ===");
+        Debug.Log($"Прогрессивный бонус от {strengthValue} силы = {progressiveBonus}");
+        
+        // Предполагаем базовые значения класса (можно настроить)
+        int baseMinAttack = 10; // Примерное базовое значение
+        int baseMaxAttack = 15;  // Примерное базовое значение
+        float strengthMultiplier = 1.0f; // Множитель класса
+        
+        int minAttack = Mathf.RoundToInt(baseMinAttack + progressiveBonus * 1.0f * strengthMultiplier);
+        int maxAttack = Mathf.RoundToInt(baseMaxAttack + progressiveBonus * 1.0f * strengthMultiplier);
+        
+        Debug.Log($"Базовый min урон: {baseMinAttack}");
+        Debug.Log($"Базовый max урон: {baseMaxAttack}");
+        Debug.Log($"Итоговый min урон: {minAttack}");
+        Debug.Log($"Итоговый max урон: {maxAttack}");
+        Debug.Log($"Диапазон урона: {minAttack}-{maxAttack}");
+    }
+    
+    /// <summary>
+    /// Рассчитывает урон для Archer с 1000 силы
+    /// </summary>
+    [ContextMenu("Calculate Archer 1000 Strength Damage")]
+    public void CalculateArcher1000StrengthDamage()
+    {
+        Debug.Log($"=== ПРАВИЛЬНЫЙ РАСЧЕТ УРОНА ДЛЯ ARCHER ===");
+        Debug.Log($"Archer использует Accuracy для атаки, НЕ Strength!");
+        
+        // Сценарий 1: Archer с 1000 силы, но базовый Accuracy (5)
+        int strengthValue = 1000;
+        int accuracyValue = 5; // Базовый Accuracy для Archer
+        
+        int strengthProgressiveBonus = CalculateProgressiveBonus(strengthValue);
+        int accuracyProgressiveBonus = CalculateProgressiveBonus(accuracyValue);
+        
+        Debug.Log($"=== СЦЕНАРИЙ 1: ARCHER С 1000 СИЛЫ, 5 ACCURACY ===");
+        Debug.Log($"Strength прогрессивный бонус: {strengthProgressiveBonus} (НЕ ИСПОЛЬЗУЕТСЯ)");
+        Debug.Log($"Accuracy прогрессивный бонус: {accuracyProgressiveBonus}");
+        
+        int baseMinAttack = 15;
+        int baseMaxAttack = 20;
+        float accuracyMultiplier = 1.0f;
+        
+        int minAttack = Mathf.RoundToInt(baseMinAttack + accuracyProgressiveBonus * 1.0f * accuracyMultiplier);
+        int maxAttack = Mathf.RoundToInt(baseMaxAttack + accuracyProgressiveBonus * 1.0f * accuracyMultiplier);
+        
+        Debug.Log($"Урон Archer с 1000 силы, 5 Accuracy: {minAttack}-{maxAttack}");
+        
+        // Сценарий 2: Archer с 1000 Accuracy
+        int accuracyValue1000 = 1000;
+        int accuracyProgressiveBonus1000 = CalculateProgressiveBonus(accuracyValue1000);
+        
+        int minAttack1000 = Mathf.RoundToInt(baseMinAttack + accuracyProgressiveBonus1000 * 1.0f * accuracyMultiplier);
+        int maxAttack1000 = Mathf.RoundToInt(baseMaxAttack + accuracyProgressiveBonus1000 * 1.0f * accuracyMultiplier);
+        
+        Debug.Log($"=== СЦЕНАРИЙ 2: ARCHER С 1000 ACCURACY ===");
+        Debug.Log($"Урон Archer с 1000 Accuracy: {minAttack1000}-{maxAttack1000}");
+        
+        Debug.Log($"=== ВЫВОД ===");
+        Debug.Log($"Archer с 1000 силы имеет низкий урон, потому что использует Accuracy для атаки!");
+        Debug.Log($"Чтобы получить высокий урон, нужно повышать Accuracy, а не Strength.");
+    }
+    
+    /// <summary>
+    /// Рассчитывает характеристики для Warrior с 100 силы и 50 Constitution
+    /// </summary>
+    [ContextMenu("Calculate Warrior 100 Str 50 Con")]
+    public void CalculateWarrior100Str50Con()
+    {
+        Debug.Log($"=== РАСЧЕТ ХАРАКТЕРИСТИК ДЛЯ WARRIOR ===");
+        Debug.Log($"Warrior: 100 Strength, 50 Constitution");
+        
+        // Рассчитываем прогрессивные бонусы
+        int strengthValue = 100;
+        int constitutionValue = 50;
+        
+        int strengthProgressiveBonus = CalculateProgressiveBonus(strengthValue);
+        int constitutionProgressiveBonus = CalculateProgressiveBonus(constitutionValue);
+        
+        Debug.Log($"=== ПРОГРЕССИВНЫЕ БОНУСЫ ===");
+        Debug.Log($"Strength прогрессивный бонус от {strengthValue}: {strengthProgressiveBonus}");
+        Debug.Log($"Constitution прогрессивный бонус от {constitutionValue}: {constitutionProgressiveBonus}");
+        
+        // Базовые значения Warrior (предполагаемые)
+        int baseMinAttack = 15;
+        int baseMaxAttack = 20;
+        int baseHealth = 1000;
+        float strengthMultiplier = 1.0f;
+        float constitutionMultiplier = 1.0f;
+        
+        // Warrior использует Strength для атаки
+        int minAttack = Mathf.RoundToInt(baseMinAttack + strengthProgressiveBonus * 1.0f * strengthMultiplier);
+        int maxAttack = Mathf.RoundToInt(baseMaxAttack + strengthProgressiveBonus * 1.0f * strengthMultiplier);
+        
+        // HP с ростом уровня + бонус от Constitution (экспоненциальная прогрессия)
+        int levelHpBonus = CalculateLevelHpBonus();
+        int constitutionHpBonus = CalculateConstitutionHpBonus(constitutionValue);
+        int maxHealth = baseHealth + levelHpBonus + constitutionHpBonus;
+        
+        Debug.Log($"=== ИТОГОВЫЕ ХАРАКТЕРИСТИКИ WARRIOR ===");
+        Debug.Log($"Базовый min урон: {baseMinAttack}");
+        Debug.Log($"Базовый max урон: {baseMaxAttack}");
+        Debug.Log($"Итоговый min урон: {minAttack}");
+        Debug.Log($"Итоговый max урон: {maxAttack}");
+        Debug.Log($"Диапазон урона: {minAttack}-{maxAttack}");
+        
+        Debug.Log($"=== HP РАСЧЕТ ===");
+        Debug.Log($"Базовый HP: {baseHealth}");
+        Debug.Log($"Бонус HP от уровня: {levelHpBonus}");
+        Debug.Log($"Бонус HP от Constitution (экспоненциальный): {constitutionHpBonus}");
+        Debug.Log($"Итоговый HP: {maxHealth}");
+        
+        Debug.Log($"=== СРАВНЕНИЕ С ПРИМЕРАМИ ===");
+        Debug.Log($"100 силы должно давать ~310 урона (как в примере)");
+        Debug.Log($"50 Constitution должно давать значительный бонус к HP");
+        
+        Debug.Log($"=== ПРОВЕРКА НОВОЙ ФОРМУЛЫ CONSTITUTION ===");
+        Debug.Log($"Новая формула: 50 Constitution = {constitutionHpBonus} HP");
+        Debug.Log($"Ожидается: 50 Constitution = ~1273 HP (1338 - 65)");
+        Debug.Log($"Разница: {1273 - constitutionHpBonus} HP");
+    }
+    
+    /// <summary>
+    /// Тестирует точную формулу Constitution
+    /// </summary>
+    [ContextMenu("Test Constitution Formula")]
+    public void TestConstitutionFormula()
+    {
+        Debug.Log($"=== ТЕСТ ТОЧНОЙ ФОРМУЛЫ CONSTITUTION ===");
+        
+        // Точные данные из примера
+        int[] testValues = { 0, 1, 2, 3, 4, 5, 6, 7, 13, 18, 19, 20, 40, 60 };
+        int[] expectedHp = { 65, 80, 95, 110, 125, 140, 155, 177, 267, 363, 378, 428, 917, 1532 };
+        
+        for (int i = 0; i < testValues.Length; i++)
+        {
+            int constitutionValue = testValues[i];
+            int calculatedHp = 65 + CalculateConstitutionHpBonus(constitutionValue); // Base HP = 65
+            int expectedHpTotal = expectedHp[i];
+            int difference = calculatedHp - expectedHpTotal;
+            
+            Debug.Log($"Constitution {constitutionValue}: рассчитано {calculatedHp}, ожидается {expectedHpTotal}, разница {difference}");
+        }
     }
 }

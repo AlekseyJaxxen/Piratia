@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6783aa84a740ec84aaa67e602fe30424, type: 3}
+  m_Name: Magic_5
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterInfo
+  monsterName: MagicMonster_Lv5
+  moveSpeed: 1.44
+  attackCooldown: 2.5
+  deathVFXPrefab: {fileID: 0}
+  canMove: 1
+  canAttack: 1
+  slowEffectPrefab: {fileID: 0}
+  experienceReward: 27
+  dropTable: []
+  droppedItemPrefab: {fileID: 0}
+  useGeneratedItems: 0
+  itemGenerator: {fileID: 0}
+  generatedDropTable: []
+  maxHealth: 84
+  basicAttackSkill: {fileID: 11400000, guid: 7bbed8c6ef038aa418d85853fbc14319, type: 2}
+  hitRate: 29
+  dodge: 32
+  minAttack: 28
+  maxAttack: 34
+  defense: 21
+  physicalResistance: 6
+  attackRange: 2
+  physicsModel: {fileID: 0}
+  minForce: {x: -5, y: 2, z: -5}
+  maxForce: {x: 5, y: 5, z: 0}
+  scaleBoxCollider: 1
+  boxColliderScale: {x: 1, y: 1.2, z: 1}
+  isElite: 0
+  eliteStatMultiplier: 1.5
+  eliteModelScale: 1.5
+  monsterId: 9332
+  aiType: AI2
+  modelPrefab: {fileID: 0}
+  useTemporaryBox: 1
+  boxType: 2
+  boxColor: {r: 1, g: 0, b: 1, a: 1}
+  boxSize: {x: 1, y: 1.2, z: 1}
+  isCombined: 0
+  legsInfo: {fileID: 0}
+  headAttackRange: 200
+  legsAttackRange: 160
+  patrolRadius: 6
+  chaseTimeout: 35
+  detectionRange: 18
+  playerLayer:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  monsterSkills: []

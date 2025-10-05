@@ -1,6 +1,14 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+public enum MonsterBoxType
+{
+    Tank,        // Синий - толстый моб
+    Fast,        // Красный - быстрый моб
+    Magic,       // Фиолетовый - магический моб
+    Ranged       // Желтый - дальний моб
+}
+
 [System.Serializable]
 public class GeneratedDropEntry
 {
@@ -37,6 +45,11 @@ public class MonsterInfo : ScriptableObject
     [Header("Combat Stats")]
     public int hitRate = 10; // Hit rate for this monster
     public int dodge = 10; // Dodge for this monster
+    public int minAttack = 10; // Минимальный урон монстра
+    public int maxAttack = 15; // Максимальный урон монстра
+    public int defense = 5; // Защита монстра
+    public int physicalResistance = 3; // Физическая защита монстра
+    public float attackRange = 2f; // Дальность атаки монстра
     
     [Header("Physics Settings")]
     public GameObject physicsModel;
@@ -54,6 +67,13 @@ public class MonsterInfo : ScriptableObject
     public int monsterId;
     public string aiType = "AI2"; // "AI2" ��� "AI3"
     public GameObject modelPrefab;
+    
+    [Header("Temporary Box Settings")]
+    public bool useTemporaryBox = false; // Если true, создает временный box вместо modelPrefab
+    public MonsterBoxType boxType = MonsterBoxType.Tank; // Тип box для создания
+    public Color boxColor = Color.white; // Цвет box
+    public Vector3 boxSize = Vector3.one; // Размер box
+    
     [Header("Combined Settings")]
     public bool isCombined = false;
     public MonsterInfo legsInfo;

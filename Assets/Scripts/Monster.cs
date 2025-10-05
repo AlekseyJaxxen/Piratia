@@ -1153,7 +1153,17 @@ public class Monster : NetworkBehaviour
 
         // КРИТИЧНО: Создаем модель монстра на сервере для инициализации анимационных компонентов
         // Это необходимо для корректной работы анимаций в Server Only режиме
-        if (info.modelPrefab != null)
+        if (info.useTemporaryBox)
+        {
+            // Создаем временный box вместо модели
+            GameObject temporaryBox = CreateTemporaryBox(info);
+            if (temporaryBox != null)
+            {
+                temporaryBox.tag = "MonsterModel";
+                Debug.Log($"[Monster] Created temporary box for {monsterName}");
+            }
+        }
+        else if (info.modelPrefab != null)
         {
             GameObject model = Instantiate(info.modelPrefab, transform.position, transform.rotation, transform);
             if (info.isCombined)
@@ -1244,7 +1254,17 @@ public class Monster : NetworkBehaviour
             Debug.LogError($"[Monster] MonsterInfo not loaded for ID {monsterId}!");
             return;
         }
-        if (info.modelPrefab != null)
+        if (info.useTemporaryBox)
+        {
+            // Создаем временный box вместо модели
+            GameObject temporaryBox = CreateTemporaryBox(info);
+            if (temporaryBox != null)
+            {
+                temporaryBox.tag = "MonsterModel";
+                Debug.Log($"[Monster] Created temporary box for {monsterName} on client");
+            }
+        }
+        else if (info.modelPrefab != null)
         {
             GameObject model = Instantiate(info.modelPrefab, transform.position, transform.rotation, transform);
             if (info.isCombined)
@@ -1313,6 +1333,125 @@ public class Monster : NetworkBehaviour
             return db.monsters[monsterId - 1];
         }
         return null;
+    }
+    
+    /// <summary>
+    /// Создает временный box для монстра на основе MonsterInfo
+    /// </summary>
+    private GameObject CreateTemporaryBox(MonsterInfo monsterInfo)
+    {
+        // Создаем GameObject для box
+        GameObject boxObject = new GameObject($"{monsterInfo.monsterName}_TemporaryBox");
+        boxObject.transform.SetParent(transform);
+        boxObject.transform.localPosition = Vector3.zero;
+        
+        // Добавляем компоненты
+        MeshRenderer renderer = boxObject.AddComponent<MeshRenderer>();
+        MeshFilter meshFilter = boxObject.AddComponent<MeshFilter>();
+        
+        // Создаем куб
+        meshFilter.mesh = CreateCubeMesh();
+        
+        // Настраиваем материал
+        Material material = new Material(Shader.Find("Standard"));
+        material.color = monsterInfo.boxColor;
+        material.SetFloat("_Metallic", 0.3f);
+        material.SetFloat("_Smoothness", 0.7f);
+        renderer.material = material;
+        
+        // Масштабируем box
+        boxObject.transform.localScale = monsterInfo.boxSize;
+        
+        // Добавляем легкое свечение
+        Light light = boxObject.AddComponent<Light>();
+        light.type = LightType.Point;
+        light.color = monsterInfo.boxColor;
+        light.intensity = 0.5f;
+        light.range = 2f;
+        
+        // Добавляем текстовый индикатор
+        CreateTextIndicator(boxObject, monsterInfo);
+        
+        return boxObject;
+    }
+    
+    /// <summary>
+    /// Создает простую сетку куба
+    /// </summary>
+    private Mesh CreateCubeMesh()
+    {
+        Mesh mesh = new Mesh();
+        
+        // Вершины куба
+        Vector3[] vertices = new Vector3[]
+        {
+            // Передняя грань
+            new Vector3(-0.5f, -0.5f, 0.5f),
+            new Vector3(0.5f, -0.5f, 0.5f),
+            new Vector3(0.5f, 0.5f, 0.5f),
+            new Vector3(-0.5f, 0.5f, 0.5f),
+            
+            // Задняя грань
+            new Vector3(-0.5f, -0.5f, -0.5f),
+            new Vector3(0.5f, -0.5f, -0.5f),
+            new Vector3(0.5f, 0.5f, -0.5f),
+            new Vector3(-0.5f, 0.5f, -0.5f)
+        };
+        
+        // Треугольники
+        int[] triangles = new int[]
+        {
+            // Передняя грань
+            0, 1, 2, 0, 2, 3,
+            // Задняя грань
+            4, 6, 5, 4, 7, 6,
+            // Левая грань
+            4, 0, 3, 4, 3, 7,
+            // Правая грань
+            1, 5, 6, 1, 6, 2,
+            // Верхняя грань
+            3, 2, 6, 3, 6, 7,
+            // Нижняя грань
+            4, 1, 0, 4, 5, 1
+        };
+        
+        mesh.vertices = vertices;
+        mesh.triangles = triangles;
+        mesh.RecalculateNormals();
+        
+        return mesh;
+    }
+    
+    /// <summary>
+    /// Создает текстовый индикатор для временного box
+    /// </summary>
+    private void CreateTextIndicator(GameObject parent, MonsterInfo monsterInfo)
+    {
+        // Создаем объект для текста
+        GameObject textObject = new GameObject("MonsterInfoIndicator");
+        textObject.transform.SetParent(parent.transform);
+        textObject.transform.localPosition = Vector3.up * (monsterInfo.boxSize.y + 0.5f);
+        
+        // Создаем простой куб как индикатор
+        GameObject textMesh = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        textMesh.transform.SetParent(textObject.transform);
+        textMesh.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
+        textMesh.name = "InfoCube";
+        
+        // Настраиваем цвет текста
+        MeshRenderer textRenderer = textMesh.GetComponent<MeshRenderer>();
+        Material textMaterial = new Material(Shader.Find("Standard"));
+        textMaterial.color = Color.white;
+        textMaterial.SetFloat("_Metallic", 0f);
+        textMaterial.SetFloat("_Smoothness", 0f);
+        textRenderer.material = textMaterial;
+        
+        // Удаляем коллайдер у текста
+        Collider textCollider = textMesh.GetComponent<Collider>();
+        if (textCollider != null)
+        {
+            DestroyImmediate(textCollider);
+        }
     }
 
     private void OnMonsterIdChanged(int oldId, int newId)

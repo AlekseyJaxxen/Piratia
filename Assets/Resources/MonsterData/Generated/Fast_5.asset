@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6783aa84a740ec84aaa67e602fe30424, type: 3}
+  m_Name: Fast_5
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterInfo
+  monsterName: FastMonster_Lv5
+  moveSpeed: 4.9
+  attackCooldown: 1.0714285
+  deathVFXPrefab: {fileID: 0}
+  canMove: 1
+  canAttack: 1
+  slowEffectPrefab: {fileID: 0}
+  experienceReward: 27
+  dropTable: []
+  droppedItemPrefab: {fileID: 0}
+  useGeneratedItems: 0
+  itemGenerator: {fileID: 0}
+  generatedDropTable: []
+  maxHealth: 49
+  basicAttackSkill: {fileID: 11400000, guid: 7bbed8c6ef038aa418d85853fbc14319, type: 2}
+  hitRate: 32
+  dodge: 40
+  minAttack: 16
+  maxAttack: 19
+  defense: 10
+  physicalResistance: 3
+  attackRange: 1.2
+  physicsModel: {fileID: 0}
+  minForce: {x: -5, y: 2, z: -5}
+  maxForce: {x: 5, y: 5, z: 0}
+  scaleBoxCollider: 1
+  boxColliderScale: {x: 0.8, y: 0.8, z: 0.8}
+  isElite: 0
+  eliteStatMultiplier: 1.5
+  eliteModelScale: 1.5
+  monsterId: 8341
+  aiType: AI2
+  modelPrefab: {fileID: 0}
+  useTemporaryBox: 1
+  boxType: 1
+  boxColor: {r: 1, g: 0, b: 0, a: 1}
+  boxSize: {x: 0.8, y: 0.8, z: 0.8}
+  isCombined: 0
+  legsInfo: {fileID: 0}
+  headAttackRange: 120
+  legsAttackRange: 96
+  patrolRadius: 12
+  chaseTimeout: 20
+  detectionRange: 15
+  playerLayer:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  monsterSkills: []

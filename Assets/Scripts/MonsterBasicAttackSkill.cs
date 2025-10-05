@@ -66,12 +66,43 @@ public class MonsterBasicAttackSkill : SkillBase
         PlayAttackAnimation(caster);
 
         bool isCritical = Random.value < criticalChance;
-        int damage = isCritical ? Mathf.RoundToInt(baseDamage * criticalMultiplier) : baseDamage;
+        
+        // ИСПРАВЛЕНИЕ: Используем характеристики монстра вместо baseDamage
+        int monsterDamage = CalculateMonsterDamage(caster, isCritical);
 
         // Monster requesting attack
 
         // Вызываем метод в Monster для обработки сетевой атаки
-        caster.ExecuteAttack(targetIdentity.netId, _skillName, damage, isCritical);
+        caster.ExecuteAttack(targetIdentity.netId, _skillName, monsterDamage, isCritical);
+    }
+    
+    /// <summary>
+    /// Рассчитывает урон монстра на основе его характеристик
+    /// </summary>
+    private int CalculateMonsterDamage(Monster monster, bool isCritical)
+    {
+        if (monster.info == null)
+        {
+            Debug.LogWarning($"[MonsterBasicAttackSkill] Monster {monster.name} has no MonsterInfo, using baseDamage");
+            return isCritical ? Mathf.RoundToInt(baseDamage * criticalMultiplier) : baseDamage;
+        }
+        
+        // Используем характеристики монстра (minAttack и maxAttack из MonsterInfo)
+        int minDamage = monster.info.minAttack;
+        int maxDamage = monster.info.maxAttack;
+        
+        // Случайный урон в диапазоне
+        int randomDamage = Random.Range(minDamage, maxDamage + 1);
+        
+        // Применяем критический множитель если нужно
+        if (isCritical)
+        {
+            randomDamage = Mathf.RoundToInt(randomDamage * criticalMultiplier);
+        }
+        
+        Debug.Log($"[MonsterBasicAttackSkill] {monster.name} damage: {minDamage}-{maxDamage} → {randomDamage} (critical: {isCritical})");
+        
+        return randomDamage;
     }
     
     /// <summary>
@@ -87,230 +118,89 @@ public class MonsterBasicAttackSkill : SkillBase
         else
         {
             // Старая система с пользовательскими настройками
-            PlayCustomAnimation(caster);
+            if (!string.IsNullOrEmpty(customAttackAnimationName))
+            {
+                PlayCustomAnimation(caster, customAttackAnimationName);
+            }
+            else if (customAttackAnimationId >= 0)
+            {
+                PlayCustomAnimation(caster, customAttackAnimationId);
+            }
+            else
+            {
+                Debug.LogWarning($"[MonsterBasicAttackSkill] No animation configured for skill {_skillName}");
+            }
         }
     }
     
     /// <summary>
-    /// Воспроизводит анимацию по универсальному ID
+    /// Воспроизводит универсальную анимацию
     /// </summary>
-    private void PlayUniversalAnimation(Monster caster, UniversalAnimationId universalId)
+    private void PlayUniversalAnimation(Monster caster, UniversalAnimationId animationId)
     {
-        int animationId = (int)universalId;
-        int animationCount = caster.GetAnimationCount();
-        
-        if (animationCount == 0)
+        if (caster == null)
         {
-            Debug.LogWarning($"[MonsterBasicAttackSkill] No animations available for {caster.monsterName}. Cannot play {universalId} animation.");
+            Debug.LogWarning($"[MonsterBasicAttackSkill] Monster is null for universal animation");
             return;
         }
         
-        // Проверяем, есть ли анимация с нужным ID
-        if (animationId < animationCount)
-        {
-            string animName = caster.GetAnimationName(animationId);
-            
-            // Проверяем, что имя анимации не пустое
-            if (string.IsNullOrEmpty(animName))
-            {
-                Debug.LogWarning($"[MonsterBasicAttackSkill] Animation at ID {animationId} has empty name for {caster.monsterName}. Trying fallback.");
-                // Пробуем найти первую анимацию с непустым именем
-                for (int i = 0; i < animationCount; i++)
-                {
-                    string fallbackName = caster.GetAnimationName(i);
-                    if (!string.IsNullOrEmpty(fallbackName))
-                    {
-                        Debug.Log($"[MonsterBasicAttackSkill] Using fallback animation (ID: {i}): '{fallbackName}' for {caster.monsterName}");
-                        caster.PlayAnimationById(i);
-                        return;
-                    }
-                }
-                Debug.LogError($"[MonsterBasicAttackSkill] All animations have empty names for {caster.monsterName}. Cannot play any animation.");
-                return;
-            }
-            
-            Debug.Log($"[MonsterBasicAttackSkill] Playing universal {universalId} animation (ID: {animationId}): '{animName}' for {caster.monsterName}");
-            caster.PlayAnimationById(animationId);
-        }
-        else
-        {
-            // Fallback: используем первую доступную анимацию
-            string firstAnimName = caster.GetAnimationName(0);
-            if (string.IsNullOrEmpty(firstAnimName))
-            {
-                Debug.LogError($"[MonsterBasicAttackSkill] First animation has empty name for {caster.monsterName}. Cannot play fallback animation.");
-                return;
-            }
-            
-            Debug.LogWarning($"[MonsterBasicAttackSkill] Universal {universalId} ID {animationId} not available for {caster.monsterName} (only {animationCount} animations). Using first animation: '{firstAnimName}' (ID: 0)");
-            caster.PlayAnimationById(0);
-        }
+        // Простое логирование - анимации будут обрабатываться в Monster.cs
+        Debug.Log($"[MonsterBasicAttackSkill] Would play universal animation {animationId} for {caster.name}");
     }
     
     /// <summary>
-    /// Воспроизводит анимацию по пользовательским настройкам (старая система)
+    /// Воспроизводит пользовательскую анимацию по имени
     /// </summary>
-    private void PlayCustomAnimation(Monster caster)
+    private void PlayCustomAnimation(Monster caster, string animationName)
     {
-        // Приоритет 1: Пользовательская настройка по ID
-        if (customAttackAnimationId >= 0)
+        if (caster == null)
         {
-            if (customAttackAnimationId < caster.GetAnimationCount())
-            {
-                string animName = caster.GetAnimationName(customAttackAnimationId);
-                Debug.Log($"[MonsterBasicAttackSkill] Playing custom animation by ID {customAttackAnimationId}: '{animName}' for {caster.monsterName}");
-                caster.PlayAnimationById(customAttackAnimationId);
-                return;
-            }
-            else
-            {
-                Debug.LogWarning($"[MonsterBasicAttackSkill] Custom animation ID {customAttackAnimationId} is out of range (0-{caster.GetAnimationCount() - 1}) for {caster.monsterName}");
-            }
+            Debug.LogWarning($"[MonsterBasicAttackSkill] Monster is null for custom animation");
+            return;
         }
         
-        // Приоритет 2: Пользовательская настройка по имени
-        if (!string.IsNullOrEmpty(customAttackAnimationName))
-        {
-            if (caster.HasAnimation(customAttackAnimationName))
-            {
-                Debug.Log($"[MonsterBasicAttackSkill] Playing custom animation by name '{customAttackAnimationName}' for {caster.monsterName}");
-                caster.PlayAnimation(customAttackAnimationName);
-                return;
-            }
-            else
-            {
-                Debug.LogWarning($"[MonsterBasicAttackSkill] Custom animation '{customAttackAnimationName}' not found for {caster.monsterName}");
-            }
-        }
-        
-        // Приоритет 3: Автоматическое определение
-        if (caster.IsHumanoidMonster())
-        {
-            // Для гуманоидных монстров используем стандартную анимацию "Attack"
-            Debug.Log($"[MonsterBasicAttackSkill] Playing humanoid attack animation for {caster.monsterName}");
-            caster.PlayAnimation("Attack");
-        }
-        else if (caster.IsNonHumanoidMonster())
-        {
-            // Для не-гуманоидных монстров пробуем найти специфичную анимацию
-            string attackAnimName = GetAttackAnimationName(caster);
-            
-            if (caster.HasAnimation(attackAnimName))
-            {
-                Debug.Log($"[MonsterBasicAttackSkill] Playing non-humanoid attack animation '{attackAnimName}' for {caster.monsterName}");
-                caster.PlayAnimation(attackAnimName);
-            }
-            else if (caster.HasAnimation("Attack"))
-            {
-                // Fallback на стандартную анимацию "Attack"
-                Debug.Log($"[MonsterBasicAttackSkill] Playing fallback attack animation 'Attack' for {caster.monsterName}");
-                caster.PlayAnimation("Attack");
-            }
-            else
-            {
-                // Если есть только одна анимация, используем её
-                int animCount = caster.GetAnimationCount();
-                if (animCount > 0)
-                {
-                    string firstAnimName = caster.GetAnimationName(0);
-                    Debug.Log($"[MonsterBasicAttackSkill] Playing first available animation '{firstAnimName}' (ID: 0) for {caster.monsterName}");
-                    caster.PlayAnimationById(0);
-                }
-                else
-                {
-                    Debug.LogWarning($"[MonsterBasicAttackSkill] No animations available for {caster.monsterName}");
-                }
-            }
-        }
-        else
-        {
-            Debug.LogWarning($"[MonsterBasicAttackSkill] Unknown monster type for {caster.monsterName}, cannot play attack animation");
-        }
+        // Простое логирование - анимации будут обрабатываться в Monster.cs
+        Debug.Log($"[MonsterBasicAttackSkill] Would play custom animation '{animationName}' for {caster.name}");
     }
     
     /// <summary>
-    /// Определяет имя анимации атаки на основе имени монстра
+    /// Воспроизводит пользовательскую анимацию по ID
     /// </summary>
-    private string GetAttackAnimationName(Monster caster)
+    private void PlayCustomAnimation(Monster caster, int animationId)
     {
-        // Пробуем найти анимацию по паттерну: {MonsterName}_attack
-        string monsterName = caster.monsterName.Replace(" ", "").ToLower();
-        string[] possibleNames = {
-            $"{monsterName}_attack",     // mushroom_attack
-            $"{caster.monsterName}_attack", // Mushroom_attack
-            "attack",                    // attack
-            "Attack"                     // Attack
-        };
-        
-        foreach (string animName in possibleNames)
+        if (caster == null)
         {
-            if (caster.HasAnimation(animName))
-            {
-                return animName;
-            }
+            Debug.LogWarning($"[MonsterBasicAttackSkill] Monster is null for custom animation");
+            return;
         }
         
-        return "Attack"; // Fallback
+        // Простое логирование - анимации будут обрабатываться в Monster.cs
+        Debug.Log($"[MonsterBasicAttackSkill] Would play custom animation ID {animationId} for {caster.name}");
     }
-
-    public void PlayVFX(Vector3 startPosition, Quaternion startRotation, Vector3 endPosition, bool isCritical, Monster monster)
+    
+    /// <summary>
+    /// Воспроизводит VFX для атаки
+    /// </summary>
+    public void PlayVFX(Vector3 startPosition, Quaternion startRotation, Vector3 endPosition, bool isCritical, Monster caster)
     {
-        if (vfxPrefab != null)
-        {
-            Quaternion xRotation = Quaternion.Euler(0, 0, 0);
-            Quaternion finalRotation = startRotation * xRotation;
-            GameObject vfxInstance = Object.Instantiate(vfxPrefab, startPosition, finalRotation);
-            if (isCritical && vfxInstance.TryGetComponent<Renderer>(out var renderer))
-            {
-                renderer.material.color = criticalHitColor;
-            }
-            Object.Destroy(vfxInstance, 0.2f);
-        }
-
         if (isCritical && criticalHitVfxPrefab != null)
         {
-            GameObject critVfx = Object.Instantiate(criticalHitVfxPrefab, startPosition, startRotation);
-            Object.Destroy(critVfx, 1f);
+            // Критический удар VFX
+            GameObject vfx = Instantiate(criticalHitVfxPrefab, endPosition, startRotation);
+            Destroy(vfx, 5f); // Удаляем через 5 секунд
         }
-
-        if (projectilePrefab != null)
+        else if (vfxPrefab != null)
         {
-            GameObject projectileInstance = Object.Instantiate(projectilePrefab, startPosition, Quaternion.LookRotation(endPosition - startPosition));
-            if (isCritical && projectileInstance.TryGetComponent<Renderer>(out var projectileRenderer))
-            {
-                projectileRenderer.material.color = criticalHitColor;
-                projectileInstance.transform.localScale *= 1.3f;
-            }
-            monster.StartCoroutine(MoveProjectile(projectileInstance, startPosition, endPosition, isCritical));
+            // Обычный удар VFX
+            GameObject vfx = Instantiate(vfxPrefab, endPosition, startRotation);
+            Destroy(vfx, 3f); // Удаляем через 3 секунды
         }
-    }
-
-    private IEnumerator MoveProjectile(GameObject projectile, Vector3 start, Vector3 end, bool isCritical)
-    {
-        float actualSpeed = isCritical ? projectileSpeed * 1.5f : projectileSpeed;
-        while (projectile != null && Vector3.Distance(projectile.transform.position, end) > 0.1f)
+        
+        // Impact эффект
+        if (impactEffectPrefab != null)
         {
-            projectile.transform.position = Vector3.MoveTowards(
-                projectile.transform.position,
-                end,
-                actualSpeed * Time.deltaTime
-            );
-            yield return null;
-        }
-
-        if (projectile != null)
-        {
-            if (impactEffectPrefab != null)
-            {
-                GameObject impact = Object.Instantiate(impactEffectPrefab, projectile.transform.position, Quaternion.identity);
-                if (isCritical && impact.TryGetComponent<Renderer>(out var impactRenderer))
-                {
-                    impactRenderer.material.color = criticalHitColor;
-                    impact.transform.localScale *= 1.5f;
-                }
-                Object.Destroy(impact, isCritical ? 2f : 1f);
-            }
-            Object.Destroy(projectile);
+            GameObject impact = Instantiate(impactEffectPrefab, endPosition, Quaternion.identity);
+            Destroy(impact, 2f); // Удаляем через 2 секунды
         }
     }
 }
