@@ -35,6 +35,7 @@ public struct AggroEntry
 public class Monster : NetworkBehaviour
 {
     [SyncVar(hook = nameof(OnMonsterIdChanged))] public int monsterId;
+    [SyncVar] public bool isElite = false;
     public MonsterInfo info;
     [Header("Monster Settings")]
     [SyncVar(hook = nameof(OnNameChanged))] public string monsterName = "Monster";
@@ -1056,13 +1057,32 @@ public class Monster : NetworkBehaviour
             return;
         }
         monsterName = info.monsterName;
-        moveSpeed = info.moveSpeed;
-        attackCooldown = info.attackCooldown;
+        
+        // Добавляем префикс [Elite] к имени
+        if (isElite)
+        {
+            monsterName = "[Elite] " + monsterName;
+        }
+        
+        // Применяем Elite модификаторы если монстр Elite
+        if (isElite)
+        {
+            moveSpeed = info.moveSpeed * info.eliteStatMultiplier;
+            attackCooldown = info.attackCooldown / info.eliteStatMultiplier; // Быстрее атакует
+            experienceReward = Mathf.RoundToInt(info.experienceReward * info.eliteStatMultiplier);
+            Debug.Log($"[Monster] Elite monster {monsterName} - stats multiplied by {info.eliteStatMultiplier}");
+        }
+        else
+        {
+            moveSpeed = info.moveSpeed;
+            attackCooldown = info.attackCooldown;
+            experienceReward = info.experienceReward;
+        }
+        
         deathVFXPrefab = info.deathVFXPrefab;
         canMove = info.canMove;
         canAttack = info.canAttack;
         slowEffectPrefab = info.slowEffectPrefab;
-        experienceReward = info.experienceReward;
         dropTable = info.dropTable;
         droppedItemPrefab = info.droppedItemPrefab;
         // stoppingDistance теперь вычисляется динамически в MonsterAI2
@@ -1093,12 +1113,22 @@ public class Monster : NetworkBehaviour
         }
         if (droppedItemPrefab == null)
             Debug.LogWarning("[Monster] DroppedItemPrefab not set!");
-        _health.MaxHealth = info.maxHealth;
-        _health.CurrentHealth = info.maxHealth;
         
-        // Initialize combat stats
-        hitRate = info.hitRate;
-        dodge = info.dodge;
+        // Применяем Elite модификаторы к здоровью и характеристикам
+        if (isElite)
+        {
+            _health.MaxHealth = Mathf.RoundToInt(info.maxHealth * info.eliteStatMultiplier);
+            _health.CurrentHealth = _health.MaxHealth;
+            hitRate = Mathf.RoundToInt(info.hitRate * info.eliteStatMultiplier);
+            dodge = Mathf.RoundToInt(info.dodge * info.eliteStatMultiplier);
+        }
+        else
+        {
+            _health.MaxHealth = info.maxHealth;
+            _health.CurrentHealth = info.maxHealth;
+            hitRate = info.hitRate;
+            dodge = info.dodge;
+        }
 
         // Инициализируем аггро систему для нового монстра
         damageDealers.Clear();
@@ -1136,6 +1166,44 @@ public class Monster : NetworkBehaviour
             }
             // Добавляем tag для легкого поиска
             model.tag = "MonsterModel";
+            
+            // Масштабируем модель для Elite монстров
+            if (isElite)
+            {
+                model.transform.localScale = Vector3.one * info.eliteModelScale;
+                Debug.Log($"[Monster] Elite model scaled for {monsterName}: {info.eliteModelScale}");
+            }
+            
+            // Масштабируем BoxCollider если нужно
+            if (info.scaleBoxCollider)
+            {
+                BoxCollider boxCollider = GetComponent<BoxCollider>();
+                if (boxCollider != null)
+                {
+                    Vector3 finalScale = info.boxColliderScale;
+                    // Если монстр Elite, дополнительно масштабируем коллайдер
+                    if (isElite)
+                    {
+                        finalScale *= info.eliteModelScale;
+                    }
+                    boxCollider.size = Vector3.Scale(boxCollider.size, finalScale);
+                    Debug.Log($"[Monster] Scaled BoxCollider for {monsterName}: {finalScale}");
+                }
+                else
+                {
+                    Debug.LogWarning($"[Monster] BoxCollider not found on {monsterName} for scaling");
+                }
+            }
+            else if (isElite)
+            {
+                // Если не масштабируем коллайдер специально, но монстр Elite - масштабируем по модели
+                BoxCollider boxCollider = GetComponent<BoxCollider>();
+                if (boxCollider != null)
+                {
+                    boxCollider.size = Vector3.Scale(boxCollider.size, Vector3.one * info.eliteModelScale);
+                    Debug.Log($"[Monster] Elite BoxCollider auto-scaled for {monsterName}: {info.eliteModelScale}");
+                }
+            }
             
             // Инициализируем анимационные компоненты на сервере
             InitializeAnimationComponentsFromModel(model);
@@ -1189,6 +1257,44 @@ public class Monster : NetworkBehaviour
             }
             // Добавляем tag для легкого поиска
             model.tag = "MonsterModel";
+            
+            // Масштабируем модель для Elite монстров
+            if (isElite)
+            {
+                model.transform.localScale = Vector3.one * info.eliteModelScale;
+                Debug.Log($"[Monster] Elite model scaled for {monsterName} on client: {info.eliteModelScale}");
+            }
+            
+            // Масштабируем BoxCollider если нужно
+            if (info.scaleBoxCollider)
+            {
+                BoxCollider boxCollider = GetComponent<BoxCollider>();
+                if (boxCollider != null)
+                {
+                    Vector3 finalScale = info.boxColliderScale;
+                    // Если монстр Elite, дополнительно масштабируем коллайдер
+                    if (isElite)
+                    {
+                        finalScale *= info.eliteModelScale;
+                    }
+                    boxCollider.size = Vector3.Scale(boxCollider.size, finalScale);
+                    Debug.Log($"[Monster] Scaled BoxCollider for {monsterName} on client: {finalScale}");
+                }
+                else
+                {
+                    Debug.LogWarning($"[Monster] BoxCollider not found on {monsterName} for scaling on client");
+                }
+            }
+            else if (isElite)
+            {
+                // Если не масштабируем коллайдер специально, но монстр Elite - масштабируем по модели
+                BoxCollider boxCollider = GetComponent<BoxCollider>();
+                if (boxCollider != null)
+                {
+                    boxCollider.size = Vector3.Scale(boxCollider.size, Vector3.one * info.eliteModelScale);
+                    Debug.Log($"[Monster] Elite BoxCollider auto-scaled for {monsterName} on client: {info.eliteModelScale}");
+                }
+            }
             
             // Инициализируем анимационные компоненты из модели
             InitializeAnimationComponentsFromModel(model);

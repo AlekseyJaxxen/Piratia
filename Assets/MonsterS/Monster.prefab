@@ -63,6 +63,9 @@ MonoBehaviour:
   hitRate: 10
   dodge: 10
   aggroTargetNetId: 0
+  corpseVisibilityTime: 10
+  corpseFadeStartTime: 8
+  corpseFadeDuration: 2
   IsDead: 0
   IsStunned: 0
   IsSilenced: 0

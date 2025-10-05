@@ -9,26 +9,26 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7d7f7ae7c1addd747aebb713dd34b8c5, type: 3}
-  m_Name: AttackOnTitanSword
-  m_EditorClassIdentifier: Assembly-CSharp::SwordItem
-  itemName: Saw
+  m_Script: {fileID: 11500000, guid: f5084ebae5884ea4b93470ef99cc0926, type: 3}
+  m_Name: Bow
+  m_EditorClassIdentifier: Assembly-CSharp::BowItem
+  itemName: New Item
   originalName: 
-  id: 7
-  icon: {fileID: 21300000, guid: 32755480142b639408225f9c45b34916, type: 3}
-  dropModelPrefab: {fileID: 919132149155446097, guid: 23f44c9e41fbdf44f84fe58679fcf847,
+  id: 11
+  icon: {fileID: 21300000, guid: a79370808d6b84245a97a739958f5fa1, type: 3}
+  dropModelPrefab: {fileID: 919132149155446097, guid: 35c941705e1b5694d9c8577756ef5560,
     type: 3}
   itemType: 2
-  equipmentSlot: 4
+  equipmentSlot: 5
   alternativeSlot: 5
-  primaryDisplaySlot: 0
+  primaryDisplaySlot: 5
   maxStack: 1
   canDrop: 1
   canSell: 1
   canUse: 0
   canHotbar: 0
-  isTwoHanded: 0
-  preferRightHand: 1
+  isTwoHanded: 1
+  preferRightHand: 0
   chestData: {fileID: 0}
   strengthBonus: 0
   agilityBonus: 0
@@ -41,32 +41,32 @@ MonoBehaviour:
   damageChanceBonus: 0
   useDynamicStats: 1
   minDamageRange:
-    minValue: 100
-    maxValue: 120
+    minValue: 200
+    maxValue: 210
     chance: 1
   maxDamageRange:
-    minValue: 120
-    maxValue: 130
+    minValue: 220
+    maxValue: 230
     chance: 1
   strengthRange:
     minValue: 0
-    maxValue: 5
+    maxValue: 0
     chance: 1
   agilityRange:
     minValue: 0
-    maxValue: 5
+    maxValue: 6
     chance: 1
   spiritRange:
     minValue: 0
-    maxValue: 5
+    maxValue: 0
     chance: 1
   constitutionRange:
     minValue: 0
-    maxValue: 5
+    maxValue: 6
     chance: 1
   accuracyRange:
     minValue: 0
-    maxValue: 5
+    maxValue: 10
     chance: 1
   healthRange:
     minValue: 0
@@ -93,8 +93,8 @@ MonoBehaviour:
     maxValue: 0
     chance: 1
   movementSpeedRange:
-    minValue: 0
-    maxValue: 0
+    minValue: 1
+    maxValue: 2
     chance: 1
   hpRecoveryRange:
     minValue: 0
@@ -112,13 +112,13 @@ MonoBehaviour:
     minValue: 0
     maxValue: 0
     chance: 1
-  rarity: 2
+  rarity: 0
   requiredLevel: 1
-  characterClass: 4
+  characterClass: 2
   skillEffect: {fileID: 0}
   castRange: 5
-  model1: ItemModels/Saw
-  boneName: RightHandWeapon
+  model1: ItemModels/Bow
+  boneName: LeftHandWeapon
   alternativeBoneName: LeftHandWeapon
   modelRotation: {x: 0, y: 0, z: 0, w: 1}
   modelScale: {x: 1, y: 1, z: 1}
@@ -183,4 +183,4 @@ MonoBehaviour:
   description: 
   itemLevel: 0
   remark: 
-  weaponType: 1
+  weaponType: 3

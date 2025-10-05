@@ -42,6 +42,15 @@ public class MonsterInfo : ScriptableObject
     public GameObject physicsModel;
     public Vector3 minForce = new Vector3(-5f, 2f, -5f);
     public Vector3 maxForce = new Vector3(5f, 5f, 0f);
+    
+    [Header("Collider Settings")]
+    public bool scaleBoxCollider = false;
+    public Vector3 boxColliderScale = Vector3.one;
+    
+    [Header("Elite Settings")]
+    public bool isElite = false;
+    public float eliteStatMultiplier = 1.5f;
+    public float eliteModelScale = 1.5f;
     public int monsterId;
     public string aiType = "AI2"; // "AI2" ��� "AI3"
     public GameObject modelPrefab;

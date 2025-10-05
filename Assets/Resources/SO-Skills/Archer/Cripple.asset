@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: Cripple
   m_EditorClassIdentifier: Assembly-CSharp::SlowSkill
   castType: 0
-  ignoreGlobalCooldown: 0
   _icon: {fileID: 21300000, guid: 20c40268481bbdd4f814289e5ee636a2, type: 3}
   _skillName: Cripple
+  _description: 
   _hotkey: 282
   _range: 8
   _cooldown: 5
@@ -25,10 +25,12 @@ MonoBehaviour:
   _damageType: 0
   _weight: 1
   _effectRadius: 0
+  _ignoreGlobalCooldown: 0
   castRangePrefab: {fileID: 3299273662854126661, guid: ee30310967d98c04fb16bcfa96cfb3c2,
     type: 3}
   effectRadiusPrefab: {fileID: 0}
-  baseDamage: 0
+  VFXPrefab: {fileID: 0}
+  baseDamage: 1
   damageMultiplier: 1.5
   slowPercentage: 0.5
   slowDuration: 5

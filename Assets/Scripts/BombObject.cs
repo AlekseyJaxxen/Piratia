@@ -71,6 +71,15 @@ public class BombObject : NetworkBehaviour
     {
         base.OnStartClient();
         
+        // Ждем один кадр, чтобы SyncVar переменные успели синхронизироваться
+        StartCoroutine(InitializeAfterSync());
+    }
+    
+    private System.Collections.IEnumerator InitializeAfterSync()
+    {
+        // Ждем один кадр для синхронизации SyncVar
+        yield return null;
+        
         // Загружаем префабы по именам на клиентах
         LoadPrefabsFromNames();
         
@@ -79,19 +88,39 @@ public class BombObject : NetworkBehaviour
         {
             CreateZoneIndicator();
         }
+        
+        Debug.Log($"[BombObject] Client initialization completed for bomb at {transform.position}");
     }
     
     private void LoadPrefabsFromNames()
     {
+        Debug.Log($"[BombObject] Loading prefabs from names: explosionEffectName='{explosionEffectName}', zoneIndicatorName='{zoneIndicatorName}'");
+        
         // Загружаем префабы по именам из Resources/VFX/
         if (!string.IsNullOrEmpty(explosionEffectName))
         {
             explosionEffect = Resources.Load<GameObject>($"VFX/{explosionEffectName}");
+            if (explosionEffect != null)
+            {
+                Debug.Log($"[BombObject] Successfully loaded explosion effect: {explosionEffect.name}");
+            }
+            else
+            {
+                Debug.LogError($"[BombObject] Failed to load explosion effect: VFX/{explosionEffectName}");
+            }
         }
         
         if (!string.IsNullOrEmpty(zoneIndicatorName))
         {
             zoneIndicator = Resources.Load<GameObject>($"VFX/{zoneIndicatorName}");
+            if (zoneIndicator != null)
+            {
+                Debug.Log($"[BombObject] Successfully loaded zone indicator: {zoneIndicator.name}");
+            }
+            else
+            {
+                Debug.LogError($"[BombObject] Failed to load zone indicator: VFX/{zoneIndicatorName}");
+            }
         }
     }
     
@@ -99,6 +128,8 @@ public class BombObject : NetworkBehaviour
     {
         if (zoneIndicator != null)
         {
+            Debug.Log($"[BombObject] Creating zone indicator with radius {explosionRadius}");
+            
             zoneIndicatorInstance = Instantiate(zoneIndicator, transform.position, Quaternion.identity);
             zoneIndicatorInstance.transform.SetParent(transform);
             
@@ -106,13 +137,24 @@ public class BombObject : NetworkBehaviour
             float scale = explosionRadius * 2f;
             zoneIndicatorInstance.transform.localScale = new Vector3(scale, 1f, scale);
             
+            Debug.Log($"[BombObject] Zone indicator created with scale {scale}");
+            
             // Настраиваем цвет
             Renderer zoneRenderer = zoneIndicatorInstance.GetComponent<Renderer>();
             if (zoneRenderer != null)
             {
                 Material zoneMaterial = zoneRenderer.material;
                 zoneMaterial.color = new Color(zoneColor.r, zoneColor.g, zoneColor.b, zoneAlpha);
+                Debug.Log($"[BombObject] Zone indicator color set to {zoneMaterial.color}");
             }
+            else
+            {
+                Debug.LogWarning($"[BombObject] No Renderer found on zone indicator");
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"[BombObject] Cannot create zone indicator: zoneIndicator is null");
         }
         
         // Префаб бомбы остается исходного размера

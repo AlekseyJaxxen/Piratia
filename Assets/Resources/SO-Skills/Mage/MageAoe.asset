@@ -17,14 +17,14 @@ MonoBehaviour:
   _skillName: MageAoe
   _description: 
   _hotkey: 283
-  _range: 25
+  _range: 8
   _cooldown: 3
   _castTime: 0.1
   _castCursor: {fileID: 0}
   _manaCost: 0
   _damageType: 1
   _weight: 1
-  _effectRadius: 2
+  _effectRadius: 3
   _ignoreGlobalCooldown: 0
   castRangePrefab: {fileID: 3299273662854126661, guid: ee30310967d98c04fb16bcfa96cfb3c2,
     type: 3}
@@ -33,7 +33,7 @@ MonoBehaviour:
   VFXPrefab: {fileID: 0}
   baseDamage: 1000
   damageMultiplier: 1
-  aoeRadius: 5
-  effectPrefab: {fileID: 1308696705675058, guid: 606f8867fc59c8f429e84dbab0409696,
+  aoeRadius: 3
+  effectPrefab: {fileID: 1308696705675058, guid: 92f1a4b7c0101cb4f84455289ac65548,
     type: 3}
   forwardOffset: 1

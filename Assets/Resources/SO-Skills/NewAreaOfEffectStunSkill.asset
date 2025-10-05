@@ -17,14 +17,14 @@ MonoBehaviour:
   _skillName: WarriorFB
   _description: 
   _hotkey: 284
-  _range: 10
+  _range: 8
   _cooldown: 10
   _castTime: 0.1
   _castCursor: {fileID: 0}
   _manaCost: 0
   _damageType: 0
   _weight: 1
-  _effectRadius: 10
+  _effectRadius: 7
   _ignoreGlobalCooldown: 0
   castRangePrefab: {fileID: 3299273662854126661, guid: ee30310967d98c04fb16bcfa96cfb3c2,
     type: 3}

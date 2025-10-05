@@ -52,6 +52,17 @@ public class BombSkill : SkillBase
         GameObject bombObject = Instantiate(bombPrefab, spawnPosition, Quaternion.identity);
         BombObject bombScript = bombObject.GetComponent<BombObject>();
         
+        // Проверяем, что у бомбы есть NetworkIdentity
+        NetworkIdentity bombIdentity = bombObject.GetComponent<NetworkIdentity>();
+        if (bombIdentity == null)
+        {
+            Debug.LogError($"[BombSkill] Bomb prefab {bombPrefab.name} is missing NetworkIdentity component!");
+            Destroy(bombObject);
+            return;
+        }
+        
+        Debug.Log($"[BombSkill] Bomb created with NetworkIdentity: {bombIdentity.netId}");
+        
         // Спавним бомбу в сети ПЕРЕД инициализацией
         NetworkServer.Spawn(bombObject);
         
@@ -89,6 +100,17 @@ public class BombSkill : SkillBase
         Vector3 spawnPosition = targetPosition + Vector3.up * 0.2f;
         GameObject bombObject = Instantiate(bombPrefab, spawnPosition, Quaternion.identity);
         BombObject bombScript = bombObject.GetComponent<BombObject>();
+        
+        // Проверяем, что у бомбы есть NetworkIdentity
+        NetworkIdentity bombIdentity = bombObject.GetComponent<NetworkIdentity>();
+        if (bombIdentity == null)
+        {
+            Debug.LogError($"[BombSkill] Bomb prefab {bombPrefab.name} is missing NetworkIdentity component!");
+            Destroy(bombObject);
+            return;
+        }
+        
+        Debug.Log($"[BombSkill] Monster bomb created with NetworkIdentity: {bombIdentity.netId}");
         
         // Спавним бомбу в сети ПЕРЕД инициализацией
         NetworkServer.Spawn(bombObject);

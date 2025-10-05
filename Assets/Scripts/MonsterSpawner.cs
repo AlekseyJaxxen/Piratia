@@ -12,14 +12,16 @@ public class SpawnConfig
     public Vector3 position;
     public float radius = 100f;
     public int count = 100;
-    public float respawnTime = 60f; // � ��������
+    public float respawnTime = 60f; // в секундах
+    [Header("Elite Settings")]
+    [Range(0f, 100f)] public float eliteChance = 10f; // Процент Elite монстров
 }
 
 public class MonsterSpawner : NetworkBehaviour
 {
-    [SerializeField] public GameObject monsterPrefab; // ������ public
+    [SerializeField] public GameObject monsterPrefab; // сделан public
     [SerializeField] private GameObject chestPrefab;
-    [SerializeField] private List<SpawnConfig> spawnConfigs = new List<SpawnConfig>(); // ������ ��������
+    [SerializeField] private List<SpawnConfig> spawnConfigs = new List<SpawnConfig>(); // список монстров
     [SerializeField] private Transform chestSpawnPoint;
     private List<GameObject> spawnedMonsters = new List<GameObject>();
     private GameObject spawnedChest;
@@ -79,7 +81,7 @@ public class MonsterSpawner : NetworkBehaviour
     private void SpawnGroup(SpawnConfig config)
     {
         int toSpawn = config.count - spawnedPerConfig[config].Count;
-        MonsterDatabase db = Resources.Load<MonsterDatabase>("MonsterData/MonsterDatabase"); // ���� � ������ SO
+        MonsterDatabase db = Resources.Load<MonsterDatabase>("MonsterData/MonsterDatabase"); // путь к вашим SO
         for (int i = 0; i < toSpawn; i++)
         {
             Vector3 offset = new Vector3(UnityEngine.Random.Range(-config.radius, config.radius), 0f, UnityEngine.Random.Range(-config.radius, config.radius));
@@ -96,6 +98,14 @@ public class MonsterSpawner : NetworkBehaviour
                     if (db != null && config.monsterId - 1 < db.monsters.Count)
                     {
                         monsterScript.monsterId = config.monsterId;
+                        
+                        // Определяем, будет ли монстр Elite
+                        float roll = UnityEngine.Random.Range(0f, 100f);
+                        if (roll <= config.eliteChance)
+                        {
+                            monsterScript.isElite = true;
+                            Debug.Log($"[MonsterSpawner] Elite monster spawned: {db.monsters[config.monsterId - 1].monsterName}");
+                        }
                     }
                     else
                     {
