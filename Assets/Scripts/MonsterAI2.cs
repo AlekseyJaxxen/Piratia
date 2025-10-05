@@ -594,7 +594,7 @@ public class MonsterAI2 : MonoBehaviour
                 {
                     Debug.Log($"[MonsterAI2] Combined legs ExecuteAttack called for {monster.name} on target {target.name}");
                     lastAttackTime = Time.time;
-                    CmdExecuteAttack(target.netId); // Используем Command
+                    monster.ExecuteAttack(target);
                     monster.IsCooldown = true;
                     if (agent != null && agent.isActiveAndEnabled && agent.isOnNavMesh) agent.isStopped = true;
                     StartCoroutine(EndCooldown());
@@ -604,7 +604,7 @@ public class MonsterAI2 : MonoBehaviour
                 {
                     Debug.Log($"[MonsterAI2] Combined head ExecuteAttack called for {monster.name} on target {target.name}");
                     lastAttackTime = Time.time;
-                    CmdExecuteAttack(target.netId); // Используем Command
+                    monster.ExecuteAttack(target);
                     monster.IsCooldown = true;
                     StartCoroutine(EndCooldown());
                     return;
@@ -684,15 +684,6 @@ public class MonsterAI2 : MonoBehaviour
     {
         currentState = State.Chase;
         chaseStartTime = Time.time;
-    }
-    
-    [Command]
-    private void CmdExecuteAttack(uint targetNetId)
-    {
-        if (target != null && target.netId == targetNetId)
-        {
-            monster.ExecuteAttack(target);
-        }
     }
     
     private void SwitchToPatrol() { currentState = State.Patrol; }
