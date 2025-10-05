@@ -28,6 +28,9 @@ public class Item : ScriptableObject
     public bool canHotbar = false;
     public bool isTwoHanded = false;
     public bool preferRightHand = true; // true = предпочитает правую руку, false = только левую
+    
+    [Header("Chest Settings")]
+    public ChestItemData chestData; // Данные сундука (используется только для itemType.Chest)
     [Header("Character Stat Bonuses")]
     public int strengthBonus;
     public int agilityBonus;
@@ -609,6 +612,14 @@ public class Item : ScriptableObject
         if (canUse)
         {
             Debug.Log($"Used {itemName}");
+            
+            // Обработка сундуков
+            if (itemType == ItemType.Chest && chestData != null)
+            {
+                OpenChest(player);
+                return;
+            }
+            
             if (skillEffect == null)
             {
                 Debug.Log($"[Item] No skill effect for {itemName}, no default action");
@@ -641,6 +652,78 @@ public class Item : ScriptableObject
                 }
             }
         }
+    }
+    
+    /// <summary>
+    /// Открывает сундук и выдает награды игроку
+    /// </summary>
+    private void OpenChest(PlayerCore player)
+    {
+        if (chestData == null)
+        {
+            Debug.LogError($"[Item] ChestData is null for chest item {itemName}!");
+            return;
+        }
+        
+        // Генерируем награды
+        List<ItemInfo> rewards = chestData.GenerateRewards();
+        int goldReward = chestData.GetGoldReward();
+        
+        // Выдаем предметы игроку
+        bool allItemsAdded = true;
+        foreach (var reward in rewards)
+        {
+            if (!player.Inventory.AddItemInfo(reward))
+            {
+                allItemsAdded = false;
+                Debug.LogWarning($"[Item] Failed to add item {reward.id} to player {player.playerName}'s inventory");
+            }
+        }
+        
+        // Выдаем золото
+        if (goldReward > 0)
+        {
+            player.Inventory.AddGold(goldReward);
+        }
+        
+        // Показываем уведомление игроку
+        ShowChestRewardNotification(player, rewards, goldReward, allItemsAdded);
+        
+        Debug.Log($"[Item] Player {player.playerName} opened chest {itemName}, received {rewards.Count} items and {goldReward} gold");
+    }
+    
+    /// <summary>
+    /// Показывает уведомление о наградах из сундука
+    /// </summary>
+    private void ShowChestRewardNotification(PlayerCore player, List<ItemInfo> rewards, int goldReward, bool allItemsAdded)
+    {
+        string message = $"Получены награды из {itemName}:\n";
+        
+        foreach (var reward in rewards)
+        {
+            Item item = reward.GetItem();
+            if (item != null)
+            {
+                string itemName = reward.hasDynamicStats ? reward.dynamicItemName : item.itemName;
+                message += $"• {itemName} x{reward.quantity}\n";
+            }
+        }
+        
+        if (goldReward > 0)
+        {
+            message += $"• Золото: {goldReward}\n";
+        }
+        
+        if (!allItemsAdded)
+        {
+            message += "\n⚠️ Инвентарь полон! Некоторые предметы не были получены.";
+        }
+        
+        // Показываем уведомление (можно интегрировать с системой уведомлений)
+        Debug.Log($"[Item] {message}");
+        
+        // Здесь можно добавить UI уведомление
+        // NotificationSystem.ShowNotification(message);
     }
     public bool IsEquipable(int playerLevel, CharacterClass playerClass)
     {
@@ -688,6 +771,6 @@ public class Item : ScriptableObject
         return null;
     }
 }
-public enum ItemType { Normal, Consumable, Weapon, Armor, Accessory, QuestItem, Material }
+public enum ItemType { Normal, Consumable, Weapon, Armor, Accessory, QuestItem, Material, Chest }
 public enum EquipmentSlot { None, Head, Body, Legs, RightHand, LeftHand, Ring, Necklace, Boots, Gloves, Weapon, OffHand }
 public enum Rarity { Common, Uncommon, Rare, Epic, Legendary }

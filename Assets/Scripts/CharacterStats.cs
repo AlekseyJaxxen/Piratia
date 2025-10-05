@@ -413,7 +413,17 @@ public class CharacterStats : NetworkBehaviour
         float baseMovementSpeed = classData.baseMovementSpeed * classData.agilityMultiplier;
         float slowMultiplier = CalculateSlowMultiplier();
         movementSpeed = baseMovementSpeed * slowMultiplier;
-        attackSpeed = classData.baseAttackSpeed + (calculatedTotalAgility * 0.01f * classData.agilityMultiplier);
+        // Calculate base attack speed only if no buffs are active
+        if (!activeStatEffects.Any(e => e.Stat.ToLower() == "attackspeed" && e.IsActive))
+        {
+            attackSpeed = classData.baseAttackSpeed + (calculatedTotalAgility * 0.01f * classData.agilityMultiplier);
+        }
+        else
+        {
+            // If buffs are active, recalculate from clean baseline
+            float baseAttackSpeed = classData.baseAttackSpeed + (calculatedTotalAgility * 0.01f * classData.agilityMultiplier);
+            Debug.Log($"[CharacterStats] Base attackSpeed calculated: {baseAttackSpeed:F3} (base: {classData.baseAttackSpeed:F3}, agility: {calculatedTotalAgility:F1})");
+        }
         dodgeChance = 10 + level * 2 + calculatedTotalAgility * 0.6f;
         hitChance = 10 + level * 2 + calculatedTotalAccuracy * 0.6f;
         criticalHitChance = 15.0f + (luck * 0.1f);
@@ -438,6 +448,13 @@ public class CharacterStats : NetworkBehaviour
             
             criticalHitChance += equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.Critical));
             movementSpeed += equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.MovementSpeed));
+            float attackSpeedBonus = equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.AttackSpeed));
+            // Only apply equipment bonus if no skill buffs are active
+            if (!activeStatEffects.Any(e => e.Stat.ToLower() == "attackspeed" && e.IsActive))
+            {
+                attackSpeed += attackSpeedBonus;
+            }
+            Debug.Log($"[CharacterStats] AttackSpeed after equipment bonuses: {attackSpeed:F3} (+{attackSpeedBonus:F3} from {equippedItemInfos.Length} items)");
             
             Debug.Log($"[CharacterStats] Equipment stats calculated: {equippedItemInfos.Length} items, Str+{equipmentStrengthBonus}, Agi+{equipmentAgilityBonus}, maxHealth bonus: {Mathf.RoundToInt(equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.MaxHP)))}");
         }
@@ -838,6 +855,20 @@ public class CharacterStats : NetworkBehaviour
         }
         float original = GetStatValue(stat);
         float newValue = original * (mult == 0 ? 1f : mult) + rawValue;
+        
+        // Подробное логирование для отладки скорости атаки
+        if (stat.ToLower() == "attackspeed")
+        {
+            Debug.Log($"[CharacterStats] APPLYING ATTACK SPEED BUFF:");
+            Debug.Log($"  - Stat: {stat}");
+            Debug.Log($"  - Original value: {original:F3}");
+            Debug.Log($"  - Multiplier: {mult:F3} (0 means ignore)");
+            Debug.Log($"  - Raw value: {rawValue:F3}");
+            Debug.Log($"  - Formula: {original:F3} * {(mult == 0 ? 1f : mult)} + {rawValue:F3} = {newValue:F3}");
+            Debug.Log($"  - Duration: {dur:F2}s");
+            Debug.Log($"  - Current attackSpeed from CharacterStats: {attackSpeed:F3}");
+        }
+        
         if (IsFloatStat(stat))
         {
             SetStat(stat, newValue);
@@ -915,7 +946,7 @@ public class CharacterStats : NetworkBehaviour
             case "armor": baseValue = classData.baseDef; break;
             case "minattack": baseValue = classData.baseMinAttack; break;
             case "maxattack": baseValue = classData.baseMaxAttack; break;
-            case "attackspeed": baseValue = classData.baseAttackSpeed + (classData.agility * 0.01f * classData.agilityMultiplier); break;
+            case "attackspeed": baseValue = GetCleanBaseAttackSpeed(); break;
             case "dodgechance": baseValue = 10 + level * 2 + classData.agility * 0.6f; break;
             case "hitchance": baseValue = 10 + level * 2 + classData.accuracy * 0.6f; break;
             case "criticalhitchance": baseValue = 15.0f + (classData.luck * 0.1f); break;
@@ -957,7 +988,7 @@ public class CharacterStats : NetworkBehaviour
             {
                 SetStat(stat, Mathf.RoundToInt(value));
             }
-            Debug.Log($"[CharacterStats] ToggleBuff: Applied buff for {stat}, set to {value}");
+            Debug.Log($"[CharacterStats] ToggleBuff: Applied buff for {stat}, set to {value} (baseValue was {baseValue})");
         }
         SyncStatEffects(); // Синхронизируем с клиентами
         CalculateDerivedStats();
@@ -1078,5 +1109,28 @@ public class CharacterStats : NetworkBehaviour
             movement.SetMovementSpeed(movementSpeed);
         }
         Debug.Log($"[CharacterStats] All slow effects cleared, movementSpeed restored to {movementSpeed}");
+    }
+    
+    /// <summary>
+    /// Получить чистую базовую скорость атаки без эффектов и предметов
+    /// </summary>
+    private float GetCleanBaseAttackSpeed()
+    {
+        if (classData == null) return 1.0f;
+        
+        // Рассчитываем базовую скорость атаки без эффектов и предметов
+        var originalActiveStatEffects = activeStatEffects.ToList(); // Сохраняем текущие эффекты
+        var originalInventory = inventory; // Сохраняем ссылку на инвентарь
+        
+        activeStatEffects.Clear(); // Убираем все буффы
+        inventory = null; // Убираем инвентарь временно
+        
+        float cleanSpeed = classData.baseAttackSpeed + (classData.agility * 0.01f * classData.agilityMultiplier);
+        
+        // Восстанавливаем состояние
+        activeStatEffects.AddRange(originalActiveStatEffects);
+        inventory = originalInventory;
+        
+        return cleanSpeed;
     }
 }

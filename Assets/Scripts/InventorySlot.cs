@@ -209,30 +209,42 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
             if (timeSinceLastClick < DOUBLE_CLICK_TIME)
             {
                 Item item = itemInfo.GetItem();
-                if (item != null && item.IsEquipable(core.Stats.level, core.Stats.characterClass))
+                if (item != null)
                 {
-                    // Проверяем InventoryUI.Instance
-                    if (InventoryUI.Instance == null)
+                    // Обработка сундуков
+                    if (item.itemType == ItemType.Chest && item.canUse)
                     {
-                        Debug.LogError("[InventorySlot] InventoryUI.Instance is null, cannot equip item");
+                        Debug.Log($"[InventorySlot] Double-click opening chest: {itemInfo.GetItemName()} (ID: {itemInfo.id}) from slot {slotIndex}");
+                        core.CmdSelectItem(itemInfo.id, slotIndex);
                         return;
                     }
                     
-                    // Используем InventoryUI.FindMatchingEquipmentSlot для правильной логики двуручного оружия
-                    EquipmentSlotUI matchingSlot = InventoryUI.Instance.FindMatchingEquipmentSlot(item);
-                    if (matchingSlot != null)
+                    // Обработка экипируемых предметов
+                    if (item.IsEquipable(core.Stats.level, core.Stats.characterClass))
                     {
-                        Debug.Log($"[InventorySlot] Double-click equipping item: {itemInfo.GetItemName()} (ID: {itemInfo.id}) to {matchingSlot.slotType} from slot {slotIndex}");
-                        core.CmdEquipItem(itemInfo, slotIndex, matchingSlot.slotType);
+                        // Проверяем InventoryUI.Instance
+                        if (InventoryUI.Instance == null)
+                        {
+                            Debug.LogError("[InventorySlot] InventoryUI.Instance is null, cannot equip item");
+                            return;
+                        }
+                        
+                        // Используем InventoryUI.FindMatchingEquipmentSlot для правильной логики двуручного оружия
+                        EquipmentSlotUI matchingSlot = InventoryUI.Instance.FindMatchingEquipmentSlot(item);
+                        if (matchingSlot != null)
+                        {
+                            Debug.Log($"[InventorySlot] Double-click equipping item: {itemInfo.GetItemName()} (ID: {itemInfo.id}) to {matchingSlot.slotType} from slot {slotIndex}");
+                            core.CmdEquipItem(itemInfo, slotIndex, matchingSlot.slotType);
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"[InventorySlot] Cannot equip {itemInfo.GetItemName()} on double-click: no matching slot found");
+                        }
                     }
                     else
                     {
-                        Debug.LogWarning($"[InventorySlot] Cannot equip {itemInfo.GetItemName()} on double-click: no matching slot found");
+                        Debug.LogWarning($"[InventorySlot] Cannot equip {itemInfo.GetItemName()} on double-click: item is null or level {core.Stats.level} < {item?.requiredLevel} or class {core.Stats.characterClass} != {item?.characterClass}");
                     }
-                }
-                else
-                {
-                    Debug.LogWarning($"[InventorySlot] Cannot equip {itemInfo.GetItemName()} on double-click: item is null or level {core.Stats.level} < {item?.requiredLevel} or class {core.Stats.characterClass} != {item?.characterClass}");
                 }
             }
             lastClickTime = Time.time;

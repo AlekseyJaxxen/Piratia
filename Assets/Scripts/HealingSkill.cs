@@ -23,7 +23,7 @@ public class HealingSkill : SkillBase
             PlayerSkills casterSkills = caster.GetComponent<PlayerSkills>();
             Debug.Log($"[HealingSkill] Healing self: {caster.name}, netId: {caster.netId}");
             casterSkills.CmdExecuteSkill(caster, null, caster.netId, _skillName, 0);
-            casterSkills.StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
+            // Кулдаун уже устанавливается в CmdExecuteSkill, дублировать не нужно
             return;
         }
 

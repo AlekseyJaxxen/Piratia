@@ -243,14 +243,19 @@ public class Inventory : NetworkBehaviour
             {
                 if (items[i].id == itemInfo.id && items[i].quantity > 0)
                 {
-                    Debug.LogWarning($"[Inventory] Found item {item.itemName} (ID: {itemInfo.id}) at slot {i} instead of {slotIndex}, attempting to equip from correct slot");
-                    EquipItem(itemInfo, slot, i);
-                    return;
+                    Debug.LogWarning($"[Inventory] Found item {item.itemName} (ID: {itemInfo.id}) at slot {i} instead of {slotIndex}, updating slot index");
+                    slotIndex = i; // Обновляем индекс слота вместо рекурсивного вызова
+                    slotItem = items[slotIndex]; // Обновляем slotItem
+                    break;
                 }
             }
             
-            Debug.LogError($"[Inventory] Item {item.itemName} (ID: {itemInfo.id}) not found in inventory at all!");
-            return;
+            // Проверяем еще раз после поиска
+            if (slotItem.id != itemInfo.id || slotItem.quantity <= 0)
+            {
+                Debug.LogError($"[Inventory] Item {item.itemName} (ID: {itemInfo.id}) not found in inventory at all!");
+                return;
+            }
         }
         // Обработка двуручного оружия
         if (item.isTwoHanded)

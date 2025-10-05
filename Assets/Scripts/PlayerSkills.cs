@@ -302,7 +302,14 @@ public partial class PlayerSkills : NetworkBehaviour
         }
         else
         {
+            // Устанавливаем ссылку на игрока для динамического расчета кулдауна
+            skill.SetPlayer(caster);
             skill.ExecuteOnServer(caster, targetPosition, targetObject, weight);
+            
+            // Устанавливаем кулдаун для мгновенных скиллов (SelfBuff, ToggleBuff и т.д.)
+            StartSkillCooldown(skillName);
+            if (!skill.ignoreGlobalCooldown) StartGlobalCooldown();
+            
             if (!(skill is BasicAttackSkill))
             {
                 RpcCancelSkillSelection();
@@ -343,9 +350,11 @@ public partial class PlayerSkills : NetworkBehaviour
             yield break;
         }
         
+        // Устанавливаем ссылку на игрока для динамического расчета кулдауна
+        skill.SetPlayer(_core);
         skill.ExecuteOnServer(_core, targetPosition, targetObject, weight);
-        StartSkillCooldown(skill.SkillName);
-        if (!skill.ignoreGlobalCooldown) StartGlobalCooldown();
+        
+        // Кулдаун уже установлен в CmdExecuteSkill, дублировать не нужно
         RpcCancelSkillSelection();
         RpcConsumeItemFromSkill(skill.SkillName);
     }

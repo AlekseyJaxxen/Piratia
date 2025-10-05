@@ -21,26 +21,39 @@ public class PlayerEquipmentVisuals : NetworkBehaviour
 
     public void UpdateEquipmentVisual(EquipmentSlot slot, ItemInfo itemInfo)
     {
-        if (slot == EquipmentSlot.Head)
+        // Пропускаем слоты, для которых нет реализации визуалов
+        if (slot == EquipmentSlot.Head || slot == EquipmentSlot.Body || slot == EquipmentSlot.Legs || 
+            slot == EquipmentSlot.Boots || slot == EquipmentSlot.Gloves || slot == EquipmentSlot.Ring || 
+            slot == EquipmentSlot.Necklace || slot == EquipmentSlot.Weapon || slot == EquipmentSlot.OffHand)
         {
-            // Skipping visual update for Head slot
             return;
         }
-
-        // ������� ������� ��� �������� ����� � ���������� ����� ��� ���������� ������
-        ClearVisualForSlot(slot);
 
         Item item = itemInfo.GetItem();
         if (item == null || itemInfo.id == 0)
         {
-            // No item for slot, visual cleared
+            ClearVisualForSlot(slot);
             return;
         }
 
-        // ����� ����� ��� �����������
-        // Двуручное оружие всегда отображается на левой руке
-        EquipmentSlot displaySlot = item.isTwoHanded ? EquipmentSlot.LeftHand : slot;
-        string boneName = item.GetBoneNameForSlot(displaySlot);
+        // Определяем слот для отображения
+        EquipmentSlot displaySlot = slot;
+        if (item.isTwoHanded)
+        {
+            // Двуручное оружие всегда отображается на левой руке
+            displaySlot = EquipmentSlot.LeftHand;
+        }
+        
+        string boneName;
+        if (item.isTwoHanded)
+        {
+            // Для двуручного оружия принудительно используем кость левой руки
+            boneName = "LeftHandWeapon";
+        }
+        else
+        {
+            boneName = item.GetBoneNameForSlot(displaySlot);
+        }
         Transform bone = FindBone(boneName);
 
         if (bone == null)
@@ -49,7 +62,20 @@ public class PlayerEquipmentVisuals : NetworkBehaviour
             return;
         }
 
-        // ���������� ������
+        // Очищаем визуалы перед экипировкой
+        if (item.isTwoHanded)
+        {
+            // Для двуручного оружия очищаем оба слота
+            ClearVisualForSlot(EquipmentSlot.LeftHand);
+            ClearVisualForSlot(EquipmentSlot.RightHand);
+        }
+        else
+        {
+            // Для одноручного оружия очищаем только текущий слот
+            ClearVisualForSlot(slot);
+        }
+
+        // Экипируем модель
         if (!string.IsNullOrEmpty(boneName))
         {
             EquipModel(item, bone, slot);
@@ -58,24 +84,64 @@ public class PlayerEquipmentVisuals : NetworkBehaviour
         // Equipped model
     }
 
+    private string GetBoneNameForSlot(EquipmentSlot slot)
+    {
+        switch (slot)
+        {
+            case EquipmentSlot.RightHand:
+                return "RightHandWeapon";
+            case EquipmentSlot.LeftHand:
+                return "LeftHandWeapon";
+            case EquipmentSlot.Head:
+                return "Head"; // или другое имя кости для головы
+            case EquipmentSlot.Body:
+                return "Body"; // или другое имя кости для тела
+            case EquipmentSlot.Legs:
+                return "Legs"; // или другое имя кости для ног
+            case EquipmentSlot.Boots:
+                return "Boots"; // или другое имя кости для ботинок
+            case EquipmentSlot.Gloves:
+                return "Gloves"; // или другое имя кости для перчаток
+            case EquipmentSlot.Ring:
+                return "Ring"; // или другое имя кости для кольца
+            case EquipmentSlot.Necklace:
+                return "Necklace"; // или другое имя кости для ожерелья
+            case EquipmentSlot.Weapon:
+                return "RightHandWeapon"; // основное оружие на правой руке
+            case EquipmentSlot.OffHand:
+                return "LeftHandWeapon"; // щит или второе оружие на левой руке
+            default:
+                return null;
+        }
+    }
+
     private Transform FindBone(string boneName)
     {
         if (string.IsNullOrEmpty(boneName))
         {
-            // Bone name is empty
+            Debug.LogWarning($"[PlayerEquipmentVisuals] Bone name is empty");
             return null;
         }
 
         Transform[] allTransforms = GetComponentsInChildren<Transform>();
+        
         foreach (Transform transform in allTransforms)
         {
             if (transform != null && transform.name.ToLower() == boneName.ToLower())
             {
-                // Found bone
                 return transform;
             }
         }
-        Debug.LogWarning($"[PlayerEquipmentVisuals] Bone {boneName} not found in {allTransforms.Length} transforms");
+        
+        // Выводим все доступные кости для отладки только при ошибке
+        Debug.LogWarning($"[PlayerEquipmentVisuals] Bone '{boneName}' not found. Available bones:");
+        foreach (Transform transform in allTransforms)
+        {
+            if (transform != null)
+            {
+                Debug.LogWarning($"[PlayerEquipmentVisuals] - {transform.name}");
+            }
+        }
         return null;
     }
 
@@ -98,7 +164,6 @@ public class PlayerEquipmentVisuals : NetworkBehaviour
         {
             if (instantiatedObjects[transformIndex] != null)
             {
-                Debug.LogWarning($"[PlayerEquipmentVisuals] Overwriting existing model at index {transformIndex} for bone {bone.name}");
                 Destroy(instantiatedObjects[transformIndex]);
             }
             instantiatedObjects[transformIndex] = model;
@@ -107,20 +172,24 @@ public class PlayerEquipmentVisuals : NetworkBehaviour
         {
             Debug.LogWarning($"[PlayerEquipmentVisuals] Invalid transform index {transformIndex} for bone {bone.name}");
         }
-
-        Debug.Log($"[PlayerEquipmentVisuals] Equipped model for {item.itemName} on {bone.name} for slot {slot}, model scale: {model.transform.localScale}, rotation: {model.transform.localRotation}");
     }
 
     private void ClearVisualForSlot(EquipmentSlot slot)
     {
-        if (slot == EquipmentSlot.Head)
+        // Пропускаем слоты, для которых нет реализации визуалов
+        if (slot == EquipmentSlot.Head || slot == EquipmentSlot.Body || slot == EquipmentSlot.Legs || 
+            slot == EquipmentSlot.Boots || slot == EquipmentSlot.Gloves || slot == EquipmentSlot.Ring || 
+            slot == EquipmentSlot.Necklace || slot == EquipmentSlot.Weapon || slot == EquipmentSlot.OffHand)
         {
-            Debug.Log($"[PlayerEquipmentVisuals] Skipping clear visual for Head slot (not implemented)");
             return;
         }
 
-        // ������� ��� �����, ��������������� �������� �����
-        string boneName = slot == EquipmentSlot.RightHand ? "RightHandWeapon" : "LeftHandWeapon";
+        // Определяем правильную кость, соответствующую данному слоту
+        string boneName = GetBoneNameForSlot(slot);
+        if (string.IsNullOrEmpty(boneName))
+        {
+            return;
+        }
         Transform bone = FindBone(boneName);
         Transform[] allTransforms = GetComponentsInChildren<Transform>();
 
@@ -136,7 +205,6 @@ public class PlayerEquipmentVisuals : NetworkBehaviour
             
             foreach (Transform child in childrenToDestroy)
             {
-                Debug.Log($"[PlayerEquipmentVisuals] Destroying child object {child.name} on bone {boneName} for slot {slot}");
                 if (child != null)
                 {
                     Destroy(child.gameObject);
@@ -147,7 +215,6 @@ public class PlayerEquipmentVisuals : NetworkBehaviour
             int transformIndex = System.Array.IndexOf(allTransforms, bone);
             if (transformIndex >= 0 && transformIndex < instantiatedObjects.Length && instantiatedObjects[transformIndex] != null)
             {
-                Debug.Log($"[PlayerEquipmentVisuals] Destroying model for slot {slot} on bone {boneName} at index {transformIndex}");
                 Destroy(instantiatedObjects[transformIndex]);
                 instantiatedObjects[transformIndex] = null;
             }

@@ -3,6 +3,9 @@ using Mirror;
 using DG.Tweening;
 using System.Linq;
 using System.Collections.Generic;
+#if UNITY_EDITOR
+using UnityEditor.Animations;
+#endif
 
 public class PlayerAnimationSystem : NetworkBehaviour
 {
@@ -16,7 +19,7 @@ public class PlayerAnimationSystem : NetworkBehaviour
     private Renderer modelRenderer;
     private Color originalColor;
     private Sequence damageFlashSequence;
-    private string _currentAnimation = "Idle"; // ������� ������� ��� ��������� ��������� �������
+    private string _currentAnimation = "Player_Idle"; // Базовая анимация для инициализации системы анимаций
     private Inventory _inventory;
     private Item.WeaponType _currentWeaponType = Item.WeaponType.None;
     private Dictionary<string, List<string>> _actionAnimations = new Dictionary<string, List<string>>();
@@ -114,44 +117,202 @@ public class PlayerAnimationSystem : NetworkBehaviour
 
     private void UpdateWeaponAnimations()
     {
-        // ������� �� ���������� �������� � Animator Controller:
-        // - ������� ������: Idle, Player_Walk, Player_Attack, Player_Cast, Death
-        // - �������� �������: Player_Attack2, Player_Attack3, Player_Walk2 � �.�. (�� 5 ��������, ��� ��������� �� Player_Attack5)
-        // - � ����� ������: Player_Attack_OneHandedSword, Player_Walk_TwoHandedSword, Player_Cast_Staff � �.�. (WeaponType �� Item)
-        // - �������� � �������: Player_Attack_OneHandedSword2, Player_Attack_OneHandedSword3 � �.�.
-        // - ���� ����� � ��������� ������ ����������, �� �����������; fallback �� ������� ��� ��������
-        // - ��� ������ ������ ���� � ������� ���� (layer 0), ��� ��������� (transitions), � loop ��� Walk/Idle/Attack ���� �����
+        // Система поиска анимаций в Animator Controller:
+        // - Базовые анимации: Idle, Player_Walk, Player_Attack, Player_Cast, Death
+        // - Варианты анимаций: Player_Attack2, Player_Attack3, Player_Walk2 и т.д. (до 5 вариантов, например до Player_Attack5)
+        // - С оружием: Player_Attack_OneHandedSword, Player_Walk_TwoHandedSword, Player_Cast_Staff и т.д. (WeaponType из Item)
+        // - Варианты с оружием: Player_Attack_OneHandedSword2, Player_Attack_OneHandedSword3 и т.д.
+        // - Если анимация с оружием не найдена, используется fallback на базовую анимацию
+        // - Все анимации должны быть в базовом слое (layer 0), с переходами (transitions), и loop для Walk/Idle/Attack анимаций
 
         _currentWeaponType = GetCurrentWeaponType();
         _actionAnimations.Clear();
-        string[] actions = { "Walk", "Attack", "Cast" };
+        string[] actions = { "Idle", "Walk", "Attack", "Cast" };
+        
         foreach (var action in actions)
         {
-            string baseName = $"Player_{action}";
-            string suffixed = _currentWeaponType != Item.WeaponType.None ? $"Player_{action}_{_currentWeaponType}" : baseName;
-            int hash = Animator.StringToHash(suffixed);
-            if (_animator.HasState(0, hash))
-            {
-                baseName = suffixed;
-            }
-            // �������� �������� (1,2,3...)
             List<string> anims = new List<string>();
-            for (int i = 1; i <= 5; i++) // ���������, ���� ����� ������
+            
+            // 1. Пробуем найти анимации с оружием
+            if (_currentWeaponType != Item.WeaponType.None)
             {
-                string name = i == 1 ? baseName : $"{baseName}{i}";
-                hash = Animator.StringToHash(name);
-                if (_animator.HasState(0, hash))
-                {
-                    anims.Add(name);
-                }
+                string weaponBaseName = $"Player_{action}_{_currentWeaponType}";
+                AddAnimationsToList(anims, weaponBaseName);
             }
+            
+            // 2. Если не найдены анимации с оружием, используем базовые
             if (anims.Count == 0)
             {
-                // Fallback �� ������� ��� �������� � ��������
-                anims.Add($"Player_{action}");
+                string baseName = $"Player_{action}";
+                AddAnimationsToList(anims, baseName);
             }
+            
+            // 3. Если все еще нет анимаций, используем стартовую анимацию аниматора
+            if (anims.Count == 0)
+            {
+                string fallbackName = GetFallbackAnimationName(action);
+                if (!string.IsNullOrEmpty(fallbackName))
+                {
+                    anims.Add(fallbackName);
+                }
+            }
+            
             _actionAnimations[action] = anims;
-            // Debug.Log($"[PlayerAnimationSystem] Cached {action} animations for {_currentWeaponType}: {string.Join(", ", anims)}");
+            Debug.Log($"[PlayerAnimationSystem] Cached {action} animations for {_currentWeaponType}: {string.Join(", ", anims)}");
+        }
+    }
+    
+    /// <summary>
+    /// Добавляет анимации в список, проверяя их существование в аниматоре
+    /// </summary>
+    private void AddAnimationsToList(List<string> anims, string baseName)
+    {
+        // Проверяем базовую анимацию (без номера)
+        int hash = Animator.StringToHash(baseName);
+        if (_animator.HasState(0, hash))
+        {
+            anims.Add(baseName);
+        }
+        
+        // Проверяем варианты анимаций (1,2,3...)
+        for (int i = 2; i <= 5; i++) // Начинаем с 2, так как базовая уже проверена
+        {
+            string name = $"{baseName}{i}";
+            hash = Animator.StringToHash(name);
+            if (_animator.HasState(0, hash))
+            {
+                anims.Add(name);
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Получает имя fallback анимации для действия
+    /// </summary>
+    private string GetFallbackAnimationName(string action)
+    {
+        // Пробуем различные варианты fallback анимаций
+        string[] fallbackNames = {
+            action, // Простое имя (Idle, Walk, Attack, Cast)
+            $"Player_{action}", // С префиксом Player_
+            "Idle", // Всегда есть базовая Idle анимация
+            "Player_Idle" // Базовая Idle с префиксом
+        };
+        
+        foreach (string fallbackName in fallbackNames)
+        {
+            int hash = Animator.StringToHash(fallbackName);
+            if (_animator.HasState(0, hash))
+            {
+                Debug.LogWarning($"[PlayerAnimationSystem] Using fallback animation '{fallbackName}' for action '{action}'");
+                return fallbackName;
+            }
+        }
+        
+        // Если ничего не найдено, попробуем получить стартовую анимацию аниматора
+        string defaultAnimation = GetDefaultAnimatorState();
+        if (!string.IsNullOrEmpty(defaultAnimation))
+        {
+            Debug.LogWarning($"[PlayerAnimationSystem] Using default animator state '{defaultAnimation}' for action '{action}'");
+            return defaultAnimation;
+        }
+        
+        Debug.LogError($"[PlayerAnimationSystem] No fallback animation found for action '{action}'!");
+        return null;
+    }
+    
+    /// <summary>
+    /// Получает стартовую анимацию аниматора
+    /// </summary>
+    private string GetDefaultAnimatorState()
+    {
+        if (_animator == null) return null;
+        
+#if UNITY_EDITOR
+        // Получаем все состояния аниматора (только в Editor)
+        AnimatorController controller = _animator.runtimeAnimatorController as AnimatorController;
+        if (controller == null) return null;
+        
+        // Ищем первое состояние в базовом слое
+        AnimatorStateMachine stateMachine = controller.layers[0].stateMachine;
+        if (stateMachine.states.Length > 0)
+        {
+            string defaultStateName = stateMachine.states[0].state.name;
+            Debug.Log($"[PlayerAnimationSystem] Found default animator state: '{defaultStateName}'");
+            return defaultStateName;
+        }
+#else
+        // В runtime пробуем найти анимацию через текущее состояние
+        AnimatorStateInfo currentState = _animator.GetCurrentAnimatorStateInfo(0);
+        if (currentState.IsName("Idle") || currentState.IsName("Player_Idle"))
+        {
+            return currentState.IsName("Idle") ? "Idle" : "Player_Idle";
+        }
+        
+        // Пробуем найти любую доступную анимацию
+        string[] commonAnimations = { "Idle", "Player_Idle", "Player_Walk", "Player_Attack" };
+        foreach (string animName in commonAnimations)
+        {
+            int hash = Animator.StringToHash(animName);
+            if (_animator.HasState(0, hash))
+            {
+                Debug.Log($"[PlayerAnimationSystem] Found runtime fallback animation: '{animName}'");
+                return animName;
+            }
+        }
+#endif
+        
+        return null;
+    }
+    
+    /// <summary>
+    /// Отладочный метод для вывода всех доступных анимаций
+    /// </summary>
+    [ContextMenu("Debug Available Animations")]
+    public void DebugAvailableAnimations()
+    {
+        if (_animator == null)
+        {
+            Debug.LogError("[PlayerAnimationSystem] Animator is null!");
+            return;
+        }
+        
+#if UNITY_EDITOR
+        AnimatorController controller = _animator.runtimeAnimatorController as AnimatorController;
+        if (controller == null)
+        {
+            Debug.LogError("[PlayerAnimationSystem] AnimatorController is null!");
+            return;
+        }
+        
+        Debug.Log($"[PlayerAnimationSystem] === Available Animations Debug ===");
+        Debug.Log($"[PlayerAnimationSystem] Current Weapon Type: {_currentWeaponType}");
+        
+        AnimatorStateMachine stateMachine = controller.layers[0].stateMachine;
+        Debug.Log($"[PlayerAnimationSystem] Total states in animator: {stateMachine.states.Length}");
+        
+        foreach (var state in stateMachine.states)
+        {
+            Debug.Log($"[PlayerAnimationSystem] - {state.state.name}");
+        }
+#else
+        Debug.Log($"[PlayerAnimationSystem] === Available Animations Debug ===");
+        Debug.Log($"[PlayerAnimationSystem] Current Weapon Type: {_currentWeaponType}");
+        Debug.Log($"[PlayerAnimationSystem] Debug mode only available in Editor");
+#endif
+        
+        Debug.Log($"[PlayerAnimationSystem] === Cached Action Animations ===");
+        foreach (var kvp in _actionAnimations)
+        {
+            Debug.Log($"[PlayerAnimationSystem] {kvp.Key}: {string.Join(", ", kvp.Value)}");
+        }
+        
+        Debug.Log($"[PlayerAnimationSystem] === Fallback Tests ===");
+        string[] testActions = { "Idle", "Walk", "Attack", "Cast" };
+        foreach (string action in testActions)
+        {
+            string fallback = GetFallbackAnimationName(action);
+            Debug.Log($"[PlayerAnimationSystem] {action} fallback: {fallback ?? "NOT FOUND"}");
         }
     }
 
@@ -198,7 +359,18 @@ public class PlayerAnimationSystem : NetworkBehaviour
         {
             return anims[Random.Range(0, anims.Count)];
         }
-        return $"Player_{action}"; // Ult fallback
+        
+        // Если нет анимаций в кэше, попробуем найти fallback
+        string fallbackName = GetFallbackAnimationName(action);
+        if (!string.IsNullOrEmpty(fallbackName))
+        {
+            Debug.LogWarning($"[PlayerAnimationSystem] Using direct fallback '{fallbackName}' for action '{action}'");
+            return fallbackName;
+        }
+        
+        // Последний fallback - базовая Idle анимация
+        Debug.LogError($"[PlayerAnimationSystem] No animation found for action '{action}', using 'Idle' as last resort");
+        return "Idle";
     }
 
     public GameObject GetActiveModel()
@@ -217,7 +389,7 @@ public class PlayerAnimationSystem : NetworkBehaviour
 
     // Оптимизация: интервалы обновления для анимаций
     private float _lastAnimationUpdate = 0f;
-    private const float ANIMATION_UPDATE_INTERVAL = 0.1f; // Обновляем анимации каждые 100мс
+    private const float ANIMATION_UPDATE_INTERVAL = 0.05f; // Обновляем анимации каждые 50мс для лучшей синхронизации атак
     
     private void Update()
     {
@@ -241,7 +413,10 @@ public class PlayerAnimationSystem : NetworkBehaviour
         _wasPerformingAction = _actionSystem.IsPerformingAction;
         
         // Оптимизация: обновляем анимации с интервалом
-        if (Time.time - _lastAnimationUpdate >= ANIMATION_UPDATE_INTERVAL)
+        // Для атак и кастов обновляем чаще для лучшей синхронизации
+        float updateInterval = (_actionSystem.CurrentAction == PlayerAction.Attack || _actionSystem.CurrentAction == PlayerAction.SkillCast) ? 0.02f : ANIMATION_UPDATE_INTERVAL;
+        
+        if (Time.time - _lastAnimationUpdate >= updateInterval)
         {
             UpdateAnimations();
             _lastAnimationUpdate = Time.time;
@@ -253,7 +428,8 @@ public class PlayerAnimationSystem : NetworkBehaviour
     {
         if (_core.isDead) return;
 
-        string targetAnimation = "Idle";
+        string targetAnimation = GetRandomAnimation("Idle");
+        
 
         if (_actionSystem.CurrentAction == PlayerAction.Move)
         {
@@ -264,22 +440,74 @@ public class PlayerAnimationSystem : NetworkBehaviour
         {
             float attackRange = _actionSystem.CurrentSkill.Range;
             float distance = Vector3.Distance(transform.position, _actionSystem.CurrentTarget.transform.position);
+            
+            // Проверяем, действительно ли персонаж движется к цели
+            bool isActuallyMoving = _core.Movement.IsMoving && _core.Movement.Agent.velocity.magnitude > 0.1f;
+            
             if (distance > attackRange)
             {
-                targetAnimation = GetRandomAnimation("Walk");
-                _animator.speed = 1f;
+                // Цель вне радиуса - показываем Walk только если действительно движемся
+                if (isActuallyMoving)
+                {
+                    targetAnimation = GetRandomAnimation("Walk");
+                    _animator.speed = 1f;
+                }
+                else
+                {
+                    // Если не движемся, показываем Idle (персонаж стоит и смотрит на цель)
+                    targetAnimation = GetRandomAnimation("Idle");
+                    _animator.speed = 1f;
+                }
             }
             else
             {
-                if (_actionSystem.CurrentSkill is BasicAttackSkill)
+                // Проверяем, действительно ли персонаж остановился для атаки или продолжает преследование
+                bool isStillMoving = _core.Movement.IsMoving && _core.Movement.Agent.velocity.magnitude > 0.1f;
+                
+                if (isStillMoving)
                 {
-                    if (_currentAnimation.Contains("Attack")) // ���� ��� �����, ��������� ������� ��������
+                    // Персонаж все еще движется - показываем Walk (преследование)
+                    targetAnimation = GetRandomAnimation("Walk");
+                    _animator.speed = 1f;
+                }
+                else
+                {
+                    // Персонаж остановился - проверяем состояние атаки
+                    if (_actionSystem.isWaitingForAttackCooldown)
                     {
-                        targetAnimation = _currentAnimation;
+                        // Если ждем кулдаун, продолжаем текущую анимацию атаки или переключаемся на Idle
+                        if (_currentAnimation.Contains("Attack"))
+                        {
+                            targetAnimation = _currentAnimation; // Продолжаем анимацию атаки
+                            // Устанавливаем скорость анимации равную скорости атаки, но не меньше 1.0
+                            float animationSpeed = Mathf.Max(1.0f, _stats.attackSpeed);
+                            _animator.speed = animationSpeed;
+                        }
+                        else
+                        {
+                            targetAnimation = GetRandomAnimation("Idle"); // Если анимация атаки закончилась, переключаемся на Idle
+                        }
+                    }
+                    else if (_actionSystem.CurrentSkill is BasicAttackSkill || _actionSystem.CurrentAction == PlayerAction.Attack)
+                    {
+                        // Атака: показываем анимацию атаки если не ждем кулдаун
+                        if (_currentAnimation.Contains("Attack")) // Если уже атакуем, продолжаем анимацию
+                        {
+                            targetAnimation = _currentAnimation;
+                            // Устанавливаем скорость анимации равную скорости атаки, но не меньше 1.0
+                            float animationSpeed = Mathf.Max(1.0f, _stats.attackSpeed);
+                            _animator.speed = animationSpeed;
+                        }
+                        else
+                        {
+                            targetAnimation = GetRandomAnimation("Attack"); // Запускаем новую анимацию если не атакуем и не ждем кулдаун
+                        }
                     }
                     else
                     {
-                        targetAnimation = GetRandomAnimation("Attack"); // �������� ����� ������ ��� �������� � �����
+                        // Если не атака и не ждем кулдаун - показываем Idle
+                        targetAnimation = GetRandomAnimation("Idle");
+                        _animator.speed = 1f;
                     }
                 }
             }
@@ -298,30 +526,78 @@ public class PlayerAnimationSystem : NetworkBehaviour
             }
             else
             {
-                targetAnimation = "Idle";
+                targetAnimation = GetRandomAnimation("Idle");
                 _animator.speed = 1f;
                 return;
             }
+            
+            // Проверяем, действительно ли персонаж движется к цели для каста
+            // Используем более надежную проверку: есть ли активное назначение движения
+            bool isActuallyMoving = _core.Movement.Agent != null && 
+                                   !_core.Movement.Agent.isStopped && 
+                                   _core.Movement.Agent.hasPath && 
+                                   _core.Movement.Agent.remainingDistance > 0.1f;
+            
             if (distance > castRange)
             {
-                targetAnimation = GetRandomAnimation("Walk");
-                _animator.speed = 1f;
+                // Цель вне радиуса - показываем Walk только если действительно движемся
+                if (isActuallyMoving)
+                {
+                    targetAnimation = GetRandomAnimation("Walk");
+                    _animator.speed = 1f;
+                }
+                else
+                {
+                    // Если не движемся, показываем Idle (персонаж стоит и смотрит на цель)
+                    targetAnimation = GetRandomAnimation("Idle");
+                    _animator.speed = 1f;
+                }
             }
             else
             {
-                if (_animator.GetCurrentAnimatorStateInfo(0).normalizedTime < 1f && _currentAnimation.Contains("Cast")) return; // �� ��������� ����
-                targetAnimation = GetRandomAnimation("Cast");
+                // В радиусе каста - проверяем состояние каста
+                if (_actionSystem.IsCasting)
+                {
+                    // Если кастуем, показываем анимацию каста
+                    if (_animator.GetCurrentAnimatorStateInfo(0).normalizedTime < 1f && _currentAnimation.Contains("Cast")) 
+                    {
+                        targetAnimation = _currentAnimation; // Продолжаем анимацию каста
+                    }
+                    else
+                    {
+                        targetAnimation = GetRandomAnimation("Cast"); // Запускаем новую анимацию каста
+                    }
+                }
+                else
+                {
+                    // Если не кастуем, но в радиусе - показываем Idle
+                    targetAnimation = GetRandomAnimation("Idle");
+                    _animator.speed = 1f;
+                }
             }
         }
         else
         {
-            targetAnimation = "Idle";
+            // Если нет активного действия, но текущая анимация еще не завершена - продолжаем её
+            if (_currentAnimation.Contains("Cast") && _animator.GetCurrentAnimatorStateInfo(0).normalizedTime < 1f)
+            {
+                targetAnimation = _currentAnimation; // Продолжаем анимацию каста
+            }
+            else if (_currentAnimation.Contains("Attack") && _animator.GetCurrentAnimatorStateInfo(0).normalizedTime < 1f)
+            {
+                targetAnimation = _currentAnimation; // Продолжаем анимацию атаки
+            }
+        else
+        {
+            targetAnimation = GetRandomAnimation("Idle");
+            // Сбрасываем скорость анимации для idle
+            _animator.speed = 1f;
+        }
         }
 
         if (_currentAnimation != targetAnimation)
         {
             CmdPlayAnimation(targetAnimation);
-            // Debug.Log($"[PlayerAnimationSystem] Played {targetAnimation}, CurrentAction: {_actionSystem.CurrentAction}");
         }
     }
 
@@ -336,39 +612,70 @@ public class PlayerAnimationSystem : NetworkBehaviour
     {
         if (_animator != null)
         {
+            // Устанавливаем правильную скорость анимации в зависимости от типа
             if (stateName.Contains("Attack"))
             {
-                AnimatorClipInfo[] clipInfo = _animator.GetCurrentAnimatorClipInfo(0);
-                float duration = clipInfo.Length > 0 ? clipInfo[0].clip.length : 1f;
-                _animator.speed = duration * _stats.attackSpeed;
-            }
-            if (stateName == _currentAnimation)
-            {
-                _animator.Play(stateName, 0, 0f); // Restart ��������
+                // Для атак: скорость равна attackSpeed, но не меньше 1.0
+                float animationSpeed = Mathf.Max(1.0f, _stats.attackSpeed);
+                _animator.speed = animationSpeed;
             }
             else
             {
-                _animator.CrossFade(stateName, 0.1f, 0);
+                // Для всех остальных анимаций: нормальная скорость
+                _animator.speed = 1f;
             }
-            _currentAnimation = stateName; // ��������� �������� �� ���� ��������
+            
+            if (stateName == _currentAnimation)
+            {
+                // Для анимаций атаки всегда перезапускаем, чтобы обеспечить синхронизацию
+                if (stateName.Contains("Attack"))
+                {
+                    _animator.Play(stateName, 0, 0f); // Мгновенный переход без CrossFade
+                }
+                else
+                {
+                    // Не перезапускаем анимацию, если она уже играет (кроме атак)
+                    return;
+                }
+            }
+            else
+            {
+                _animator.Play(stateName, 0, 0f); // Мгновенный переход без CrossFade
+            }
+            _currentAnimation = stateName; // Update current animation
         }
     }
 
     [Client]
     public void ResetAnimations()
     {
-        if (_animator != null && !_core.Movement.IsMoving)
+        if (_animator != null)
         {
             _animator.speed = 1f;
-            CmdPlayAnimation("Idle");
-            // Debug.Log("[PlayerAnimationSystem] Animations reset to Idle");
+            
+            // Если персонаж не движется, переключаемся на Idle
+            if (!_core.Movement.IsMoving)
+            {
+                CmdPlayAnimation(GetRandomAnimation("Idle"));
+            }
+            else
+            {
+                // Если все еще движется, переключаемся на Walk
+                CmdPlayAnimation(GetRandomAnimation("Walk"));
+            }
         }
     }
 
     [Client]
-    public void TriggerAttackAnimation()
+    public void TriggerAttackAnimation(float attackSpeed = 1.0f)
     {
-        CmdPlayAnimation(GetRandomAnimation("Attack"));
+        // Устанавливаем скорость анимации равную скорости атаки, но не меньше 1.0
+        float animationSpeed = Mathf.Max(1.0f, attackSpeed);
+        _animator.speed = animationSpeed;
+        
+        // Принудительно запускаем анимацию атаки, даже если она уже играет
+        string attackAnimation = GetRandomAnimation("Attack");
+        CmdPlayAnimation(attackAnimation);
     }
 
     private void OnDisable()

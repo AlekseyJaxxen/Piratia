@@ -17,6 +17,7 @@ public class BasicAttackSkill : SkillBase
     public GameObject impactEffectPrefab;
     public Color criticalHitColor = Color.yellow;
 
+
     protected override void ExecuteSkillImplementation(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
     {
         if (targetObject == null)
@@ -57,7 +58,16 @@ public class BasicAttackSkill : SkillBase
         }
         // Client requesting attack
         skills.CmdExecuteSkill(caster, targetPosition, targetIdentity.netId, _skillName, 0);
-        caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
+        
+        // Логируем скорость атаки и кулдаун BasicAttackSkill
+        CharacterStats statsForLog = caster.GetComponent<CharacterStats>();
+        if (statsForLog != null)
+        {
+            Debug.Log($"[BasicAttackSkill] AttackSpeed: {statsForLog.attackSpeed:F2}, Cooldown: {Cooldown:F3}s, ignoreGlobalCooldown: {ignoreGlobalCooldown} (caster: {caster.name})");
+        }
+        
+        // УБРАНО: Двойной кулдаун - PlayerActionSystem уже ждет полный кулдаун
+        // caster.GetComponent<PlayerSkills>().StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
     }
 
     public override void ExecuteOnServer(PlayerCore caster, Vector3? targetPosition, GameObject targetObject, int weight)

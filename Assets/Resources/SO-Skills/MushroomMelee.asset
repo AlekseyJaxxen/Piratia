@@ -35,7 +35,7 @@ MonoBehaviour:
   criticalHitVfxPrefab: {fileID: 0}
   impactEffectPrefab: {fileID: 0}
   criticalHitColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
-  baseDamage: 100
+  baseDamage: 10
   criticalChance: 0.1
   criticalMultiplier: 1.5
   useUniversalAnimationIds: 1

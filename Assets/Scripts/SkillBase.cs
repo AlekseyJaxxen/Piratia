@@ -47,7 +47,7 @@ public abstract class SkillBase : ScriptableObject, ISkill
 
     [SerializeField] protected CastType castType;
     public CastType SkillCastType => castType;
-    public float Cooldown => _cooldown;
+    public virtual float Cooldown => _cooldown;
     public float Range => _range;
     public float CastTime => _castTime;
     public KeyCode Hotkey { get => _hotkey; set => _hotkey = value; }
@@ -96,6 +96,14 @@ public abstract class SkillBase : ScriptableObject, ISkill
         {
             Debug.LogError($"[SkillBase] SkillName not set for {name}");
         }
+    }
+    
+    /// <summary>
+    /// Устанавливает ссылку на игрока для скила
+    /// </summary>
+    public void SetPlayer(PlayerCore core)
+    {
+        Init(core);
     }
 
     public bool IsOnCooldown()

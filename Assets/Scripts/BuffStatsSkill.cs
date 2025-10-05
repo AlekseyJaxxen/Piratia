@@ -7,17 +7,17 @@ public class BuffStatSkill : SkillBase
     [System.Serializable]
     public struct BuffEffect
     {
-        [Tooltip("Стат для баффа")]
+        [Tooltip("пїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ")]
         public StatType stat;
-        [Tooltip("Множитель баффа (например, 1.3 для увеличения на 30%, 0 для игнорирования)")]
+        [Tooltip("пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ (пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, 1.3 пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ 30%, 0 пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ)")]
         public float multiplier;
-        [Tooltip("Фиксированное значение баффа (например, +50, 0 для игнорирования)")]
+        [Tooltip("пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ (пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, +50, 0 пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ)")]
         public float rawValue;
-        [Tooltip("Длительность баффа в секундах")]
+        [Tooltip("пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ")]
         public float duration;
-        [Tooltip("VFX-префаб для баффа")]
+        [Tooltip("VFX-пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ")]
         public GameObject vfxPrefab;
-        [Tooltip("Смещение VFX относительно персонажа")]
+        [Tooltip("пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ VFX пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ")]
         public Vector3 vfxOffset;
     }
 
@@ -45,7 +45,7 @@ public class BuffStatSkill : SkillBase
     }
 
     [SerializeField]
-    [Tooltip("Список эффектов баффа")]
+    [Tooltip("пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ")]
     private BuffEffect[] buffEffects = new BuffEffect[1] { new BuffEffect { stat = StatType.Agility, multiplier = 1.3f, rawValue = 0f, duration = 10f, vfxPrefab = null, vfxOffset = Vector3.up } };
 
     protected override void ExecuteSkillImplementation(PlayerCore caster, Vector3? targetPosition, GameObject targetObject)
@@ -53,7 +53,7 @@ public class BuffStatSkill : SkillBase
         if (targetObject == null) return;
         PlayerSkills skills = caster.GetComponent<PlayerSkills>();
         skills.CmdExecuteSkill(caster, null, targetObject.GetComponent<NetworkIdentity>().netId, _skillName, Weight);
-        skills.StartLocalCooldown(_skillName, Cooldown, !ignoreGlobalCooldown);
+        // РљСѓР»РґР°СѓРЅ СѓР¶Рµ СѓСЃС‚Р°РЅР°РІР»РёРІР°РµС‚СЃСЏ РІ CmdExecuteSkill, РґСѓР±Р»РёСЂРѕРІР°С‚СЊ РЅРµ РЅСѓР¶РЅРѕ
     }
 
     public override void ExecuteOnServer(PlayerCore caster, Vector3? targetPosition, GameObject targetObject, int weight)
@@ -61,11 +61,16 @@ public class BuffStatSkill : SkillBase
         CharacterStats stats = targetObject.GetComponent<CharacterStats>();
         if (stats != null)
         {
+            Debug.Log($"[BuffStatsSkill] {_skillName} applying buffs to {targetObject.name}. Current attackSpeed before: {stats.attackSpeed:F2}");
+            
             foreach (var effect in buffEffects)
             {
                 string statName = effect.stat.ToString().ToLower();
+                Debug.Log($"[BuffStatsSkill] Applying {effect.stat} buff: multiplier={effect.multiplier:F2}, rawValue={effect.rawValue:F2}, duration={effect.duration:F2}s");
                 stats.ApplyBuff(statName, effect.multiplier, effect.rawValue, effect.duration, effect.vfxPrefab, effect.vfxOffset);
             }
+            
+            Debug.Log($"[BuffStatsSkill] {_skillName} finished. AttackSpeed after: {stats.attackSpeed:F2}");
         }
     }
 }

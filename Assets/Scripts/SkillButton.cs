@@ -101,9 +101,9 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
             {
                 if (skill.SkillCastType == SkillBase.CastType.SelfBuff)
                 {
-                    skill.Execute(core, null, core.gameObject);
-                    skillsComponent.CancelSkillSelection();
-                    Debug.Log($"[SkillButton] Instant SelfBuff: {skill.SkillName}, index: {buttonIndex}");
+                    // SelfBuff скиллы теперь идут через PlayerActionSystem для правильного прерывания действий
+                    core.ActionSystem.TryStartAction(PlayerAction.SkillCast, null, core.gameObject, skill);
+                    Debug.Log($"[SkillButton] SelfBuff through ActionSystem: {skill.SkillName}, index: {buttonIndex}");
                 }
                 else if (skill.SkillCastType == SkillBase.CastType.ToggleBuff)
                 {

@@ -31,7 +31,7 @@ MonoBehaviour:
   effectRadiusPrefab: {fileID: 8212533921873324154, guid: e6230a171a068cd489eb410abd241717,
     type: 3}
   VFXPrefab: {fileID: 0}
-  baseDamage: 2000
+  baseDamage: 50
   damageMultiplier: 1
   explosionRadius: 5
   explosionDelay: 3

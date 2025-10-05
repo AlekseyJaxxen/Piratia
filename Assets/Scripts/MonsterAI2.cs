@@ -52,7 +52,7 @@ public class MonsterAI2 : MonoBehaviour
     private Vector3 spawnPoint;
     private State currentState = State.Idle;
     private PlayerCore target;
-    private float lastAttackTime;
+    private float lastAttackTime = -Mathf.Infinity; // Первая атака всегда будет ждать полный кулдаун
     private float chaseStartTime;
     
     private void Awake()
@@ -364,7 +364,7 @@ public class MonsterAI2 : MonoBehaviour
                 // Проверяем расстояние до цели для атаки (от позиции головы)
                 float distance = Vector3.Distance(transform.position, target.transform.position);
                 float effectiveHeadRange = headAttackRange + Random.Range(-attackRangeVariation, attackRangeVariation);
-                if (distance <= effectiveHeadRange && !monster.IsStunned && Time.time >= lastAttackTime + attackCooldown)
+                if (distance <= effectiveHeadRange && !monster.IsStunned && Time.time - lastAttackTime >= attackCooldown)
                 {
                     // Head атакует только после смерти legs
                     Debug.Log($"[MonsterAI2] Head attacking after legs death, distance: {distance}, range: {headAttackRange}");
@@ -384,7 +384,7 @@ public class MonsterAI2 : MonoBehaviour
                 
                 // Head атакует только если он ближе к цели и в радиусе атаки
                 float effectiveHeadRange = headAttackRange + Random.Range(-attackRangeVariation, attackRangeVariation);
-                if (headDistance < legsDistance && headDistance <= effectiveHeadRange && !monster.IsStunned && Time.time >= lastAttackTime + attackCooldown)
+                if (headDistance < legsDistance && headDistance <= effectiveHeadRange && !monster.IsStunned && Time.time - lastAttackTime >= attackCooldown)
                 {
                     Debug.Log($"[MonsterAI2] Head attacking, head closer to target");
                     monster.ExecuteAttack(target);
@@ -398,7 +398,7 @@ public class MonsterAI2 : MonoBehaviour
                 // Head без партнера (legs мертв) - атакует с земли
                 float distance = Vector3.Distance(transform.position, target.transform.position);
                 float effectiveHeadRange = headAttackRange + Random.Range(-attackRangeVariation, attackRangeVariation);
-                if (distance <= effectiveHeadRange && !monster.IsStunned && Time.time >= lastAttackTime + attackCooldown)
+                if (distance <= effectiveHeadRange && !monster.IsStunned && Time.time - lastAttackTime >= attackCooldown)
                 {
                     Debug.Log($"[MonsterAI2] Head attacking without partner, distance: {distance}, range: {headAttackRange}");
                     if (monster != null && !monster.IsDead)
@@ -570,7 +570,7 @@ public class MonsterAI2 : MonoBehaviour
     
     private void TryAttack()
     {
-        if (Time.time >= lastAttackTime + attackCooldown && !monster.IsStunned)
+        if (Time.time - lastAttackTime >= attackCooldown && !monster.IsStunned)
         {
             Debug.Log($"[MonsterAI2] TryAttack called for {monster.name}, target: {target?.name}");
             
@@ -594,7 +594,7 @@ public class MonsterAI2 : MonoBehaviour
                 {
                     Debug.Log($"[MonsterAI2] Combined legs ExecuteAttack called for {monster.name} on target {target.name}");
                     lastAttackTime = Time.time;
-                    monster.ExecuteAttack(target); // Передаем target!
+                    CmdExecuteAttack(target.netId); // Используем Command
                     monster.IsCooldown = true;
                     if (agent != null && agent.isActiveAndEnabled && agent.isOnNavMesh) agent.isStopped = true;
                     StartCoroutine(EndCooldown());
@@ -604,7 +604,7 @@ public class MonsterAI2 : MonoBehaviour
                 {
                     Debug.Log($"[MonsterAI2] Combined head ExecuteAttack called for {monster.name} on target {target.name}");
                     lastAttackTime = Time.time;
-                    monster.ExecuteAttack(target); // Передаем target!
+                    CmdExecuteAttack(target.netId); // Используем Command
                     monster.IsCooldown = true;
                     StartCoroutine(EndCooldown());
                     return;
@@ -627,7 +627,7 @@ public class MonsterAI2 : MonoBehaviour
             // If no special skill was used, use basic attack (для обычных монстров)
             if (monster.basicAttackSkill != null)
             {
-                Debug.Log($"[MonsterAI2] Basic attack skill used by {monster.name}");
+                Debug.Log($"[MonsterAI2] Basic attack skill executed by {monster.name} on target {target.name}");
                 lastAttackTime = Time.time;
                 monster.basicAttackSkill.Execute(monster, null, target.gameObject);
                 monster.IsCooldown = true;
@@ -641,7 +641,8 @@ public class MonsterAI2 : MonoBehaviour
         }
         else
         {
-            Debug.Log($"[MonsterAI2] TryAttack blocked for {monster.name}: cooldown={Time.time - lastAttackTime}/{attackCooldown}, stunned={monster.IsStunned}");
+            float timeSinceLastAttack = Time.time - lastAttackTime;
+            Debug.Log($"[MonsterAI2] TryAttack blocked for {monster.name}: time since last attack={timeSinceLastAttack:F3}s/{attackCooldown:F3}s, stunned={monster.IsStunned}");
         }
     }
     
@@ -683,6 +684,15 @@ public class MonsterAI2 : MonoBehaviour
     {
         currentState = State.Chase;
         chaseStartTime = Time.time;
+    }
+    
+    [Command]
+    private void CmdExecuteAttack(uint targetNetId)
+    {
+        if (target != null && target.netId == targetNetId)
+        {
+            monster.ExecuteAttack(target);
+        }
     }
     
     private void SwitchToPatrol() { currentState = State.Patrol; }

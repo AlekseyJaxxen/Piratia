@@ -13,9 +13,14 @@ public class PlayerActionSystem : NetworkBehaviour
     private GameObject _currentTargetIndicator; // Индикатор цели атаки
     public bool IsPerformingAction => _isPerformingAction;
     public PlayerAction CurrentAction => _currentActionType;
+    public bool IsCasting => _isCasting;
     public ISkill CurrentSkill => _currentSkill;
     public GameObject CurrentTarget => _core?.Combat?.Target;
     public Vector3? CurrentTargetPosition { get; private set; }
+    
+    // Флаг для состояния ожидания кулдауна атаки
+    public bool isWaitingForAttackCooldown = false;
+    // Флаг для отслеживания первой атаки в цикле
     public void Init(PlayerCore core)
     {
         _core = core;
@@ -79,8 +84,9 @@ public class PlayerActionSystem : NetworkBehaviour
                 bool isTargeted = skillBase.SkillCastType == SkillBase.CastType.TargetedEnemy || skillBase.SkillCastType == SkillBase.CastType.TargetedAlly;
                 bool isSelf = skillBase.SkillCastType == SkillBase.CastType.SelfBuff || skillBase.SkillCastType == SkillBase.CastType.ToggleBuff;
                 
-                if (isSelf && targetObject != null)
+                if (isSelf)
                 {
+                    // SelfBuff скиллы: всегда валидны (цель = кастер)
                     canInterruptAndStart = true;
                 }
                 else if (!isTargeted && targetPosition.HasValue)
@@ -93,7 +99,7 @@ public class PlayerActionSystem : NetworkBehaviour
                 }
                 else
                 {
-                    Debug.LogWarning($"[PlayerActionSystem] Invalid SkillCast parameters for {skillBase.SkillName}: SelfBuff needs targetObject, AoE needs targetPosition, targeted needs targetObject");
+                    Debug.LogWarning($"[PlayerActionSystem] Invalid SkillCast parameters for {skillBase.SkillName}: SelfBuff is always valid, AoE needs targetPosition, targeted needs targetObject");
                     canInterruptAndStart = false;
                 }
             }
@@ -129,6 +135,12 @@ public class PlayerActionSystem : NetworkBehaviour
             // Разрешаем Move или новый Attack прерывать текущий Attack
             if (_currentActionType == PlayerAction.Attack && (actionType == PlayerAction.Move || actionType == PlayerAction.Attack))
             {
+                // Проверяем, не та же ли цель для атаки
+                if (actionType == PlayerAction.Attack && targetObject != null && _core.Combat.Target == targetObject)
+                {
+                    // Та же цель - не прерываем атаку, просто игнорируем клик
+                    return false;
+                }
                 // Allowing action to interrupt Attack
                 CompleteAction();
             }
@@ -164,10 +176,11 @@ public class PlayerActionSystem : NetworkBehaviour
                 var skillBase = (SkillBase)skillToCast;
                 bool isSelf = skillBase.SkillCastType == SkillBase.CastType.SelfBuff || skillBase.SkillCastType == SkillBase.CastType.ToggleBuff;
                 
-                if (isSelf && targetObject != null)
+                if (isSelf)
                 {
-                    // SelfBuff выполняется мгновенно, но прерывает текущие действия
-                    _currentAction = StartCoroutine(CastSelfBuffAction(targetObject, skillToCast));
+                    // SelfBuff скиллы: автоматически выбираем кастера как цель
+                    GameObject selfTarget = _core.gameObject;
+                    _currentAction = StartCoroutine(CastSkillAction(selfTarget, skillToCast));
                 }
                 else if (targetObject != null)
                 {
@@ -211,30 +224,7 @@ public class PlayerActionSystem : NetworkBehaviour
         CompleteAction();
     }
 
-    private IEnumerator CastSelfBuffAction(GameObject targetObject, ISkill skillToCast)
-    {
-        if (_core == null)
-        {
-            Debug.LogError("[PlayerActionSystem] Cannot perform CastSelfBuffAction: _core is null");
-            CompleteAction();
-            yield break;
-        }
-
-        // SelfBuff выполняется мгновенно, но прерывает текущие действия
-        Debug.Log($"[PlayerActionSystem] Executing SelfBuff: {((SkillBase)skillToCast).SkillName}");
-        
-        // Останавливаем движение
-        _core.Movement.StopMovement();
-        
-        // Выполняем скилл
-        _core.Skills.CmdExecuteSkill(_core, null, targetObject.GetComponent<NetworkIdentity>().netId, skillToCast.SkillName, ((SkillBase)skillToCast).Weight);
-        
-        // Отменяем выбор скилла
-        _core.Skills.CancelSkillSelection();
-        
-        // Завершаем действие
-        CompleteAction();
-    }
+    // CastSelfBuffAction больше не используется - SelfBuff теперь работают как TargetedAlly
     private IEnumerator AttackAction(GameObject target, ISkill skill = null)
     {
         if (_core == null || _core.Movement == null || _core.Combat == null || _core.Stats == null || _core.Skills == null)
@@ -246,6 +236,14 @@ public class PlayerActionSystem : NetworkBehaviour
         if (target == null)
         {
             Debug.LogError("[PlayerActionSystem] Target is null in AttackAction");
+            CompleteAction();
+            yield break;
+        }
+        
+        // Дополнительная проверка: если уже атакуем ту же цель, игнорируем
+        if (_core.Combat.Target == target && _isPerformingAction && _currentActionType == PlayerAction.Attack)
+        {
+            Debug.Log($"[PlayerActionSystem] Already attacking target {target.name}, ignoring duplicate attack request");
             CompleteAction();
             yield break;
         }
@@ -296,10 +294,7 @@ public class PlayerActionSystem : NetworkBehaviour
         _currentSkill = skill;
         float attackRange = skill.Range;
         float attackCooldown = skill is BasicAttackSkill ? CalculateBasicAttackCooldown() : 0f;
-        bool isLooping = skill is BasicAttackSkill;
         
-        // Записываем время начала попытки атаки (для предотвращения эксплойтов с отменой)
-        _core.Combat._lastAttackAttemptTime = Time.time;
         PlayerAnimationSystem animationSystem = GetComponent<PlayerAnimationSystem>();
         // Проверяем, можем ли мы достичь цель
         Vector3 closestPoint;
@@ -361,15 +356,15 @@ public class PlayerActionSystem : NetworkBehaviour
                     Vector3 lookDirection = target.transform.position - transform.position;
                     _core.Movement.RotateTo(lookDirection);
                     
-                    // Немедленно начинаем движение к цели
+                    // Начинаем движение к цели сразу, как только она вышла из радиуса
                     if (_core.Movement.MoveToTarget(target.transform.position, out actualDestination))
                     {
                         isMovingToTarget = true;
-                        Debug.Log($"[PlayerActionSystem] Started movement to target: {actualDestination}");
+                        Debug.Log($"[PlayerActionSystem] Started pursuit of target: {actualDestination} (distance: {distanceToActualTarget:F1}m)");
                     }
                     else
                     {
-                        Debug.LogWarning($"[PlayerActionSystem] Failed to start movement to {target.name}");
+                        Debug.LogWarning($"[PlayerActionSystem] Failed to start pursuit of {target.name}");
                         CompleteAction();
                         yield break;
                     }
@@ -434,15 +429,82 @@ public class PlayerActionSystem : NetworkBehaviour
                 Debug.Log($"[PlayerActionSystem] Target in range. Stopping to attack. Distance: {distanceToActualTarget:F1}m");
                 Debug.Log($"[PlayerActionSystem] Attack cooldown check: Time.time={Time.time:F3}, _lastAttackTime={_core.Combat._lastAttackTime:F3}, attackCooldown={attackCooldown:F3}");
                 
-                // Проверяем кулдаун с учетом времени последней попытки атаки
-                bool isOnCooldown = (_core.Combat._lastAttackTime > -Mathf.Infinity && Time.time < _core.Combat._lastAttackTime + attackCooldown) ||
-                                   (_core.Combat._lastAttackAttemptTime > -Mathf.Infinity && Time.time < _core.Combat._lastAttackAttemptTime + attackCooldown);
-                if (isOnCooldown)
+                // Каждая атака должна ждать полный кулдаун перед выполнением (динамический расчет)
+                float dynamicAttackCooldown = skill is BasicAttackSkill ? CalculateBasicAttackCooldown() : 0f;
+                Debug.Log($"[PlayerActionSystem] Waiting for attack cooldown: {dynamicAttackCooldown:F3}s before next attack (attackSpeed: {_core.Stats.attackSpeed:F2})");
+                
+                // Устанавливаем флаг ожидания кулдауна
+                isWaitingForAttackCooldown = true;
+                
+                // Логируем начало атаки
+                Debug.Log($"[PlayerActionSystem] ⚔️ НАЧАЛО АТАКИ #{(_core.Combat._lastAttackTime > 0 ? "NEXT" : "FIRST")} - Time: {Time.time:F3}s, Target: {target.name}");
+                
+                // Ждем 90% кулдауна с проверкой расстояния, затем проигрываем анимацию
+                float animationDelay = dynamicAttackCooldown * 0.9f;
+                Debug.Log($"[PlayerActionSystem] Waiting {animationDelay:F3}s (90% of cooldown) before animation");
+                
+                float animationStartTime = Time.time;
+                bool targetMovedAway = false;
+                while (Time.time - animationStartTime < animationDelay && !targetMovedAway)
                 {
-                    Debug.Log($"[PlayerActionSystem] Attack on cooldown, waiting... Time remaining: {(_core.Combat._lastAttackTime + attackCooldown - Time.time):F3}s");
+                    // Проверяем расстояние до цели во время ожидания
+                    float currentDistance = Vector3.Distance(transform.position, target.transform.position);
+                    if (currentDistance > effectiveAttackRange)
+                    {
+                        Debug.Log($"[PlayerActionSystem] Target moved out of range during animation delay ({currentDistance:F1}m > {effectiveAttackRange:F1}m), breaking to pursue");
+                        isWaitingForAttackCooldown = false; // Сбрасываем флаг ожидания
+                        targetMovedAway = true;
+                        break; // Выходим из цикла ожидания
+                    }
                     yield return null;
-                    continue;
                 }
+                
+                // Если цель убежала, пропускаем анимацию и урон
+                if (targetMovedAway)
+                {
+                    yield return null; // Возвращаемся к началу основного цикла
+                    continue; // Продолжаем основной цикл while
+                }
+                
+                // Проигрываем анимацию атаки на 90% кулдауна
+                Debug.Log($"[PlayerActionSystem] Triggering attack animation at 90% cooldown");
+                if (animationSystem != null)
+                {
+                    animationSystem.TriggerAttackAnimation(_core.Stats.attackSpeed);
+                }
+                
+                // Ждем оставшиеся 10% кулдауна с проверкой расстояния
+                float remainingDelay = dynamicAttackCooldown * 0.1f;
+                Debug.Log($"[PlayerActionSystem] Waiting {remainingDelay:F3}s (10% of cooldown) before damage");
+                
+                float damageStartTime = Time.time;
+                bool targetMovedAwayDuringDamage = false;
+                while (Time.time - damageStartTime < remainingDelay && !targetMovedAwayDuringDamage)
+                {
+                    // Проверяем расстояние до цели во время ожидания урона
+                    float currentDistance = Vector3.Distance(transform.position, target.transform.position);
+                    if (currentDistance > effectiveAttackRange)
+                    {
+                        Debug.Log($"[PlayerActionSystem] Target moved out of range during damage delay ({currentDistance:F1}m > {effectiveAttackRange:F1}m), breaking to pursue");
+                        isWaitingForAttackCooldown = false; // Сбрасываем флаг ожидания
+                        targetMovedAwayDuringDamage = true;
+                        break; // Выходим из цикла ожидания
+                    }
+                    yield return null;
+                }
+                
+                // Если цель убежала, пропускаем урон
+                if (targetMovedAwayDuringDamage)
+                {
+                    yield return null; // Возвращаемся к началу основного цикла
+                    continue; // Продолжаем основной цикл while
+                }
+                
+                isWaitingForAttackCooldown = false;
+                
+                // Логируем завершение атаки
+                Debug.Log($"[PlayerActionSystem] ✅ АТАКА ЗАВЕРШЕНА - Time: {Time.time:F3}s, Target: {target.name}");
+                
                 if (!_core.CanCastSkill(skill))
                 {
                     Debug.Log($"[PlayerActionSystem] Cannot execute skill {((SkillBase)skill).SkillName}: player is dead, stunned, or silenced");
@@ -451,49 +513,37 @@ public class PlayerActionSystem : NetworkBehaviour
                 }
                 Debug.Log($"[PlayerActionSystem] Executing attack with skill: {((SkillBase)skill).SkillName}");
                 
-                // Проверяем кулдаун для первого удара или если прошло недостаточно времени с попытки
-                float timeSinceLastAttempt = Time.time - _core.Combat._lastAttackAttemptTime;
-                
-                // Простой случай: Если это первая атака в принципе
-                if (_core.Combat._lastAttackTime <= -Mathf.Infinity)
-                {
-                    Debug.Log($"[PlayerActionSystem] First attack ever - applying full cooldown: {attackCooldown:F3}s");
-                    yield return new WaitForSeconds(attackCooldown);
-                }
-                // Проверяем кулдаун между попытками атаки
-                else if (timeSinceLastAttempt < attackCooldown)
-                {
-                    float remainingCooldown = attackCooldown - timeSinceLastAttempt;
-                    Debug.Log($"[PlayerActionSystem] Attack cooldown from previous attempt: {remainingCooldown:F3}s remaining");
-                    yield return new WaitForSeconds(remainingCooldown);
-                }
+                // Кулдаун уже проверен выше
                 
                 _core.Skills.CmdExecuteSkill(_core, null, target.GetComponent<NetworkIdentity>().netId, skill.SkillName, ((SkillBase)skill).Weight);
                 _core.Combat._lastAttackTime = Time.time;
-                _core.Combat._lastAttackAttemptTime = Time.time; // Обновляем время попытки на момент успешного удара
-                if (!isLooping)
+                
+                // Логируем завершение следующей атаки в цикле
+                Debug.Log($"[PlayerActionSystem] ✅ СЛЕДУЮЩАЯ АТАКА ЗАВЕРШЕНА - Time: {Time.time:F3}s, Target: {target.name}");
+                
+                
+                // Для базовых атак продолжаем цикл, для других скиллов - выходим
+                if (skill is BasicAttackSkill)
                 {
+                    // Базовая атака - продолжаем цикл
+                    // Анимация уже проиграна на 90% кулдауна выше (если было ожидание)
+                    
+                    // Логируем начало следующей атаки в цикле
+                    Debug.Log($"[PlayerActionSystem] 🔄 НАЧАЛО СЛЕДУЮЩЕЙ АТАКИ В ЦИКЛЕ - Time: {Time.time:F3}s, Target: {target.name}");
+                    
+                    // Не ждем дополнительного времени - кулдаун уже учтен выше
+                }
+                else
+                {
+                    // Другие скиллы - ждем время каста и выходим
                     if (((SkillBase)skill).CastTime > 0)
                     {
                         _isCasting = true;
                         yield return new WaitForSeconds(((SkillBase)skill).CastTime);
                         _isCasting = false;
                     }
-                    // Удаляем CancelSkillSelection для BasicAttackSkill
-                    if (!(skill is BasicAttackSkill))
-                    {
-                        _core.Skills.CancelSkillSelection();
-                    }
+                    _core.Skills.CancelSkillSelection();
                     break;
-                }
-                else
-                {
-                    if (animationSystem != null)
-                    {
-                        animationSystem.TriggerAttackAnimation();
-                    }
-                    // Для более агрессивного преследования - не ждем полный кулдаун
-                    yield return new WaitForSeconds(attackCooldown * 0.3f); // Ждем только 30% кулдауна
                 }
             }
             if (_core.Movement.Agent.hasPath && _core.Movement.Agent.remainingDistance <= _core.Movement.Agent.stoppingDistance && distanceToActualTarget > effectiveAttackRange)
@@ -522,6 +572,42 @@ public class PlayerActionSystem : NetworkBehaviour
             yield break;
         }
         _core.Combat.SetCurrentTarget(targetObject);
+        
+        // Прерываем текущие действия при начале каста (для всех скиллов)
+        if (_core.Combat != null)
+        {
+            // НЕ очищаем цель для SkillCast - она нужна для анимации
+            // _core.Combat.ClearTarget(); // Прерываем атаку
+        }
+        
+        if (_core.Movement != null)
+        {
+            _core.Movement.StopMovement(); // Останавливаем движение
+        }
+        
+        // Специальная логика для SelfBuff скиллов
+        var skillBase = (SkillBase)skillToCast;
+        bool isSelfBuff = skillBase.SkillCastType == SkillBase.CastType.SelfBuff || skillBase.SkillCastType == SkillBase.CastType.ToggleBuff;
+        
+        if (isSelfBuff)
+        {
+            // SelfBuff: цель всегда в радиусе (сам кастер), просто ждем каст время
+            Debug.Log($"[PlayerActionSystem] SelfBuff {skillBase.SkillName} - waiting for cast time: {skillBase.CastTime}s");
+            
+            if (skillBase.CastTime > 0)
+            {
+                _isCasting = true;
+                yield return new WaitForSeconds(skillBase.CastTime);
+                _isCasting = false;
+            }
+            
+            // Выполняем скилл
+            _core.Skills.CmdExecuteSkill(_core, null, targetObject.GetComponent<NetworkIdentity>().netId, skillToCast.SkillName, ((SkillBase)skillToCast).Weight);
+            _core.Skills.CancelSkillSelection();
+            CompleteAction();
+            yield break;
+        }
+        
         float originalStoppingDistance = _core.Movement.Agent.stoppingDistance;
         _core.Movement.Agent.stoppingDistance = 0f;
         const float castRangeOffset = 0.2f;
@@ -615,15 +701,15 @@ public class PlayerActionSystem : NetworkBehaviour
                     Vector3 lookDirection = targetObject.transform.position - transform.position;
                     _core.Movement.RotateTo(lookDirection);
                     
-                    // Немедленно начинаем движение к цели
+                    // Начинаем движение к цели для каста сразу, как только она вышла из радиуса
                     if (_core.Movement.MoveToTarget(targetObject.transform.position, out actualDestination))
                     {
                         isMovingToTarget = true;
-                        Debug.Log($"[PlayerActionSystem] Started movement to cast target: {actualDestination}");
+                        Debug.Log($"[PlayerActionSystem] Started pursuit of cast target: {actualDestination} (distance: {distanceToActualTarget:F1}m)");
                     }
                     else
                     {
-                        Debug.LogWarning($"[PlayerActionSystem] Failed to start movement to cast target {targetObject.name}");
+                        Debug.LogWarning($"[PlayerActionSystem] Failed to start pursuit of cast target {targetObject.name}");
                         _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
                         CompleteAction();
                         yield break;
@@ -768,6 +854,7 @@ public class PlayerActionSystem : NetworkBehaviour
         _currentSkill = null;
         _isCasting = false;
         CurrentTargetPosition = null;
+        isWaitingForAttackCooldown = false;
         if (_currentAction != null)
         {
             StopCoroutine(_currentAction);
@@ -792,10 +879,13 @@ public class PlayerActionSystem : NetworkBehaviour
     {
         if (_core?.Stats == null) return 1.0f;
         
-        float baseCooldown = 1f / _core.Stats.attackSpeed;
+        float currentAttackSpeed = _core.Stats.attackSpeed;
+        float baseCooldown = 1f / currentAttackSpeed;
+        float clampedCooldown = Mathf.Clamp(baseCooldown, 0.3f, 2.0f);
         
-        // Ограничиваем кулдаун разумными пределами для непрерывного преследования
-        return Mathf.Clamp(baseCooldown, 0.3f, 2.0f);
+        Debug.Log($"[PlayerActionSystem] CalculateBasicAttackCooldown: currentAttackSpeed={currentAttackSpeed:F2}, baseCooldown={baseCooldown:F3}s, clamped={clampedCooldown:F3}s");
+        
+        return clampedCooldown;
     }
     [Client]
     private void UpdateTargetIndicator()

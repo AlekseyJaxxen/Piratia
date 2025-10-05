@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: BigBoeSword
   m_EditorClassIdentifier: Assembly-CSharp::SwordItem
   itemName: BigSword
+  originalName: 
   id: 6
   icon: {fileID: 21300000, guid: 201d893effb7eb0499f917a0d749f9b0, type: 3}
   dropModelPrefab: {fileID: 919132149155446097, guid: 23f44c9e41fbdf44f84fe58679fcf847,
@@ -28,14 +29,92 @@ MonoBehaviour:
   canHotbar: 0
   isTwoHanded: 1
   preferRightHand: 1
+  chestData: {fileID: 0}
   strengthBonus: 0
   agilityBonus: 0
   spiritBonus: 0
   constitutionBonus: 0
   accuracyBonus: 0
+  hpRecoveryBonus: 0
+  spRecoveryBonus: 0
+  dodgeBonus: 0
+  damageChanceBonus: 0
+  useDynamicStats: 0
+  minDamageRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  maxDamageRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  strengthRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  agilityRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  spiritRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  constitutionRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  accuracyRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  healthRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  manaRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  defenseRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  armorRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  physicalResistRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  criticalRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  movementSpeedRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  hpRecoveryRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  spRecoveryRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  dodgeRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  damageChanceRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
   rarity: 2
   requiredLevel: 1
-  characterClass: 0
+  characterClass: 4
   skillEffect: {fileID: 0}
   castRange: 5
   model1: ItemModels/2HandSword
@@ -72,26 +151,15 @@ MonoBehaviour:
   location: 
   itemSwitchLocation: 
   itemObtainIntoLocation: 
-  strConstantBonus: 0
-  agiConstantBonus: 0
-  dexConstantBonus: 0
-  conConstantBonus: 0
-  staConstantBonus: 0
-  lukConstantBonus: 0
-  attackRangeConstantBonus: 0
   minAttackConstantBonus: 500
   maxAttackConstantBonus: 600
   maxHpConstantBonus: 1000
   maxSpConstantBonus: 0
-  fleeConstantBonus: 0
-  hitConstantBonus: 0
   crtConstantBonus: 0
-  mfConstantBonus: 0
-  hrecConstantBonus: 0
-  srecConstantBonus: 0
   mspdConstantBonus: 0
-  colConstantBonus: 0
   physicalResist: 0
+  armorBonus: 0
+  physicalResistBonus: 0
   itemLeftHandExertIdentifier: 
   itemEnergy: 0
   durability: 0

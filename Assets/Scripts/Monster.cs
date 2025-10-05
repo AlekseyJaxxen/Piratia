@@ -173,7 +173,7 @@ public class Monster : NetworkBehaviour
         {
             // Head или обычный монстр управляет своей анимационной системой
             // Debug.Log($"[Monster] RPC: {name} playing animation by ID {animationId}");
-            PlayAnimationById(animationId);
+            PlayAnimationByIdLocal(animationId);
         }
     }
     
@@ -493,6 +493,26 @@ public class Monster : NetworkBehaviour
         
         // Debug.Log($"[Monster] Playing animation by ID {animationId}: '{animationName}' on {monsterName}");
         PlayAnimation(animationName);
+    }
+    
+    /// <summary>
+    /// Локальное воспроизведение анимации по ID (без отправки RPC)
+    /// </summary>
+    private void PlayAnimationByIdLocal(int animationId)
+    {
+        if (_animationNames == null || animationId < 0 || animationId >= _animationNames.Length)
+        {
+            return;
+        }
+        
+        string animationName = _animationNames[animationId];
+        
+        if (string.IsNullOrEmpty(animationName))
+        {
+            return;
+        }
+        
+        PlayAnimationLocal(animationName);
     }
     
     /// <summary>
