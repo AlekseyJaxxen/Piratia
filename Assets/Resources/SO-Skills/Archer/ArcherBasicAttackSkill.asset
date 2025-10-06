@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: ArcherBasicAttackSkill
   m_EditorClassIdentifier: Assembly-CSharp::BasicAttackSkill
   castType: 0
-  ignoreGlobalCooldown: 1
   _icon: {fileID: 21300000, guid: 173a13fe1c4af854a872fcd40b7982b6, type: 3}
   _skillName: RangerMelee
+  _description: 
   _hotkey: 0
-  _range: 7
+  _range: 1
   _cooldown: 0
   _castTime: 0
   _castCursor: {fileID: 0}
@@ -25,8 +25,10 @@ MonoBehaviour:
   _damageType: 0
   _weight: 1
   _effectRadius: 0
+  _ignoreGlobalCooldown: 0
   castRangePrefab: {fileID: 0}
   effectRadiusPrefab: {fileID: 0}
+  VFXPrefab: {fileID: 0}
   vfxPrefab: {fileID: 0}
   projectilePrefab: {fileID: 6019109055774185331, guid: 9eeebc29afbec8e47bd1a0eb50ee4be1,
     type: 3}
