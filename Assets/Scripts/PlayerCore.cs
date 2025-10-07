@@ -1772,7 +1772,7 @@ public class PlayerCore : NetworkBehaviour
         // Добавляем фон панели
         Image panelImage = panel.AddComponent<Image>();
         panelImage.color = new Color(0.1f, 0.1f, 0.1f, 0.8f);
-        panelImage.raycastTarget = true; // Блокируем клики через панель
+        panelImage.raycastTarget = false; // Отключаем raycast у фона, чтобы не было hover эффектов
         
         // Создаем контейнер для участников группы
         GameObject membersContainer = new GameObject("PartyMembersContainer");
@@ -1813,6 +1813,22 @@ public class PlayerCore : NetworkBehaviour
         panelField?.SetValue(partyUIPanel, panel);
         containerField?.SetValue(partyUIPanel, membersContainer.transform);
         prefabField?.SetValue(partyUIPanel, slotPrefab);
+        
+        // Создаем ClickBlocker ПОСЛЕ всех слотов, чтобы он был внизу иерархии
+        // и не блокировал клики по слотам участников
+        GameObject clickBlocker = new GameObject("ClickBlocker");
+        clickBlocker.transform.SetParent(panel.transform, false);
+        clickBlocker.SetActive(true);
+        
+        RectTransform blockerRect = clickBlocker.AddComponent<RectTransform>();
+        blockerRect.anchorMin = Vector2.zero;
+        blockerRect.anchorMax = Vector2.one;
+        blockerRect.offsetMin = Vector2.zero;
+        blockerRect.offsetMax = Vector2.zero;
+        
+        Image blockerImage = clickBlocker.AddComponent<Image>();
+        blockerImage.color = Color.clear; // Полностью прозрачный
+        blockerImage.raycastTarget = true; // Блокирует клики только в пустых областях
         
         Debug.Log("[PlayerCore] Party panel structure created successfully");
     }
