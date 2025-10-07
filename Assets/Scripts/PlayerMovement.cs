@@ -71,6 +71,17 @@ public class PlayerMovement : NetworkBehaviour
             // Debug.LogError("[PlayerMovement] Camera or CameraInstance is null");
             return;
         }
+        // Handle right-click for context menu
+        if (Input.GetMouseButtonDown(1))
+        {
+            if (IsPointerOverPlayerUI())
+            {
+                // Click ignored - over UI
+                return;
+            }
+            HandleRightClick();
+        }
+        
         if (Input.GetMouseButtonDown(0))
         {
             if (IsPointerOverPlayerUI())
@@ -280,6 +291,13 @@ public class PlayerMovement : NetworkBehaviour
         EventSystem.current.RaycastAll(eventData, results);
         foreach (var result in results)
         {
+            // Проверяем, попал ли клик по контекстному меню
+            if (IsContextMenuUI(result.gameObject))
+            {
+                // Pointer over context menu
+                return true;
+            }
+            
             // Минимальное изменение: игнорируем UI, если это canvas DroppedItem
             if (result.gameObject.layer == LayerMask.NameToLayer("LocalPlayerUI") ||
                 (result.gameObject.GetComponent<Canvas>() != null && !IsDroppedItemUI(result.gameObject)))
@@ -296,6 +314,24 @@ public class PlayerMovement : NetworkBehaviour
         while (current != null)
         {
             if (current.GetComponent<DroppedItem>() != null) return true;
+            current = current.parent;
+        }
+        return false;
+    }
+    
+    private bool IsContextMenuUI(GameObject uiObj)
+    {
+        Transform current = uiObj.transform;
+        while (current != null)
+        {
+            // Проверяем, является ли это контекстным меню или его частью
+            if (current.name == "ContextMenuUI" || 
+                current.name == "ContextMenuPanel" || 
+                current.name == "ButtonContainer" ||
+                current.name.Contains("ContextButton"))
+            {
+                return true;
+            }
             current = current.parent;
         }
         return false;
@@ -323,6 +359,43 @@ public class PlayerMovement : NetworkBehaviour
             RotateTo(Agent.velocity);
         }
     }
+    private void HandleRightClick()
+    {
+        Ray ray = _core.Camera.CameraInstance.ScreenPointToRay(Input.mousePosition);
+        RaycastHit hit;
+        
+        // Проверяем, попал ли луч в игрока
+        if (Physics.Raycast(ray, out hit, Mathf.Infinity, _core.interactableLayers))
+        {
+            PlayerCore targetPlayer = hit.collider.GetComponent<PlayerCore>();
+            if (targetPlayer != null)
+            {
+                // Показываем контекстное меню для игрока
+                ShowContextMenuForPlayer(targetPlayer);
+                return;
+            }
+        }
+        
+        // Если клик не по игроку, скрываем контекстное меню
+        HideContextMenu();
+    }
+    
+    private void ShowContextMenuForPlayer(PlayerCore targetPlayer)
+    {
+        if (ContextMenuUI.Instance != null)
+        {
+            ContextMenuUI.Instance.ShowContextMenu(Input.mousePosition, targetPlayer);
+        }
+    }
+    
+    private void HideContextMenu()
+    {
+        if (ContextMenuUI.Instance != null)
+        {
+            ContextMenuUI.Instance.HideContextMenu();
+        }
+    }
+
     /// <summary>
     /// Находит ближайшую доступную точку к цели по NavMesh
     /// </summary>

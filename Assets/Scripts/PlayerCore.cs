@@ -152,6 +152,10 @@ public class PlayerCore : NetworkBehaviour
         {
             ui.gameObject.SetActive(true);
         }
+        
+        // Создаем ContextMenuUI для локального игрока
+        CreateContextMenuUI();
+        
         if (Camera != null)
         {
             Camera.Init(this);
@@ -1125,6 +1129,54 @@ public class PlayerCore : NetworkBehaviour
     {
         GetComponent<NetworkTransformHybrid>().enabled = true;
     }
-
+    
+    private void CreateContextMenuUI()
+    {
+        // Находим Canvas в PlayerUI
+        PlayerUI playerUI = GetComponentInChildren<PlayerUI>();
+        if (playerUI == null)
+        {
+            Debug.LogError("[PlayerCore] PlayerUI not found for ContextMenuUI creation!");
+            return;
+        }
+        
+        Canvas playerCanvas = playerUI.GetComponentInParent<Canvas>();
+        if (playerCanvas == null)
+        {
+            Debug.LogError("[PlayerCore] Canvas not found in PlayerUI for ContextMenuUI creation!");
+            return;
+        }
+        
+        Debug.Log($"[PlayerCore] Found Canvas: {playerCanvas.name}, Render Mode: {playerCanvas.renderMode}");
+        
+        // Создаем GameObject для ContextMenuUI
+        GameObject contextMenuObject = new GameObject("ContextMenuUI");
+        contextMenuObject.transform.SetParent(playerCanvas.transform, false);
+        
+        // Убеждаемся, что Canvas имеет высокий Sort Order для отображения поверх других UI
+        if (playerCanvas.sortingOrder < 100)
+        {
+            playerCanvas.sortingOrder = 100;
+            Debug.Log($"[PlayerCore] Set Canvas sort order to: {playerCanvas.sortingOrder}");
+        }
+        
+        // Добавляем RectTransform если его нет
+        RectTransform rectTransform = contextMenuObject.GetComponent<RectTransform>();
+        if (rectTransform == null)
+        {
+            rectTransform = contextMenuObject.AddComponent<RectTransform>();
+        }
+        
+        // Настраиваем RectTransform
+        rectTransform.anchorMin = Vector2.zero;
+        rectTransform.anchorMax = Vector2.one;
+        rectTransform.offsetMin = Vector2.zero;
+        rectTransform.offsetMax = Vector2.zero;
+        
+        // Добавляем ContextMenuUI компонент
+        ContextMenuUI contextMenuUI = contextMenuObject.AddComponent<ContextMenuUI>();
+        
+        Debug.Log("[PlayerCore] ContextMenuUI created successfully for local player");
+    }
 
 }
