@@ -5,6 +5,7 @@ public class NameTagUI : MonoBehaviour
 {
     [SerializeField] private TextMeshProUGUI nameText;
     [SerializeField] private TextMeshProUGUI teamText;
+    [SerializeField] private GameObject leaderIcon;
     [SerializeField] private Vector3 offset = new Vector3(0, 2.5f, 0);
     public Transform target;
     private Camera mainCamera;
@@ -49,6 +50,9 @@ public class NameTagUI : MonoBehaviour
         }
         if (nameText != null) nameText.color = color;
         if (teamText != null) teamText.color = color;
+        
+        // Обновляем иконку лидера
+        UpdateLeaderIcon();
     }
     
     /// <summary>
@@ -134,5 +138,31 @@ public class NameTagUI : MonoBehaviour
         }
         
         return displayText;
+    }
+    
+    /// <summary>
+    /// Updates the leader icon visibility based on party leader status
+    /// </summary>
+    private void UpdateLeaderIcon()
+    {
+        if (leaderIcon == null) return;
+        
+        // Получаем PlayerCore для проверки статуса лидера
+        PlayerCore targetPlayerCore = GetComponentInParent<PlayerCore>();
+        if (targetPlayerCore != null)
+        {
+            // Показываем иконку лидера только если игрок является лидером группы И находится в группе
+            bool shouldShowIcon = targetPlayerCore.isPartyLeader && !string.IsNullOrEmpty(targetPlayerCore.partyId);
+            leaderIcon.SetActive(shouldShowIcon);
+            
+            // Отладочная информация
+            Debug.Log($"[NameTagUI] {targetPlayerCore.playerName} - isPartyLeader: {targetPlayerCore.isPartyLeader}, partyId: '{targetPlayerCore.partyId}', leaderIcon active: {shouldShowIcon}");
+        }
+        else
+        {
+            // Если не можем получить PlayerCore, скрываем иконку
+            leaderIcon.SetActive(false);
+            Debug.LogWarning("[NameTagUI] Could not find PlayerCore component, hiding leader icon");
+        }
     }
 }

@@ -140,13 +140,45 @@ public class ProjectileDamageSkill : SkillBase
     {
         if (target == null) return false;
         
-        // Solo players are never allies to each other
+        // A player is always an ally to themselves
+        if (caster == target)
+        {
+            return true;
+        }
+        
+        // Check party membership first (highest priority)
+        if (!string.IsNullOrEmpty(caster.partyId) && !string.IsNullOrEmpty(target.partyId) && 
+            caster.partyId == target.partyId)
+        {
+            return true; // Party members are always allies
+        }
+        
+        // Check guild membership
+        if (!string.IsNullOrEmpty(caster.guildId) && !string.IsNullOrEmpty(target.guildId) && 
+            caster.guildId == target.guildId)
+        {
+            return true; // Guild members are always allies
+        }
+        
+        // Check faction membership
+        if (!string.IsNullOrEmpty(caster.factionId) && !string.IsNullOrEmpty(target.factionId) && 
+            caster.factionId == target.factionId)
+        {
+            return true; // Faction members are always allies
+        }
+        
+        // Check basic team logic
+        if (caster.team == target.team && caster.team != PlayerTeam.Solo)
+        {
+            return true; // Same team members are allies
+        }
+        
+        // Solo players are enemies to each other (if not in same dynamic team)
         if (caster.team == PlayerTeam.Solo && target.team == PlayerTeam.Solo)
         {
             return false; // Solo players are enemies to each other
         }
         
-        // For other teams, use normal team logic
-        return caster.team == target.team;
+        return false;
     }
 }

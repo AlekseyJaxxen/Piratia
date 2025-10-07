@@ -47,6 +47,8 @@ public class PlayerCore : NetworkBehaviour
     public string guildId = "";
     [SyncVar(hook = nameof(OnPartyChanged))]
     public string partyId = "";
+    [SyncVar(hook = nameof(OnPartyLeaderChanged))]
+    public bool isPartyLeader = false;
     [SyncVar(hook = nameof(OnFactionChanged))]
     public string factionId = "";
     [SyncVar(hook = nameof(OnDeathStateChanged))]
@@ -451,13 +453,16 @@ public class PlayerCore : NetworkBehaviour
             // Создаем новую группу
             string newPartyId = System.Guid.NewGuid().ToString();
             inviterPlayer.partyId = newPartyId;
+            inviterPlayer.isPartyLeader = true; // Приглашающий становится лидером
             partyId = newPartyId;
-            Debug.Log($"[PlayerCore] Created new party {newPartyId} with {inviterPlayer.playerName} and {playerName}");
+            isPartyLeader = false; // Принимающий не лидер
+            Debug.Log($"[PlayerCore] Created new party {newPartyId} with {inviterPlayer.playerName} as leader and {playerName}");
         }
         else
         {
             // Присоединяемся к существующей группе приглашающего
             partyId = inviterPlayer.partyId;
+            isPartyLeader = false; // Присоединяющийся не лидер
             Debug.Log($"[PlayerCore] {playerName} joined existing party {partyId} with {inviterPlayer.playerName}");
         }
     }
@@ -576,6 +581,7 @@ public class PlayerCore : NetworkBehaviour
         
         // Присоединяем запрашивающего к нашей группе
         requesterPlayer.partyId = partyId;
+        requesterPlayer.isPartyLeader = false; // Присоединяющийся не лидер
         Debug.Log($"[PlayerCore] {playerName} accepted join request from {requesterPlayer.playerName}, added to party {partyId}");
     }
     
@@ -628,7 +634,51 @@ public class PlayerCore : NetworkBehaviour
         if (playersInParty == 1 && lastPlayerInParty != null)
         {
             lastPlayerInParty.partyId = "";
+            lastPlayerInParty.isPartyLeader = false; // Снимаем статус лидера
             Debug.Log($"[PlayerCore] Party {partyIdToCheck} disbanded - only {lastPlayerInParty.playerName} remained");
+            
+            // Принудительно обновляем UI для игрока, который остался один
+            lastPlayerInParty.UpdateUI();
+            if (lastPlayerInParty.isLocalPlayer)
+            {
+                lastPlayerInParty.UpdateAllPlayerNameTags();
+            }
+        }
+        // Если в группе больше одного игрока, но нет лидера, назначаем нового лидера
+        else if (playersInParty > 1)
+        {
+            bool hasLeader = false;
+            PlayerCore newLeader = null;
+            
+            foreach (PlayerCore player in allPlayers)
+            {
+                if (!string.IsNullOrEmpty(player.partyId) && player.partyId == partyIdToCheck)
+                {
+                    if (player.isPartyLeader)
+                    {
+                        hasLeader = true;
+                        break;
+                    }
+                    if (newLeader == null)
+                    {
+                        newLeader = player; // Первый найденный игрок становится кандидатом в лидеры
+                    }
+                }
+            }
+            
+            // Если нет лидера, назначаем нового
+            if (!hasLeader && newLeader != null)
+            {
+                newLeader.isPartyLeader = true;
+                Debug.Log($"[PlayerCore] Party {partyIdToCheck} - {newLeader.playerName} became the new leader");
+                
+                // Принудительно обновляем UI для нового лидера
+                newLeader.UpdateUI();
+                if (newLeader.isLocalPlayer)
+                {
+                    newLeader.UpdateAllPlayerNameTags();
+                }
+            }
         }
     }
 
@@ -700,6 +750,14 @@ public class PlayerCore : NetworkBehaviour
         Debug.Log($"[PlayerCore] {playerName} party changed: {oldPartyId} -> {newPartyId}");
         UpdateUI();
         // Обновляем UI всех игроков, чтобы отразить изменения в party
+        UpdateAllPlayerNameTags();
+    }
+    
+    private void OnPartyLeaderChanged(bool oldValue, bool newValue)
+    {
+        Debug.Log($"[PlayerCore] {playerName} party leader status changed: {oldValue} -> {newValue}");
+        UpdateUI();
+        // Обновляем UI всех игроков, чтобы отразить изменения в лидерстве
         UpdateAllPlayerNameTags();
     }
 

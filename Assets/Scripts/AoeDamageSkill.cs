@@ -101,13 +101,46 @@ public class AoeDamageSkill : SkillBase
     {
         if (target == null) return false;
         
-        // Solo players are enemies to each other
+        // A player is never an enemy to themselves
+        if (caster == target)
+        {
+            return false;
+        }
+        
+        // Check party membership first (highest priority)
+        if (!string.IsNullOrEmpty(caster.partyId) && !string.IsNullOrEmpty(target.partyId) && 
+            caster.partyId == target.partyId)
+        {
+            return false; // Party members are never enemies
+        }
+        
+        // Check guild membership
+        if (!string.IsNullOrEmpty(caster.guildId) && !string.IsNullOrEmpty(target.guildId) && 
+            caster.guildId == target.guildId)
+        {
+            return false; // Guild members are never enemies
+        }
+        
+        // Check faction membership
+        if (!string.IsNullOrEmpty(caster.factionId) && !string.IsNullOrEmpty(target.factionId) && 
+            caster.factionId == target.factionId)
+        {
+            return false; // Faction members are never enemies
+        }
+        
+        // Check basic team logic
+        if (caster.team == target.team && caster.team != PlayerTeam.Solo)
+        {
+            return false; // Same team members are not enemies
+        }
+        
+        // Solo players are enemies to each other (if not in same dynamic team)
         if (caster.team == PlayerTeam.Solo && target.team == PlayerTeam.Solo)
         {
             return true; // Solo players are enemies to each other
         }
         
-        // For other teams, use normal team logic
+        // Different teams are enemies
         return caster.team != target.team;
     }
 }

@@ -15,6 +15,7 @@ public class BombObject : NetworkBehaviour
     [SyncVar] private float zoneAlpha;
     [SyncVar] private int casterTeam;
     [SyncVar] private NetworkIdentity casterIdentity;
+    private PlayerCore casterPlayerCore; // Для проверки party membership
     
     // Кэшированные префабы
     private GameObject explosionEffect;
@@ -58,6 +59,12 @@ public class BombObject : NetworkBehaviour
         zoneAlpha = alpha;
         casterTeam = team;
         casterIdentity = caster;
+        
+        // Получаем PlayerCore для проверки party membership
+        if (caster != null)
+        {
+            casterPlayerCore = caster.GetComponent<PlayerCore>();
+        }
         
         // Создаем индикатор зоны только на сервере
         if (zoneIndicator != null)
@@ -395,7 +402,38 @@ public class BombObject : NetworkBehaviour
         
         PlayerTeam casterTeam = (PlayerTeam)casterTeamInt;
         
-        // Check basic team logic first
+        // Если у нас есть casterPlayerCore, используем полную логику party
+        if (casterPlayerCore != null)
+        {
+            // A player is never an enemy to themselves
+            if (casterPlayerCore == target)
+            {
+                return false;
+            }
+            
+            // Check party membership first (highest priority)
+            if (!string.IsNullOrEmpty(casterPlayerCore.partyId) && !string.IsNullOrEmpty(target.partyId) && 
+                casterPlayerCore.partyId == target.partyId)
+            {
+                return false; // Party members are never enemies
+            }
+            
+            // Check guild membership
+            if (!string.IsNullOrEmpty(casterPlayerCore.guildId) && !string.IsNullOrEmpty(target.guildId) && 
+                casterPlayerCore.guildId == target.guildId)
+            {
+                return false; // Guild members are never enemies
+            }
+            
+            // Check faction membership
+            if (!string.IsNullOrEmpty(casterPlayerCore.factionId) && !string.IsNullOrEmpty(target.factionId) && 
+                casterPlayerCore.factionId == target.factionId)
+            {
+                return false; // Faction members are never enemies
+            }
+        }
+        
+        // Check basic team logic
         if (target.team == casterTeam && target.team != PlayerTeam.Solo)
         {
             return false; // Same team, not enemy

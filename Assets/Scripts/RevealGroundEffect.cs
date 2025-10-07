@@ -6,14 +6,14 @@ public class RevealGroundEffect : NetworkBehaviour
 {
     private float dur;
     private float rad;
-    private PlayerTeam team;
+    private PlayerCore ownerPlayerCore;
     private int layerMask;
     private HashSet<uint> revealedPlayers = new HashSet<uint>();
-    public void Init(float duration, float radius, PlayerTeam ownerTeam, int layerMask)
+    public void Init(float duration, float radius, PlayerCore ownerPlayerCore, int layerMask)
     {
         dur = duration;
         rad = radius;
-        team = ownerTeam;
+        this.ownerPlayerCore = ownerPlayerCore;
         this.layerMask = layerMask;
         StartCoroutine(DestroyAfter(duration));
     }
@@ -25,7 +25,7 @@ public class RevealGroundEffect : NetworkBehaviour
         foreach (Collider col in hits)
         {
             PlayerCore player = col.GetComponent<PlayerCore>();
-            if (player != null && IsEnemy(player, team) && player.Skills._isInvisible)
+            if (player != null && IsEnemy(player, ownerPlayerCore) && player.Skills._isInvisible)
             {
                 currentPlayers.Add(player.netId);
                 if (!revealedPlayers.Contains(player.netId))
@@ -79,24 +79,52 @@ public class RevealGroundEffect : NetworkBehaviour
     
     /// <summary>
     /// Checks if player is an enemy to the ground effect owner
+    /// Supports dynamic teams: guild, party, faction, and basic teams
     /// </summary>
-    private bool IsEnemy(PlayerCore player, PlayerTeam ownerTeam)
+    private bool IsEnemy(PlayerCore player, PlayerCore ownerPlayerCore)
     {
-        if (player == null) return false;
+        if (player == null || ownerPlayerCore == null) return false;
         
-        // Check basic team logic first
-        if (player.team == ownerTeam && player.team != PlayerTeam.Solo)
+        // A player is never an enemy to themselves
+        if (ownerPlayerCore == player)
+        {
+            return false;
+        }
+        
+        // Check party membership first (highest priority)
+        if (!string.IsNullOrEmpty(ownerPlayerCore.partyId) && !string.IsNullOrEmpty(player.partyId) && 
+            ownerPlayerCore.partyId == player.partyId)
+        {
+            return false; // Party members are never enemies
+        }
+        
+        // Check guild membership
+        if (!string.IsNullOrEmpty(ownerPlayerCore.guildId) && !string.IsNullOrEmpty(player.guildId) && 
+            ownerPlayerCore.guildId == player.guildId)
+        {
+            return false; // Guild members are never enemies
+        }
+        
+        // Check faction membership
+        if (!string.IsNullOrEmpty(ownerPlayerCore.factionId) && !string.IsNullOrEmpty(player.factionId) && 
+            ownerPlayerCore.factionId == player.factionId)
+        {
+            return false; // Faction members are never enemies
+        }
+        
+        // Check basic team logic
+        if (player.team == ownerPlayerCore.team && player.team != PlayerTeam.Solo)
         {
             return false; // Same team, not enemy
         }
         
         // For solo players, they are enemies to each other
-        if (player.team == PlayerTeam.Solo && ownerTeam == PlayerTeam.Solo)
+        if (player.team == PlayerTeam.Solo && ownerPlayerCore.team == PlayerTeam.Solo)
         {
             return true; // Solo players are enemies to each other
         }
         
         // For other teams, use normal team logic
-        return player.team != ownerTeam;
+        return player.team != ownerPlayerCore.team;
     }
 }
