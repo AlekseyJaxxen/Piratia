@@ -2,11 +2,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
-
-[CreateAssetMenu(fileName = "AdvancedItemGenerator", menuName = "Item Generator/Smart Generator")]
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
+
+[CreateAssetMenu(fileName = "AdvancedItemGenerator", menuName = "Item Generator/Smart Generator")]
 public class AdvancedItemGenerator : ScriptableObject
 {
     [Header("Generation Settings")]
@@ -499,12 +499,12 @@ public class AdvancedItemGenerator : ScriptableObject
         destination.itemType = source.itemType;
         destination.equipmentSlot = source.equipmentSlot;
         destination.stackable = source.stackable;
-        destination.maxStackSize = source.maxStackSize;
+        destination.maxStack = source.maxStack;
         destination.icon = source.icon;
         destination.description = source.description;
-        destination.itemValue = source.itemValue;
-        destination.sellable = source.sellable;
-        destination.droppable = source.droppable;
+        destination.price = source.price;
+        destination.canSell = source.canSell;
+        destination.canDrop = source.canDrop;
     }
     
     private int GetNextAvailableId()

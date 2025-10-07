@@ -13,20 +13,23 @@ MonoBehaviour:
   m_Name: ReviveSkill
   m_EditorClassIdentifier: Assembly-CSharp::ReviveSkill
   castType: 1
-  ignoreGlobalCooldown: 0
   _icon: {fileID: 21300000, guid: 38baa5c88697e6e4bad8f0be93de4044, type: 3}
   _skillName: REVIVE
+  _description: 
   _hotkey: 288
   _range: 5
   _cooldown: 10
-  _castTime: 0
+  _castTime: 0.1
   _castCursor: {fileID: 0}
   _manaCost: 0
   _damageType: 0
   _weight: 1
   _effectRadius: 0
+  _ignoreGlobalCooldown: 0
   castRangePrefab: {fileID: 3299273662854126661, guid: ee30310967d98c04fb16bcfa96cfb3c2,
     type: 3}
   effectRadiusPrefab: {fileID: 0}
+  VFXPrefab: {fileID: 0}
   reviveVFXPrefab: {fileID: 0}
   reviveHpFraction: 0.2
+  reviveRange: 5

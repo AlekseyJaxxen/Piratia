@@ -102,7 +102,7 @@ public class PlayerUI_Team : MonoBehaviour
     {
         tempPlayerInfo.characterClass = selectedClass;
         UpdateClassButtonColors(selectedClass);
-        Debug.Log($"[PlayerUI_Team] Выбран класс локально: {selectedClass}");
+        Debug.Log($"[PlayerUI_Team] пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ: {selectedClass}");
         if (NetworkClient.isConnected && PlayerCore.localPlayerCoreInstance != null)
         {
             PlayerCore.localPlayerCoreInstance.CmdSetClass(selectedClass);
@@ -113,7 +113,7 @@ public class PlayerUI_Team : MonoBehaviour
     public void OnHostClicked()
     {
         OnChangeNameClicked();
-        Debug.Log("Кнопка Host нажата.");
+        Debug.Log("пїЅпїЅпїЅпїЅпїЅпїЅ Host пїЅпїЅпїЅпїЅпїЅпїЅ.");
         MyNetworkManager myNetworkManager = NetworkManager.singleton.GetComponent<MyNetworkManager>();
         if (myNetworkManager != null)
         {
@@ -126,7 +126,7 @@ public class PlayerUI_Team : MonoBehaviour
     public void OnClientClicked()
     {
         OnChangeNameClicked();
-        Debug.Log("Кнопка Client нажата.");
+        Debug.Log("пїЅпїЅпїЅпїЅпїЅпїЅ Client пїЅпїЅпїЅпїЅпїЅпїЅ.");
         MyNetworkManager myNetworkManager = NetworkManager.singleton.GetComponent<MyNetworkManager>();
         if (myNetworkManager != null)
         {
@@ -136,7 +136,7 @@ public class PlayerUI_Team : MonoBehaviour
 
     private IEnumerator TryConnectClientWithTimeout(MyNetworkManager myNetworkManager)
     {
-        float timeoutDuration = 10f; // Таймаут 10 секунд
+        float timeoutDuration = 10f; // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ 10 пїЅпїЅпїЅпїЅпїЅпїЅ
         myNetworkManager.StartClient();
         float startTime = Time.time;
 
@@ -148,7 +148,7 @@ public class PlayerUI_Team : MonoBehaviour
         if (!NetworkClient.isConnected)
         {
             myNetworkManager.StopClient();
-            Debug.LogError("[PlayerUI_Team] Не удалось подключиться к серверу: таймаут.");
+            Debug.LogError("[PlayerUI_Team] пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ: пїЅпїЅпїЅпїЅпїЅпїЅпїЅ.");
             yield break;
         }
 
@@ -179,7 +179,7 @@ public class PlayerUI_Team : MonoBehaviour
     {
         tempPlayerInfo.team = selectedTeam;
         UpdateButtonColors(selectedTeam);
-        Debug.Log($"Выбрана команда локально: {selectedTeam}");
+        Debug.Log($"пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ: {selectedTeam}");
         if (NetworkClient.isConnected && PlayerCore.localPlayerCoreInstance != null)
         {
             PlayerCore.localPlayerCoreInstance.CmdChangeTeam(selectedTeam);
@@ -205,14 +205,14 @@ public class PlayerUI_Team : MonoBehaviour
     private void OnPrefabSelected(int index)
     {
         tempPlayerInfo.prefabIndex = index;
-        Debug.Log($"Выбран префаб игрока локально: {index}");
+        Debug.Log($"пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ: {index}");
     }
 
     private void OnChangeNameClicked()
     {
         string newName = nameInputField.text;
         tempPlayerInfo.name = newName;
-        Debug.Log($"Имя изменено локально на: {newName}");
+        Debug.Log($"пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ: {newName}");
         if (NetworkClient.isConnected && PlayerCore.localPlayerCoreInstance != null)
         {
             PlayerCore.localPlayerCoreInstance.CmdChangeName(newName);
@@ -240,12 +240,12 @@ public class PlayerUI_Team : MonoBehaviour
         if (NetworkServer.active && NetworkClient.isConnected)
         {
             NetworkManager.singleton.StopHost();
-            Debug.Log("Хост отключился.");
+            Debug.Log("пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.");
         }
         else if (NetworkClient.isConnected)
         {
             NetworkManager.singleton.StopClient();
-            Debug.Log("Клиент отключился.");
+            Debug.Log("пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.");
         }
     }
 
@@ -254,12 +254,12 @@ public class PlayerUI_Team : MonoBehaviour
         if (NetworkServer.active && NetworkClient.isConnected)
         {
             NetworkManager.singleton.StopHost();
-            Debug.Log("Хост отключился и возвращается в главное меню.");
+            Debug.Log("пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ.");
         }
         else if (NetworkClient.isConnected)
         {
             NetworkManager.singleton.StopClient();
-            Debug.Log("Клиент отключился и возвращается в главное меню.");
+            Debug.Log("пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ.");
         }
     }
 

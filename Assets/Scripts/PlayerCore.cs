@@ -557,6 +557,13 @@ public class PlayerCore : NetworkBehaviour
         {
             return !isDead && !isStunned;
         }
+        
+        // Allow revive skills to be cast even when caster is alive (for reviving dead teammates)
+        if (skill != null && skill is ReviveSkill)
+        {
+            return !isStunned && !isSilenced;
+        }
+        
         return !isDead && !isStunned && !isSilenced;
     }
 

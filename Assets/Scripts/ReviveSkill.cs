@@ -55,10 +55,10 @@ public class ReviveSkill : SkillBase
             return;
         }
 
-        Debug.Log($"[ReviveSkill] Executing revive on {targetPlayer.name}");
+        Debug.Log($"[ReviveSkill] Client validation passed for {targetPlayer.name}");
         
-        // Execute the skill
-        player.Skills.CmdExecuteSkill(player, null, targetPlayer.netId, SkillName, Weight);
+        // The actual server execution will be handled by ExecuteOnServer
+        // No need to call CmdExecuteSkill again as it would cause recursion
     }
 
     public override void ExecuteOnServer(PlayerCore caster, Vector3? targetPosition, GameObject targetObject, int weight)

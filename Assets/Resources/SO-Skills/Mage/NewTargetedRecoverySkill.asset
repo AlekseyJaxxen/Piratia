@@ -13,19 +13,21 @@ MonoBehaviour:
   m_Name: NewTargetedRecoverySkill
   m_EditorClassIdentifier: Assembly-CSharp::TargetedRecoverySkill
   castType: 1
-  ignoreGlobalCooldown: 0
   _icon: {fileID: 21300000, guid: b6344f6a062ed1949a17f5df775b357d, type: 3}
   _skillName: Recovery
+  _description: 
   _hotkey: 289
   _range: 6
   _cooldown: 5
-  _castTime: 0
+  _castTime: 0.1
   _castCursor: {fileID: 0}
   _manaCost: 0
   _damageType: 0
   _weight: 1
   _effectRadius: 0
+  _ignoreGlobalCooldown: 0
   castRangePrefab: {fileID: 3299273662854126661, guid: ee30310967d98c04fb16bcfa96cfb3c2,
     type: 3}
   effectRadiusPrefab: {fileID: 0}
+  VFXPrefab: {fileID: 0}
   effectPrefab: {fileID: 164832, guid: cc4edba986607ba48b17927b27d25e4e, type: 3}

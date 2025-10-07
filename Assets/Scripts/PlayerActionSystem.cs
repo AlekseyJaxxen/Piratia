@@ -668,6 +668,26 @@ public class PlayerActionSystem : NetworkBehaviour
             {
                 _core.Movement.StopMovement();
                 _core.Movement.RotateTo(targetObject.transform.position - transform.position);
+                
+                // Final distance check before executing skill
+                float finalDistance = Vector3.Distance(transform.position, targetObject.transform.position);
+                if (finalDistance > skillToCast.Range)
+                {
+                    Debug.LogWarning($"[PlayerActionSystem] Final distance check failed: {finalDistance:F2} > {skillToCast.Range} for skill {skillToCast.SkillName}");
+                    _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
+                    CompleteAction();
+                    yield break;
+                }
+                
+                // Wait for cast time BEFORE executing the skill
+                if (((SkillBase)skillToCast).CastTime > 0)
+                {
+                    _isCasting = true;
+                    yield return new WaitForSeconds(((SkillBase)skillToCast).CastTime);
+                    _isCasting = false;
+                }
+                
+                // Execute the skill AFTER cast time is complete
                 NetworkIdentity targetNetId = targetObject.GetComponent<NetworkIdentity>();
                 if (targetNetId == null)
                 {
@@ -682,12 +702,7 @@ public class PlayerActionSystem : NetworkBehaviour
                 {
                     Debug.LogError($"[PlayerActionSystem] No NetworkIdentity found on target: {targetObject.name}");
                 }
-                if (((SkillBase)skillToCast).CastTime > 0)
-                {
-                    _isCasting = true;
-                    yield return new WaitForSeconds(((SkillBase)skillToCast).CastTime);
-                    _isCasting = false;
-                }
+                
                 _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
                 CompleteAction();
                 yield break;
@@ -804,13 +819,28 @@ public class PlayerActionSystem : NetworkBehaviour
             {
                 _core.Movement.StopMovement();
                 _core.Movement.RotateTo(targetPosition - transform.position);
-                _core.Skills.CmdExecuteSkill(_core, targetPosition, 0, skillToCast.SkillName, ((SkillBase)skillToCast).Weight);
+                
+                // Final distance check before executing skill
+                float finalDistance = Vector3.Distance(transform.position, targetPosition);
+                if (finalDistance > skillToCast.Range)
+                {
+                    Debug.LogWarning($"[PlayerActionSystem] Final distance check failed: {finalDistance:F2} > {skillToCast.Range} for skill {skillToCast.SkillName}");
+                    _core.Skills.CancelSkillSelection();
+                    _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
+                    CompleteAction();
+                    yield break;
+                }
+                
+                // Wait for cast time BEFORE executing the skill
                 if (((SkillBase)skillToCast).CastTime > 0)
                 {
                     _isCasting = true;
                     yield return new WaitForSeconds(((SkillBase)skillToCast).CastTime);
                     _isCasting = false;
                 }
+                
+                // Execute the skill AFTER cast time is complete
+                _core.Skills.CmdExecuteSkill(_core, targetPosition, 0, skillToCast.SkillName, ((SkillBase)skillToCast).Weight);
                 _core.Skills.CancelSkillSelection();
                 _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
                 CompleteAction();

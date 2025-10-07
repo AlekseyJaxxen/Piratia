@@ -13,20 +13,22 @@ MonoBehaviour:
   m_Name: MageEye
   m_EditorClassIdentifier: Assembly-CSharp::RevealGroundSkill
   castType: 3
-  ignoreGlobalCooldown: 0
   _icon: {fileID: 21300000, guid: ff16ad2f6dcb41345b0ecd32839d5c6b, type: 3}
   _skillName: TrueSight
+  _description: 
   _hotkey: 290
   _range: 5
   _cooldown: 15
-  _castTime: 0
+  _castTime: 0.1
   _castCursor: {fileID: 0}
   _manaCost: 0
   _damageType: 0
   _weight: 1
   _effectRadius: 0
+  _ignoreGlobalCooldown: 0
   castRangePrefab: {fileID: 0}
   effectRadiusPrefab: {fileID: 0}
+  VFXPrefab: {fileID: 0}
   duration: 30
   aoeRadius: 5
   revealEffectPrefab: {fileID: 3299273662854126661, guid: 9cbde2bf5a51a4f43b201cecd0ec5787,
