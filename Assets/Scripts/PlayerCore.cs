@@ -156,6 +156,9 @@ public class PlayerCore : NetworkBehaviour
         // Создаем ContextMenuUI для локального игрока
         CreateContextMenuUI();
         
+        // Создаем PartyInviteUI для локального игрока
+        CreatePartyInviteUI();
+        
         if (Camera != null)
         {
             Camera.Init(this);
@@ -223,6 +226,31 @@ public class PlayerCore : NetworkBehaviour
         {
             nameTagUI.UpdateNameAndTeam(playerName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None, isLocalPlayer);
         }
+    }
+    
+    /// <summary>
+    /// Updates name tags for all players to reflect party/guild/faction changes
+    /// </summary>
+    private void UpdateAllPlayerNameTags()
+    {
+        if (!isLocalPlayer) return; // Only local player should update all name tags
+        
+        // Find all PlayerCore instances and update their name tags
+        PlayerCore[] allPlayers = FindObjectsOfType<PlayerCore>();
+        foreach (PlayerCore player in allPlayers)
+        {
+            if (player.nameTagUI != null)
+            {
+                player.nameTagUI.UpdateNameAndTeam(
+                    player.playerName, 
+                    player.team, 
+                    localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None, 
+                    player.isLocalPlayer
+                );
+            }
+        }
+        
+        Debug.Log($"[PlayerCore] Updated name tags for {allPlayers.Length} players");
     }
 
     private IEnumerator DelayedUIUpdate()
@@ -374,6 +402,95 @@ public class PlayerCore : NetworkBehaviour
         factionId = "";
         Debug.Log($"[PlayerCore] {playerName} left faction: {oldFactionId}");
     }
+    
+    [Command]
+    public void CmdInviteToParty(uint targetNetId)
+    {
+        if (isDead) return;
+        
+        // Проверяем, что цель существует
+        if (!NetworkServer.spawned.TryGetValue(targetNetId, out NetworkIdentity targetIdentity))
+        {
+            Debug.LogWarning($"[PlayerCore] Target player {targetNetId} not found for party invite");
+            return;
+        }
+        
+        PlayerCore targetPlayer = targetIdentity.GetComponent<PlayerCore>();
+        if (targetPlayer == null)
+        {
+            Debug.LogWarning($"[PlayerCore] Target player {targetNetId} has no PlayerCore component");
+            return;
+        }
+        
+        // Проверяем, что цель не в группе
+        if (!string.IsNullOrEmpty(targetPlayer.partyId))
+        {
+            Debug.Log($"[PlayerCore] Target player {targetPlayer.playerName} is already in a party");
+            return;
+        }
+        
+        // Отправляем приглашение (группа создается только после принятия)
+        targetPlayer.RpcShowPartyInvite(playerName, netId);
+        Debug.Log($"[PlayerCore] {playerName} invited {targetPlayer.playerName} to party");
+    }
+    
+    [Command]
+    public void CmdAcceptPartyInvite(uint inviterNetId)
+    {
+        if (isDead) return;
+        
+        // Проверяем, что приглашающий существует
+        if (!NetworkServer.spawned.TryGetValue(inviterNetId, out NetworkIdentity inviterIdentity))
+        {
+            Debug.LogWarning($"[PlayerCore] Inviter player {inviterNetId} not found");
+            return;
+        }
+        
+        PlayerCore inviterPlayer = inviterIdentity.GetComponent<PlayerCore>();
+        if (inviterPlayer == null)
+        {
+            Debug.LogWarning($"[PlayerCore] Inviter player {inviterNetId} has no PlayerCore component");
+            return;
+        }
+        
+        // Создаем группу, если приглашающий не в группе
+        if (string.IsNullOrEmpty(inviterPlayer.partyId))
+        {
+            // Создаем новую группу
+            string newPartyId = System.Guid.NewGuid().ToString();
+            inviterPlayer.partyId = newPartyId;
+            partyId = newPartyId;
+            Debug.Log($"[PlayerCore] Created new party {newPartyId} with {inviterPlayer.playerName} and {playerName}");
+        }
+        else
+        {
+            // Присоединяемся к существующей группе приглашающего
+            partyId = inviterPlayer.partyId;
+            Debug.Log($"[PlayerCore] {playerName} joined existing party {partyId} with {inviterPlayer.playerName}");
+        }
+    }
+    
+    [Command]
+    public void CmdDeclinePartyInvite(uint inviterNetId)
+    {
+        if (isDead) return;
+        
+        // Проверяем, что приглашающий существует
+        if (!NetworkServer.spawned.TryGetValue(inviterNetId, out NetworkIdentity inviterIdentity))
+        {
+            Debug.LogWarning($"[PlayerCore] Inviter player {inviterNetId} not found");
+            return;
+        }
+        
+        PlayerCore inviterPlayer = inviterIdentity.GetComponent<PlayerCore>();
+        if (inviterPlayer == null)
+        {
+            Debug.LogWarning($"[PlayerCore] Inviter player {inviterNetId} has no PlayerCore component");
+            return;
+        }
+        
+        Debug.Log($"[PlayerCore] {playerName} declined party invite from {inviterPlayer.playerName}");
+    }
 
     [Command]
     public void CmdAddExperience(int amount)
@@ -442,6 +559,8 @@ public class PlayerCore : NetworkBehaviour
     {
         Debug.Log($"[PlayerCore] {playerName} party changed: {oldPartyId} -> {newPartyId}");
         UpdateUI();
+        // Обновляем UI всех игроков, чтобы отразить изменения в party
+        UpdateAllPlayerNameTags();
     }
 
     private void OnFactionChanged(string oldFactionId, string newFactionId)
@@ -720,6 +839,22 @@ public class PlayerCore : NetworkBehaviour
             }
         }
         reviveRequestUI.Show(casterName);
+    }
+    
+    [ClientRpc]
+    public void RpcShowPartyInvite(string inviterName, uint inviterNetId)
+    {
+        if (!isLocalPlayer) return;
+        
+        // Показываем приглашение через PartyInviteUI
+        if (PartyInviteUI.Instance != null)
+        {
+            PartyInviteUI.Instance.ShowInvite(inviterName, inviterNetId);
+        }
+        else
+        {
+            Debug.LogWarning("[PlayerCore] PartyInviteUI.Instance is null, cannot show party invite");
+        }
     }
 
     [Command]
@@ -1177,6 +1312,48 @@ public class PlayerCore : NetworkBehaviour
         ContextMenuUI contextMenuUI = contextMenuObject.AddComponent<ContextMenuUI>();
         
         Debug.Log("[PlayerCore] ContextMenuUI created successfully for local player");
+    }
+    
+    private void CreatePartyInviteUI()
+    {
+        // Находим Canvas в PlayerUI
+        PlayerUI playerUI = GetComponentInChildren<PlayerUI>();
+        if (playerUI == null)
+        {
+            Debug.LogError("[PlayerCore] PlayerUI not found for PartyInviteUI creation!");
+            return;
+        }
+        
+        Canvas playerCanvas = playerUI.GetComponentInParent<Canvas>();
+        if (playerCanvas == null)
+        {
+            Debug.LogError("[PlayerCore] Canvas not found in PlayerUI for PartyInviteUI creation!");
+            return;
+        }
+        
+        Debug.Log($"[PlayerCore] Found Canvas for PartyInviteUI: {playerCanvas.name}, Render Mode: {playerCanvas.renderMode}");
+        
+        // Создаем GameObject для PartyInviteUI
+        GameObject partyInviteObject = new GameObject("PartyInviteUI");
+        partyInviteObject.transform.SetParent(playerCanvas.transform, false);
+        
+        // Добавляем RectTransform если его нет
+        RectTransform rectTransform = partyInviteObject.GetComponent<RectTransform>();
+        if (rectTransform == null)
+        {
+            rectTransform = partyInviteObject.AddComponent<RectTransform>();
+        }
+        
+        // Настраиваем RectTransform
+        rectTransform.anchorMin = Vector2.zero;
+        rectTransform.anchorMax = Vector2.one;
+        rectTransform.offsetMin = Vector2.zero;
+        rectTransform.offsetMax = Vector2.zero;
+        
+        // Добавляем PartyInviteUI компонент
+        PartyInviteUI partyInviteUI = partyInviteObject.AddComponent<PartyInviteUI>();
+        
+        Debug.Log("[PlayerCore] PartyInviteUI created successfully for local player");
     }
 
 }

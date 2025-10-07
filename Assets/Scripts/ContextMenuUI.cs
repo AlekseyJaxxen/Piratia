@@ -418,8 +418,41 @@ public class ContextMenuUI : MonoBehaviour
     
     private void OnInviteParty()
     {
-        Debug.Log($"[ContextMenuUI] Invite Party clicked for player: {targetPlayer?.playerName ?? "Unknown"}");
-        // TODO: Реализовать приглашение в группу
+        if (targetPlayer == null)
+        {
+            Debug.LogWarning("[ContextMenuUI] Cannot invite to party: target player is null");
+            HideContextMenu();
+            return;
+        }
+        
+        // Проверяем, что цель не в группе
+        if (!string.IsNullOrEmpty(targetPlayer.partyId))
+        {
+            Debug.Log($"[ContextMenuUI] Cannot invite {targetPlayer.playerName}: already in party {targetPlayer.partyId}");
+            HideContextMenu();
+            return;
+        }
+        
+        // Проверяем, что мы не приглашаем сами себя
+        PlayerCore localPlayer = PlayerCore.localPlayerCoreInstance;
+        if (localPlayer != null && targetPlayer.netId == localPlayer.netId)
+        {
+            Debug.Log("[ContextMenuUI] Cannot invite yourself to party");
+            HideContextMenu();
+            return;
+        }
+        
+        // Отправляем приглашение
+        if (localPlayer != null)
+        {
+            localPlayer.CmdInviteToParty(targetPlayer.netId);
+            Debug.Log($"[ContextMenuUI] Sent party invite to: {targetPlayer.playerName}");
+        }
+        else
+        {
+            Debug.LogError("[ContextMenuUI] Local player is null, cannot send party invite");
+        }
+        
         HideContextMenu();
     }
     

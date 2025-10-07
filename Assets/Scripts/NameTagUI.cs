@@ -41,10 +41,53 @@ public class NameTagUI : MonoBehaviour
         }
         else
         {
-            color = IsAlly(team, localTeam) ? Color.green : Color.red;
+            // Get PlayerCore components for party checking
+            PlayerCore targetPlayerCore = GetComponentInParent<PlayerCore>();
+            PlayerCore localPlayerCore = PlayerCore.localPlayerCoreInstance;
+            
+            color = GetNameColor(targetPlayerCore, localPlayerCore, team, localTeam);
         }
         if (nameText != null) nameText.color = color;
         if (teamText != null) teamText.color = color;
+    }
+    
+    /// <summary>
+    /// Determines the color for a player's name based on their relationship to the local player
+    /// </summary>
+    private Color GetNameColor(PlayerCore targetPlayerCore, PlayerCore localPlayerCore, PlayerTeam targetTeam, PlayerTeam localTeam)
+    {
+        if (targetPlayerCore == null || localPlayerCore == null)
+        {
+            // Fallback to basic team logic if PlayerCore components are not available
+            return IsAlly(targetTeam, localTeam) ? Color.green : Color.red;
+        }
+        
+        // Check if players are in the same party
+        if (!string.IsNullOrEmpty(targetPlayerCore.partyId) && 
+            !string.IsNullOrEmpty(localPlayerCore.partyId) && 
+            targetPlayerCore.partyId == localPlayerCore.partyId)
+        {
+            return Color.cyan; // Party members are cyan/blue
+        }
+        
+        // Check if players are in the same guild
+        if (!string.IsNullOrEmpty(targetPlayerCore.guildId) && 
+            !string.IsNullOrEmpty(localPlayerCore.guildId) && 
+            targetPlayerCore.guildId == localPlayerCore.guildId)
+        {
+            return Color.yellow; // Guild members are yellow
+        }
+        
+        // Check if players are in the same faction
+        if (!string.IsNullOrEmpty(targetPlayerCore.factionId) && 
+            !string.IsNullOrEmpty(localPlayerCore.factionId) && 
+            targetPlayerCore.factionId == localPlayerCore.factionId)
+        {
+            return Color.magenta; // Faction members are magenta
+        }
+        
+        // Fallback to basic team logic
+        return IsAlly(targetTeam, localTeam) ? Color.green : Color.red;
     }
     
     /// <summary>
