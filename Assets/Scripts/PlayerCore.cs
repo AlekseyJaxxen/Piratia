@@ -377,14 +377,6 @@ public class PlayerCore : NetworkBehaviour
         Debug.Log($"[PlayerCore] {playerName} joined party: {newPartyId}");
     }
 
-    [Command]
-    public void CmdLeaveParty()
-    {
-        if (isDead) return;
-        string oldPartyId = partyId;
-        partyId = "";
-        Debug.Log($"[PlayerCore] {playerName} left party: {oldPartyId}");
-    }
 
     [Command]
     public void CmdJoinFaction(string newFactionId)
@@ -490,6 +482,154 @@ public class PlayerCore : NetworkBehaviour
         }
         
         Debug.Log($"[PlayerCore] {playerName} declined party invite from {inviterPlayer.playerName}");
+    }
+    
+    [Command]
+    public void CmdLeaveParty()
+    {
+        if (isDead) return;
+        
+        if (string.IsNullOrEmpty(partyId))
+        {
+            Debug.LogWarning($"[PlayerCore] {playerName} tried to leave party but is not in any party");
+            return;
+        }
+        
+        string oldPartyId = partyId;
+        partyId = "";
+        Debug.Log($"[PlayerCore] {playerName} left party {oldPartyId}");
+        
+        // Проверяем, сколько игроков осталось в группе
+        CheckAndDisbandPartyIfNeeded(oldPartyId);
+    }
+    
+    [Command]
+    public void CmdRequestToJoinParty(uint targetNetId)
+    {
+        if (isDead) return;
+        
+        // Проверяем, что целевой игрок существует
+        if (!NetworkServer.spawned.TryGetValue(targetNetId, out NetworkIdentity targetIdentity))
+        {
+            Debug.LogWarning($"[PlayerCore] Target player {targetNetId} not found");
+            return;
+        }
+        
+        PlayerCore targetPlayer = targetIdentity.GetComponent<PlayerCore>();
+        if (targetPlayer == null)
+        {
+            Debug.LogWarning($"[PlayerCore] Target player {targetNetId} has no PlayerCore component");
+            return;
+        }
+        
+        // Проверяем, что целевой игрок в группе
+        if (string.IsNullOrEmpty(targetPlayer.partyId))
+        {
+            Debug.LogWarning($"[PlayerCore] {playerName} tried to request join party but {targetPlayer.playerName} is not in any party");
+            return;
+        }
+        
+        // Проверяем, что мы не в группе
+        if (!string.IsNullOrEmpty(partyId))
+        {
+            Debug.LogWarning($"[PlayerCore] {playerName} tried to request join party but is already in party {partyId}");
+            return;
+        }
+        
+        // Отправляем запрос на присоединение
+        targetPlayer.RpcShowJoinPartyRequest(playerName, netId);
+        Debug.Log($"[PlayerCore] {playerName} requested to join party of {targetPlayer.playerName}");
+    }
+    
+    [Command]
+    public void CmdAcceptJoinRequest(uint requesterNetId)
+    {
+        if (isDead) return;
+        
+        // Проверяем, что запрашивающий существует
+        if (!NetworkServer.spawned.TryGetValue(requesterNetId, out NetworkIdentity requesterIdentity))
+        {
+            Debug.LogWarning($"[PlayerCore] Requester player {requesterNetId} not found");
+            return;
+        }
+        
+        PlayerCore requesterPlayer = requesterIdentity.GetComponent<PlayerCore>();
+        if (requesterPlayer == null)
+        {
+            Debug.LogWarning($"[PlayerCore] Requester player {requesterNetId} has no PlayerCore component");
+            return;
+        }
+        
+        // Проверяем, что мы в группе
+        if (string.IsNullOrEmpty(partyId))
+        {
+            Debug.LogWarning($"[PlayerCore] {playerName} tried to accept join request but is not in any party");
+            return;
+        }
+        
+        // Проверяем, что запрашивающий не в группе
+        if (!string.IsNullOrEmpty(requesterPlayer.partyId))
+        {
+            Debug.LogWarning($"[PlayerCore] {requesterPlayer.playerName} tried to join party but is already in party {requesterPlayer.partyId}");
+            return;
+        }
+        
+        // Присоединяем запрашивающего к нашей группе
+        requesterPlayer.partyId = partyId;
+        Debug.Log($"[PlayerCore] {playerName} accepted join request from {requesterPlayer.playerName}, added to party {partyId}");
+    }
+    
+    [Command]
+    public void CmdDeclineJoinRequest(uint requesterNetId)
+    {
+        if (isDead) return;
+        
+        // Проверяем, что запрашивающий существует
+        if (!NetworkServer.spawned.TryGetValue(requesterNetId, out NetworkIdentity requesterIdentity))
+        {
+            Debug.LogWarning($"[PlayerCore] Requester player {requesterNetId} not found");
+            return;
+        }
+        
+        PlayerCore requesterPlayer = requesterIdentity.GetComponent<PlayerCore>();
+        if (requesterPlayer == null)
+        {
+            Debug.LogWarning($"[PlayerCore] Requester player {requesterNetId} has no PlayerCore component");
+            return;
+        }
+        
+        Debug.Log($"[PlayerCore] {playerName} declined join request from {requesterPlayer.playerName}");
+    }
+    
+    /// <summary>
+    /// Проверяет количество участников в группе и распускает группу, если остается только один игрок
+    /// </summary>
+    private void CheckAndDisbandPartyIfNeeded(string partyIdToCheck)
+    {
+        if (string.IsNullOrEmpty(partyIdToCheck)) return;
+        
+        // Находим всех игроков в этой группе
+        PlayerCore[] allPlayers = FindObjectsOfType<PlayerCore>();
+        int playersInParty = 0;
+        PlayerCore lastPlayerInParty = null;
+        
+        foreach (PlayerCore player in allPlayers)
+        {
+            if (!string.IsNullOrEmpty(player.partyId) && player.partyId == partyIdToCheck)
+            {
+                playersInParty++;
+                lastPlayerInParty = player;
+            }
+        }
+        
+        Debug.Log($"[PlayerCore] Party {partyIdToCheck} has {playersInParty} members");
+        
+        // Если в группе остался только один игрок, распускаем группу
+        if (playersInParty == 1 && lastPlayerInParty != null)
+        {
+            lastPlayerInParty.partyId = "";
+            Debug.Log($"[PlayerCore] Party {partyIdToCheck} disbanded - only {lastPlayerInParty.playerName} remained");
+        }
     }
 
     [Command]
@@ -854,6 +994,22 @@ public class PlayerCore : NetworkBehaviour
         else
         {
             Debug.LogWarning("[PlayerCore] PartyInviteUI.Instance is null, cannot show party invite");
+        }
+    }
+    
+    [ClientRpc]
+    public void RpcShowJoinPartyRequest(string requesterName, uint requesterNetId)
+    {
+        if (!isLocalPlayer) return;
+        
+        // Показываем запрос на присоединение к группе
+        if (PartyInviteUI.Instance != null)
+        {
+            PartyInviteUI.Instance.ShowJoinRequest(requesterName, requesterNetId);
+        }
+        else
+        {
+            Debug.LogWarning("[PlayerCore] PartyInviteUI.Instance is null, cannot show join party request");
         }
     }
 

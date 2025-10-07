@@ -25,6 +25,7 @@ public class PartyInviteUI : MonoBehaviour
     private float inviteTime;
     private float expireTime = 30f; // 30 секунд на ответ
     private Coroutine timerCoroutine;
+    private bool isJoinRequest = false; // true для запроса на присоединение, false для приглашения
     
     public static PartyInviteUI Instance { get; private set; }
     
@@ -219,6 +220,7 @@ public class PartyInviteUI : MonoBehaviour
         this.inviterName = inviterName;
         this.inviterNetId = inviterNetId;
         this.inviteTime = Time.time;
+        this.isJoinRequest = false; // Это приглашение
         
         // Обновляем текст приглашения
         if (inviteText != null)
@@ -273,6 +275,32 @@ public class PartyInviteUI : MonoBehaviour
         }
     }
     
+    public void ShowJoinRequest(string requesterName, uint requesterNetId)
+    {
+        this.inviterName = requesterName;
+        this.inviterNetId = requesterNetId;
+        this.inviteTime = Time.time;
+        this.isJoinRequest = true; // Это запрос на присоединение
+        
+        // Обновляем текст запроса
+        if (inviteText != null)
+        {
+            inviteText.text = $"{requesterName} wants to join your party";
+        }
+        
+        // Показываем панель и все её дочерние объекты
+        invitePanel.SetActive(true);
+        
+        // Убеждаемся, что все кнопки активны
+        if (acceptButton != null) acceptButton.gameObject.SetActive(true);
+        if (declineButton != null) declineButton.gameObject.SetActive(true);
+        
+        // Запускаем таймер
+        timerCoroutine = StartCoroutine(UpdateTimer());
+        
+        Debug.Log($"[PartyInviteUI] Showing join request from: {requesterName}");
+    }
+    
     public void HideInvite()
     {
         if (invitePanel != null)
@@ -307,13 +335,22 @@ public class PartyInviteUI : MonoBehaviour
     
     private void OnAcceptClicked()
     {
-        Debug.Log($"[PartyInviteUI] Accept clicked for invite from: {inviterName}");
+        Debug.Log($"[PartyInviteUI] Accept clicked for {(isJoinRequest ? "join request" : "invite")} from: {inviterName}");
         
         // Отправляем команду на сервер
         PlayerCore localPlayer = PlayerCore.localPlayerCoreInstance;
         if (localPlayer != null)
         {
-            localPlayer.CmdAcceptPartyInvite(inviterNetId);
+            if (isJoinRequest)
+            {
+                // Принимаем запрос на присоединение к группе
+                localPlayer.CmdAcceptJoinRequest(inviterNetId);
+            }
+            else
+            {
+                // Принимаем приглашение в группу
+                localPlayer.CmdAcceptPartyInvite(inviterNetId);
+            }
         }
         
         HideInvite();
@@ -321,13 +358,22 @@ public class PartyInviteUI : MonoBehaviour
     
     private void OnDeclineClicked()
     {
-        Debug.Log($"[PartyInviteUI] Decline clicked for invite from: {inviterName}");
+        Debug.Log($"[PartyInviteUI] Decline clicked for {(isJoinRequest ? "join request" : "invite")} from: {inviterName}");
         
         // Отправляем команду на сервер
         PlayerCore localPlayer = PlayerCore.localPlayerCoreInstance;
         if (localPlayer != null)
         {
-            localPlayer.CmdDeclinePartyInvite(inviterNetId);
+            if (isJoinRequest)
+            {
+                // Отклоняем запрос на присоединение к группе
+                localPlayer.CmdDeclineJoinRequest(inviterNetId);
+            }
+            else
+            {
+                // Отклоняем приглашение в группу
+                localPlayer.CmdDeclinePartyInvite(inviterNetId);
+            }
         }
         
         HideInvite();

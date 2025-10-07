@@ -256,10 +256,48 @@ public class ContextMenuUI : MonoBehaviour
     {
         Debug.Log("[ContextMenuUI] Creating context buttons...");
         
-        // Создаем 3 кнопки для взаимодействия с игроком
+        // Получаем информацию о локальном игроке и целевом игроке
+        PlayerCore localPlayer = PlayerCore.localPlayerCoreInstance;
+        bool isInSameParty = false;
+        bool isLocalPlayerInParty = false;
+        bool isTargetPlayerInParty = false;
+        
+        if (localPlayer != null && targetPlayer != null)
+        {
+            isLocalPlayerInParty = !string.IsNullOrEmpty(localPlayer.partyId);
+            isTargetPlayerInParty = !string.IsNullOrEmpty(targetPlayer.partyId);
+            isInSameParty = isLocalPlayerInParty && isTargetPlayerInParty && 
+                           localPlayer.partyId == targetPlayer.partyId;
+        }
+        
+        Debug.Log($"[ContextMenuUI] Party status - Local in party: {isLocalPlayerInParty}, Target in party: {isTargetPlayerInParty}, Same party: {isInSameParty}");
+        
+        // Всегда показываем Trade и Add Friend
         CreateButton("Trade", OnTrade);
-        CreateButton("Invite Party", OnInviteParty);
         CreateButton("Add Friend", OnAddFriend);
+        
+        // Показываем разные кнопки в зависимости от статуса party
+        if (isInSameParty)
+        {
+            // Если игроки в одной группе
+            CreateButton("Leave Party", OnLeaveParty);
+            // TODO: Добавить кнопку "Kick from Party" для лидера группы
+        }
+        else if (!isTargetPlayerInParty && !isLocalPlayerInParty)
+        {
+            // Если никто не в группе - можно пригласить
+            CreateButton("Invite Party", OnInviteParty);
+        }
+        else if (!isTargetPlayerInParty && isLocalPlayerInParty)
+        {
+            // Если локальный игрок в группе, а целевой нет - можно пригласить
+            CreateButton("Invite to Party", OnInviteParty);
+        }
+        else if (isTargetPlayerInParty && !isLocalPlayerInParty)
+        {
+            // Если целевой игрок в группе, а локальный нет - можно попросить присоединиться
+            CreateButton("Request to Join", OnRequestToJoinParty);
+        }
         
         Debug.Log($"[ContextMenuUI] Created {contextButtons.Count} buttons");
         
@@ -460,6 +498,44 @@ public class ContextMenuUI : MonoBehaviour
     {
         Debug.Log($"[ContextMenuUI] Add Friend clicked for player: {targetPlayer?.playerName ?? "Unknown"}");
         // TODO: Реализовать систему друзей
+        HideContextMenu();
+    }
+    
+    private void OnLeaveParty()
+    {
+        Debug.Log("[ContextMenuUI] Leave Party clicked");
+        if (targetPlayer == null) return;
+        
+        PlayerCore localPlayer = PlayerCore.localPlayerCoreInstance;
+        if (localPlayer != null)
+        {
+            localPlayer.CmdLeaveParty();
+            Debug.Log($"[ContextMenuUI] Left party");
+        }
+        else
+        {
+            Debug.LogError("[ContextMenuUI] Local player is null, cannot leave party");
+        }
+        
+        HideContextMenu();
+    }
+    
+    private void OnRequestToJoinParty()
+    {
+        Debug.Log("[ContextMenuUI] Request to Join Party clicked");
+        if (targetPlayer == null) return;
+        
+        PlayerCore localPlayer = PlayerCore.localPlayerCoreInstance;
+        if (localPlayer != null)
+        {
+            localPlayer.CmdRequestToJoinParty(targetPlayer.netId);
+            Debug.Log($"[ContextMenuUI] Requested to join party of: {targetPlayer.playerName}");
+        }
+        else
+        {
+            Debug.LogError("[ContextMenuUI] Local player is null, cannot request to join party");
+        }
+        
         HideContextMenu();
     }
     
