@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 using Mirror;
 using TMPro;
 using System.Collections;
@@ -161,6 +162,9 @@ public class PlayerCore : NetworkBehaviour
         // Создаем PartyInviteUI для локального игрока
         CreatePartyInviteUI();
         
+        // Создаем PartyUIPanel для локального игрока
+        CreatePartyUIPanel();
+        
         if (Camera != null)
         {
             Camera.Init(this);
@@ -253,6 +257,12 @@ public class PlayerCore : NetworkBehaviour
         }
         
         Debug.Log($"[PlayerCore] Updated name tags for {allPlayers.Length} players");
+        
+        // Обновляем PartyUIPanel
+        if (PartyUIPanel.Instance != null)
+        {
+            PartyUIPanel.Instance.ForceUpdatePartyUI();
+        }
     }
 
     private IEnumerator DelayedUIUpdate()
@@ -659,13 +669,68 @@ public class PlayerCore : NetworkBehaviour
     }
     
     /// <summary>
+    /// Тестовый метод для симуляции отключения игрока (только для отладки)
+    /// </summary>
+    [Command]
+    public void CmdTestDisconnect()
+    {
+        if (!isLocalPlayer) return; // Только локальный игрок может вызвать тест
+        
+        Debug.Log($"[PlayerCore] Testing disconnect scenario for {playerName}");
+        OnDestroy();
+    }
+    
+    /// <summary>
+    /// Запрашивает состояние здоровья участников группы
+    /// </summary>
+    [Command]
+    public void CmdRequestPartyHealthStatus()
+    {
+        if (isDead) return;
+        
+        if (string.IsNullOrEmpty(partyId))
+        {
+            Debug.LogWarning($"[PlayerCore] {playerName} tried to request party health but is not in any party");
+            return;
+        }
+        
+        Debug.Log($"[PlayerCore] {playerName} requested party health status for party {partyId}");
+        
+        // Находим всех участников группы
+        PlayerCore[] allPlayers = FindObjectsOfType<PlayerCore>();
+        foreach (PlayerCore player in allPlayers)
+        {
+            if (!string.IsNullOrEmpty(player.partyId) && player.partyId == partyId)
+            {
+                // Отправляем состояние здоровья каждого участника
+                RpcReceivePartyMemberHealth(player.netId, player.playerName, player.Health.CurrentHealth, player.Health.MaxHealth);
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Получает состояние здоровья участника группы
+    /// </summary>
+    [ClientRpc]
+    public void RpcReceivePartyMemberHealth(uint memberNetId, string memberName, int currentHealth, int maxHealth)
+    {
+        Debug.Log($"[PlayerCore] Received health status for {memberName}: {currentHealth}/{maxHealth}");
+        
+        // Обновляем PartyUIPanel если она существует
+        if (PartyUIPanel.Instance != null)
+        {
+            PartyUIPanel.Instance.UpdatePartyMemberHealth(memberNetId, currentHealth, maxHealth);
+        }
+    }
+    
+    /// <summary>
     /// Проверяет количество участников в группе и распускает группу, если остается только один игрок
     /// </summary>
     private void CheckAndDisbandPartyIfNeeded(string partyIdToCheck)
     {
         if (string.IsNullOrEmpty(partyIdToCheck)) return;
         
-        // Находим всех игроков в этой группе
+        // Находим всех игроков в этой группе (только активных/подключенных)
         PlayerCore[] allPlayers = FindObjectsOfType<PlayerCore>();
         int playersInParty = 0;
         PlayerCore lastPlayerInParty = null;
@@ -679,14 +744,14 @@ public class PlayerCore : NetworkBehaviour
             }
         }
         
-        Debug.Log($"[PlayerCore] Party {partyIdToCheck} has {playersInParty} members");
+        Debug.Log($"[PlayerCore] Party {partyIdToCheck} has {playersInParty} active members");
         
         // Если в группе остался только один игрок, распускаем группу
         if (playersInParty == 1 && lastPlayerInParty != null)
         {
             lastPlayerInParty.partyId = "";
             lastPlayerInParty.isPartyLeader = false; // Снимаем статус лидера
-            Debug.Log($"[PlayerCore] Party {partyIdToCheck} disbanded - only {lastPlayerInParty.playerName} remained");
+            Debug.Log($"[PlayerCore] Party {partyIdToCheck} disbanded - only {lastPlayerInParty.playerName} remained (disconnect scenario)");
             
             // Принудительно обновляем UI для игрока, который остался один
             lastPlayerInParty.UpdateUI();
@@ -721,7 +786,7 @@ public class PlayerCore : NetworkBehaviour
             if (!hasLeader && newLeader != null)
             {
                 newLeader.isPartyLeader = true;
-                Debug.Log($"[PlayerCore] Party {partyIdToCheck} - {newLeader.playerName} became the new leader");
+                Debug.Log($"[PlayerCore] Party {partyIdToCheck} - {newLeader.playerName} became the new leader (disconnect scenario)");
                 
                 // Принудительно обновляем UI для нового лидера
                 newLeader.UpdateUI();
@@ -1031,6 +1096,15 @@ public class PlayerCore : NetworkBehaviour
 
     public void OnDestroy()
     {
+        // Обрабатываем отключение игрока из группы
+        if (!string.IsNullOrEmpty(partyId))
+        {
+            Debug.Log($"[PlayerCore] Player {playerName} disconnected from party {partyId} (was leader: {isPartyLeader})");
+            
+            // Проверяем, нужно ли распустить группу или назначить нового лидера
+            CheckAndDisbandPartyIfNeeded(partyId);
+        }
+        
         if (healthBarUI != null) Destroy(healthBarUI.gameObject);
         if (nameTagUI != null) Destroy(nameTagUI.gameObject);
     }
@@ -1619,6 +1693,283 @@ public class PlayerCore : NetworkBehaviour
         PartyInviteUI partyInviteUI = partyInviteObject.AddComponent<PartyInviteUI>();
         
         Debug.Log("[PlayerCore] PartyInviteUI created successfully for local player");
+    }
+    
+    private void CreatePartyUIPanel()
+    {
+        Debug.Log("[PlayerCore] CreatePartyUIPanel() called");
+        
+        // Проверяем, не создана ли уже панель
+        if (PartyUIPanel.Instance != null)
+        {
+            Debug.LogWarning("[PlayerCore] PartyUIPanel already exists, skipping creation");
+            return;
+        }
+        
+        // Находим Canvas в PlayerUI
+        PlayerUI playerUI = GetComponentInChildren<PlayerUI>();
+        if (playerUI == null)
+        {
+            Debug.LogError("[PlayerCore] PlayerUI not found for PartyUIPanel creation!");
+            return;
+        }
+        
+        Canvas playerCanvas = playerUI.GetComponentInParent<Canvas>();
+        if (playerCanvas == null)
+        {
+            Debug.LogError("[PlayerCore] Canvas not found in PlayerUI for PartyUIPanel creation!");
+            return;
+        }
+        
+        Debug.Log($"[PlayerCore] Found Canvas for PartyUIPanel: {playerCanvas.name}, Render Mode: {playerCanvas.renderMode}");
+        
+        // Проверяем, нет ли уже PartyUIPanel в Canvas
+        PartyUIPanel existingPanel = playerCanvas.GetComponentInChildren<PartyUIPanel>();
+        if (existingPanel != null)
+        {
+            Debug.LogWarning("[PlayerCore] PartyUIPanel already exists in Canvas, skipping creation");
+            return;
+        }
+        
+        // Создаем GameObject для PartyUIPanel
+        GameObject partyUIObject = new GameObject("PartyUIPanel");
+        partyUIObject.transform.SetParent(playerCanvas.transform, false);
+        partyUIObject.SetActive(true);
+        
+        // Настраиваем RectTransform для левой части экрана
+        RectTransform partyUIRect = partyUIObject.AddComponent<RectTransform>();
+        partyUIRect.anchorMin = new Vector2(0, 0.5f); // Левая сторона, по центру по вертикали
+        partyUIRect.anchorMax = new Vector2(0, 0.5f);
+        partyUIRect.pivot = new Vector2(0, 0.5f); // Левый центр
+        partyUIRect.sizeDelta = new Vector2(200f, 300f); // Размер панели
+        partyUIRect.anchoredPosition = new Vector2(10f, 0f); // Отступ от левого края
+        
+        // Добавляем PartyUIPanel компонент
+        PartyUIPanel partyUIPanel = partyUIObject.AddComponent<PartyUIPanel>();
+        
+        // Создаем основную панель группы
+        CreatePartyPanelStructure(partyUIObject, partyUIPanel);
+        
+        Debug.Log("[PlayerCore] PartyUIPanel created successfully for local player");
+    }
+    
+    private void CreatePartyPanelStructure(GameObject parent, PartyUIPanel partyUIPanel)
+    {
+        Debug.Log("[PlayerCore] CreatePartyPanelStructure() called");
+        
+        // Создаем основную панель
+        GameObject panel = new GameObject("PartyPanel");
+        panel.transform.SetParent(parent.transform, false);
+        panel.SetActive(true);
+        
+        // Настраиваем RectTransform панели
+        RectTransform panelRect = panel.AddComponent<RectTransform>();
+        panelRect.anchorMin = Vector2.zero;
+        panelRect.anchorMax = Vector2.one;
+        panelRect.offsetMin = Vector2.zero;
+        panelRect.offsetMax = Vector2.zero;
+        
+        // Добавляем фон панели
+        Image panelImage = panel.AddComponent<Image>();
+        panelImage.color = new Color(0.1f, 0.1f, 0.1f, 0.8f);
+        panelImage.raycastTarget = true; // Блокируем клики через панель
+        
+        // Создаем контейнер для участников группы
+        GameObject membersContainer = new GameObject("PartyMembersContainer");
+        membersContainer.transform.SetParent(panel.transform, false);
+        membersContainer.SetActive(true);
+        
+        // Настраиваем RectTransform контейнера
+        RectTransform containerRect = membersContainer.AddComponent<RectTransform>();
+        containerRect.anchorMin = new Vector2(0, 0);
+        containerRect.anchorMax = new Vector2(1, 1);
+        containerRect.offsetMin = new Vector2(5f, 5f);
+        containerRect.offsetMax = new Vector2(-5f, -5f);
+        
+        // Добавляем VerticalLayoutGroup для автоматического расположения
+        VerticalLayoutGroup layoutGroup = membersContainer.AddComponent<VerticalLayoutGroup>();
+        layoutGroup.spacing = 5f;
+        layoutGroup.padding = new RectOffset(5, 5, 5, 5);
+        layoutGroup.childControlWidth = true;
+        layoutGroup.childControlHeight = false;
+        layoutGroup.childForceExpandWidth = true;
+        layoutGroup.childForceExpandHeight = false;
+        layoutGroup.childAlignment = TextAnchor.UpperCenter;
+        
+        // Добавляем Image для блокировки кликов через контейнер
+        Image containerImage = membersContainer.AddComponent<Image>();
+        containerImage.color = Color.clear; // Прозрачный, но блокирует клики
+        containerImage.raycastTarget = true;
+        
+        // Создаем префаб слота участника группы (НЕ добавляем в контейнер)
+        GameObject slotPrefab = CreatePartyMemberSlotPrefab();
+        
+        // Устанавливаем ссылки в PartyUIPanel
+        var partyUIPanelType = typeof(PartyUIPanel);
+        var panelField = partyUIPanelType.GetField("partyPanel", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var containerField = partyUIPanelType.GetField("partyMembersContainer", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var prefabField = partyUIPanelType.GetField("partyMemberSlotPrefab", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        
+        panelField?.SetValue(partyUIPanel, panel);
+        containerField?.SetValue(partyUIPanel, membersContainer.transform);
+        prefabField?.SetValue(partyUIPanel, slotPrefab);
+        
+        Debug.Log("[PlayerCore] Party panel structure created successfully");
+    }
+    
+    private GameObject CreatePartyMemberSlotPrefab()
+    {
+        Debug.Log("[PlayerCore] CreatePartyMemberSlotPrefab() called");
+        
+        // Создаем префаб слота участника группы
+        GameObject slotPrefab = new GameObject("PartyMemberSlotPrefab");
+        slotPrefab.SetActive(true);
+        
+        // Настраиваем RectTransform слота
+        RectTransform slotRect = slotPrefab.AddComponent<RectTransform>();
+        slotRect.sizeDelta = new Vector2(0f, 60f); // Высота слота
+        
+        // Добавляем фон слота
+        Image slotImage = slotPrefab.AddComponent<Image>();
+        slotImage.color = new Color(0.2f, 0.2f, 0.2f, 0.9f);
+        
+        // Добавляем Button для кликабельности
+        Button slotButton = slotPrefab.AddComponent<Button>();
+        slotButton.targetGraphic = slotImage;
+        
+        // Создаем горизонтальный layout для содержимого слота
+        GameObject contentContainer = new GameObject("ContentContainer");
+        contentContainer.transform.SetParent(slotPrefab.transform, false);
+        contentContainer.SetActive(true);
+        
+        RectTransform contentRect = contentContainer.AddComponent<RectTransform>();
+        contentRect.anchorMin = Vector2.zero;
+        contentRect.anchorMax = Vector2.one;
+        contentRect.offsetMin = Vector2.zero;
+        contentRect.offsetMax = Vector2.zero;
+        
+        HorizontalLayoutGroup contentLayout = contentContainer.AddComponent<HorizontalLayoutGroup>();
+        contentLayout.spacing = 5f;
+        contentLayout.padding = new RectOffset(5, 5, 5, 5);
+        contentLayout.childControlWidth = false;
+        contentLayout.childControlHeight = true;
+        contentLayout.childForceExpandWidth = false;
+        contentLayout.childForceExpandHeight = true;
+        contentLayout.childAlignment = TextAnchor.MiddleLeft;
+        
+        // Создаем иконку лидера
+        GameObject leaderIcon = new GameObject("LeaderIcon");
+        leaderIcon.transform.SetParent(contentContainer.transform, false);
+        leaderIcon.SetActive(false); // Скрыта по умолчанию
+        
+        RectTransform leaderRect = leaderIcon.AddComponent<RectTransform>();
+        leaderRect.sizeDelta = new Vector2(20f, 20f);
+        
+        Image leaderImage = leaderIcon.AddComponent<Image>();
+        leaderImage.color = Color.yellow;
+        
+        // Создаем вертикальный контейнер для текста
+        GameObject textContainer = new GameObject("TextContainer");
+        textContainer.transform.SetParent(contentContainer.transform, false);
+        textContainer.SetActive(true);
+        
+        RectTransform textRect = textContainer.AddComponent<RectTransform>();
+        textRect.sizeDelta = new Vector2(100f, 0f);
+        
+        VerticalLayoutGroup textLayout = textContainer.AddComponent<VerticalLayoutGroup>();
+        textLayout.spacing = 2f;
+        textLayout.childControlWidth = true;
+        textLayout.childControlHeight = false;
+        textLayout.childForceExpandWidth = true;
+        textLayout.childForceExpandHeight = false;
+        textLayout.childAlignment = TextAnchor.MiddleLeft;
+        
+        // Создаем текст имени
+        GameObject nameText = new GameObject("NameText");
+        nameText.transform.SetParent(textContainer.transform, false);
+        nameText.SetActive(true);
+        
+        RectTransform nameRect = nameText.AddComponent<RectTransform>();
+        nameRect.sizeDelta = new Vector2(0f, 20f);
+        
+        TMPro.TextMeshProUGUI nameTextComponent = nameText.AddComponent<TMPro.TextMeshProUGUI>();
+        nameTextComponent.text = "Player Name";
+        nameTextComponent.fontSize = 12f;
+        nameTextComponent.color = Color.white;
+        nameTextComponent.alignment = TMPro.TextAlignmentOptions.Left;
+        
+        // Создаем текст уровня
+        GameObject levelText = new GameObject("LevelText");
+        levelText.transform.SetParent(textContainer.transform, false);
+        levelText.SetActive(true);
+        
+        RectTransform levelRect = levelText.AddComponent<RectTransform>();
+        levelRect.sizeDelta = new Vector2(0f, 15f);
+        
+        TMPro.TextMeshProUGUI levelTextComponent = levelText.AddComponent<TMPro.TextMeshProUGUI>();
+        levelTextComponent.text = "Lv.1";
+        levelTextComponent.fontSize = 10f;
+        levelTextComponent.color = Color.gray;
+        levelTextComponent.alignment = TMPro.TextAlignmentOptions.Left;
+        
+        // Создаем health bar
+        GameObject healthBar = new GameObject("HealthBar");
+        healthBar.transform.SetParent(contentContainer.transform, false);
+        healthBar.SetActive(true);
+        
+        RectTransform healthRect = healthBar.AddComponent<RectTransform>();
+        healthRect.sizeDelta = new Vector2(60f, 15f);
+        
+        Slider healthSlider = healthBar.AddComponent<Slider>();
+        healthSlider.value = 1f;
+        healthSlider.minValue = 0f;
+        healthSlider.maxValue = 1f;
+        
+        // Настраиваем фон health bar
+        GameObject background = new GameObject("Background");
+        background.transform.SetParent(healthBar.transform, false);
+        background.SetActive(true);
+        
+        RectTransform bgRect = background.AddComponent<RectTransform>();
+        bgRect.anchorMin = Vector2.zero;
+        bgRect.anchorMax = Vector2.one;
+        bgRect.offsetMin = Vector2.zero;
+        bgRect.offsetMax = Vector2.zero;
+        
+        Image bgImage = background.AddComponent<Image>();
+        bgImage.color = Color.red;
+        healthSlider.targetGraphic = bgImage;
+        
+        // Настраиваем fill area
+        GameObject fillArea = new GameObject("Fill Area");
+        fillArea.transform.SetParent(healthBar.transform, false);
+        fillArea.SetActive(true);
+        
+        RectTransform fillAreaRect = fillArea.AddComponent<RectTransform>();
+        fillAreaRect.anchorMin = Vector2.zero;
+        fillAreaRect.anchorMax = Vector2.one;
+        fillAreaRect.offsetMin = Vector2.zero;
+        fillAreaRect.offsetMax = Vector2.zero;
+        
+        GameObject fill = new GameObject("Fill");
+        fill.transform.SetParent(fillArea.transform, false);
+        fill.SetActive(true);
+        
+        RectTransform fillRect = fill.AddComponent<RectTransform>();
+        fillRect.anchorMin = Vector2.zero;
+        fillRect.anchorMax = Vector2.one;
+        fillRect.offsetMin = Vector2.zero;
+        fillRect.offsetMax = Vector2.zero;
+        
+        Image fillImage = fill.AddComponent<Image>();
+        fillImage.color = Color.green;
+        healthSlider.fillRect = fillRect;
+        
+        // Делаем Slider неинтерактивным (только для отображения)
+        healthSlider.interactable = false;
+        
+        Debug.Log("[PlayerCore] Party member slot prefab created successfully");
+        return slotPrefab;
     }
 
 }

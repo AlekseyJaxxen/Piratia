@@ -298,6 +298,13 @@ public class PlayerMovement : NetworkBehaviour
                 return true;
             }
             
+            // Проверяем, попал ли клик по панели группы
+            if (IsPartyPanelUI(result.gameObject))
+            {
+                // Pointer over party panel
+                return true;
+            }
+            
             // Минимальное изменение: игнорируем UI, если это canvas DroppedItem
             if (result.gameObject.layer == LayerMask.NameToLayer("LocalPlayerUI") ||
                 (result.gameObject.GetComponent<Canvas>() != null && !IsDroppedItemUI(result.gameObject)))
@@ -329,6 +336,24 @@ public class PlayerMovement : NetworkBehaviour
                 current.name == "ContextMenuPanel" || 
                 current.name == "ButtonContainer" ||
                 current.name.Contains("ContextButton"))
+            {
+                return true;
+            }
+            current = current.parent;
+        }
+        return false;
+    }
+    
+    private bool IsPartyPanelUI(GameObject uiObj)
+    {
+        Transform current = uiObj.transform;
+        while (current != null)
+        {
+            // Проверяем, является ли это панелью группы или её частью
+            if (current.name == "PartyUIPanel" || 
+                current.name == "PartyPanel" || 
+                current.name == "PartyMembersContainer" ||
+                current.name.Contains("PartyMember"))
             {
                 return true;
             }

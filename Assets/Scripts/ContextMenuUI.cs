@@ -307,6 +307,9 @@ public class ContextMenuUI : MonoBehaviour
             CreateButton("Request to Join", OnRequestToJoinParty);
         }
         
+        // Автоматическое обновление здоровья происходит каждые 2 секунды
+        // Ручное обновление не нужно - данные синхронизируются автоматически
+        
         Debug.Log($"[ContextMenuUI] Created {contextButtons.Count} buttons");
         
         // Принудительно обновляем Layout Group после создания всех кнопок
@@ -565,6 +568,7 @@ public class ContextMenuUI : MonoBehaviour
         
         HideContextMenu();
     }
+    
     
     public bool IsMenuVisible()
     {
