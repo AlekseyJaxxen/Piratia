@@ -9,14 +9,16 @@ public class GroundEffect : NetworkBehaviour
     private float rad;
     private PlayerTeam team;
     private int layerMask;
+    private NetworkIdentity casterIdentity;
 
-    public void Init(float slow, float duration, float radius, PlayerTeam ownerTeam, int layerMask)
+    public void Init(float slow, float duration, float radius, PlayerTeam ownerTeam, int layerMask, NetworkIdentity caster = null)
     {
         slowPercent = slow;
         dur = duration;
         rad = radius;
         team = ownerTeam;
         this.layerMask = layerMask;
+        casterIdentity = caster;
         StartCoroutine(DestroyAfter(duration));
     }
 
@@ -27,7 +29,7 @@ public class GroundEffect : NetworkBehaviour
         foreach (Collider col in hits)
         {
             PlayerCore player = col.GetComponent<PlayerCore>();
-            if (player != null && IsEnemy(player, team))
+            if (player != null && IsEnemy(player, team) && !IsCaster(player))
             {
                 CharacterStats stats = player.GetComponent<CharacterStats>();
                 if (stats != null)
@@ -73,5 +75,14 @@ public class GroundEffect : NetworkBehaviour
         
         // For other teams, use normal team logic
         return player.team != ownerTeam;
+    }
+    
+    /// <summary>
+    /// Checks if the player is the caster of this ground effect
+    /// </summary>
+    private bool IsCaster(PlayerCore player)
+    {
+        if (player == null || casterIdentity == null) return false;
+        return player.netIdentity == casterIdentity;
     }
 }

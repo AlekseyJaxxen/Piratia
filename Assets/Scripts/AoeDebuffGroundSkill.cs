@@ -22,6 +22,6 @@ public class AoeDebuffGroundSkill : SkillBase
         GameObject groundEffect = Instantiate(groundEffectPrefab, targetPosition.Value, Quaternion.identity);
         NetworkServer.Spawn(groundEffect);
         int aoeLayerMask = LayerMask.GetMask("Player", "Ignore Raycast", "Enemy");
-        groundEffect.GetComponent<GroundEffect>().Init(slowPercentage, duration, aoeRadius, caster.team, aoeLayerMask);
+        groundEffect.GetComponent<GroundEffect>().Init(slowPercentage, duration, aoeRadius, caster.team, aoeLayerMask, caster.netIdentity);
     }
 }
