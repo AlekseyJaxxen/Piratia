@@ -206,8 +206,8 @@ public class MyNetworkManager : NetworkManager
 
         if (info.playerTeam == PlayerTeam.None)
         {
-            Debug.LogWarning($"[MyNetworkManager] Player {info.playerName} has no team assigned. Assigning default team: Red");
-            info.playerTeam = PlayerTeam.Red;
+            Debug.LogWarning($"[MyNetworkManager] Player {info.playerName} has no team assigned. Assigning default team: Solo");
+            info.playerTeam = PlayerTeam.Solo;
         }
 
         // ������� ��������� ������ �� �������
@@ -302,7 +302,8 @@ public class MyNetworkManager : NetworkManager
             if (teamSpawn != null)
             {
                 Debug.Log($"[MyNetworkManager] Spawn point '{spawnPoint.name}' has team: {teamSpawn.team}");
-                if (teamSpawn.team == team)
+                // Solo players can spawn at any spawn point
+                if (team == PlayerTeam.Solo || teamSpawn.team == team)
                 {
                     Debug.Log($"[MyNetworkManager] Found matching spawn point for team {team}: {spawnPoint.name} at {spawnPoint.transform.position}");
                     return spawnPoint.transform;

@@ -262,9 +262,9 @@ public class PlayerActionSystem : NetworkBehaviour
             CompleteAction();
             yield break;
         }
-        if (targetPlayerCore != null && targetPlayerCore.team == _core.team)
+        if (targetPlayerCore != null && IsAlly(targetPlayerCore))
         {
-            // Attack ignored: same team
+            // Attack ignored: same team (except Solo players can attack each other)
             CompleteAction();
             yield break;
         }
@@ -943,5 +943,29 @@ public class PlayerActionSystem : NetworkBehaviour
             _currentTargetIndicator = null;
             Debug.Log("[PlayerActionSystem] Destroyed target indicator");
         }
+    }
+    
+    /// <summary>
+    /// Checks if target player is an ally
+    /// Solo players are never allies to each other (except themselves)
+    /// </summary>
+    private bool IsAlly(PlayerCore target)
+    {
+        if (target == null) return false;
+        
+        // A player is always an ally to themselves
+        if (_core == target)
+        {
+            return true;
+        }
+        
+        // Solo players are never allies to each other
+        if (_core.team == PlayerTeam.Solo && target.team == PlayerTeam.Solo)
+        {
+            return false; // Solo players are enemies to each other
+        }
+        
+        // For other teams, use normal team logic
+        return _core.team == target.team;
     }
 }

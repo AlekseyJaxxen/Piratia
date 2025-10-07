@@ -620,17 +620,17 @@ public partial class PlayerSkills : NetworkBehaviour
                 }
                 
                 // Check for enemies
-                if ((hitCore != null && hitCore.team != _core.team && hitCore.Skills != null && !hitCore.Skills._isInvisible && !hitCore.isDead) || hitMonster != null)
+                if ((hitCore != null && IsEnemy(hitCore) && hitCore.Skills != null && !hitCore.Skills._isInvisible && !hitCore.isDead) || hitMonster != null)
                 {
                     newCursor = attackCursor;
                 }
                 // Check for dead allies (for revive)
-                else if (hitCore != null && hitCore.team == _core.team && hitCore.isDead && _activeSkill is ReviveSkill)
+                else if (hitCore != null && IsAlly(hitCore) && hitCore.isDead && _activeSkill is ReviveSkill)
                 {
                     newCursor = castCursor;
                 }
                 // Check for living allies (for other skills)
-                else if (hitCore != null && hitCore.team == _core.team && !hitCore.isDead && _activeSkill != null && _activeSkill is not ReviveSkill)
+                else if (hitCore != null && IsAlly(hitCore) && !hitCore.isDead && _activeSkill != null && _activeSkill is not ReviveSkill)
                 {
                     newCursor = castCursor;
                 }
@@ -875,13 +875,55 @@ public partial class PlayerSkills : NetworkBehaviour
             if (conn.identity != null)
             {
                 PlayerCore enemy = conn.identity.GetComponent<PlayerCore>();
-                if (enemy != null && enemy.team != _core.team && enemy.Combat.Target == gameObject)
+                if (enemy != null && IsEnemy(enemy) && enemy.Combat.Target == gameObject)
                 {
                     enemy.Combat.ClearTarget();
                     Debug.Log($"[PlayerSkills] Cleared target from {enemy.gameObject.name} due to invis");
                 }
             }
         }
+    }
+    
+    /// <summary>
+    /// Checks if target player is an enemy
+    /// Solo players are enemies to each other
+    /// </summary>
+    private bool IsEnemy(PlayerCore target)
+    {
+        if (target == null) return false;
+        
+        // Solo players are enemies to each other
+        if (_core.team == PlayerTeam.Solo && target.team == PlayerTeam.Solo)
+        {
+            return true; // Solo players are enemies to each other
+        }
+        
+        // For other teams, use normal team logic
+        return _core.team != target.team;
+    }
+    
+    /// <summary>
+    /// Checks if target player is an ally
+    /// Solo players are never allies to each other (except themselves)
+    /// </summary>
+    private bool IsAlly(PlayerCore target)
+    {
+        if (target == null) return false;
+        
+        // A player is always an ally to themselves
+        if (_core == target)
+        {
+            return true;
+        }
+        
+        // Solo players are never allies to each other
+        if (_core.team == PlayerTeam.Solo && target.team == PlayerTeam.Solo)
+        {
+            return false; // Solo players are enemies to each other
+        }
+        
+        // For other teams, use normal team logic
+        return _core.team == target.team;
     }
 
     public void StartJumpCoroutine(Vector3 start, Vector3 end, int weight, float jumpDuration, float heightMultiplier)

@@ -194,7 +194,7 @@ public class PlayerCore : NetworkBehaviour
         if (nameTagUI != null)
         {
             nameTagUI.target = transform;
-            nameTagUI.UpdateNameAndTeam(playerName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
+            nameTagUI.UpdateNameAndTeam(playerName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None, isLocalPlayer);
         }
         StartCoroutine(InitializeUIWithRetry());
         StartCoroutine(DelayedUIUpdate());
@@ -209,7 +209,7 @@ public class PlayerCore : NetworkBehaviour
     {
         if (nameTagUI != null)
         {
-            nameTagUI.UpdateNameAndTeam(playerName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
+            nameTagUI.UpdateNameAndTeam(playerName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None, isLocalPlayer);
         }
     }
 
@@ -231,7 +231,7 @@ public class PlayerCore : NetworkBehaviour
         {
             if (nameTagUI != null && healthBarUI != null && playerName != "Player" && team != PlayerTeam.None && Health != null && Health.CurrentHealth > 0)
             {
-                nameTagUI.UpdateNameAndTeam(playerName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
+                nameTagUI.UpdateNameAndTeam(playerName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None, isLocalPlayer);
                 healthBarUI.UpdateHP(Health.CurrentHealth, Health.MaxHealth);
                 yield break;
             }
@@ -287,7 +287,7 @@ public class PlayerCore : NetworkBehaviour
     private void CmdRequestTeamAssignment()
     {
         PlayerUI_Team.PlayerInfo uiInfo = PlayerUI_Team.GetTempPlayerInfo();
-        PlayerTeam newTeam = uiInfo.team != PlayerTeam.None ? uiInfo.team : PlayerTeam.Red;
+        PlayerTeam newTeam = uiInfo.team != PlayerTeam.None ? uiInfo.team : PlayerTeam.Solo;
         team = newTeam;
         playerName = uiInfo.name;
     }
@@ -380,7 +380,7 @@ public class PlayerCore : NetworkBehaviour
         }
         else
         {
-            if (localPlayerCoreInstance != null && localPlayerCoreInstance.team == team)
+            if (IsAlly(localPlayerCoreInstance))
             {
                 rend.material = allyMaterial;
             }
@@ -389,6 +389,30 @@ public class PlayerCore : NetworkBehaviour
                 rend.material = enemyMaterial;
             }
         }
+    }
+    
+    /// <summary>
+    /// Checks if target player is an ally
+    /// Solo players are never allies to each other (except themselves)
+    /// </summary>
+    private bool IsAlly(PlayerCore target)
+    {
+        if (target == null) return false;
+        
+        // A player is always an ally to themselves
+        if (this == target)
+        {
+            return true;
+        }
+        
+        // Solo players are never allies to each other
+        if (team == PlayerTeam.Solo && target.team == PlayerTeam.Solo)
+        {
+            return false; // Solo players are enemies to each other
+        }
+        
+        // For other teams, use normal team logic
+        return team == target.team;
     }
 
     private void OnDeathStateChanged(bool oldValue, bool newValue)
@@ -573,7 +597,7 @@ public class PlayerCore : NetworkBehaviour
         NetworkIdentity targetIdentity;
         if (!NetworkServer.spawned.TryGetValue(targetNetId, out targetIdentity)) return;
         PlayerCore target = targetIdentity.GetComponent<PlayerCore>();
-        if (target == null || !target.isDead || target.team != team) return;
+        if (target == null || !target.isDead) return; // Removed team check - can revive anyone
         target.RpcShowReviveRequest(netId);
     }
 

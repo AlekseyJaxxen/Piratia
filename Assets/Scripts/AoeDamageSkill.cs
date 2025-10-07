@@ -57,7 +57,7 @@ public class AoeDamageSkill : SkillBase
             {
                 PlayerCore targetCore = col.GetComponent<PlayerCore>();
                 Monster targetMonster = col.GetComponent<Monster>();
-                if (targetCore != null && targetCore.team != caster.team && !targetCore.isDead)
+                if (targetCore != null && IsEnemy(targetCore, caster) && !targetCore.isDead)
                 {
                     targetHealthMonster.TakeDamage(totalBaseDamage, SkillDamageType, false, caster.netIdentity, damageMultiplier);
                 }
@@ -70,7 +70,7 @@ public class AoeDamageSkill : SkillBase
             {
                 PlayerCore targetCore = col.GetComponent<PlayerCore>();
                 Monster targetMonster = col.GetComponent<Monster>();
-                if (targetCore != null && targetCore.team != caster.team && !targetCore.isDead)
+                if (targetCore != null && IsEnemy(targetCore, caster) && !targetCore.isDead)
                 {
                     targetHealth.TakeDamage(totalBaseDamage, SkillDamageType, false, caster.netIdentity, damageMultiplier);
                 }
@@ -91,5 +91,23 @@ public class AoeDamageSkill : SkillBase
             Object.Destroy(effect, 2f);
             // Effect spawned at cast point
         }
+    }
+    
+    /// <summary>
+    /// Checks if target player is an enemy
+    /// Solo players are enemies to each other
+    /// </summary>
+    private bool IsEnemy(PlayerCore target, PlayerCore caster)
+    {
+        if (target == null) return false;
+        
+        // Solo players are enemies to each other
+        if (caster.team == PlayerTeam.Solo && target.team == PlayerTeam.Solo)
+        {
+            return true; // Solo players are enemies to each other
+        }
+        
+        // For other teams, use normal team logic
+        return caster.team != target.team;
     }
 }

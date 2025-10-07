@@ -41,11 +41,8 @@ public class ReviveSkill : SkillBase
             return;
         }
 
-        if (targetPlayer.team != player.team)
-        {
-            Debug.LogWarning("[ReviveSkill] Target is not an ally");
-            return;
-        }
+        // Revive can be used on any dead player, regardless of team
+        // Removed team check to allow reviving anyone
 
         // Check range
         float distance = Vector3.Distance(player.transform.position, targetPlayer.transform.position);
@@ -88,11 +85,8 @@ public class ReviveSkill : SkillBase
             return;
         }
 
-        if (targetPlayer.team != caster.team)
-        {
-            Debug.LogWarning("[ReviveSkill] Server - Target is not an ally");
-            return;
-        }
+        // Revive can be used on any dead player, regardless of team
+        // Removed team check to allow reviving anyone
 
         // Check range
         float distance = Vector3.Distance(caster.transform.position, targetPlayer.transform.position);

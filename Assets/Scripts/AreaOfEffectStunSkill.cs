@@ -35,7 +35,7 @@ public class AreaOfEffectStunSkill : SkillBase
         {
             PlayerCore targetCore = col.GetComponent<PlayerCore>();
             Monster targetMonster = col.GetComponent<Monster>();
-            if (targetCore != null && targetCore.team != caster.team && !targetCore.isDead)
+            if (targetCore != null && IsEnemy(targetCore, caster) && !targetCore.isDead)
             {
                 targetCore.ApplyControlEffect(ControlEffectType.Stun, stunDuration, weight);
                 Debug.Log($"[AreaOfEffectStunSkill] Applied stun to player {targetCore.gameObject.name}, duration={stunDuration}, weight={weight}");
@@ -56,5 +56,23 @@ public class AreaOfEffectStunSkill : SkillBase
             GameObject effect = Object.Instantiate(effectPrefab, position + Vector3.up * 1f, Quaternion.identity);
             Object.Destroy(effect, 2f);
         }
+    }
+    
+    /// <summary>
+    /// Checks if target player is an enemy
+    /// Solo players are enemies to each other
+    /// </summary>
+    private bool IsEnemy(PlayerCore target, PlayerCore caster)
+    {
+        if (target == null) return false;
+        
+        // Solo players are enemies to each other
+        if (caster.team == PlayerTeam.Solo && target.team == PlayerTeam.Solo)
+        {
+            return true; // Solo players are enemies to each other
+        }
+        
+        // For other teams, use normal team logic
+        return caster.team != target.team;
     }
 }

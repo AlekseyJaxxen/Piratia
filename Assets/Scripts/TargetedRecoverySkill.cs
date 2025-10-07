@@ -40,7 +40,7 @@ public class TargetedRecoverySkill : SkillBase
         }
         PlayerCore targetCore = targetObject.GetComponent<PlayerCore>();
         Monster targetMonster = targetObject.GetComponent<Monster>();
-        if (targetCore != null && targetCore.team == caster.team)
+        if (targetCore != null && IsAlly(targetCore, caster))
         {
             targetCore.ClearNegativeEffectsExceptStun();
         }
@@ -58,5 +58,29 @@ public class TargetedRecoverySkill : SkillBase
             GameObject effect = Object.Instantiate(effectPrefab, target.transform.position + Vector3.up * 1f, Quaternion.identity);
             Object.Destroy(effect, 2f);
         }
+    }
+    
+    /// <summary>
+    /// Checks if target player is an ally
+    /// Solo players are never allies to each other (except themselves)
+    /// </summary>
+    private bool IsAlly(PlayerCore target, PlayerCore caster)
+    {
+        if (target == null) return false;
+        
+        // A player is always an ally to themselves
+        if (caster == target)
+        {
+            return true;
+        }
+        
+        // Solo players are never allies to each other
+        if (caster.team == PlayerTeam.Solo && target.team == PlayerTeam.Solo)
+        {
+            return false; // Solo players are enemies to each other
+        }
+        
+        // For other teams, use normal team logic
+        return caster.team == target.team;
     }
 }

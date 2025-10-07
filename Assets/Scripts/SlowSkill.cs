@@ -20,7 +20,7 @@ public class SlowSkill : SkillBase
         }
         PlayerCore targetCore = targetObject.GetComponent<PlayerCore>();
         Monster targetMonster = targetObject.GetComponent<Monster>();
-        if ((targetCore == null || targetCore.team == caster.team) && (targetMonster == null || !targetObject.CompareTag("Enemy")))
+        if ((targetCore == null || IsAlly(targetCore, caster)) && (targetMonster == null || !targetObject.CompareTag("Enemy")))
         {
             Debug.LogWarning("[SlowSkill] Invalid target: not enemy or same team");
             return;
@@ -103,5 +103,41 @@ public class SlowSkill : SkillBase
     public void ApplySlowEffect(GameObject target, float duration, PlayerSkills playerSkills)
     {
         // Applying VFX for slow
+    }
+    
+    /// <summary>
+    /// Checks if target player is an enemy
+    /// Solo players are enemies to each other
+    /// </summary>
+    private bool IsEnemy(PlayerCore target, PlayerCore caster)
+    {
+        if (target == null) return false;
+        
+        // Solo players are enemies to each other
+        if (caster.team == PlayerTeam.Solo && target.team == PlayerTeam.Solo)
+        {
+            return true; // Solo players are enemies to each other
+        }
+        
+        // For other teams, use normal team logic
+        return caster.team != target.team;
+    }
+    
+    /// <summary>
+    /// Checks if target player is an ally
+    /// Solo players are never allies to each other (except themselves)
+    /// </summary>
+    private bool IsAlly(PlayerCore target, PlayerCore caster)
+    {
+        if (target == null) return false;
+        
+        // Solo players are never allies to each other
+        if (caster.team == PlayerTeam.Solo && target.team == PlayerTeam.Solo)
+        {
+            return false; // Solo players are enemies to each other
+        }
+        
+        // For other teams, use normal team logic
+        return caster.team == target.team;
     }
 }

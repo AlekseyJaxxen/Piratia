@@ -26,21 +26,25 @@ public class PlayerUI_Team : MonoBehaviour
     public class PlayerInfo
     {
         public string name = "Player";
-        public PlayerTeam team = PlayerTeam.Red;
+        public PlayerTeam team = PlayerTeam.Solo; // Each player is solo by default
         public int prefabIndex = 0;
         public CharacterClass characterClass = CharacterClass.Warrior;
     }
 
     void Start()
     {
+        // Hide team selection buttons since everyone is solo now
         if (redTeamButton != null)
         {
-            redTeamButton.onClick.AddListener(() => OnTeamSelected(PlayerTeam.Red));
+            redTeamButton.gameObject.SetActive(false);
         }
         if (blueTeamButton != null)
         {
-            blueTeamButton.onClick.AddListener(() => OnTeamSelected(PlayerTeam.Blue));
+            blueTeamButton.gameObject.SetActive(false);
         }
+        
+        // Automatically set team to Solo
+        OnTeamSelected(PlayerTeam.Solo);
         if (playerPrefab1Button != null)
         {
             playerPrefab1Button.onClick.AddListener(() => OnPrefabSelected(0));

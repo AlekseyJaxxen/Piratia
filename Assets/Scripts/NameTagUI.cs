@@ -24,13 +24,42 @@ public class NameTagUI : MonoBehaviour
         }
     }
 
-    public void UpdateNameAndTeam(string name, PlayerTeam team, PlayerTeam localTeam)
+    public void UpdateNameAndTeam(string name, PlayerTeam team, PlayerTeam localTeam, bool isLocalPlayer = false)
     {
         if (nameText != null) nameText.text = name;
         if (teamText != null) teamText.text = team.ToString();
-        // Локальный игрок и союзники — зеленые, враги — красные
-        Color color = (localTeam != PlayerTeam.None && team == localTeam) || localTeam == PlayerTeam.None ? Color.green : Color.red;
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+        // Check if this is the local player's own name tag
+        bool isOwnNameTag = isLocalPlayer;
+        
+        Color color;
+        if (isOwnNameTag)
+        {
+            color = Color.white; // Own name tag is white
+        }
+        else
+        {
+            color = IsAlly(team, localTeam) ? Color.green : Color.red;
+        }
         if (nameText != null) nameText.color = color;
         if (teamText != null) teamText.color = color;
+    }
+    
+    /// <summary>
+    /// Checks if target team is an ally to local team
+    /// Solo players are never allies to each other
+    /// </summary>
+    private bool IsAlly(PlayerTeam targetTeam, PlayerTeam localTeam)
+    {
+        if (localTeam == PlayerTeam.None) return false; // Default to red if no local team (safer for PvP)
+        
+        // Solo players are never allies to each other
+        if (localTeam == PlayerTeam.Solo && targetTeam == PlayerTeam.Solo)
+        {
+            return false; // Solo players are enemies to each other
+        }
+        
+        // For other teams, use normal team logic
+        return localTeam == targetTeam;
     }
 }

@@ -15,7 +15,8 @@ public enum PlayerTeam
 {
     None,
     Red,
-    Blue
+    Blue,
+    Solo
 }
 
 public enum MonsterRace

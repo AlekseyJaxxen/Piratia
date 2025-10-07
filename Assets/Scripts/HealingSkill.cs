@@ -40,7 +40,7 @@ public class HealingSkill : SkillBase
             // Try to get PlayerCore from parent (for reviveCollider)
             targetCore = targetObject.GetComponentInParent<PlayerCore>();
         }
-        if (targetCore == null || targetCore.team != caster.team)
+        if (targetCore == null || !IsAlly(targetCore, caster))
         {
             Debug.LogWarning("[HealingSkill] Invalid target: not ally or self");
             return;
@@ -104,5 +104,29 @@ public class HealingSkill : SkillBase
         {
             Object.Instantiate(effectPrefab, target.transform.position + Vector3.up * 1f, Quaternion.identity);
         }
+    }
+    
+    /// <summary>
+    /// Checks if target player is an ally
+    /// Solo players are never allies to each other (except themselves)
+    /// </summary>
+    private bool IsAlly(PlayerCore target, PlayerCore caster)
+    {
+        if (target == null) return false;
+        
+        // A player is always an ally to themselves
+        if (caster == target)
+        {
+            return true;
+        }
+        
+        // Solo players are never allies to each other
+        if (caster.team == PlayerTeam.Solo && target.team == PlayerTeam.Solo)
+        {
+            return false; // Solo players are enemies to each other
+        }
+        
+        // For other teams, use normal team logic
+        return caster.team == target.team;
     }
 }

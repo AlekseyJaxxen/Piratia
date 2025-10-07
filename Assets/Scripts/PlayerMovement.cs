@@ -114,13 +114,13 @@ public class PlayerMovement : NetworkBehaviour
                         Debug.Log($"[PlayerMovement] Target core: {targetCore?.name}, isDead: {targetCore?.isDead}, team: {targetCore?.team}, caster team: {_core.team}");
                         if (skill.SkillCastType == SkillBase.CastType.TargetedAlly)
                         {
-                            if (targetCore != null && (targetCore.team == _core.team || target == _core.gameObject))
+                            if (targetCore != null && (IsAlly(targetCore) || target == _core.gameObject))
                             {
                                 // Special case for ReviveSkill - only allow dead allies, not self
                                 if (skill is ReviveSkill)
                                 {
                                     Debug.Log($"[PlayerMovement] ReviveSkill check - isDead: {targetCore.isDead}, same team: {targetCore.team == _core.team}, isSelf: {target == _core.gameObject}");
-                                    if (targetCore.isDead && targetCore.team == _core.team && target != _core.gameObject)
+                                    if (targetCore.isDead && IsAlly(targetCore) && target != _core.gameObject)
                                     {
                                         validTarget = true;
                                         Debug.Log($"[PlayerMovement] ReviveSkill valid target!");
@@ -133,10 +133,19 @@ public class PlayerMovement : NetworkBehaviour
                                         validTarget = true;
                                 }
                             }
+                            // For Solo players, also allow using TargetedAlly skills on other Solo players (treat as enemies)
+                            else if (targetCore != null && _core.team == PlayerTeam.Solo && targetCore.team == PlayerTeam.Solo && target != _core.gameObject)
+                            {
+                                if (!targetCore.isDead)
+                                {
+                                    validTarget = true;
+                                    Debug.Log($"[PlayerMovement] Solo player using TargetedAlly skill on another Solo player (treated as enemy)");
+                                }
+                            }
                         }
                         else if (skill.SkillCastType == SkillBase.CastType.TargetedEnemy)
                         {
-                            if (targetCore != null && targetCore.team != _core.team && !targetCore.isDead)
+                            if (targetCore != null && !IsAlly(targetCore) && !targetCore.isDead)
                                 validTarget = true;
                             else if (targetMonster != null)
                                 validTarget = true;
@@ -211,7 +220,7 @@ public class PlayerMovement : NetworkBehaviour
                         Debug.Log($"[PlayerMovement] IsSkillSelected: {_core.Skills.IsSkillSelected}, ActiveSkill: {_core.Skills.ActiveSkill?.SkillName}");
                         if (targetCore != null)
                         {
-                            if (targetCore.team != _core.team && !targetCore.isDead)
+                            if (!IsAlly(targetCore) && !targetCore.isDead)
                             {
                                 // Starting Attack on enemy
                                 if (_core.Skills.GetGlobalRemainingCooldown() > 0) return;
@@ -466,5 +475,29 @@ public class PlayerMovement : NetworkBehaviour
             _currentMoveIndicator = null;
             // Destroyed move indicator
         }
+    }
+    
+    /// <summary>
+    /// Checks if target player is an ally
+    /// Solo players are never allies to each other (except themselves)
+    /// </summary>
+    private bool IsAlly(PlayerCore target)
+    {
+        if (target == null) return false;
+        
+        // A player is always an ally to themselves
+        if (_core == target)
+        {
+            return true;
+        }
+        
+        // Solo players are never allies to each other
+        if (_core.team == PlayerTeam.Solo && target.team == PlayerTeam.Solo)
+        {
+            return false; // Solo players are enemies to each other
+        }
+        
+        // For other teams, use normal team logic
+        return _core.team == target.team;
     }
 }
