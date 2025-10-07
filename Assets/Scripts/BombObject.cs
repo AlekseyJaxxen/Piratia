@@ -207,8 +207,8 @@ public class BombObject : NetworkBehaviour
                 PlayerCore targetCore = col.GetComponent<PlayerCore>();
                 Monster targetMonster = col.GetComponent<Monster>();
                 
-                // Урон игрокам другой команды
-                if (targetCore != null && (int)targetCore.team != casterTeam)
+                // Урон игрокам-врагам
+                if (targetCore != null && IsEnemy(targetCore, casterTeam))
                 {
                     NetworkIdentity safeCasterIdentity = (casterIdentity != null && casterIdentity.gameObject != null) ? casterIdentity : null;
                     targetHealthMonster.TakeDamage(baseDamage, DamageType.Physical, false, safeCasterIdentity, damageMultiplier);
@@ -236,8 +236,8 @@ public class BombObject : NetworkBehaviour
                 PlayerCore targetCore = col.GetComponent<PlayerCore>();
                 Monster targetMonster = col.GetComponent<Monster>();
                 
-                // Урон игрокам другой команды
-                if (targetCore != null && (int)targetCore.team != casterTeam)
+                // Урон игрокам-врагам
+                if (targetCore != null && IsEnemy(targetCore, casterTeam))
                 {
                     NetworkIdentity safeCasterIdentity = (casterIdentity != null && casterIdentity.gameObject != null) ? casterIdentity : null;
                     targetHealth.TakeDamage(baseDamage, DamageType.Physical, false, safeCasterIdentity, damageMultiplier);
@@ -383,5 +383,31 @@ public class BombObject : NetworkBehaviour
     {
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, explosionRadius);
+    }
+    
+    /// <summary>
+    /// Checks if target player is an enemy to the bomb caster
+    /// Supports dynamic teams: guild, party, faction, and basic teams
+    /// </summary>
+    private bool IsEnemy(PlayerCore target, int casterTeamInt)
+    {
+        if (target == null) return false;
+        
+        PlayerTeam casterTeam = (PlayerTeam)casterTeamInt;
+        
+        // Check basic team logic first
+        if (target.team == casterTeam && target.team != PlayerTeam.Solo)
+        {
+            return false; // Same team, not enemy
+        }
+        
+        // For solo players, they are enemies to each other
+        if (target.team == PlayerTeam.Solo && casterTeam == PlayerTeam.Solo)
+        {
+            return true; // Solo players are enemies to each other
+        }
+        
+        // For other teams, use normal team logic
+        return target.team != casterTeam;
     }
 }

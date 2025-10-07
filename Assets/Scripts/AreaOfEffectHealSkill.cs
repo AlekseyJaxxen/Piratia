@@ -38,7 +38,7 @@ public class AreaOfEffectHealSkill : SkillBase
             if (targetHealth != null)
             {
                 PlayerCore targetCore = col.GetComponent<PlayerCore>();
-                if (targetCore != null && targetCore.team == caster.team && !targetCore.isDead)
+                if (targetCore != null && IsAlly(targetCore, caster) && !targetCore.isDead)
                 {
                     targetHealth.Heal(healAmount);
                 }
@@ -55,5 +55,52 @@ public class AreaOfEffectHealSkill : SkillBase
             GameObject effect = Object.Instantiate(effectPrefab, position + Vector3.up * 1f, Quaternion.identity);
             Object.Destroy(effect, 2f);
         }
+    }
+    
+    /// <summary>
+    /// Checks if target player is an ally
+    /// Supports dynamic teams: guild, party, faction, and basic teams
+    /// </summary>
+    private bool IsAlly(PlayerCore target, PlayerCore caster)
+    {
+        if (target == null) return false;
+        
+        // A player is always an ally to themselves
+        if (caster == target)
+        {
+            return true;
+        }
+        
+        // Check basic team logic first
+        if (caster.team == target.team && caster.team != PlayerTeam.Solo)
+        {
+            return true;
+        }
+        
+        // Check guild membership
+        if (!string.IsNullOrEmpty(caster.guildId) && caster.guildId == target.guildId)
+        {
+            return true;
+        }
+        
+        // Check party membership
+        if (!string.IsNullOrEmpty(caster.partyId) && caster.partyId == target.partyId)
+        {
+            return true;
+        }
+        
+        // Check faction membership
+        if (!string.IsNullOrEmpty(caster.factionId) && caster.factionId == target.factionId)
+        {
+            return true;
+        }
+        
+        // Solo players are enemies to each other (if not in same dynamic team)
+        if (caster.team == PlayerTeam.Solo && target.team == PlayerTeam.Solo)
+        {
+            return false;
+        }
+        
+        return false;
     }
 }

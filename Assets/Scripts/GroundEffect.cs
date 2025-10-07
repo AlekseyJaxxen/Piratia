@@ -27,7 +27,7 @@ public class GroundEffect : NetworkBehaviour
         foreach (Collider col in hits)
         {
             PlayerCore player = col.GetComponent<PlayerCore>();
-            if (player != null && player.team != team)
+            if (player != null && IsEnemy(player, team))
             {
                 CharacterStats stats = player.GetComponent<CharacterStats>();
                 if (stats != null)
@@ -50,5 +50,28 @@ public class GroundEffect : NetworkBehaviour
     {
         yield return new WaitForSeconds(delay);
         NetworkServer.Destroy(gameObject);
+    }
+    
+    /// <summary>
+    /// Checks if player is an enemy to the ground effect owner
+    /// </summary>
+    private bool IsEnemy(PlayerCore player, PlayerTeam ownerTeam)
+    {
+        if (player == null) return false;
+        
+        // Check basic team logic first
+        if (player.team == ownerTeam && player.team != PlayerTeam.Solo)
+        {
+            return false; // Same team, not enemy
+        }
+        
+        // For solo players, they are enemies to each other
+        if (player.team == PlayerTeam.Solo && ownerTeam == PlayerTeam.Solo)
+        {
+            return true; // Solo players are enemies to each other
+        }
+        
+        // For other teams, use normal team logic
+        return player.team != ownerTeam;
     }
 }

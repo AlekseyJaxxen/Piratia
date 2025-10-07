@@ -822,29 +822,29 @@ public partial class PlayerSkills : NetworkBehaviour
     public void RpcRevealPlayer(bool isVisible, int layer)
     {
         PlayerCore localPlayer = NetworkClient.localPlayer?.GetComponent<PlayerCore>();
-        bool isSameTeam = localPlayer != null && localPlayer.team == _core.team;
+        bool isAlly = localPlayer != null && IsAllyToPlayer(_core, localPlayer);
         Transform modelsTransform = transform.Find("Models");
         if (modelsTransform != null)
         {
-            modelsTransform.gameObject.SetActive(isVisible || isSameTeam || this.isLocalPlayer);
+            modelsTransform.gameObject.SetActive(isVisible || isAlly || this.isLocalPlayer);
         }
         else
         {
             Debug.LogWarning($"[PlayerSkills] GameObject 'Models' not found on {gameObject.name}");
         }
-        Debug.Log($"[PlayerSkills] RpcRevealPlayer: isVisible={isVisible}, layer={layer}, isSameTeam={isSameTeam}, isLocalPlayer={this.isLocalPlayer} on {gameObject.name}");
+        Debug.Log($"[PlayerSkills] RpcRevealPlayer: isVisible={isVisible}, layer={layer}, isAlly={isAlly}, isLocalPlayer={this.isLocalPlayer} on {gameObject.name}");
     }
     [ClientRpc]
     public void RpcSetInvisibilityVisibility(bool isInvisible, PlayerTeam targetTeam, int originalLayer)
     {
         PlayerCore localPlayer = NetworkClient.localPlayer?.GetComponent<PlayerCore>();
-        bool isSameTeam = localPlayer != null && localPlayer.team == targetTeam;
+        bool isAlly = localPlayer != null && IsAllyToPlayer(_core, localPlayer);
         Transform modelsTransform = transform.Find("Models");
         if (modelsTransform != null)
         {
-            bool shouldBeVisible = !isInvisible || isSameTeam || this.isLocalPlayer;
+            bool shouldBeVisible = !isInvisible || isAlly || this.isLocalPlayer;
             modelsTransform.gameObject.SetActive(shouldBeVisible);
-            Debug.Log($"[PlayerSkills] RpcSetInvisibilityVisibility: isInvisible={isInvisible}, shouldBeVisible={shouldBeVisible}, isSameTeam={isSameTeam}, isLocalPlayer={this.isLocalPlayer}, targetTeam={targetTeam}, localPlayerTeam={(localPlayer != null ? localPlayer.team.ToString() : "null")} on {gameObject.name}");
+            Debug.Log($"[PlayerSkills] RpcSetInvisibilityVisibility: isInvisible={isInvisible}, shouldBeVisible={shouldBeVisible}, isAlly={isAlly}, isLocalPlayer={this.isLocalPlayer}, targetTeam={targetTeam}, localPlayerTeam={(localPlayer != null ? localPlayer.team.ToString() : "null")} on {gameObject.name}");
         }
         else
         {
@@ -904,7 +904,7 @@ public partial class PlayerSkills : NetworkBehaviour
     
     /// <summary>
     /// Checks if target player is an ally
-    /// Solo players are never allies to each other (except themselves)
+    /// Supports dynamic teams: guild, party, faction, and basic teams
     /// </summary>
     private bool IsAlly(PlayerCore target)
     {
@@ -916,14 +916,84 @@ public partial class PlayerSkills : NetworkBehaviour
             return true;
         }
         
-        // Solo players are never allies to each other
-        if (_core.team == PlayerTeam.Solo && target.team == PlayerTeam.Solo)
+        // Check basic team logic first
+        if (_core.team == target.team && _core.team != PlayerTeam.Solo)
         {
-            return false; // Solo players are enemies to each other
+            return true;
         }
         
-        // For other teams, use normal team logic
-        return _core.team == target.team;
+        // Check guild membership
+        if (!string.IsNullOrEmpty(_core.guildId) && _core.guildId == target.guildId)
+        {
+            return true;
+        }
+        
+        // Check party membership
+        if (!string.IsNullOrEmpty(_core.partyId) && _core.partyId == target.partyId)
+        {
+            return true;
+        }
+        
+        // Check faction membership
+        if (!string.IsNullOrEmpty(_core.factionId) && _core.factionId == target.factionId)
+        {
+            return true;
+        }
+        
+        // Solo players are enemies to each other (if not in same dynamic team)
+        if (_core.team == PlayerTeam.Solo && target.team == PlayerTeam.Solo)
+        {
+            return false;
+        }
+        
+        return false;
+    }
+    
+    /// <summary>
+    /// Checks if target player is an ally to the observer player
+    /// Used for invisibility visibility checks
+    /// </summary>
+    private bool IsAllyToPlayer(PlayerCore target, PlayerCore observer)
+    {
+        if (target == null || observer == null) return false;
+        
+        // A player is always an ally to themselves
+        if (target == observer)
+        {
+            return true;
+        }
+        
+        // Check basic team logic first
+        if (target.team == observer.team && target.team != PlayerTeam.Solo)
+        {
+            return true;
+        }
+        
+        // Check guild membership
+        if (!string.IsNullOrEmpty(target.guildId) && target.guildId == observer.guildId)
+        {
+            return true;
+        }
+        
+        // Check party membership
+        if (!string.IsNullOrEmpty(target.partyId) && target.partyId == observer.partyId)
+        {
+            return true;
+        }
+        
+        // Check faction membership
+        if (!string.IsNullOrEmpty(target.factionId) && target.factionId == observer.factionId)
+        {
+            return true;
+        }
+        
+        // Solo players are enemies to each other (if not in same dynamic team)
+        if (target.team == PlayerTeam.Solo && observer.team == PlayerTeam.Solo)
+        {
+            return false;
+        }
+        
+        return false;
     }
 
     public void StartJumpCoroutine(Vector3 start, Vector3 end, int weight, float jumpDuration, float heightMultiplier)

@@ -479,7 +479,7 @@ public class PlayerMovement : NetworkBehaviour
     
     /// <summary>
     /// Checks if target player is an ally
-    /// Solo players are never allies to each other (except themselves)
+    /// Supports dynamic teams: guild, party, faction, and basic teams
     /// </summary>
     private bool IsAlly(PlayerCore target)
     {
@@ -491,13 +491,36 @@ public class PlayerMovement : NetworkBehaviour
             return true;
         }
         
-        // Solo players are never allies to each other
-        if (_core.team == PlayerTeam.Solo && target.team == PlayerTeam.Solo)
+        // Check basic team logic first
+        if (_core.team == target.team && _core.team != PlayerTeam.Solo)
         {
-            return false; // Solo players are enemies to each other
+            return true;
         }
         
-        // For other teams, use normal team logic
-        return _core.team == target.team;
+        // Check guild membership
+        if (!string.IsNullOrEmpty(_core.guildId) && _core.guildId == target.guildId)
+        {
+            return true;
+        }
+        
+        // Check party membership
+        if (!string.IsNullOrEmpty(_core.partyId) && _core.partyId == target.partyId)
+        {
+            return true;
+        }
+        
+        // Check faction membership
+        if (!string.IsNullOrEmpty(_core.factionId) && _core.factionId == target.factionId)
+        {
+            return true;
+        }
+        
+        // Solo players are enemies to each other (if not in same dynamic team)
+        if (_core.team == PlayerTeam.Solo && target.team == PlayerTeam.Solo)
+        {
+            return false;
+        }
+        
+        return false;
     }
 }

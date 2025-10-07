@@ -41,6 +41,14 @@ public class PlayerCore : NetworkBehaviour
     public PlayerTeam team = PlayerTeam.None;
     [SyncVar(hook = nameof(OnNameChanged))]
     public string playerName = "Player";
+    
+    [Header("Dynamic Teams")]
+    [SyncVar(hook = nameof(OnGuildChanged))]
+    public string guildId = "";
+    [SyncVar(hook = nameof(OnPartyChanged))]
+    public string partyId = "";
+    [SyncVar(hook = nameof(OnFactionChanged))]
+    public string factionId = "";
     [SyncVar(hook = nameof(OnDeathStateChanged))]
     public bool isDead = false;
     [SyncVar(hook = nameof(OnStunStateChanged))]
@@ -313,6 +321,57 @@ public class PlayerCore : NetworkBehaviour
     }
 
     [Command]
+    public void CmdJoinGuild(string newGuildId)
+    {
+        if (isDead) return;
+        guildId = newGuildId;
+        Debug.Log($"[PlayerCore] {playerName} joined guild: {newGuildId}");
+    }
+
+    [Command]
+    public void CmdLeaveGuild()
+    {
+        if (isDead) return;
+        string oldGuildId = guildId;
+        guildId = "";
+        Debug.Log($"[PlayerCore] {playerName} left guild: {oldGuildId}");
+    }
+
+    [Command]
+    public void CmdJoinParty(string newPartyId)
+    {
+        if (isDead) return;
+        partyId = newPartyId;
+        Debug.Log($"[PlayerCore] {playerName} joined party: {newPartyId}");
+    }
+
+    [Command]
+    public void CmdLeaveParty()
+    {
+        if (isDead) return;
+        string oldPartyId = partyId;
+        partyId = "";
+        Debug.Log($"[PlayerCore] {playerName} left party: {oldPartyId}");
+    }
+
+    [Command]
+    public void CmdJoinFaction(string newFactionId)
+    {
+        if (isDead) return;
+        factionId = newFactionId;
+        Debug.Log($"[PlayerCore] {playerName} joined faction: {newFactionId}");
+    }
+
+    [Command]
+    public void CmdLeaveFaction()
+    {
+        if (isDead) return;
+        string oldFactionId = factionId;
+        factionId = "";
+        Debug.Log($"[PlayerCore] {playerName} left faction: {oldFactionId}");
+    }
+
+    [Command]
     public void CmdAddExperience(int amount)
     {
         if (Stats != null)
@@ -365,8 +424,26 @@ public class PlayerCore : NetworkBehaviour
         }
         if (nameTagUI != null)
         {
-            nameTagUI.UpdateNameAndTeam(newName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None);
+            nameTagUI.UpdateNameAndTeam(newName, team, localPlayerCoreInstance != null ? localPlayerCoreInstance.team : PlayerTeam.None, isLocalPlayer);
         }
+    }
+
+    private void OnGuildChanged(string oldGuildId, string newGuildId)
+    {
+        Debug.Log($"[PlayerCore] {playerName} guild changed: {oldGuildId} -> {newGuildId}");
+        UpdateUI();
+    }
+
+    private void OnPartyChanged(string oldPartyId, string newPartyId)
+    {
+        Debug.Log($"[PlayerCore] {playerName} party changed: {oldPartyId} -> {newPartyId}");
+        UpdateUI();
+    }
+
+    private void OnFactionChanged(string oldFactionId, string newFactionId)
+    {
+        Debug.Log($"[PlayerCore] {playerName} faction changed: {oldFactionId} -> {newFactionId}");
+        UpdateUI();
     }
 
     private void UpdateTeamIndicatorColor()
@@ -393,7 +470,7 @@ public class PlayerCore : NetworkBehaviour
     
     /// <summary>
     /// Checks if target player is an ally
-    /// Solo players are never allies to each other (except themselves)
+    /// Supports dynamic teams: guild, party, faction, and basic teams
     /// </summary>
     private bool IsAlly(PlayerCore target)
     {
@@ -405,14 +482,37 @@ public class PlayerCore : NetworkBehaviour
             return true;
         }
         
-        // Solo players are never allies to each other
-        if (team == PlayerTeam.Solo && target.team == PlayerTeam.Solo)
+        // Check basic team logic first
+        if (team == target.team && team != PlayerTeam.Solo)
         {
-            return false; // Solo players are enemies to each other
+            return true;
         }
         
-        // For other teams, use normal team logic
-        return team == target.team;
+        // Check guild membership
+        if (!string.IsNullOrEmpty(guildId) && guildId == target.guildId)
+        {
+            return true;
+        }
+        
+        // Check party membership
+        if (!string.IsNullOrEmpty(partyId) && partyId == target.partyId)
+        {
+            return true;
+        }
+        
+        // Check faction membership
+        if (!string.IsNullOrEmpty(factionId) && factionId == target.factionId)
+        {
+            return true;
+        }
+        
+        // Solo players are enemies to each other (if not in same dynamic team)
+        if (team == PlayerTeam.Solo && target.team == PlayerTeam.Solo)
+        {
+            return false;
+        }
+        
+        return false;
     }
 
     private void OnDeathStateChanged(bool oldValue, bool newValue)

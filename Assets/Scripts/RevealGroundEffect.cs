@@ -25,13 +25,13 @@ public class RevealGroundEffect : NetworkBehaviour
         foreach (Collider col in hits)
         {
             PlayerCore player = col.GetComponent<PlayerCore>();
-            if (player != null && player.team != team && player.Skills._isInvisible)
+            if (player != null && IsEnemy(player, team) && player.Skills._isInvisible)
             {
                 currentPlayers.Add(player.netId);
                 if (!revealedPlayers.Contains(player.netId))
                 {
                     player.Skills.RpcRevealPlayer(true, LayerMask.NameToLayer("Player"));
-                    player.Skills.RpcSetInvisibilityState(false);  // Добавлено: временно видим для атаки
+                    player.Skills.RpcSetInvisibilityState(false);  // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ: пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
                     player.Skills.SetPlayerLayer(LayerMask.NameToLayer("Player"));
                     revealedPlayers.Add(player.netId);
                 }
@@ -48,7 +48,7 @@ public class RevealGroundEffect : NetworkBehaviour
                     if (player != null && player.Skills._isInvisible)
                     {
                         player.Skills.RpcSetInvisibilityVisibility(true, player.team, player.Skills._originalLayer);
-                        player.Skills.RpcSetInvisibilityState(true);  // Добавлено: возвращаем невидимость
+                        player.Skills.RpcSetInvisibilityState(true);  // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ: пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
                         player.Skills.SetPlayerLayer(LayerMask.NameToLayer("Ignore Raycast"));
                         player.Skills.RpcRevealPlayer(false, LayerMask.NameToLayer("Ignore Raycast"));
                     }
@@ -68,12 +68,35 @@ public class RevealGroundEffect : NetworkBehaviour
                 if (player != null && player.Skills._isInvisible)
                 {
                     player.Skills.RpcSetInvisibilityVisibility(true, player.team, player.Skills._originalLayer);
-                    player.Skills.RpcSetInvisibilityState(true);  // Добавлено: возвращаем невидимость
+                    player.Skills.RpcSetInvisibilityState(true);  // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ: пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
                     player.Skills.SetPlayerLayer(LayerMask.NameToLayer("Ignore Raycast"));
                     player.Skills.RpcRevealPlayer(false, LayerMask.NameToLayer("Ignore Raycast"));
                 }
             }
         }
         NetworkServer.Destroy(gameObject);
+    }
+    
+    /// <summary>
+    /// Checks if player is an enemy to the ground effect owner
+    /// </summary>
+    private bool IsEnemy(PlayerCore player, PlayerTeam ownerTeam)
+    {
+        if (player == null) return false;
+        
+        // Check basic team logic first
+        if (player.team == ownerTeam && player.team != PlayerTeam.Solo)
+        {
+            return false; // Same team, not enemy
+        }
+        
+        // For solo players, they are enemies to each other
+        if (player.team == PlayerTeam.Solo && ownerTeam == PlayerTeam.Solo)
+        {
+            return true; // Solo players are enemies to each other
+        }
+        
+        // For other teams, use normal team logic
+        return player.team != ownerTeam;
     }
 }

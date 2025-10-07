@@ -27,7 +27,9 @@ public class NameTagUI : MonoBehaviour
     public void UpdateNameAndTeam(string name, PlayerTeam team, PlayerTeam localTeam, bool isLocalPlayer = false)
     {
         if (nameText != null) nameText.text = name;
-        if (teamText != null) teamText.text = team.ToString();
+        // Update team text to show dynamic team info
+        string teamInfo = GetTeamDisplayText(team);
+        if (teamText != null) teamText.text = teamInfo;
         // ��������� ����� � �������� � �������, ����� � �������
         // Check if this is the local player's own name tag
         bool isOwnNameTag = isLocalPlayer;
@@ -61,5 +63,33 @@ public class NameTagUI : MonoBehaviour
         
         // For other teams, use normal team logic
         return localTeam == targetTeam;
+    }
+    
+    /// <summary>
+    /// Gets display text for team information including dynamic teams
+    /// </summary>
+    private string GetTeamDisplayText(PlayerTeam team)
+    {
+        // Get the PlayerCore component to access dynamic team info
+        PlayerCore playerCore = GetComponentInParent<PlayerCore>();
+        if (playerCore == null) return team.ToString();
+        
+        string displayText = team.ToString();
+        
+        // Add dynamic team info if available
+        if (!string.IsNullOrEmpty(playerCore.guildId))
+        {
+            displayText += $" [G:{playerCore.guildId}]";
+        }
+        if (!string.IsNullOrEmpty(playerCore.partyId))
+        {
+            displayText += $" [P:{playerCore.partyId}]";
+        }
+        if (!string.IsNullOrEmpty(playerCore.factionId))
+        {
+            displayText += $" [F:{playerCore.factionId}]";
+        }
+        
+        return displayText;
     }
 }
