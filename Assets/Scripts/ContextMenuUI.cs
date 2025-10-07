@@ -280,8 +280,16 @@ public class ContextMenuUI : MonoBehaviour
         if (isInSameParty)
         {
             // Если игроки в одной группе
-            CreateButton("Leave Party", OnLeaveParty);
-            // TODO: Добавить кнопку "Kick from Party" для лидера группы
+            if (localPlayer != null && localPlayer.isPartyLeader && targetPlayer.netId != localPlayer.netId)
+            {
+                // Если локальный игрок - лидер группы и кликает не на себя, показываем "Kick from Party"
+                CreateButton("Kick from Party", OnKickFromParty);
+            }
+            else
+            {
+                // Если не лидер или кликает на себя, показываем "Leave Party"
+                CreateButton("Leave Party", OnLeaveParty);
+            }
         }
         else if (!isTargetPlayerInParty && !isLocalPlayerInParty)
         {
@@ -534,6 +542,25 @@ public class ContextMenuUI : MonoBehaviour
         else
         {
             Debug.LogError("[ContextMenuUI] Local player is null, cannot request to join party");
+        }
+        
+        HideContextMenu();
+    }
+    
+    private void OnKickFromParty()
+    {
+        Debug.Log("[ContextMenuUI] Kick from Party clicked");
+        if (targetPlayer == null) return;
+        
+        PlayerCore localPlayer = PlayerCore.localPlayerCoreInstance;
+        if (localPlayer != null)
+        {
+            localPlayer.CmdKickFromParty(targetPlayer.netId);
+            Debug.Log($"[ContextMenuUI] Kicked {targetPlayer.playerName} from party");
+        }
+        else
+        {
+            Debug.LogError("[ContextMenuUI] Local player is null, cannot kick from party");
         }
         
         HideContextMenu();

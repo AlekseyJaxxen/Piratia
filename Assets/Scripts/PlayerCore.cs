@@ -607,6 +607,57 @@ public class PlayerCore : NetworkBehaviour
         Debug.Log($"[PlayerCore] {playerName} declined join request from {requesterPlayer.playerName}");
     }
     
+    [Command]
+    public void CmdKickFromParty(uint targetNetId)
+    {
+        if (isDead) return;
+        
+        // Проверяем, что мы лидер группы
+        if (!isPartyLeader)
+        {
+            Debug.LogWarning($"[PlayerCore] {playerName} tried to kick from party but is not party leader");
+            return;
+        }
+        
+        // Проверяем, что целевой игрок существует
+        if (!NetworkServer.spawned.TryGetValue(targetNetId, out NetworkIdentity targetIdentity))
+        {
+            Debug.LogWarning($"[PlayerCore] Target player {targetNetId} not found");
+            return;
+        }
+        
+        PlayerCore targetPlayer = targetIdentity.GetComponent<PlayerCore>();
+        if (targetPlayer == null)
+        {
+            Debug.LogWarning($"[PlayerCore] Target player {targetNetId} has no PlayerCore component");
+            return;
+        }
+        
+        // Проверяем, что целевой игрок в нашей группе
+        if (string.IsNullOrEmpty(targetPlayer.partyId) || targetPlayer.partyId != partyId)
+        {
+            Debug.LogWarning($"[PlayerCore] {targetPlayer.playerName} is not in the same party as {playerName}");
+            return;
+        }
+        
+        // Проверяем, что мы не исключаем сами себя
+        if (targetPlayer.netId == netId)
+        {
+            Debug.LogWarning($"[PlayerCore] {playerName} tried to kick themselves from party");
+            return;
+        }
+        
+        // Исключаем игрока из группы
+        string oldPartyId = targetPlayer.partyId;
+        targetPlayer.partyId = "";
+        targetPlayer.isPartyLeader = false; // Снимаем статус лидера (на всякий случай)
+        
+        Debug.Log($"[PlayerCore] {playerName} kicked {targetPlayer.playerName} from party {oldPartyId}");
+        
+        // Проверяем, нужно ли распустить группу или назначить нового лидера
+        CheckAndDisbandPartyIfNeeded(oldPartyId);
+    }
+    
     /// <summary>
     /// Проверяет количество участников в группе и распускает группу, если остается только один игрок
     /// </summary>
