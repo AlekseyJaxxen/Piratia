@@ -47,8 +47,7 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     public Button spiritButton;
     public Button constitutionButton;
     public Button accuracyButton;
-    [Header("Cooldown UI")]
-    public Image globalCooldownImage;
+    // Global cooldown UI removed - players can cast spells quickly
     [System.Serializable]
     public class SkillCooldownEntry
     {
@@ -560,13 +559,7 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             }
         }
     }
-    public void UpdateGlobalCooldown(float progress)
-    {
-        if (globalCooldownImage != null)
-        {
-            globalCooldownImage.fillAmount = 1f - progress;
-        }
-    }
+    // UpdateGlobalCooldown method removed - global cooldown disabled
     public void OnBeginDrag(PointerEventData eventData)
     {
         if (attributesPanelRect != null)

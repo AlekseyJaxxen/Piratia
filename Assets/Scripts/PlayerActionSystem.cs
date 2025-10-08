@@ -127,13 +127,21 @@ public class PlayerActionSystem : NetworkBehaviour
         {
             int newPriority = GetPriority(actionType);
             int currentPriority = GetPriority(_currentActionType);
+            // Block movement during cast time, but allow skill casting
             if (actionType == PlayerAction.Move && _isCasting)
             {
                 // Ignoring Move - player is casting
                 return false;
             }
+            
+            // Allow SkillCast to interrupt other SkillCast (fast spell casting)
+            if (actionType == PlayerAction.SkillCast && _currentActionType == PlayerAction.SkillCast)
+            {
+                // Allow new spell to interrupt current spell
+                CompleteAction();
+            }
             // Разрешаем Move или новый Attack прерывать текущий Attack
-            if (_currentActionType == PlayerAction.Attack && (actionType == PlayerAction.Move || actionType == PlayerAction.Attack))
+            else if (_currentActionType == PlayerAction.Attack && (actionType == PlayerAction.Move || actionType == PlayerAction.Attack))
             {
                 // Проверяем, не та же ли цель для атаки
                 if (actionType == PlayerAction.Attack && targetObject != null && _core.Combat.Target == targetObject)

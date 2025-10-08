@@ -234,7 +234,7 @@ public class PlayerMovement : NetworkBehaviour
                             if (!IsAlly(targetCore) && !targetCore.isDead)
                             {
                                 // Starting Attack on enemy
-                                if (_core.Skills.GetGlobalRemainingCooldown() > 0) return;
+                                // Global cooldown check removed
                                 _core.ActionSystem.TryStartAction(PlayerAction.Attack, null, hit.collider.gameObject);
                             }
                             else if (targetCore.isDead && _core.Skills.IsSkillSelected)
@@ -253,7 +253,7 @@ public class PlayerMovement : NetworkBehaviour
                     else if (hit.collider.CompareTag("Enemy"))
                     {
                         // Starting Attack on enemy
-                        if (_core.Skills.GetGlobalRemainingCooldown() > 0) return;
+                        // Global cooldown check removed
                         _core.ActionSystem.TryStartAction(PlayerAction.Attack, null, hit.collider.gameObject);
                     }
                     else if (hit.collider.CompareTag("Ground"))

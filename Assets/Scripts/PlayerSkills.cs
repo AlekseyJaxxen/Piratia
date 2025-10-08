@@ -26,8 +26,7 @@ public partial class PlayerSkills : NetworkBehaviour
     private Coroutine _castSkillCoroutine;
     private GameObject rangeIndicator;
     private readonly SyncDictionary<string, float> _skillLastUseTimes = new SyncDictionary<string, float>();
-    [SerializeField] private float globalCooldown = 1f;
-    [SyncVar(hook = nameof(OnGlobalCooldownChanged))] private float _lastGlobalUseTime;
+    // Global cooldown removed - players can cast spells quickly
     public bool IsSkillSelected => _activeSkill != null;
     public ISkill ActiveSkill => _activeSkill;
     private Dictionary<string, float> localCooldowns = new Dictionary<string, float>();
@@ -248,11 +247,7 @@ public partial class PlayerSkills : NetworkBehaviour
             // Skill on cooldown
             return;
         }
-        if (!skill.ignoreGlobalCooldown && GetGlobalRemainingCooldown() > 0)
-        {
-            // Global cooldown active
-            return;
-        }
+        // Global cooldown check removed - players can cast spells quickly
         CharacterStats stats = caster.GetComponent<CharacterStats>();
         if (stats != null && !stats.HasEnoughMana(skill.ManaCost))
         {
@@ -295,7 +290,7 @@ public partial class PlayerSkills : NetworkBehaviour
         }
         if (stats != null) stats.SpendMana(skill.ManaCost);
         StartSkillCooldown(skillName);
-        if (!skill.ignoreGlobalCooldown) StartGlobalCooldown();
+        // Global cooldown removed
         if (skill.CastTime > 0)
         {
             StartCoroutine(CastSkillCoroutine(skill, targetPosition, targetObject, weight));
@@ -308,7 +303,7 @@ public partial class PlayerSkills : NetworkBehaviour
             
             // Устанавливаем кулдаун для мгновенных скиллов (SelfBuff, ToggleBuff и т.д.)
             StartSkillCooldown(skillName);
-            if (!skill.ignoreGlobalCooldown) StartGlobalCooldown();
+            // Global cooldown removed
             
             if (!(skill is BasicAttackSkill))
             {
@@ -390,11 +385,7 @@ public partial class PlayerSkills : NetworkBehaviour
     {
         _skillLastUseTimes[skillName] = (float)NetworkTime.time;
     }
-    [Server]
-    public void StartGlobalCooldown()
-    {
-        _lastGlobalUseTime = (float)NetworkTime.time;
-    }
+    // StartGlobalCooldown method removed - global cooldown disabled
     
     [Server]
     public void ClearSkillCooldown(string skillName)
@@ -404,7 +395,7 @@ public partial class PlayerSkills : NetworkBehaviour
     private void HandleSkills()
     {
         if (skills == null || skills.Count == 0) return;
-        if (_isCasting) return;
+        // Removed cast time restriction - players can cast spells quickly
         if (Input.GetMouseButtonDown(1))
         {
             CancelSkillSelection();
@@ -426,7 +417,7 @@ public partial class PlayerSkills : NetworkBehaviour
             return;
         }
         SkillBase s = (SkillBase)skill;
-        if (GetRemainingCooldown(s.SkillName) > 0 || (!s.ignoreGlobalCooldown && GetGlobalRemainingCooldown() > 0))
+        if (GetRemainingCooldown(s.SkillName) > 0)
         {
             Debug.LogWarning($"[PlayerSkills] Cannot select {s.SkillName}: on cooldown");
             return;
@@ -556,10 +547,7 @@ public partial class PlayerSkills : NetworkBehaviour
     private void Update()
     {
         if (isLocalPlayer) HandleSkills();
-        if (isLocalPlayer)
-        {
-            UpdateGlobalCooldownUI();
-        }
+        // Global cooldown UI update removed
         if (isLocalPlayer && skills != null)
         {
             foreach (var skill in skills)
@@ -658,10 +646,7 @@ public partial class PlayerSkills : NetworkBehaviour
     {
         if (isLocalPlayer) UpdateSkillUI(key);
     }
-    private void OnGlobalCooldownChanged(float oldVal, float newVal)
-    {
-        if (isLocalPlayer) UpdateGlobalCooldownUI();
-    }
+    // OnGlobalCooldownChanged method removed - global cooldown disabled
     private void UpdateSkillUI(string key)
     {
         if (skills == null || PlayerUI.Instance == null) return;
@@ -682,13 +667,7 @@ public partial class PlayerSkills : NetworkBehaviour
             PlayerUI.Instance.UpdateSkillCooldown(key, progress);
         }
     }
-    private void UpdateGlobalCooldownUI()
-    {
-        if (PlayerUI.Instance == null) return;
-        
-        float progress = 1f - Mathf.Max(0, globalCooldown - ((float)NetworkTime.time - _lastGlobalUseTime)) / globalCooldown;
-        PlayerUI.Instance.UpdateSkillCooldown("Global", progress);
-    }
+    // UpdateGlobalCooldownUI method removed - global cooldown disabled
     [ClientRpc]
     private void RpcCancelSkillSelection()
     {
@@ -697,7 +676,7 @@ public partial class PlayerSkills : NetworkBehaviour
     public void StartLocalCooldown(string skillName, float cooldown, bool useGlobal)
     {
         localCooldowns[skillName] = (float)NetworkTime.time + cooldown;
-        if (useGlobal) localGlobalCooldownEnd = (float)NetworkTime.time + globalCooldown;
+        // Global cooldown removed - useGlobal parameter ignored
     }
     public override void OnDeserialize(NetworkReader reader, bool initialState)
     {
@@ -857,10 +836,7 @@ public partial class PlayerSkills : NetworkBehaviour
         gameObject.layer = layer;
         Debug.Log($"[PlayerSkills] RpcForceLayer {layer} on {gameObject.name}");
     }
-    public float GetGlobalRemainingCooldown()
-    {
-        return Mathf.Max(0, globalCooldown - ((float)NetworkTime.time - _lastGlobalUseTime));
-    }
+    // GetGlobalRemainingCooldown method removed - global cooldown disabled
     [Server]
     public void SetPlayerLayer(int layer)
     {

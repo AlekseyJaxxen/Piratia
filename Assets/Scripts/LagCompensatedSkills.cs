@@ -56,11 +56,7 @@ public partial class PlayerSkills : NetworkBehaviour
             return;
         }
         
-        if (!skill.ignoreGlobalCooldown && GetGlobalRemainingCooldown() > 0)
-        {
-            RejectCommand(targetNetId, skillName, clientTimestamp, "Global cooldown active");
-            return;
-        }
+        // Global cooldown check removed - players can cast spells quickly
         
         CharacterStats stats = caster.GetComponent<CharacterStats>();
         if (stats != null && !stats.HasEnoughMana(skill.ManaCost))
@@ -99,7 +95,7 @@ public partial class PlayerSkills : NetworkBehaviour
         skill.ExecuteOnServer(caster, targetPosition, targetObject, weight);
         
         StartSkillCooldown(skillName);
-        StartGlobalCooldown();
+        // Global cooldown removed
         
         // ПОДТВЕРЖДАЕМ КЛИЕНТАМ:
         ConfirmCommand(targetNetId, skillName, clientTimestamp);
