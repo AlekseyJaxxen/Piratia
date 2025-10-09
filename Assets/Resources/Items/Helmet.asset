@@ -177,7 +177,7 @@ MonoBehaviour:
   crtConstantBonus: 0
   mspdConstantBonus: 0
   physicalResist: 0
-  constantDefence: 20
+  constantDefence: 150
   physicalResistBonus: 0
   itemLeftHandExertIdentifier: 
   itemEnergy: 0

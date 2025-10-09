@@ -331,15 +331,41 @@ public partial class PlayerSkills : NetworkBehaviour
     [Command]
     public void CmdExecuteItemSkill(Vector3 targetPosition, uint targetNetId, string skillName, int weight)
     {
-        SkillBase itemSkill = skills.Find(s => s.SkillName == skillName);
+        // Скиллы предметов не находятся в списке скиллов игрока, поэтому ищем их в предметах
+        SkillBase itemSkill = FindItemSkillByName(skillName);
         if (itemSkill != null)
         {
             ExecuteItemSkill(_core, targetPosition, targetNetId, itemSkill, weight);
         }
         else
         {
-            Debug.LogError($"[PlayerSkills] CmdExecuteItemSkill failed: Skill {skillName} not found");
+            Debug.LogError($"[PlayerSkills] CmdExecuteItemSkill failed: Item skill {skillName} not found");
         }
+    }
+    
+    /// <summary>
+    /// Ищет скилл предмета по имени в инвентаре игрока
+    /// </summary>
+    private SkillBase FindItemSkillByName(string skillName)
+    {
+        if (_core?.Inventory == null) return null;
+        
+        // Ищем предмет с нужным скиллом в инвентаре
+        foreach (var itemInfo in _core.Inventory.items)
+        {
+            if (itemInfo.id <= 0) continue;
+            
+            Item item = itemInfo.GetItem();
+            if (item?.skillEffect != null && item.skillEffect.SkillName == skillName)
+            {
+                // Возвращаем оригинальный скилл предмета
+                Debug.Log($"[PlayerSkills] Found item skill {skillName} from item {item.itemName}");
+                return item.skillEffect;
+            }
+        }
+        
+        Debug.LogWarning($"[PlayerSkills] Item skill {skillName} not found in player inventory");
+        return null;
     }
     
     /// <summary>

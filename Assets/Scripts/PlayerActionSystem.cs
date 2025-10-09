@@ -534,7 +534,7 @@ public class PlayerActionSystem : NetworkBehaviour
                 
                 if (IsItemSkill(skill))
                 {
-                    _core.Skills.ExecuteItemSkill(_core, null, target.GetComponent<NetworkIdentity>().netId, (SkillBase)skill, ((SkillBase)skill).Weight);
+                    _core.Skills.CmdExecuteItemSkill(target.transform.position, target.GetComponent<NetworkIdentity>().netId, ((SkillBase)skill).SkillName, ((SkillBase)skill).Weight);
                 }
                 else
                 {
@@ -639,7 +639,7 @@ public class PlayerActionSystem : NetworkBehaviour
             // Выполняем скилл (проверяем, является ли он скиллом предмета)
             if (IsItemSkill(skillToCast))
             {
-                _core.Skills.ExecuteItemSkill(_core, null, targetObject.GetComponent<NetworkIdentity>().netId, (SkillBase)skillToCast, ((SkillBase)skillToCast).Weight);
+                _core.Skills.CmdExecuteItemSkill(targetObject.transform.position, targetObject.GetComponent<NetworkIdentity>().netId, ((SkillBase)skillToCast).SkillName, ((SkillBase)skillToCast).Weight);
             }
             else
             {
@@ -891,7 +891,7 @@ public class PlayerActionSystem : NetworkBehaviour
                 // Execute the skill AFTER cast time is complete
                 if (IsItemSkill(skillToCast))
                 {
-                    _core.Skills.ExecuteItemSkill(_core, targetPosition, 0, (SkillBase)skillToCast, ((SkillBase)skillToCast).Weight);
+                    _core.Skills.CmdExecuteItemSkill(targetPosition, 0, ((SkillBase)skillToCast).SkillName, ((SkillBase)skillToCast).Weight);
                 }
                 else
                 {
