@@ -414,11 +414,13 @@ public class PartyUIPanel : MonoBehaviour
         if (localPlayer != null && localPlayer.Skills != null && localPlayer.Skills.IsSkillSelected)
         {
             var skill = (SkillBase)localPlayer.Skills.ActiveSkill;
+            Debug.Log($"[PartyUIPanel] Selected skill: {skill.SkillName}, type: {skill.SkillCastType}");
             
             // Проверяем, что это TargetedAlly скилл
             if (skill.SkillCastType == SkillBase.CastType.TargetedAlly)
             {
                 // Применяем скилл на выбранного участника группы
+                Debug.Log($"[PartyUIPanel] Attempting to apply {skill.SkillName} to {member.playerName}");
                 localPlayer.ActionSystem.TryStartAction(PlayerAction.SkillCast, null, member.gameObject, skill);
                 localPlayer.Skills.CancelSkillSelection();
                 
@@ -426,7 +428,7 @@ public class PartyUIPanel : MonoBehaviour
             }
             else
             {
-                Debug.LogWarning($"[PartyUIPanel] Cannot apply {skill.SkillName} to party member - not a TargetedAlly skill");
+                Debug.LogWarning($"[PartyUIPanel] Cannot apply {skill.SkillName} to party member - not a TargetedAlly skill (type: {skill.SkillCastType})");
             }
         }
         else

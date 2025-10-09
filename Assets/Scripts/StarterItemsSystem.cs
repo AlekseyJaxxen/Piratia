@@ -301,10 +301,10 @@ public class StarterItemsSystem : NetworkBehaviour
     {
         if (itemsGiven > 0)
         {
-            string message = $"Получены стартовые предметы: {itemsGiven} предметов";
+            string message = $"Received starter items: {itemsGiven} items";
             if (itemsFailed > 0)
             {
-                message += $"\nНе удалось получить: {itemsFailed} предметов (инвентарь полон?)";
+                message += $"\nFailed to receive: {itemsFailed} items (inventory full?)";
             }
             
             Debug.Log($"[StarterItemsSystem] {message}");

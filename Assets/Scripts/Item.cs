@@ -902,7 +902,7 @@ public class Item : ScriptableObject
         
         // Выдаем предметы игроку
         bool allItemsAdded = true;
-        string message = $"Получены награды из {itemName}:\n";
+        string message = $"Received rewards from {itemName}:\n";
         
         foreach (var reward in rewardsToGive)
         {
@@ -936,7 +936,7 @@ public class Item : ScriptableObject
         
         if (!allItemsAdded)
         {
-            message += "\n⚠️ Инвентарь полон! Некоторые предметы не были получены.";
+            message += "\n⚠️ Inventory full! Some items were not received.";
         }
         
         // Показываем уведомление

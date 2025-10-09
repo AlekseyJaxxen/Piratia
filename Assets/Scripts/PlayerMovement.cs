@@ -84,9 +84,23 @@ public class PlayerMovement : NetworkBehaviour
         
         if (Input.GetMouseButtonDown(0))
         {
-            if (IsPointerOverPlayerUI())
+            // Проверяем, выбран ли TargetedAlly скилл
+            bool isTargetedAllySelected = _core.Skills.IsSkillSelected && 
+                ((SkillBase)_core.Skills.ActiveSkill).SkillCastType == SkillBase.CastType.TargetedAlly;
+            
+            // Проверяем, попал ли клик по PartyUI
+            bool isOverPartyUI = IsPointerOverPartyUI();
+            
+            if (isOverPartyUI && isTargetedAllySelected)
             {
-                // Click ignored - over UI
+                // Клик по PartyUI с выбранным TargetedAlly скиллом - обрабатываем через PartyUI
+                Debug.Log("[PlayerMovement] Click on PartyUI with TargetedAlly skill - letting PartyUI handle it");
+                return;
+            }
+            
+            if (IsPointerOverPlayerUI() && !isTargetedAllySelected)
+            {
+                // Click ignored - over UI (except when TargetedAlly skill is selected)
                 return;
             }
             // Left mouse button clicked
@@ -387,17 +401,19 @@ public class PlayerMovement : NetworkBehaviour
         EventSystem.current.RaycastAll(eventData, results);
         foreach (var result in results)
         {
+            Debug.Log($"[PlayerMovement] Raycast result: {result.gameObject.name}, layer: {result.gameObject.layer}");
+            
             // Проверяем, попал ли клик по контекстному меню
             if (IsContextMenuUI(result.gameObject))
             {
-                // Pointer over context menu
+                Debug.Log("[PlayerMovement] Pointer over context menu");
                 return true;
             }
             
             // Проверяем, попал ли клик по панели группы
             if (IsPartyPanelUI(result.gameObject))
             {
-                // Pointer over party panel
+                Debug.Log("[PlayerMovement] Pointer over party panel");
                 return true;
             }
             
@@ -440,6 +456,27 @@ public class PlayerMovement : NetworkBehaviour
         return false;
     }
     
+    private bool IsPointerOverPartyUI()
+    {
+        if (EventSystem.current == null) return false;
+        if (!EventSystem.current.IsPointerOverGameObject()) return false;
+        
+        PointerEventData eventData = new PointerEventData(EventSystem.current);
+        eventData.position = Input.mousePosition;
+        List<RaycastResult> results = new List<RaycastResult>();
+        EventSystem.current.RaycastAll(eventData, results);
+        
+        foreach (var result in results)
+        {
+            if (IsPartyPanelUI(result.gameObject))
+            {
+                Debug.Log($"[PlayerMovement] IsPointerOverPartyUI detected: {result.gameObject.name}");
+                return true;
+            }
+        }
+        return false;
+    }
+    
     private bool IsPartyPanelUI(GameObject uiObj)
     {
         Transform current = uiObj.transform;
@@ -449,8 +486,11 @@ public class PlayerMovement : NetworkBehaviour
             if (current.name == "PartyUIPanel" || 
                 current.name == "PartyPanel" || 
                 current.name == "PartyMembersContainer" ||
-                current.name.Contains("PartyMember"))
+                current.name.Contains("PartyMember") ||
+                current.GetComponent<PartyUIPanel>() != null ||
+                current.GetComponent<PartyMemberSlot>() != null)
             {
+                Debug.Log($"[PlayerMovement] IsPartyPanelUI detected: {current.name}");
                 return true;
             }
             current = current.parent;

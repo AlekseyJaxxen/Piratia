@@ -18,19 +18,19 @@ public enum UniversalAnimationId
 public static class UniversalAnimationUtils
 {
     /// <summary>
-    /// Получает описание универсального ID анимации
+    /// Gets description of universal animation ID
     /// </summary>
     public static string GetDescription(UniversalAnimationId id)
     {
         switch (id)
         {
-            case UniversalAnimationId.Attack: return "Атака";
-            case UniversalAnimationId.Idle: return "Покой";
-            case UniversalAnimationId.Move: return "Движение";
-            case UniversalAnimationId.Death: return "Смерть";
-            case UniversalAnimationId.Hit: return "Получение урона";
-            case UniversalAnimationId.Spawn: return "Появление";
-            default: return "Неизвестная анимация";
+            case UniversalAnimationId.Attack: return "Attack";
+            case UniversalAnimationId.Idle: return "Idle";
+            case UniversalAnimationId.Move: return "Move";
+            case UniversalAnimationId.Death: return "Death";
+            case UniversalAnimationId.Hit: return "Hit";
+            case UniversalAnimationId.Spawn: return "Spawn";
+            default: return "Unknown Animation";
         }
     }
     

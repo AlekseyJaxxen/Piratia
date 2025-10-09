@@ -2365,6 +2365,11 @@ PrefabInstance:
       propertyPath: 'm_ActiveFontFeatures.Array.data[0]'
       value: 1801810542
       objectReference: {fileID: 0}
+    - target: {fileID: 1128253978500445149, guid: faba03d41d0c7764684d6d56384d4be3,
+        type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1128253978500445150, guid: faba03d41d0c7764684d6d56384d4be3,
         type: 3}
       propertyPath: m_SizeDelta.x

@@ -33,6 +33,9 @@ public class PlayerUI_Team : MonoBehaviour
 
     void Start()
     {
+        // Настраиваем безопасный InputField
+        SetupSafeInputField();
+        
         // Hide team selection buttons since everyone is solo now
         if (redTeamButton != null)
         {
@@ -214,7 +217,7 @@ public class PlayerUI_Team : MonoBehaviour
 
     private void OnChangeNameClicked()
     {
-        string newName = nameInputField.text;
+        string newName = FilterPlayerName(nameInputField.text);
         tempPlayerInfo.name = newName;
         Debug.Log($"��� �������� �������� ��: {newName}");
         if (NetworkClient.isConnected && PlayerCore.localPlayerCoreInstance != null)
@@ -251,6 +254,106 @@ public class PlayerUI_Team : MonoBehaviour
             NetworkManager.singleton.StopClient();
             Debug.Log("������ ����������.");
         }
+    }
+
+    /// <summary>
+    /// Настраивает безопасный InputField с ограничениями
+    /// </summary>
+    private void SetupSafeInputField()
+    {
+        if (nameInputField == null)
+        {
+            Debug.LogWarning("[PlayerUI_Team] nameInputField is null, cannot setup safety");
+            return;
+        }
+        
+        // Ограничиваем максимальное количество символов
+        nameInputField.characterLimit = 16; // Максимум 16 символов
+        
+        // Настраиваем валидацию ввода
+        nameInputField.onValidateInput += ValidatePlayerNameInput;
+        
+        // Настраиваем обработчик изменения текста для дополнительной фильтрации
+        nameInputField.onValueChanged.AddListener(OnPlayerNameChanged);
+        
+        Debug.Log("[PlayerUI_Team] Safe InputField configured: max 16 chars, English only, alphanumeric");
+    }
+    
+    /// <summary>
+    /// Валидирует ввод имени игрока - только английские буквы, цифры и некоторые символы
+    /// </summary>
+    private char ValidatePlayerNameInput(string text, int charIndex, char addedChar)
+    {
+        // Разрешаем только английские буквы, цифры, дефис и подчеркивание
+        if (char.IsLetterOrDigit(addedChar) || addedChar == '-' || addedChar == '_')
+        {
+            // Проверяем, что это английские символы (ASCII)
+            if (addedChar <= 127)
+            {
+                return addedChar;
+            }
+        }
+        
+        // Блокируем все остальные символы
+        return '\0';
+    }
+    
+    /// <summary>
+    /// Обрабатывает изменение текста в поле имени игрока
+    /// </summary>
+    private void OnPlayerNameChanged(string newText)
+    {
+        if (string.IsNullOrEmpty(newText))
+        {
+            return;
+        }
+        
+        // Дополнительная фильтрация - удаляем недопустимые символы
+        string filteredText = FilterPlayerName(newText);
+        
+        // Если текст изменился после фильтрации, обновляем поле
+        if (filteredText != newText)
+        {
+            nameInputField.text = filteredText;
+        }
+        
+        // Обновляем временную информацию
+        tempPlayerInfo.name = filteredText;
+    }
+    
+    /// <summary>
+    /// Фильтрует имя игрока, оставляя только допустимые символы
+    /// </summary>
+    private string FilterPlayerName(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+        {
+            return "Player";
+        }
+        
+        string filtered = "";
+        foreach (char c in input)
+        {
+            // Разрешаем только английские буквы, цифры, дефис и подчеркивание
+            if ((char.IsLetterOrDigit(c) || c == '-' || c == '_') && c <= 127)
+            {
+                filtered += c;
+            }
+        }
+        
+        // Если после фильтрации ничего не осталось, возвращаем дефолтное имя
+        if (string.IsNullOrEmpty(filtered))
+        {
+            return "Player";
+        }
+        
+        // Ограничиваем длину
+        if (filtered.Length > 16)
+        {
+            filtered = filtered.Substring(0, 16);
+        }
+        
+        return filtered;
     }
 
     public void OnReturnToMainMenuClicked()

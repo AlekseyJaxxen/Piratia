@@ -1817,10 +1817,10 @@ public class PlayerCore : NetworkBehaviour
         layoutGroup.childForceExpandHeight = false;
         layoutGroup.childAlignment = TextAnchor.UpperCenter;
         
-        // Добавляем Image для блокировки кликов через контейнер
+        // Добавляем Image для фона контейнера (НЕ блокирует клики)
         Image containerImage = membersContainer.AddComponent<Image>();
-        containerImage.color = Color.clear; // Прозрачный, но блокирует клики
-        containerImage.raycastTarget = true;
+        containerImage.color = Color.clear; // Прозрачный
+        containerImage.raycastTarget = false; // НЕ блокирует клики - слоты участников должны быть кликабельными
         
         // Создаем префаб слота участника группы (НЕ добавляем в контейнер)
         GameObject slotPrefab = CreatePartyMemberSlotPrefab();
@@ -1849,7 +1849,7 @@ public class PlayerCore : NetworkBehaviour
         
         Image blockerImage = clickBlocker.AddComponent<Image>();
         blockerImage.color = Color.clear; // Полностью прозрачный
-        blockerImage.raycastTarget = true; // Блокирует клики только в пустых областях
+        blockerImage.raycastTarget = false; // НЕ блокирует клики - слоты участников должны быть кликабельными
         
         Debug.Log("[PlayerCore] Party panel structure created successfully");
     }
