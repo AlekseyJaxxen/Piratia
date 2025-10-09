@@ -35,7 +35,7 @@ MonoBehaviour:
   accuracyMultiplier: 1
   intelligenceMultiplier: 1
   attackAttribute: 0
-  baseAttackRange: 4
+  baseAttackRange: 3
   modelPrefab: {fileID: 8571246296574977236, guid: aa95e770f43bf25479d227b03395b94a,
     type: 3}
   animatorController: {fileID: 9100000, guid: f96bd487256e1b643877be8834333d99, type: 2}

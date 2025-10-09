@@ -9,88 +9,36 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 17a19ca3fa980d7429832ef83c06e12b, type: 3}
-  m_Name: chest
-  m_EditorClassIdentifier: Assembly-CSharp::Item
-  itemName: Chest
+  m_Script: {fileID: 11500000, guid: fcf8fcf67b3668b47826a396821a6770, type: 3}
+  m_Name: ArmorMage
+  m_EditorClassIdentifier: Assembly-CSharp::ArmorItem
+  itemName: Newbie Armor
   originalName: 
-  id: 12
-  icon: {fileID: 21300000, guid: 95394af921642e44784971ac200b255e, type: 3}
-  dropModelPrefab: {fileID: 3774602016594009712, guid: 7684dde642174e94580fe0b0677307ae,
+  id: 18
+  icon: {fileID: 21300000, guid: 817f4720d8bb8744db2a647418f4768a, type: 3}
+  dropModelPrefab: {fileID: 919132149155446097, guid: e0e7d02815b16cb4da1fcd9cc8ce0e66,
     type: 3}
-  itemType: 7
-  equipmentSlot: 0
+  itemType: 3
+  equipmentSlot: 2
   alternativeSlot: 0
-  primaryDisplaySlot: 0
+  primaryDisplaySlot: 2
   stackable: 0
   maxStack: 1
-  canDrop: 0
+  canDrop: 1
   canSell: 1
-  canUse: 1
-  canHotbar: 1
+  canUse: 0
+  canHotbar: 0
   isTwoHanded: 0
-  preferRightHand: 1
+  preferRightHand: 0
   consumableType: 0
   cooldown: 1
   instantUse: 1
   healAmount: 0
   manaAmount: 0
   temporaryBuffs: []
-  chestRewards:
-  - item: {fileID: 11400000, guid: 9421be2e35934f940b518c516057cd91, type: 2}
-    quantity: 22
-    chance: 1
-    isGuaranteed: 1
-  - item: {fileID: 11400000, guid: 80f31c3bcb18a5849bb27d283a6b73ec, type: 2}
-    quantity: 22
-    chance: 1
-    isGuaranteed: 1
-  - item: {fileID: 11400000, guid: 66995d235a094754aa6f99679441b322, type: 2}
-    quantity: 22
-    chance: 1
-    isGuaranteed: 1
-  useClassBasedRewards: 1
-  classRewards:
-  - characterClass: 0
-    rewards:
-    - item: {fileID: 11400000, guid: 67af998acb8eaf047b50af2369bbf0ba, type: 2}
-      quantity: 1
-      chance: 1
-      isGuaranteed: 1
-    - item: {fileID: 11400000, guid: 499580821f9e2a54eb5ea20d395697be, type: 2}
-      quantity: 1
-      chance: 1
-      isGuaranteed: 1
-  - characterClass: 2
-    rewards:
-    - item: {fileID: 11400000, guid: fb3c88c3bc369df4bb837226a01864b2, type: 2}
-      quantity: 1
-      chance: 1
-      isGuaranteed: 1
-    - item: {fileID: 11400000, guid: defb4ea1ddcd93e4ba9ec9e607ffab72, type: 2}
-      quantity: 1
-      chance: 1
-      isGuaranteed: 1
-  - characterClass: 4
-    rewards:
-    - item: {fileID: 11400000, guid: 8b28c694ce609d74b867c2004951b85b, type: 2}
-      quantity: 1
-      chance: 1
-      isGuaranteed: 1
-    - item: {fileID: 11400000, guid: a9e3272d3ef079b4a9f7ccd7f7ecf3e7, type: 2}
-      quantity: 1
-      chance: 1
-      isGuaranteed: 1
-  - characterClass: 1
-    rewards:
-    - item: {fileID: 11400000, guid: e619915cd8351e14a83c0b088390741a, type: 2}
-      quantity: 1
-      chance: 1
-      isGuaranteed: 1
-    - item: {fileID: 11400000, guid: 5ed69193d2009b540bd5e7df6717dd42, type: 2}
-      quantity: 1
-      chance: 1
-      isGuaranteed: 1
+  chestRewards: []
+  useClassBasedRewards: 0
+  classRewards: []
   strengthBonus: 0
   agilityBonus: 0
   spiritBonus: 0
@@ -186,14 +134,14 @@ MonoBehaviour:
     chance: 1
   rarity: 0
   requiredLevel: 1
-  characterClass: 0
+  characterClass: 1
   skillEffect: {fileID: 0}
   castRange: 5
-  model1: 
-  boneName: 
-  alternativeBoneName: 
+  model1: ItemModels/ArmorTemp
+  boneName: ChestArmorSlot
+  alternativeBoneName: ChestArmorSlot
   modelRotation: {x: 0, y: 0, z: 0, w: 1}
-  modelScale: {x: 1, y: 1, z: 1}
+  modelScale: {x: 0.01, y: 0.01, z: 0.01}
   model2: 
   model3: 
   model4: 
@@ -224,13 +172,13 @@ MonoBehaviour:
   itemObtainIntoLocation: 
   minAttackConstantBonus: 0
   maxAttackConstantBonus: 0
-  maxHpConstantBonus: 0
+  maxHpConstantBonus: 350
   maxSpConstantBonus: 0
   crtConstantBonus: 0
   mspdConstantBonus: 0
   physicalResist: 0
-  constantDefence: 0
-  physicalResistBonus: 0
+  constantDefence: 80
+  physicalResistBonus: 30
   itemLeftHandExertIdentifier: 
   itemEnergy: 0
   durability: 0

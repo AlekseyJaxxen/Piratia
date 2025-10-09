@@ -326,6 +326,23 @@ public partial class PlayerSkills : NetworkBehaviour
     }
     
     /// <summary>
+    /// Command для выполнения скилла предмета клиентом
+    /// </summary>
+    [Command]
+    public void CmdExecuteItemSkill(Vector3 targetPosition, uint targetNetId, string skillName, int weight)
+    {
+        SkillBase itemSkill = skills.Find(s => s.SkillName == skillName);
+        if (itemSkill != null)
+        {
+            ExecuteItemSkill(_core, targetPosition, targetNetId, itemSkill, weight);
+        }
+        else
+        {
+            Debug.LogError($"[PlayerSkills] CmdExecuteItemSkill failed: Skill {skillName} not found");
+        }
+    }
+    
+    /// <summary>
     /// Выполняет скилл предмета напрямую без поиска в списке игрока (только на сервере)
     /// </summary>
     [Server]

@@ -61,13 +61,44 @@ public class GroundEffect : NetworkBehaviour
     {
         if (player == null) return false;
         
-        // Check basic team logic first
+        // Get the caster to check dynamic team relationships
+        PlayerCore caster = casterIdentity?.GetComponent<PlayerCore>();
+        if (caster == null) return false;
+        
+        // A player is never an enemy to themselves
+        if (caster == player)
+        {
+            return false;
+        }
+        
+        // Check party membership first (highest priority)
+        if (!string.IsNullOrEmpty(caster.partyId) && !string.IsNullOrEmpty(player.partyId) && 
+            caster.partyId == player.partyId)
+        {
+            return false; // Party members are never enemies
+        }
+        
+        // Check guild membership
+        if (!string.IsNullOrEmpty(caster.guildId) && !string.IsNullOrEmpty(player.guildId) && 
+            caster.guildId == player.guildId)
+        {
+            return false; // Guild members are never enemies
+        }
+        
+        // Check faction membership
+        if (!string.IsNullOrEmpty(caster.factionId) && !string.IsNullOrEmpty(player.factionId) && 
+            caster.factionId == player.factionId)
+        {
+            return false; // Faction members are never enemies
+        }
+        
+        // Check basic team logic
         if (player.team == ownerTeam && player.team != PlayerTeam.Solo)
         {
             return false; // Same team, not enemy
         }
         
-        // For solo players, they are enemies to each other
+        // For solo players, they are enemies to each other (if not in same dynamic team)
         if (player.team == PlayerTeam.Solo && ownerTeam == PlayerTeam.Solo)
         {
             return true; // Solo players are enemies to each other

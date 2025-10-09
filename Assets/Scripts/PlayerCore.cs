@@ -1544,7 +1544,7 @@ public class PlayerCore : NetworkBehaviour
                     {
                         targetPos = transform.position + transform.forward * item.castRange;
                     }
-                    Skills.ExecuteItemSkill(this, targetPos, 0, item.skillEffect, 0);
+                    Skills.CmdExecuteItemSkill(targetPos.Value, 0, item.skillEffect.SkillName, 0);
                     if (slotIndex >= 0)
                     {
                         CmdConsumeItem(itemID, slotIndex);

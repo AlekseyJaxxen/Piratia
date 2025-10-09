@@ -25,7 +25,8 @@ MonoBehaviour:
   baseMinAttack: 15
   baseMaxAttack: 20
   baseDef: 0
-  baseMovementSpeed: 6
+  baseMovementSpeed: 7
+  baseAttackSpeed: 1
   basePhysicalResistance: 0
   strengthMultiplier: 1
   agilityMultiplier: 1
@@ -34,6 +35,7 @@ MonoBehaviour:
   accuracyMultiplier: 1
   intelligenceMultiplier: 1
   attackAttribute: 0
+  baseAttackRange: 6
   modelPrefab: {fileID: 8571246296574977236, guid: 9da7a134b8cf96a40a177848091c544c,
     type: 3}
   animatorController: {fileID: 9100000, guid: d21ea63c615a7514199f7445c37e0a0f, type: 2}

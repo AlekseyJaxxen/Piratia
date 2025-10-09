@@ -740,7 +740,7 @@ public class PlayerActionSystem : NetworkBehaviour
                 {
                     if (IsItemSkill(skillToCast))
                     {
-                        _core.Skills.ExecuteItemSkill(_core, targetObject.transform.position, targetNetId.netId, (SkillBase)skillToCast, ((SkillBase)skillToCast).Weight);
+                        _core.Skills.CmdExecuteItemSkill(targetObject.transform.position, targetNetId.netId, ((SkillBase)skillToCast).SkillName, ((SkillBase)skillToCast).Weight);
                     }
                     else
                     {
