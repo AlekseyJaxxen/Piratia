@@ -13,18 +13,33 @@ public class PlayerEquipmentVisuals : NetworkBehaviour
         playerCore = core;
         Transform[] allTransforms = GetComponentsInChildren<Transform>();
         instantiatedObjects = new GameObject[allTransforms.Length];
+        
+        // Получаем активную модель для проверки костей
+        GameObject activeModel = GetActiveModel();
+        Transform[] modelTransforms = activeModel != null ? activeModel.GetComponentsInChildren<Transform>() : allTransforms;
+        
+        // Проверяем наличие всех необходимых костей для экипировки в активной модели
+        bool hasRightHand = modelTransforms.Any(t => t != null && t.name.ToLower() == "righthandweapon");
+        bool hasLeftHand = modelTransforms.Any(t => t != null && t.name.ToLower() == "lefthandweapon");
+        bool hasHelmetSlot = modelTransforms.Any(t => t != null && t.name.ToLower() == "helmetslot");
+        bool hasChestArmorSlot = modelTransforms.Any(t => t != null && t.name.ToLower() == "chestarmorslot");
+        bool hasLegArmorSlot = modelTransforms.Any(t => t != null && t.name.ToLower() == "legarmorslot");
+        bool hasBootSlot = modelTransforms.Any(t => t != null && t.name.ToLower() == "bootslot");
+        bool hasGloveSlot = modelTransforms.Any(t => t != null && t.name.ToLower() == "gloveslot");
+        bool hasRingSlot = modelTransforms.Any(t => t != null && t.name.ToLower() == "ringslot");
+        bool hasNecklaceSlot = modelTransforms.Any(t => t != null && t.name.ToLower() == "necklaceslot");
+        
+        string modelName = activeModel != null ? activeModel.name : "Full Hierarchy";
+        Debug.Log($"[PlayerEquipmentVisuals] Equipment bones found in '{modelName}' - RightHand: {hasRightHand}, LeftHand: {hasLeftHand}, HelmetSlot: {hasHelmetSlot}, ChestArmorSlot: {hasChestArmorSlot}, LegArmorSlot: {hasLegArmorSlot}, BootSlot: {hasBootSlot}, GloveSlot: {hasGloveSlot}, RingSlot: {hasRingSlot}, NecklaceSlot: {hasNecklaceSlot}");
+        
         // PlayerEquipmentVisuals initialized
-        bool hasRightHand = allTransforms.Any(t => t != null && t.name.ToLower() == "righthandweapon");
-        bool hasLeftHand = allTransforms.Any(t => t != null && t.name.ToLower() == "lefthandweapon");
-        // Weapon bones found
     }
 
     public void UpdateEquipmentVisual(EquipmentSlot slot, ItemInfo itemInfo)
     {
-        // Пропускаем слоты, для которых нет реализации визуалов
-        if (slot == EquipmentSlot.Head || slot == EquipmentSlot.Body || slot == EquipmentSlot.Legs || 
-            slot == EquipmentSlot.Boots || slot == EquipmentSlot.Gloves || slot == EquipmentSlot.Ring || 
-            slot == EquipmentSlot.Necklace || slot == EquipmentSlot.Weapon || slot == EquipmentSlot.OffHand)
+        // Пропускаем только слоты, для которых действительно нет реализации визуалов
+        if (slot == EquipmentSlot.Ring || slot == EquipmentSlot.Necklace || 
+            slot == EquipmentSlot.Weapon || slot == EquipmentSlot.OffHand)
         {
             return;
         }
@@ -52,7 +67,8 @@ public class PlayerEquipmentVisuals : NetworkBehaviour
         }
         else
         {
-            boneName = item.GetBoneNameForSlot(displaySlot);
+            // Для всех остальных предметов используем метод GetBoneNameForSlot
+            boneName = GetBoneNameForSlot(displaySlot);
         }
         Transform bone = FindBone(boneName);
 
@@ -93,19 +109,19 @@ public class PlayerEquipmentVisuals : NetworkBehaviour
             case EquipmentSlot.LeftHand:
                 return "LeftHandWeapon";
             case EquipmentSlot.Head:
-                return "Head"; // или другое имя кости для головы
+                return "HelmetSlot"; // специализированная кость для шлемов
             case EquipmentSlot.Body:
-                return "Body"; // или другое имя кости для тела
+                return "ChestArmorSlot"; // специализированная кость для нагрудников
             case EquipmentSlot.Legs:
-                return "Legs"; // или другое имя кости для ног
+                return "LegArmorSlot"; // специализированная кость для поножей
             case EquipmentSlot.Boots:
-                return "Boots"; // или другое имя кости для ботинок
+                return "BootSlot"; // специализированная кость для ботинок
             case EquipmentSlot.Gloves:
-                return "Gloves"; // или другое имя кости для перчаток
+                return "GloveSlot"; // специализированная кость для перчаток
             case EquipmentSlot.Ring:
-                return "Ring"; // или другое имя кости для кольца
+                return "RingSlot"; // кость для кольца
             case EquipmentSlot.Necklace:
-                return "Necklace"; // или другое имя кости для ожерелья
+                return "NecklaceSlot"; // кость для ожерелья
             case EquipmentSlot.Weapon:
                 return "RightHandWeapon"; // основное оружие на правой руке
             case EquipmentSlot.OffHand:
@@ -123,6 +139,40 @@ public class PlayerEquipmentVisuals : NetworkBehaviour
             return null;
         }
 
+        // Получаем активную модель из PlayerAnimationSystem
+        GameObject activeModel = GetActiveModel();
+        if (activeModel == null)
+        {
+            Debug.LogWarning($"[PlayerEquipmentVisuals] Active model is null, falling back to full hierarchy search");
+            // Fallback к старому методу если активная модель не найдена
+            return FindBoneInFullHierarchy(boneName);
+        }
+
+        // Ищем кость только в активной модели
+        Transform[] modelTransforms = activeModel.GetComponentsInChildren<Transform>();
+        
+        foreach (Transform transform in modelTransforms)
+        {
+            if (transform != null && transform.name.ToLower() == boneName.ToLower())
+            {
+                return transform;
+            }
+        }
+        
+        // Выводим все доступные кости для отладки только при ошибке
+        Debug.LogWarning($"[PlayerEquipmentVisuals] Bone '{boneName}' not found in active model '{activeModel.name}'. Available bones:");
+        foreach (Transform transform in modelTransforms)
+        {
+            if (transform != null)
+            {
+                Debug.LogWarning($"[PlayerEquipmentVisuals] - {transform.name}");
+            }
+        }
+        return null;
+    }
+
+    private Transform FindBoneInFullHierarchy(string boneName)
+    {
         Transform[] allTransforms = GetComponentsInChildren<Transform>();
         
         foreach (Transform transform in allTransforms)
@@ -134,7 +184,7 @@ public class PlayerEquipmentVisuals : NetworkBehaviour
         }
         
         // Выводим все доступные кости для отладки только при ошибке
-        Debug.LogWarning($"[PlayerEquipmentVisuals] Bone '{boneName}' not found. Available bones:");
+        Debug.LogWarning($"[PlayerEquipmentVisuals] Bone '{boneName}' not found in full hierarchy. Available bones:");
         foreach (Transform transform in allTransforms)
         {
             if (transform != null)
@@ -143,6 +193,16 @@ public class PlayerEquipmentVisuals : NetworkBehaviour
             }
         }
         return null;
+    }
+
+    private GameObject GetActiveModel()
+    {
+        if (playerCore == null) return null;
+        
+        PlayerAnimationSystem animationSystem = playerCore.GetComponent<PlayerAnimationSystem>();
+        if (animationSystem == null) return null;
+        
+        return animationSystem.GetActiveModel();
     }
 
     private void EquipModel(Item item, Transform bone, EquipmentSlot slot)
@@ -176,10 +236,9 @@ public class PlayerEquipmentVisuals : NetworkBehaviour
 
     private void ClearVisualForSlot(EquipmentSlot slot)
     {
-        // Пропускаем слоты, для которых нет реализации визуалов
-        if (slot == EquipmentSlot.Head || slot == EquipmentSlot.Body || slot == EquipmentSlot.Legs || 
-            slot == EquipmentSlot.Boots || slot == EquipmentSlot.Gloves || slot == EquipmentSlot.Ring || 
-            slot == EquipmentSlot.Necklace || slot == EquipmentSlot.Weapon || slot == EquipmentSlot.OffHand)
+        // Пропускаем только слоты, для которых действительно нет реализации визуалов
+        if (slot == EquipmentSlot.Ring || slot == EquipmentSlot.Necklace || 
+            slot == EquipmentSlot.Weapon || slot == EquipmentSlot.OffHand)
         {
             return;
         }

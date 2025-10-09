@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 [CreateAssetMenu(fileName = "NewItem", menuName = "Inventory/Item")]
 public class Item : ScriptableObject
@@ -30,6 +31,28 @@ public class Item : ScriptableObject
     public bool isTwoHanded = false;
     public bool preferRightHand = true; // true = предпочитает правую руку, false = только левую
     
+    [Header("Consumable Settings")]
+    public ConsumableType consumableType = ConsumableType.None;
+    public float cooldown = 1f; // Кулдаун предмета в секундах
+    public bool instantUse = true; // Мгновенное использование без каста
+    
+    [Header("Instant Effects")]
+    public int healAmount = 0; // Количество лечения
+    public int manaAmount = 0; // Количество восстановления маны
+    
+    [Header("Temporary Buffs")]
+    public TemporaryBuff[] temporaryBuffs; // Временные баффы
+    
+    [System.Serializable]
+    public class TemporaryBuff
+    {
+        public string statName = ""; // Название стата (Strength, MaxHealth, etc.)
+        public float value = 0f; // Значение баффа
+        public float duration = 60f; // Длительность в секундах
+        public bool isPercentage = false; // Является ли бафф процентным
+        public int weight = 1; // Вес баффа: 1 - не стакается, 2 - заменяет эффект
+    }
+    
     [Header("Chest Settings")]
     [SerializeField] private ChestReward[] chestRewards; // Награды сундука
     [SerializeField] private bool useClassBasedRewards = false; // Использовать награды по классу
@@ -58,7 +81,7 @@ public class Item : ScriptableObject
     public int accuracyBonus;
     public float attackRangeBonus = 0f; // Бонус к дальности атаки
     public float attackSpeedBonus = 0f; // Плоский бонус к скорости атаки
-    public float attackSpeedPercentBonus = 0f; // Процентный бонус к скорости атаки (0.1 = +10%)
+    public float attackSpeedPercentBonus = 0f; // Процентный бонус к скорости атаки (5 = +5%)
     
     [Header("Recovery & Special Stats")]
     public int hpRecoveryBonus;
@@ -81,8 +104,8 @@ public class Item : ScriptableObject
     public StatRange accuracyRange = new StatRange { minValue = 0, maxValue = 0 };
     public StatRange healthRange = new StatRange { minValue = 0, maxValue = 0 };
     public StatRange manaRange = new StatRange { minValue = 0, maxValue = 0 };
-    public StatRange defenseRange = new StatRange { minValue = 0, maxValue = 0 }; // УСТАРЕЛО: используйте armorRange и physicalResistRange
-    public StatRange armorRange = new StatRange { minValue = 0, maxValue = 0 }; // Плоская броня (вычитается из урона)
+    public StatRange defenseRange = new StatRange { minValue = 0, maxValue = 0 }; // УСТАРЕЛО: используйте constantDefenceRange и physicalResistRange
+    public StatRange constantDefenceRange = new StatRange { minValue = 0, maxValue = 0 }; // Постоянная защита (вычитается из урона)
     public StatRange physicalResistRange = new StatRange { minValue = 0, maxValue = 0 }; // Процентное сопротивление (0-100%)
     public StatRange criticalRange = new StatRange { minValue = 0, maxValue = 0 };
     public FloatStatRange movementSpeedRange = new FloatStatRange { minValue = 0, maxValue = 0 };
@@ -158,8 +181,8 @@ public class Item : ScriptableObject
     public int maxSpConstantBonus;
     public int crtConstantBonus;
     public float mspdConstantBonus;
-    public int physicalResist; // УСТАРЕЛО: используйте armorBonus и physicalResistBonus
-    public int armorBonus; // Плоская броня (прямое вычитание из урона)
+    public int physicalResist; // УСТАРЕЛО: используйте constantDefence и physicalResistBonus
+    public int constantDefence; // Постоянная защита (прямое вычитание из урона)
     public int physicalResistBonus; // Процентное сопротивление физическому урону (0-100%)
     
     /// <summary>
@@ -256,7 +279,7 @@ public class Item : ScriptableObject
         target.healthRange = new StatRange { minValue = source.healthRange.minValue, maxValue = source.healthRange.maxValue, chance = source.healthRange.chance };
         target.manaRange = new StatRange { minValue = source.manaRange.minValue, maxValue = source.manaRange.maxValue, chance = source.manaRange.chance };
         target.defenseRange = new StatRange { minValue = source.defenseRange.minValue, maxValue = source.defenseRange.maxValue, chance = source.defenseRange.chance };
-        target.armorRange = new StatRange { minValue = source.armorRange.minValue, maxValue = source.armorRange.maxValue, chance = source.armorRange.chance };
+        target.constantDefenceRange = new StatRange { minValue = source.constantDefenceRange.minValue, maxValue = source.constantDefenceRange.maxValue, chance = source.constantDefenceRange.chance };
         target.physicalResistRange = new StatRange { minValue = source.physicalResistRange.minValue, maxValue = source.physicalResistRange.maxValue, chance = source.physicalResistRange.chance };
         target.criticalRange = new StatRange { minValue = source.criticalRange.minValue, maxValue = source.criticalRange.maxValue, chance = source.criticalRange.chance };
         target.movementSpeedRange = new FloatStatRange { minValue = source.movementSpeedRange.minValue, maxValue = source.movementSpeedRange.maxValue, chance = source.movementSpeedRange.chance };
@@ -288,7 +311,7 @@ public class Item : ScriptableObject
         target.crtConstantBonus = 0;
         target.mspdConstantBonus = 0.0f;
         target.physicalResist = 0;
-        target.armorBonus = 0;
+        target.constantDefence = 0;
         target.physicalResistBonus = 0;
         target.attackSpeedBonus = source.attackSpeedBonus;
         target.attackSpeedPercentBonus = source.attackSpeedPercentBonus;
@@ -351,10 +374,10 @@ public class Item : ScriptableObject
             item.physicalResist = Random.Range(item.defenseRange.minValue, item.defenseRange.maxValue + 1);
         }
         
-        // НОВЫЕ: отдельные диапазоны для брони и сопротивления
-        if (item.armorRange.maxValue > 0 && Random.Range(0f, 1f) <= item.armorRange.chance)
+        // НОВЫЕ: отдельные диапазоны для защиты и сопротивления
+        if (item.constantDefenceRange.maxValue > 0 && Random.Range(0f, 1f) <= item.constantDefenceRange.chance)
         {
-            item.armorBonus = Random.Range(item.armorRange.minValue, item.armorRange.maxValue + 1);
+            item.constantDefence = Random.Range(item.constantDefenceRange.minValue, item.constantDefenceRange.maxValue + 1);
         }
         
         if (item.physicalResistRange.maxValue > 0 && Random.Range(0f, 1f) <= item.physicalResistRange.chance)
@@ -647,7 +670,7 @@ public class Item : ScriptableObject
             Debug.Log($"[Item] Set primaryDisplaySlot to LeftHand for two-handed item {itemName}");
         }
     }
-    public virtual void Use(PlayerCore player)
+    public virtual bool Use(PlayerCore player)
     {
         if (canUse)
         {
@@ -657,12 +680,25 @@ public class Item : ScriptableObject
             if (itemType == ItemType.Chest)
             {
                 OpenChest(player);
-                return;
+                return true;
+            }
+            
+            // Обработка consumable предметов
+            if (itemType == ItemType.Consumable && consumableType != ConsumableType.None)
+            {
+                bool success = UseConsumable(player);
+                if (!success)
+                {
+                    Debug.LogWarning($"[Item] Failed to use consumable {itemName}");
+                    return false;
+                }
+                return true;
             }
             
             if (skillEffect == null)
             {
                 Debug.Log($"[Item] No skill effect for {itemName}, no default action");
+                return false;
             }
             else
             {
@@ -674,6 +710,7 @@ public class Item : ScriptableObject
                     {
                         skills.SelectSkill(skillEffect);
                         Debug.Log($"[Item] Selected skill {skillEffect.SkillName} for casting from item {itemName}");
+                        return true;
                     }
                     else
                     {
@@ -688,8 +725,131 @@ public class Item : ScriptableObject
                             targetPos = player.transform.position + player.transform.forward * castRange;
                         }
                         skills.ExecuteItemSkill(player, targetPos, 0, skillEffect, 0);
+                        return true;
                     }
                 }
+            }
+        }
+        return false;
+    }
+    
+    /// <summary>
+    /// Использует consumable предмет
+    /// </summary>
+    /// <returns>true если предмет успешно использован, false если использование отклонено</returns>
+    private bool UseConsumable(PlayerCore player)
+    {
+        if (player == null) return false;
+        
+        PlayerSkills skills = player.GetComponent<PlayerSkills>();
+        if (skills == null) return false;
+        
+        // Проверяем кулдаун предмета
+        float remainingCooldown = skills.GetRemainingCooldown(itemName);
+        if (remainingCooldown > 0)
+        {
+            Debug.LogWarning($"[Item] {itemName} is on cooldown: {remainingCooldown:F1}s remaining");
+            return false;
+        }
+        
+        // Проверяем, можно ли применить все баффы
+        if (!CanApplyAllBuffs(player))
+        {
+            Debug.LogWarning($"[Item] {itemName} cannot be used: some buffs would be rejected");
+            return false;
+        }
+        
+        // Применяем мгновенные эффекты
+        ApplyInstantEffects(player);
+        
+        // Применяем временные баффы
+        ApplyTemporaryBuffs(player);
+        
+        // Запускаем кулдаун предмета
+        skills.StartSkillCooldown(itemName);
+        skills.StartLocalCooldown(itemName, cooldown, false);
+        
+        Debug.Log($"[Item] Used consumable {itemName} (cooldown: {cooldown}s)");
+        return true;
+    }
+    
+    /// <summary>
+    /// Проверяет, можно ли применить все баффы предмета
+    /// </summary>
+    private bool CanApplyAllBuffs(PlayerCore player)
+    {
+        if (temporaryBuffs == null || temporaryBuffs.Length == 0) return true;
+        
+        CharacterStats stats = player.GetComponent<CharacterStats>();
+        if (stats == null) return true;
+        
+        foreach (var buff in temporaryBuffs)
+        {
+            if (string.IsNullOrEmpty(buff.statName) || buff.value == 0f) continue;
+            
+            // Проверяем, можно ли применить этот бафф
+            CharacterStats.StatEffect existingEffect = stats.activeStatEffects.FirstOrDefault(e => e.Stat == buff.statName && !e.IsToggle);
+            if (existingEffect.IsActive && buff.weight == 1)
+            {
+                // Бафф будет отклонен из-за веса 1
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    /// <summary>
+    /// Применяет мгновенные эффекты (лечение, мана)
+    /// </summary>
+    private void ApplyInstantEffects(PlayerCore player)
+    {
+        if (healAmount > 0)
+        {
+            Health health = player.GetComponent<Health>();
+            if (health != null)
+            {
+                health.Heal(healAmount);
+                Debug.Log($"[Item] {itemName} healed player for {healAmount} HP");
+            }
+        }
+        
+        if (manaAmount > 0)
+        {
+            CharacterStats stats = player.GetComponent<CharacterStats>();
+            if (stats != null)
+            {
+                stats.RestoreMana(manaAmount);
+                Debug.Log($"[Item] {itemName} restored {manaAmount} mana");
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Применяет временные баффы
+    /// </summary>
+    private void ApplyTemporaryBuffs(PlayerCore player)
+    {
+        if (temporaryBuffs == null || temporaryBuffs.Length == 0) return;
+        
+        CharacterStats stats = player.GetComponent<CharacterStats>();
+        if (stats == null) return;
+        
+        foreach (var buff in temporaryBuffs)
+        {
+            if (string.IsNullOrEmpty(buff.statName) || buff.value == 0f) continue;
+            
+            // Проверяем, можно ли применить бафф (не будет ли он отклонен из-за веса)
+            CharacterStats.StatEffect existingEffect = stats.activeStatEffects.FirstOrDefault(e => e.Stat == buff.statName && !e.IsToggle);
+            bool willBeApplied = !existingEffect.IsActive || buff.weight == 2;
+            
+            // Применяем временный бафф с учетом веса
+            stats.AddTemporaryStatEffect(buff.statName, buff.value, buff.duration, buff.isPercentage, buff.weight);
+            
+            // Логируем только если бафф действительно применился
+            if (willBeApplied)
+            {
+                Debug.Log($"[Item] {itemName} applied temporary buff: {buff.statName} +{buff.value} for {buff.duration}s (weight: {buff.weight})");
             }
         }
     }
@@ -877,3 +1037,4 @@ public class Item : ScriptableObject
 public enum ItemType { Normal, Consumable, Weapon, Armor, Accessory, QuestItem, Material, Chest }
 public enum EquipmentSlot { None, Head, Body, Legs, RightHand, LeftHand, Ring, Necklace, Boots, Gloves, Weapon, OffHand }
 public enum Rarity { Common, Uncommon, Rare, Epic, Legendary }
+public enum ConsumableType { None, Heal, Mana, Buff, Mixed }

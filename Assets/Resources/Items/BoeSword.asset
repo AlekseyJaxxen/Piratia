@@ -22,6 +22,7 @@ MonoBehaviour:
   equipmentSlot: 4
   alternativeSlot: 5
   primaryDisplaySlot: 0
+  stackable: 0
   maxStack: 1
   canDrop: 1
   canSell: 1
@@ -29,6 +30,12 @@ MonoBehaviour:
   canHotbar: 0
   isTwoHanded: 0
   preferRightHand: 1
+  consumableType: 0
+  cooldown: 1
+  instantUse: 1
+  healAmount: 0
+  manaAmount: 0
+  temporaryBuffs: []
   chestRewards: []
   useClassBasedRewards: 0
   classRewards: []
@@ -39,7 +46,7 @@ MonoBehaviour:
   accuracyBonus: 0
   attackRangeBonus: 0
   attackSpeedBonus: 0
-  attackSpeedPercentBonus: 0
+  attackSpeedPercentBonus: 5
   hpRecoveryBonus: 0
   spRecoveryBonus: 0
   dodgeBonus: 0
@@ -85,7 +92,7 @@ MonoBehaviour:
     minValue: 0
     maxValue: 0
     chance: 1
-  armorRange:
+  constantDefenceRange:
     minValue: 0
     maxValue: 0
     chance: 1
@@ -153,7 +160,6 @@ MonoBehaviour:
   picked: 0
   discard: 0
   confirmToDelete: 0
-  stackable: 0
   isInstantiation: 0
   price: 0
   size: 0
@@ -171,7 +177,7 @@ MonoBehaviour:
   crtConstantBonus: 0
   mspdConstantBonus: 0
   physicalResist: 0
-  armorBonus: 0
+  constantDefence: 0
   physicalResistBonus: 0
   itemLeftHandExertIdentifier: 
   itemEnergy: 0

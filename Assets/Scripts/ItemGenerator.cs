@@ -334,7 +334,7 @@ public class ItemGenerator : ScriptableObject
         // Защита - только если можно
         if (config.canHaveDefense && config.defenseRange.y > 0 && Random.Range(0f, 1f) <= config.statChance)
         {
-            item.armorBonus = Random.Range(config.defenseRange.x, config.defenseRange.y + 1);
+            item.constantDefence = Random.Range(config.defenseRange.x, config.defenseRange.y + 1);
                 statsCount++;
             }
             
@@ -408,7 +408,7 @@ public class ItemGenerator : ScriptableObject
         {
             if (config.defenseRange.y > 0)
             {
-                item.armorRange = new Item.StatRange 
+                item.constantDefenceRange = new Item.StatRange 
                 { 
                     minValue = config.defenseRange.x, 
                     maxValue = config.defenseRange.y, 
@@ -550,7 +550,7 @@ public class ItemGenerator : ScriptableObject
         // Обнуляем статы для новой генерации
         target.minAttackConstantBonus = 0;
         target.maxAttackConstantBonus = 0;
-        target.armorBonus = 0;
+        target.constantDefence = 0;
         target.physicalResistBonus = 0;
         target.strengthBonus = 0;
         target.agilityBonus = 0;

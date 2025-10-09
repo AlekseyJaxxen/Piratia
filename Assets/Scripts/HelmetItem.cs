@@ -17,7 +17,7 @@ public class HelmetItem : Item
             primaryDisplaySlot = EquipmentSlot.Head;
     }
 
-    public override void Use(PlayerCore player)
+    public override bool Use(PlayerCore player)
     {
         if (!canUse)
         {
@@ -31,6 +31,7 @@ public class HelmetItem : Item
                     {
                         player.CmdEquipItem(player.Inventory.items[slotIndex], slotIndex, slotUI.slotType);
                         Debug.Log($"[HelmetItem] Equipping {itemName} to {slotUI.slotType} from slot {slotIndex}");
+                        return true;
                     }
                 }
                 else
@@ -45,7 +46,8 @@ public class HelmetItem : Item
         }
         else
         {
-            base.Use(player);
+            return base.Use(player);
         }
+        return false;
     }
 }

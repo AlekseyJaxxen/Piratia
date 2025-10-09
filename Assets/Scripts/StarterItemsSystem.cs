@@ -281,7 +281,7 @@ public class StarterItemsSystem : NetworkBehaviour
             itemInfo.crtConstantBonus = dynamicItem.crtConstantBonus;
             itemInfo.mspdConstantBonus = dynamicItem.mspdConstantBonus;
             itemInfo.physicalResist = dynamicItem.physicalResist;
-            itemInfo.armorBonus = dynamicItem.armorBonus;
+            itemInfo.constantDefence = dynamicItem.constantDefence;
             itemInfo.physicalResistBonus = dynamicItem.physicalResistBonus;
             itemInfo.hpRecoveryBonus = dynamicItem.hpRecoveryBonus;
             itemInfo.spRecoveryBonus = dynamicItem.spRecoveryBonus;

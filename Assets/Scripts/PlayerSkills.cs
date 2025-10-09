@@ -486,17 +486,28 @@ public partial class PlayerSkills : NetworkBehaviour
             }
             else
             {
-                // Для скиллов предметов ищем в инвентаре
+                // Для скиллов предметов и consumable предметов ищем в инвентаре
                 var ui = GetComponentInChildren<PlayerUI>();
                 if (ui != null)
                 {
                     var hotbarButtons = ui.GetSkillButtons2().Concat(ui.GetSkillButtons3());
                     foreach (var btn in hotbarButtons)
                     {
-                        if (btn.item != null && btn.item.skillEffect != null && btn.item.skillEffect.SkillName == skillName)
+                        if (btn.item != null)
                         {
-                            float itemSkillCooldown = btn.item.skillEffect.Cooldown;
-                            return Mathf.Max(0, itemSkillCooldown - ((float)NetworkTime.time - _skillLastUseTimes[skillName]));
+                            // Проверяем скиллы предметов
+                            if (btn.item.skillEffect != null && btn.item.skillEffect.SkillName == skillName)
+                            {
+                                float itemSkillCooldown = btn.item.skillEffect.Cooldown;
+                                return Mathf.Max(0, itemSkillCooldown - ((float)NetworkTime.time - _skillLastUseTimes[skillName]));
+                            }
+                            
+                            // Проверяем consumable предметы
+                            if (btn.item.itemName == skillName && btn.item.itemType == ItemType.Consumable)
+                            {
+                                float itemCooldown = btn.item.cooldown;
+                                return Mathf.Max(0, itemCooldown - ((float)NetworkTime.time - _skillLastUseTimes[skillName]));
+                            }
                         }
                     }
                 }
@@ -958,7 +969,7 @@ public partial class PlayerSkills : NetworkBehaviour
             // Скилл предмета - используем кулдаун самого скилла
             float remainingCooldown = GetRemainingCooldown(key);
             
-            // Ищем предмет в инвентаре для получения кулдауна скилла
+            // Ищем предмет в инвентаре для получения кулдауна скилла или consumable предмета
             float itemSkillCooldown = 5f; // Fallback
             var ui = GetComponentInChildren<PlayerUI>();
             if (ui != null)
@@ -966,10 +977,21 @@ public partial class PlayerSkills : NetworkBehaviour
                 var hotbarButtons = ui.GetSkillButtons2().Concat(ui.GetSkillButtons3());
                 foreach (var btn in hotbarButtons)
                 {
-                    if (btn.item != null && btn.item.skillEffect != null && btn.item.skillEffect.SkillName == key)
+                    if (btn.item != null)
                     {
-                        itemSkillCooldown = btn.item.skillEffect.Cooldown;
-                        break;
+                        // Проверяем скиллы предметов
+                        if (btn.item.skillEffect != null && btn.item.skillEffect.SkillName == key)
+                        {
+                            itemSkillCooldown = btn.item.skillEffect.Cooldown;
+                            break;
+                        }
+                        
+                        // Проверяем consumable предметы
+                        if (btn.item.itemName == key && btn.item.itemType == ItemType.Consumable)
+                        {
+                            itemSkillCooldown = btn.item.cooldown;
+                            break;
+                        }
                     }
                 }
             }

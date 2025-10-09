@@ -9,76 +9,45 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 17a19ca3fa980d7429832ef83c06e12b, type: 3}
-  m_Name: chest
-  m_EditorClassIdentifier: Assembly-CSharp::Item
-  itemName: Chest
+  m_Script: {fileID: 11500000, guid: 5a07848d90a5bbe418f9e9f0099977db, type: 3}
+  m_Name: Pie
+  m_EditorClassIdentifier: Assembly-CSharp::UniversalConsumableItem
+  itemName: Health Pot
   originalName: 
-  id: 12
-  icon: {fileID: 21300000, guid: 95394af921642e44784971ac200b255e, type: 3}
-  dropModelPrefab: {fileID: 3774602016594009712, guid: 7684dde642174e94580fe0b0677307ae,
-    type: 3}
-  itemType: 7
+  id: 14
+  icon: {fileID: 21300000, guid: b68dcf27a05f09a4dbde2e2fd880eaaf, type: 3}
+  dropModelPrefab: {fileID: 0}
+  itemType: 1
   equipmentSlot: 0
   alternativeSlot: 0
   primaryDisplaySlot: 0
-  stackable: 0
-  maxStack: 1
-  canDrop: 0
+  stackable: 1
+  maxStack: 99
+  canDrop: 1
   canSell: 1
   canUse: 1
   canHotbar: 1
   isTwoHanded: 0
-  preferRightHand: 1
-  consumableType: 0
+  preferRightHand: 0
+  consumableType: 3
   cooldown: 1
   instantUse: 1
-  healAmount: 0
+  healAmount: 1400
   manaAmount: 0
-  temporaryBuffs: []
-  chestRewards:
-  - item: {fileID: 11400000, guid: 9421be2e35934f940b518c516057cd91, type: 2}
-    quantity: 22
-    chance: 1
-    isGuaranteed: 1
-  - item: {fileID: 11400000, guid: 80f31c3bcb18a5849bb27d283a6b73ec, type: 2}
-    quantity: 22
-    chance: 1
-    isGuaranteed: 1
-  - item: {fileID: 11400000, guid: 66995d235a094754aa6f99679441b322, type: 2}
-    quantity: 22
-    chance: 1
-    isGuaranteed: 1
-  useClassBasedRewards: 1
-  classRewards:
-  - characterClass: 0
-    rewards:
-    - item: {fileID: 11400000, guid: 67af998acb8eaf047b50af2369bbf0ba, type: 2}
-      quantity: 1
-      chance: 1
-      isGuaranteed: 1
-    - item: {fileID: 11400000, guid: 499580821f9e2a54eb5ea20d395697be, type: 2}
-      quantity: 1
-      chance: 1
-      isGuaranteed: 1
-  - characterClass: 2
-    rewards:
-    - item: {fileID: 11400000, guid: fb3c88c3bc369df4bb837226a01864b2, type: 2}
-      quantity: 1
-      chance: 1
-      isGuaranteed: 1
-  - characterClass: 4
-    rewards:
-    - item: {fileID: 11400000, guid: 8b28c694ce609d74b867c2004951b85b, type: 2}
-      quantity: 1
-      chance: 1
-      isGuaranteed: 1
-  - characterClass: 1
-    rewards:
-    - item: {fileID: 11400000, guid: e619915cd8351e14a83c0b088390741a, type: 2}
-      quantity: 1
-      chance: 1
-      isGuaranteed: 1
+  temporaryBuffs:
+  - statName: MaxHealth
+    value: 1400
+    duration: 60
+    isPercentage: 0
+    weight: 1
+  - statName: PhysicalResistance
+    value: 3
+    duration: 60
+    isPercentage: 0
+    weight: 1
+  chestRewards: []
+  useClassBasedRewards: 0
+  classRewards: []
   strengthBonus: 0
   agilityBonus: 0
   spiritBonus: 0
@@ -239,7 +208,17 @@ MonoBehaviour:
   displayItemEffect: 
   itemDropModelEffect: 
   itemUsageEffect: 
-  description: 
+  description: 'A consumable item. Cooldown: 1s.'
   itemLevel: 0
   remark: 
   weaponType: 0
+  consumableTypeSetting: 4
+  healAmountSetting: 0
+  manaAmountSetting: 0
+  buffStatType: 0
+  buffValue: 0
+  buffDuration: 0
+  isPercentageBuff: 0
+  buffWeight: 1
+  maxStackSize: 99
+  itemCooldown: 1

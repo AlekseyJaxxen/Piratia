@@ -11,7 +11,7 @@ public class SwordItem : Item
         weaponType = isTwoHanded ? WeaponType.TwoHandedSword : WeaponType.OneHandedSword;
     }
 
-    public override void Use(PlayerCore player)
+    public override bool Use(PlayerCore player)
     {
         if (!canUse)
         {
@@ -25,6 +25,7 @@ public class SwordItem : Item
                     {
                         player.CmdEquipItem(player.Inventory.items[slotIndex], slotIndex, slotUI.slotType);
                         Debug.Log($"[SwordItem] Equipping {itemName} to {slotUI.slotType} from slot {slotIndex}");
+                        return true;
                     }
                 }
                 else
@@ -39,8 +40,9 @@ public class SwordItem : Item
         }
         else
         {
-            base.Use(player);
+            return base.Use(player);
         }
+        return false;
     }
 
 }

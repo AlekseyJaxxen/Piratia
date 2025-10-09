@@ -5,7 +5,7 @@ using System.Collections;
 using System.Linq;
 using static SkillBase;
 
-public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
+public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler
 {
     public int buttonIndex;
     public SkillBase skill;
@@ -18,6 +18,10 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
     private GameObject dragIcon;
     private Coroutine tooltipCoroutine;
     [SerializeField] private GameObject buffIndicator;
+    
+    // Двойной клик
+    private float lastClickTime = 0f;
+    private const float doubleClickTime = 0.3f;
 
     private void Awake()
     {
@@ -87,6 +91,18 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
                 Debug.Log($"[SkillButton] Cannot use item {item.itemName}: Player is dead or stunned");
                 return;
             }
+            
+            // Проверяем кулдаун для consumable предметов
+            if (item.itemType == ItemType.Consumable && skillsComponent != null)
+            {
+                float remainingCooldown = skillsComponent.GetRemainingCooldown(item.itemName);
+                if (remainingCooldown > 0)
+                {
+                    Debug.LogWarning($"[SkillButton] Cannot use item {item.itemName}: on cooldown ({remainingCooldown:F1}s remaining), index: {buttonIndex}");
+                    return;
+                }
+            }
+            
             core.CmdSelectItem(item.id, itemSlotIndex);
             Debug.Log($"[SkillButton] Item used: {item.itemName} (ID: {item.id}), slot: {itemSlotIndex}, index: {buttonIndex}");
         }
@@ -191,6 +207,34 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
     {
         if (dragIcon == null) return;
         dragIcon.GetComponent<RectTransform>().position = eventData.position;
+    }
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        // Проверяем двойной клик
+        float currentTime = Time.time;
+        if (currentTime - lastClickTime < doubleClickTime)
+        {
+            // Двойной клик - активируем предмет если это consumable
+            if (item != null)
+            {
+                Debug.Log($"[SkillButton] Double click detected for item: {item.itemName}, type: {item.itemType}, consumableType: {item.consumableType}");
+                if (item.itemType == ItemType.Consumable)
+                {
+                    OnButtonClicked();
+                    Debug.Log($"[SkillButton] Double click activated item: {item.itemName}");
+                }
+                else
+                {
+                    Debug.LogWarning($"[SkillButton] Item {item.itemName} is not consumable (type: {item.itemType})");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"[SkillButton] Double click detected but no item in slot");
+            }
+        }
+        lastClickTime = currentTime;
     }
 
     public void OnEndDrag(PointerEventData eventData)

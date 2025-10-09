@@ -319,7 +319,7 @@ public class AdvancedItemGenerator : ScriptableObject
         // Адаптируем значения под наш уровень 15 (75/5 = 15)
         
         // Фиксированная защита и статы (основные характеристики)
-        armorTemplate.defaultStats.Add(new StatTemplate("Armor Defense", "armorBonus", new Vector2Int(0, 20), 2.5f));
+        armorTemplate.defaultStats.Add(new StatTemplate("Constant Defence", "constantDefence", new Vector2Int(0, 20), 2.5f));
         armorTemplate.defaultStats.Add(new StatTemplate("Physical Resist %", "physicalResistBonus", new Vector2Int(0, 6), 0.8f));
         armorTemplate.defaultStats.Add(new StatTemplate("Maximum HP", "maxHpConstantBonus", new Vector2Int(0, 60), 6.0f));
         
@@ -379,7 +379,7 @@ public class AdvancedItemGenerator : ScriptableObject
         // Base stats: STR/AGI/ACC/CON/SPR могут быть у любых предметов
         
         // Защитные характеристики
-        glovesTemplate.defaultStats.Add(new StatTemplate("Armor Defense", "armorBonus", new Vector2Int(0, 13), 1.8f));
+        glovesTemplate.defaultStats.Add(new StatTemplate("Constant Defence", "constantDefence", new Vector2Int(0, 13), 1.8f));
         glovesTemplate.defaultStats.Add(new StatTemplate("Maximum HP", "maxHpConstantBonus", new Vector2Int(0, 18), 1.8f));
         glovesTemplate.defaultStats.Add(new StatTemplate("Dodge", "dodgeBonus", new Vector2Int(0, 1), 0.15f));
         
@@ -432,7 +432,7 @@ public class AdvancedItemGenerator : ScriptableObject
         // Base stats: STR/AGI/ACC/CON/SPR могут быть у любых предметов
         
         // Защитные характеристики (раздельно)
-        bootsTemplate.defaultStats.Add(new StatTemplate("Armor Defense", "armorBonus", new Vector2Int(0, 6), 1.0f));
+        bootsTemplate.defaultStats.Add(new StatTemplate("Constant Defence", "constantDefence", new Vector2Int(0, 6), 1.0f));
         bootsTemplate.defaultStats.Add(new StatTemplate("Physical Resist %", "physicalResistBonus", new Vector2Int(0, 3), 0.6f));
         bootsTemplate.defaultStats.Add(new StatTemplate("Maximum HP", "maxHpConstantBonus", new Vector2Int(0, 18), 1.8f));
         

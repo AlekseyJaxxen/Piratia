@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AreaOfEffectStunSkill
   castType: 2
   _icon: {fileID: 21300000, guid: 9e368a4a52e3b3e41bf2c3bd7ed697b5, type: 3}
-  _skillName: WarriorFB
+  _skillName: Flashbomb
   _description: 
-  _hotkey: 284
+  _hotkey: 0
   _range: 8
   _cooldown: 10
   _castTime: 0.1

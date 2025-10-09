@@ -582,24 +582,112 @@ public class CharacterStats : NetworkBehaviour
         // HP с ростом уровня + бонус от Constitution (экспоненциальная прогрессия)
         int levelHpBonus = CalculateLevelHpBonus();
         int constitutionHpBonus = CalculateConstitutionHpBonus(calculatedTotalConstitution);
-        maxHealth = classData.baseHealth + levelHpBonus + constitutionHpBonus;
+        int baseMaxHealth = classData.baseHealth + levelHpBonus + constitutionHpBonus;
+        
+        // Проверяем активные баффы MaxHealth
+        StatEffect maxHealthBuff = activeStatEffects.FirstOrDefault(e => e.Stat.ToLower() == "maxhealth" && e.IsActive);
+        if (maxHealthBuff.IsActive)
+        {
+            // Применяем бафф к базовому значению (не заменяем полностью)
+            maxHealth = baseMaxHealth + Mathf.RoundToInt(maxHealthBuff.Value - maxHealthBuff.OriginalValue);
+            Debug.Log($"[CharacterStats] MaxHealth: base={baseMaxHealth} + buff={maxHealthBuff.Value - maxHealthBuff.OriginalValue} = {maxHealth}");
+        }
+        else
+        {
+            // Используем базовое значение
+            maxHealth = baseMaxHealth;
+        }
         
         // Mana с прогрессивным бонусом от Spirit
-        maxMana = classData.baseMana + Mathf.RoundToInt(progressiveSpiritBonus * classData.spiritMultiplier + intelligence * 5 * classData.intelligenceMultiplier);
+        int baseMaxMana = classData.baseMana + Mathf.RoundToInt(progressiveSpiritBonus * classData.spiritMultiplier + intelligence * 5 * classData.intelligenceMultiplier);
+        
+        // Проверяем активные баффы MaxMana
+        StatEffect maxManaBuff = activeStatEffects.FirstOrDefault(e => e.Stat.ToLower() == "maxmana" && e.IsActive);
+        if (maxManaBuff.IsActive)
+        {
+            // Применяем бафф к базовому значению (не заменяем полностью)
+            maxMana = baseMaxMana + Mathf.RoundToInt(maxManaBuff.Value - maxManaBuff.OriginalValue);
+            Debug.Log($"[CharacterStats] MaxMana: base={baseMaxMana} + buff={maxManaBuff.Value - maxManaBuff.OriginalValue} = {maxMana}");
+        }
+        else
+        {
+            // Используем базовое значение
+            maxMana = baseMaxMana;
+        }
         
         // Урон с прогрессивным бонусом от Strength/Accuracy
         float attackValue = classData.attackAttribute == AttackAttributeType.Strength ? progressiveStrengthBonus : progressiveAccuracyBonus;
         float attackMultiplier = classData.attackAttribute == AttackAttributeType.Strength ? classData.strengthMultiplier : classData.accuracyMultiplier;
-        minAttack = Mathf.RoundToInt(classData.baseMinAttack + attackValue * 1.0f * attackMultiplier);
-        maxAttack = Mathf.RoundToInt(classData.baseMaxAttack + attackValue * 1.0f * attackMultiplier);
+        int baseMinAttack = Mathf.RoundToInt(classData.baseMinAttack + attackValue * 1.0f * attackMultiplier);
+        int baseMaxAttack = Mathf.RoundToInt(classData.baseMaxAttack + attackValue * 1.0f * attackMultiplier);
+        
+        // Добавляем бонусы от экипировки к базовым значениям
+        if (inventory != null)
+        {
+            var equippedItemInfos = inventory.GetEquippedItemInfos();
+            baseMinAttack += Mathf.RoundToInt(equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.MinAttack)));
+            baseMaxAttack += Mathf.RoundToInt(equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.MaxAttack)));
+        }
+        
+        // Проверяем активные баффы MinAttack
+        StatEffect minAttackBuff = activeStatEffects.FirstOrDefault(e => e.Stat.ToLower() == "minattack" && e.IsActive);
+        if (minAttackBuff.IsActive)
+        {
+            // Применяем бафф к базовому значению (не заменяем полностью)
+            minAttack = baseMinAttack + Mathf.RoundToInt(minAttackBuff.Value - minAttackBuff.OriginalValue);
+            Debug.Log($"[CharacterStats] MinAttack: base={baseMinAttack} + buff={minAttackBuff.Value - minAttackBuff.OriginalValue} = {minAttack}");
+        }
+        else
+        {
+            minAttack = baseMinAttack;
+        }
+        
+        // Проверяем активные баффы MaxAttack
+        StatEffect maxAttackBuff = activeStatEffects.FirstOrDefault(e => e.Stat.ToLower() == "maxattack" && e.IsActive);
+        if (maxAttackBuff.IsActive)
+        {
+            // Применяем бафф к базовому значению (не заменяем полностью)
+            maxAttack = baseMaxAttack + Mathf.RoundToInt(maxAttackBuff.Value - maxAttackBuff.OriginalValue);
+            Debug.Log($"[CharacterStats] MaxAttack: base={baseMaxAttack} + buff={maxAttackBuff.Value - maxAttackBuff.OriginalValue} = {maxAttack}");
+        }
+        else
+        {
+            maxAttack = baseMaxAttack;
+        }
         
         // Armor рассчитывается от Constitution
-        armor = Mathf.RoundToInt(classData.baseDef + calculatedTotalConstitution * 1 * classData.constitutionMultiplier);
+        int baseArmor = Mathf.RoundToInt(classData.baseDef + calculatedTotalConstitution * 1 * classData.constitutionMultiplier);
+        
+        // Проверяем активные баффы Armor
+        StatEffect armorBuff = activeStatEffects.FirstOrDefault(e => e.Stat.ToLower() == "armor" && e.IsActive);
+        if (armorBuff.IsActive)
+        {
+            // Применяем бафф к базовому значению (не заменяем полностью)
+            armor = baseArmor + Mathf.RoundToInt(armorBuff.Value - armorBuff.OriginalValue);
+            Debug.Log($"[CharacterStats] Armor: base={baseArmor} + buff={armorBuff.Value - armorBuff.OriginalValue} = {armor}");
+        }
+        else
+        {
+            armor = baseArmor;
+        }
         Debug.Log($"[CharacterStats] Armor calculated: {armor} (base: {classData.baseDef}, constitution: {calculatedTotalConstitution}, multiplier: {classData.constitutionMultiplier})");
         // Скорость движения не зависит от ловкости, только от базового значения класса
         float baseMovementSpeed = classData.baseMovementSpeed;
         float slowMultiplier = CalculateSlowMultiplier();
-        movementSpeed = baseMovementSpeed * slowMultiplier;
+        float baseMovementSpeedCalculated = baseMovementSpeed * slowMultiplier;
+        
+        // Проверяем активные баффы MovementSpeed
+        StatEffect movementSpeedBuff = activeStatEffects.FirstOrDefault(e => e.Stat.ToLower() == "movementspeed" && e.IsActive);
+        if (movementSpeedBuff.IsActive)
+        {
+            // Применяем бафф к базовому значению (не заменяем полностью)
+            movementSpeed = baseMovementSpeedCalculated + (movementSpeedBuff.Value - movementSpeedBuff.OriginalValue);
+            Debug.Log($"[CharacterStats] MovementSpeed: base={baseMovementSpeedCalculated} + buff={movementSpeedBuff.Value - movementSpeedBuff.OriginalValue} = {movementSpeed}");
+        }
+        else
+        {
+            movementSpeed = baseMovementSpeedCalculated;
+        }
         // Calculate base attack speed only if no buffs are active
         if (!activeStatEffects.Any(e => e.Stat.ToLower() == "attackspeed" && e.IsActive))
         {
@@ -611,27 +699,49 @@ public class CharacterStats : NetworkBehaviour
             float baseAttackSpeed = classData.baseAttackSpeed + (calculatedTotalAgility * 0.01f * classData.agilityMultiplier);
             Debug.Log($"[CharacterStats] Base attackSpeed calculated: {baseAttackSpeed:F3} (base: {classData.baseAttackSpeed:F3}, agility: {calculatedTotalAgility:F1})");
         }
-        dodgeChance = 10 + level * 2 + calculatedTotalAgility * 0.6f;
-        hitChance = 10 + level * 2 + calculatedTotalAccuracy * 0.6f;
-        criticalHitChance = 15.0f + (luck * 0.1f);
-        physicalResistance = classData.basePhysicalResistance;
-        attackRange = classData.baseAttackRange;
-        magicDamageMultiplier = 1.0f + (calculatedTotalSpirit * 0.05f * classData.spiritMultiplier);
+        // Базовые значения для остальных статов
+        float baseDodgeChance = 10 + level * 2 + calculatedTotalAgility * 0.6f;
+        float baseHitChance = 10 + level * 2 + calculatedTotalAccuracy * 0.6f;
+        float baseCriticalHitChance = 15.0f + (luck * 0.1f);
+        float basePhysicalResistance = classData.basePhysicalResistance;
+        float baseAttackRange = classData.baseAttackRange;
+        float baseMagicDamageMultiplier = 1.0f + (calculatedTotalSpirit * 0.05f * classData.spiritMultiplier);
         
-        // Добавляем прямые бонусы от экипировки
+        // Проверяем активные баффы для остальных статов
+        StatEffect dodgeChanceBuff = activeStatEffects.FirstOrDefault(e => e.Stat.ToLower() == "dodgechance" && e.IsActive);
+        dodgeChance = dodgeChanceBuff.IsActive ? baseDodgeChance + (dodgeChanceBuff.Value - dodgeChanceBuff.OriginalValue) : baseDodgeChance;
+        
+        StatEffect hitChanceBuff = activeStatEffects.FirstOrDefault(e => e.Stat.ToLower() == "hitchance" && e.IsActive);
+        hitChance = hitChanceBuff.IsActive ? baseHitChance + (hitChanceBuff.Value - hitChanceBuff.OriginalValue) : baseHitChance;
+        
+        StatEffect criticalHitChanceBuff = activeStatEffects.FirstOrDefault(e => e.Stat.ToLower() == "criticalhitchance" && e.IsActive);
+        criticalHitChance = criticalHitChanceBuff.IsActive ? baseCriticalHitChance + (criticalHitChanceBuff.Value - criticalHitChanceBuff.OriginalValue) : baseCriticalHitChance;
+        
+        StatEffect physicalResistanceBuff = activeStatEffects.FirstOrDefault(e => e.Stat.ToLower() == "physicalresistance" && e.IsActive);
+        physicalResistance = physicalResistanceBuff.IsActive ? basePhysicalResistance + (physicalResistanceBuff.Value - physicalResistanceBuff.OriginalValue) : basePhysicalResistance;
+        
+        StatEffect attackRangeBuff = activeStatEffects.FirstOrDefault(e => e.Stat.ToLower() == "attackrange" && e.IsActive);
+        attackRange = attackRangeBuff.IsActive ? baseAttackRange + (attackRangeBuff.Value - attackRangeBuff.OriginalValue) : baseAttackRange;
+        
+        StatEffect magicDamageMultiplierBuff = activeStatEffects.FirstOrDefault(e => e.Stat.ToLower() == "magicdamagemultiplier" && e.IsActive);
+        magicDamageMultiplier = magicDamageMultiplierBuff.IsActive ? baseMagicDamageMultiplier + (magicDamageMultiplierBuff.Value - magicDamageMultiplierBuff.OriginalValue) : baseMagicDamageMultiplier;
+        
+        StatEffect criticalHitMultiplierBuff = activeStatEffects.FirstOrDefault(e => e.Stat.ToLower() == "criticalhitmultiplier" && e.IsActive);
+        criticalHitMultiplier = criticalHitMultiplierBuff.IsActive ? 2.0f + (criticalHitMultiplierBuff.Value - criticalHitMultiplierBuff.OriginalValue) : 2.0f; // Базовое значение 2.0
+        
+        // Добавляем прямые бонусы от экипировки (кроме уже учтенных в базовых значениях)
         if (inventory != null)
         {
             var equippedItemInfos = inventory.GetEquippedItemInfos();
         maxHealth += Mathf.RoundToInt(equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.MaxHP)));
         maxMana += Mathf.RoundToInt(equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.MaxMP)));
-        minAttack += Mathf.RoundToInt(equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.MinAttack)));
-        maxAttack += Mathf.RoundToInt(equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.MaxAttack)));
+        // minAttack и maxAttack уже учтены в базовых значениях выше
             // Обратная совместимость: старый PhysicalResist влияет на оба стата
             armor += Mathf.RoundToInt(equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.PhysicalResist)));
             physicalResistance += Mathf.RoundToInt(equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.PhysicalResist)));
             
             // Новые отдельные статы
-            armor += Mathf.RoundToInt(equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.Armor)));
+            armor += Mathf.RoundToInt(equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.ConstantDefence)));
             physicalResistance += Mathf.RoundToInt(equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.PhysicalResistance)));
             
             criticalHitChance += equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.Critical));
@@ -649,10 +759,10 @@ public class CharacterStats : NetworkBehaviour
                 // Применяем процентный бонус
                 if (attackSpeedPercentBonus > 0)
                 {
-                    attackSpeed *= (1.0f + attackSpeedPercentBonus);
+                    attackSpeed *= (1.0f + attackSpeedPercentBonus / 100f);
                 }
             }
-            Debug.Log($"[CharacterStats] AttackSpeed after equipment bonuses: {attackSpeed:F3} (+{attackSpeedBonus:F3} flat, +{attackSpeedPercentBonus * 100:F1}% from {equippedItemInfos.Length} items)");
+            Debug.Log($"[CharacterStats] AttackSpeed after equipment bonuses: {attackSpeed:F3} (+{attackSpeedBonus:F3} flat, +{attackSpeedPercentBonus:F1}% from {equippedItemInfos.Length} items)");
             
             Debug.Log($"[CharacterStats] Equipment stats calculated: {equippedItemInfos.Length} items, Str+{equipmentStrengthBonus}, Agi+{equipmentAgilityBonus}, maxHealth bonus: {Mathf.RoundToInt(equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.MaxHP)))}");
         }
@@ -819,6 +929,96 @@ public class CharacterStats : NetworkBehaviour
     public void RestoreMana(int amount)
     {
         currentMana = Mathf.Min(currentMana + amount, maxMana);
+    }
+
+    /// <summary>
+    /// Добавляет временный эффект стата от consumable предмета
+    /// </summary>
+    [Server]
+    public void AddTemporaryStatEffect(string statName, float value, float duration, bool isPercentage = false, int weight = 1)
+    {
+        if (string.IsNullOrEmpty(statName) || value == 0f || duration <= 0f) return;
+        
+        // Проверяем существующие эффекты для этого стата
+        StatEffect existingEffect = activeStatEffects.FirstOrDefault(e => e.Stat == statName && !e.IsToggle);
+        
+        if (existingEffect.IsActive)
+        {
+            if (weight == 1)
+            {
+                // Weight 1: не стакается - отклоняем новый бафф
+                Debug.Log($"[CharacterStats] Temporary effect for {statName} not applied: an active effect already exists (weight 1 - no stacking)");
+                return;
+            }
+            else if (weight == 2)
+            {
+                // Weight 2: заменяет эффект - удаляем старый и применяем новый
+                Debug.Log($"[CharacterStats] Replacing existing {statName} effect with new one (weight 2 - replace)");
+                RemoveTemporaryStatEffect(statName);
+            }
+        }
+        
+        float originalValue = GetStatValue(statName);
+        float newValue;
+        
+        if (isPercentage)
+        {
+            // Процентный бафф
+            newValue = originalValue * (1f + value);
+        }
+        else
+        {
+            // Плоский бафф
+            newValue = originalValue + value;
+        }
+        
+        // НЕ применяем новое значение напрямую - это будет сделано в CalculateDerivedStats()
+        // Buffs должны быть добавлены к базовым значениям, а не заменять их
+        
+        // Добавляем эффект в список
+        activeStatEffects.Add(new StatEffect
+        {
+            Stat = statName,
+            Value = newValue,
+            OriginalValue = originalValue,
+            EndTime = (float)NetworkTime.time + duration,
+            IsToggle = false,
+            VFXPrefab = null,
+            VFXPrefabName = "",
+            VFXOffset = Vector3.zero,
+            SkillWeight = weight
+        });
+        
+        SyncStatEffects(); // Синхронизируем с клиентами
+        
+        // Пересчитываем статы с учетом нового баффа
+        CalculateDerivedStats();
+        
+        StartCoroutine(RemoveBuff(statName, originalValue, duration));
+        
+        Debug.Log($"[CharacterStats] Applied temporary effect for {statName}: {originalValue} -> {newValue} for {duration}s (weight: {weight})");
+    }
+    
+    /// <summary>
+    /// Удаляет временный эффект стата
+    /// </summary>
+    [Server]
+    public void RemoveTemporaryStatEffect(string statName)
+    {
+        StatEffect effectToRemove = activeStatEffects.FirstOrDefault(e => e.Stat == statName && !e.IsToggle);
+        if (effectToRemove.IsActive)
+        {
+            // НЕ восстанавливаем оригинальное значение напрямую - это будет сделано в CalculateDerivedStats()
+            
+            // Удаляем эффект из списка
+            activeStatEffects.Remove(effectToRemove);
+            SyncStatEffects();
+            
+            // Пересчитываем статы после удаления баффа
+            CalculateDerivedStats();
+            
+            Debug.Log($"[CharacterStats] Removed temporary effect: {statName} restored to {effectToRemove.OriginalValue}");
+        }
     }
 
     [Client]

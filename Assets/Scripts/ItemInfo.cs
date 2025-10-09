@@ -20,8 +20,8 @@ public struct ItemInfo
     public int maxSpConstantBonus;
     public int crtConstantBonus;
     public float mspdConstantBonus;
-    public int physicalResist; // УСТАРЕЛО: используйте armorBonus и physicalResistBonus
-    public int armorBonus; // Плоская броня
+    public int physicalResist; // УСТАРЕЛО: используйте constantDefence и physicalResistBonus
+    public int constantDefence; // Постоянная защита
     public int physicalResistBonus; // Процентное сопротивление
     public int hpRecoveryBonus;
     public int spRecoveryBonus;
@@ -160,9 +160,9 @@ public struct ItemInfo
                 baseStat = item.physicalResist;
                 dynamicStat = hasDynamicStats ? physicalResist : 0;
                 break;
-            case StatType.Armor:
-                baseStat = item.armorBonus;
-                dynamicStat = hasDynamicStats ? armorBonus : 0;
+            case StatType.ConstantDefence:
+                baseStat = item.constantDefence;
+                dynamicStat = hasDynamicStats ? constantDefence : 0;
                 break;
             case StatType.PhysicalResistance:
                 baseStat = item.physicalResistBonus;
@@ -223,8 +223,8 @@ public struct ItemInfo
         MaxMP,
         Critical,
         MovementSpeed,
-        PhysicalResist, // УСТАРЕЛО: используйте Armor и PhysicalResistance
-        Armor, // Плоская броня
+        PhysicalResist, // УСТАРЕЛО: используйте ConstantDefence и PhysicalResistance
+        ConstantDefence, // Постоянная защита
         PhysicalResistance, // Процентное сопротивление
         HPRecovery,
         SPRecovery,

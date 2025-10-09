@@ -24,7 +24,7 @@ public class DroppedItem : NetworkBehaviour, IPointerEnterHandler, IPointerExitH
     [SyncVar] public int maxHpConstantBonus = 0;
     [SyncVar] public int maxSpConstantBonus = 0;
     [SyncVar] public int physicalResist = 0; // УСТАРЕЛО
-    [SyncVar] public int armorBonus = 0; // Плоская броня
+    [SyncVar] public int constantDefence = 0; // Постоянная защита
     [SyncVar] public int physicalResistBonus = 0; // Процентное сопротивление
     [SyncVar] public int crtConstantBonus = 0;
     [SyncVar] public float mspdConstantBonus = 0.0f;
@@ -59,7 +59,7 @@ public class DroppedItem : NetworkBehaviour, IPointerEnterHandler, IPointerExitH
         maxHpConstantBonus = generatedItem.maxHpConstantBonus;
         maxSpConstantBonus = generatedItem.maxSpConstantBonus;
         physicalResist = generatedItem.physicalResist;
-        armorBonus = generatedItem.armorBonus;
+        constantDefence = generatedItem.constantDefence;
         physicalResistBonus = generatedItem.physicalResistBonus;
         crtConstantBonus = generatedItem.crtConstantBonus;
         mspdConstantBonus = generatedItem.mspdConstantBonus;
@@ -87,7 +87,7 @@ public class DroppedItem : NetworkBehaviour, IPointerEnterHandler, IPointerExitH
         maxHpConstantBonus = itemInfo.maxHpConstantBonus;
         maxSpConstantBonus = itemInfo.maxSpConstantBonus;
         physicalResist = itemInfo.physicalResist;
-        armorBonus = itemInfo.armorBonus;
+        constantDefence = itemInfo.constantDefence;
         physicalResistBonus = itemInfo.physicalResistBonus;
         crtConstantBonus = itemInfo.crtConstantBonus;
         mspdConstantBonus = itemInfo.mspdConstantBonus;
@@ -179,7 +179,7 @@ public class DroppedItem : NetworkBehaviour, IPointerEnterHandler, IPointerExitH
         if (maxHpConstantBonus > 0) { item.maxHpConstantBonus = maxHpConstantBonus; appliedStats++; }
         if (maxSpConstantBonus > 0) { item.maxSpConstantBonus = maxSpConstantBonus; appliedStats++; }
         if (physicalResist > 0) { item.physicalResist = physicalResist; appliedStats++; }
-        if (armorBonus > 0) { item.armorBonus = armorBonus; appliedStats++; }
+        if (constantDefence > 0) { item.constantDefence = constantDefence; appliedStats++; }
         if (physicalResistBonus > 0) { item.physicalResistBonus = physicalResistBonus; appliedStats++; }
         if (crtConstantBonus > 0) { item.crtConstantBonus = crtConstantBonus; appliedStats++; }
         if (mspdConstantBonus > 0) { item.mspdConstantBonus = mspdConstantBonus; appliedStats++; }
@@ -247,7 +247,7 @@ public class DroppedItem : NetworkBehaviour, IPointerEnterHandler, IPointerExitH
         target.crtConstantBonus = source.crtConstantBonus;
         target.mspdConstantBonus = source.mspdConstantBonus;
         target.physicalResist = source.physicalResist;
-        target.armorBonus = source.armorBonus;
+        target.constantDefence = source.constantDefence;
         target.physicalResistBonus = source.physicalResistBonus;
         target.strengthBonus = source.strengthBonus;
         target.agilityBonus = source.agilityBonus;
@@ -280,8 +280,8 @@ public class DroppedItem : NetworkBehaviour, IPointerEnterHandler, IPointerExitH
             target.manaRange = new Item.StatRange { minValue = source.manaRange.minValue, maxValue = source.manaRange.maxValue, chance = source.manaRange.chance };
         if (source.defenseRange != null)
             target.defenseRange = new Item.StatRange { minValue = source.defenseRange.minValue, maxValue = source.defenseRange.maxValue, chance = source.defenseRange.chance };
-        if (source.armorRange != null)
-            target.armorRange = new Item.StatRange { minValue = source.armorRange.minValue, maxValue = source.armorRange.maxValue, chance = source.armorRange.chance };
+        if (source.constantDefenceRange != null)
+            target.constantDefenceRange = new Item.StatRange { minValue = source.constantDefenceRange.minValue, maxValue = source.constantDefenceRange.maxValue, chance = source.constantDefenceRange.chance };
         if (source.physicalResistRange != null)
             target.physicalResistRange = new Item.StatRange { minValue = source.physicalResistRange.minValue, maxValue = source.physicalResistRange.maxValue, chance = source.physicalResistRange.chance };
         if (source.criticalRange != null)

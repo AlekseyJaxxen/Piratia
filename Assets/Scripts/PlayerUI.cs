@@ -60,6 +60,21 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     private PlayerCore core;
     private RectTransform attributesPanelRect;
     private Vector2 dragOffset;
+    
+    // Ссылки на обработчики событий для правильной отписки
+    private System.Action<int, int> strengthChangedHandler;
+    private System.Action<int, int> agilityChangedHandler;
+    private System.Action<int, int> spiritChangedHandler;
+    private System.Action<int, int> constitutionChangedHandler;
+    private System.Action<int, int> accuracyChangedHandler;
+    private System.Action<int, int> minAttackChangedHandler;
+    private System.Action<int, int> maxAttackChangedHandler;
+    private System.Action<float, float> movementSpeedChangedHandler;
+    private System.Action<float, float> criticalHitChanceChangedHandler;
+    private System.Action<float, float> physicalResistanceChangedHandler;
+    private System.Action<int, int> armorChangedHandler;
+    private System.Action<int, int> maxHealthChangedHandler;
+    private System.Action<int, int> maxManaChangedHandler;
     private readonly KeyCode[] hotkeys1 = { KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None, KeyCode.None };
     private readonly KeyCode[] hotkeys2 = { KeyCode.None, KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.Alpha4, KeyCode.Alpha5, KeyCode.Alpha6, KeyCode.Alpha7, KeyCode.Alpha8, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.Minus, KeyCode.Equals };
     private readonly KeyCode[] hotkeys3 = { KeyCode.None, KeyCode.Q, KeyCode.W, KeyCode.E, KeyCode.R, KeyCode.T, KeyCode.Y, KeyCode.U, KeyCode.I, KeyCode.O, KeyCode.P, KeyCode.LeftBracket, KeyCode.RightBracket };
@@ -125,20 +140,33 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         stats.OnCharacteristicPointsChangedEvent += UpdateCharacteristicPoints;
         // ИСПРАВЛЕНО: События изменения характеристик теперь вызывают UpdateAttributesPanel() 
         // чтобы показывать итоговые значения (базовые + бонусы экипировки)
-        stats.OnStrengthChangedEvent += (oldValue, newValue) => UpdateAttributesPanel();
-        stats.OnAgilityChangedEvent += (oldValue, newValue) => UpdateAttributesPanel();
-        stats.OnSpiritChangedEvent += (oldValue, newValue) => UpdateAttributesPanel();
-        stats.OnConstitutionChangedEvent += (oldValue, newValue) => UpdateAttributesPanel();
-        stats.OnAccuracyChangedEvent += (oldValue, newValue) => UpdateAttributesPanel();
-        stats.OnMinAttackChangedEvent += (oldValue, newValue) => UpdateAttributesPanel();
-        stats.OnMaxAttackChangedEvent += (oldValue, newValue) => UpdateAttributesPanel();
-        // Дополнительные события для обновления UI при изменении статов
-        stats.OnMovementSpeedChangedEvent += (oldValue, newValue) => UpdateAttributesPanel();
-        stats.OnCriticalHitChanceChangedEvent += (oldValue, newValue) => UpdateAttributesPanel();
-        stats.OnPhysicalResistanceChangedEvent += (oldValue, newValue) => UpdateAttributesPanel();
-        stats.OnArmorChangedEvent += (oldValue, newValue) => UpdateAttributesPanel();
-        stats.OnMaxHealthChangedEvent += (oldValue, newValue) => UpdateAttributesPanel();
-        stats.OnMaxManaChangedEvent += (oldValue, newValue) => UpdateAttributesPanel();
+        strengthChangedHandler = (oldValue, newValue) => UpdateAttributesPanel();
+        agilityChangedHandler = (oldValue, newValue) => UpdateAttributesPanel();
+        spiritChangedHandler = (oldValue, newValue) => UpdateAttributesPanel();
+        constitutionChangedHandler = (oldValue, newValue) => UpdateAttributesPanel();
+        accuracyChangedHandler = (oldValue, newValue) => UpdateAttributesPanel();
+        minAttackChangedHandler = (oldValue, newValue) => UpdateAttributesPanel();
+        maxAttackChangedHandler = (oldValue, newValue) => UpdateAttributesPanel();
+        movementSpeedChangedHandler = (oldValue, newValue) => UpdateAttributesPanel();
+        criticalHitChanceChangedHandler = (oldValue, newValue) => UpdateAttributesPanel();
+        physicalResistanceChangedHandler = (oldValue, newValue) => UpdateAttributesPanel();
+        armorChangedHandler = (oldValue, newValue) => UpdateAttributesPanel();
+        maxHealthChangedHandler = (oldValue, newValue) => UpdateAttributesPanel();
+        maxManaChangedHandler = (oldValue, newValue) => UpdateAttributesPanel();
+        
+        stats.OnStrengthChangedEvent += strengthChangedHandler;
+        stats.OnAgilityChangedEvent += agilityChangedHandler;
+        stats.OnSpiritChangedEvent += spiritChangedHandler;
+        stats.OnConstitutionChangedEvent += constitutionChangedHandler;
+        stats.OnAccuracyChangedEvent += accuracyChangedHandler;
+        stats.OnMinAttackChangedEvent += minAttackChangedHandler;
+        stats.OnMaxAttackChangedEvent += maxAttackChangedHandler;
+        stats.OnMovementSpeedChangedEvent += movementSpeedChangedHandler;
+        stats.OnCriticalHitChanceChangedEvent += criticalHitChanceChangedHandler;
+        stats.OnPhysicalResistanceChangedEvent += physicalResistanceChangedHandler;
+        stats.OnArmorChangedEvent += armorChangedHandler;
+        stats.OnMaxHealthChangedEvent += maxHealthChangedHandler;
+        stats.OnMaxManaChangedEvent += maxManaChangedHandler;
         if (strengthButton != null)
         {
             strengthButton.onClick.AddListener(() => { core.CmdIncreaseStat("strength"); });
@@ -346,6 +374,21 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             }
             else if (btn.item != null && Input.GetKeyDown(GetHotkeyForButton(btn)))
             {
+                // Проверяем кулдаун для consumable предметов
+                if (btn.item.itemType == ItemType.Consumable)
+                {
+                    PlayerSkills skillsComp = core.GetComponent<PlayerSkills>();
+                    if (skillsComp != null)
+                    {
+                        float remainingCooldown = skillsComp.GetRemainingCooldown(btn.item.itemName);
+                        if (remainingCooldown > 0)
+                        {
+                            Debug.LogWarning($"[PlayerUI] Cannot use item {btn.item.itemName}: on cooldown ({remainingCooldown:F1}s remaining)");
+                            continue;
+                        }
+                    }
+                }
+                
                 Debug.Log($"[PlayerUI] Hotkey pressed for item: {btn.item.itemName} (hotkey {GetHotkeyForButton(btn)})");
                 btn.OnButtonClicked();
             }
@@ -385,6 +428,21 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             }
             else if (btn.item != null && Input.GetKeyDown(GetHotkeyForButton(btn)))
             {
+                // Проверяем кулдаун для consumable предметов
+                if (btn.item.itemType == ItemType.Consumable)
+                {
+                    PlayerSkills skillsComp = core.GetComponent<PlayerSkills>();
+                    if (skillsComp != null)
+                    {
+                        float remainingCooldown = skillsComp.GetRemainingCooldown(btn.item.itemName);
+                        if (remainingCooldown > 0)
+                        {
+                            Debug.LogWarning($"[PlayerUI] Cannot use item {btn.item.itemName}: on cooldown ({remainingCooldown:F1}s remaining)");
+                            continue;
+                        }
+                    }
+                }
+                
                 Debug.Log($"[PlayerUI] Hotkey pressed for item: {btn.item.itemName} (hotkey {GetHotkeyForButton(btn)})");
                 btn.OnButtonClicked();
             }
@@ -405,26 +463,42 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         // Обновляем кулдауны для предметов в skillButtons2 (хотбар)
         foreach (var btn in skillButtons2)
         {
-            if (btn.item != null && btn.item.skillEffect != null)
+            if (btn.item != null)
             {
-                string skillName = btn.item.skillEffect.SkillName;
-                float remainingCooldown = skillsComponent.GetRemainingCooldown(skillName);
+                string skillName = "";
+                float itemCooldown = 5f; // Fallback
                 
-                if (remainingCooldown > 0)
+                // Определяем имя скилла и кулдаун в зависимости от типа предмета
+                if (btn.item.skillEffect != null)
                 {
-                    // Находим соответствующий cooldown overlay
-                    var cooldownEntry = skillCooldownEntries.Find(e => e.skillName == btn.item.itemName);
-                    if (cooldownEntry != null && cooldownEntry.cooldownImage != null)
+                    skillName = btn.item.skillEffect.SkillName;
+                    itemCooldown = btn.item.skillEffect.Cooldown;
+                }
+                else if (btn.item.itemType == ItemType.Consumable)
+                {
+                    skillName = btn.item.itemName;
+                    itemCooldown = btn.item.cooldown;
+                }
+                
+                if (!string.IsNullOrEmpty(skillName))
+                {
+                    float remainingCooldown = skillsComponent.GetRemainingCooldown(skillName);
+                    
+                    if (remainingCooldown > 0)
                     {
-                        float itemSkillCooldown = btn.item.skillEffect.Cooldown; // Используем кулдаун скилла предмета
-                        float progress = Mathf.Clamp01(remainingCooldown / itemSkillCooldown);
-                        cooldownEntry.cooldownImage.fillAmount = progress;
-                        
-                        // Затемняем иконку
-                        Image skillIcon = cooldownEntry.cooldownImage.GetComponentInParent<Image>();
-                        if (skillIcon != null)
+                        // Находим соответствующий cooldown overlay
+                        var cooldownEntry = skillCooldownEntries.Find(e => e.skillName == btn.item.itemName);
+                        if (cooldownEntry != null && cooldownEntry.cooldownImage != null)
                         {
-                            skillIcon.color = progress > 0 ? Color.gray : Color.white;
+                            float progress = Mathf.Clamp01(remainingCooldown / itemCooldown);
+                            cooldownEntry.cooldownImage.fillAmount = progress;
+                            
+                            // Затемняем иконку
+                            Image skillIcon = cooldownEntry.cooldownImage.GetComponentInParent<Image>();
+                            if (skillIcon != null)
+                            {
+                                skillIcon.color = progress > 0 ? Color.gray : Color.white;
+                            }
                         }
                     }
                 }
@@ -448,26 +522,42 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         // Обновляем кулдауны для предметов в skillButtons3 (дополнительный хотбар)
         foreach (var btn in skillButtons3)
         {
-            if (btn.item != null && btn.item.skillEffect != null)
+            if (btn.item != null)
             {
-                string skillName = btn.item.skillEffect.SkillName;
-                float remainingCooldown = skillsComponent.GetRemainingCooldown(skillName);
+                string skillName = "";
+                float itemCooldown = 5f; // Fallback
                 
-                if (remainingCooldown > 0)
+                // Определяем имя скилла и кулдаун в зависимости от типа предмета
+                if (btn.item.skillEffect != null)
                 {
-                    // Находим соответствующий cooldown overlay
-                    var cooldownEntry = skillCooldownEntries.Find(e => e.skillName == btn.item.itemName);
-                    if (cooldownEntry != null && cooldownEntry.cooldownImage != null)
+                    skillName = btn.item.skillEffect.SkillName;
+                    itemCooldown = btn.item.skillEffect.Cooldown;
+                }
+                else if (btn.item.itemType == ItemType.Consumable)
+                {
+                    skillName = btn.item.itemName;
+                    itemCooldown = btn.item.cooldown;
+                }
+                
+                if (!string.IsNullOrEmpty(skillName))
+                {
+                    float remainingCooldown = skillsComponent.GetRemainingCooldown(skillName);
+                    
+                    if (remainingCooldown > 0)
                     {
-                        float itemSkillCooldown = btn.item.skillEffect.Cooldown; // Используем кулдаун скилла предмета
-                        float progress = Mathf.Clamp01(remainingCooldown / itemSkillCooldown);
-                        cooldownEntry.cooldownImage.fillAmount = progress;
-                        
-                        // Затемняем иконку
-                        Image skillIcon = cooldownEntry.cooldownImage.GetComponentInParent<Image>();
-                        if (skillIcon != null)
+                        // Находим соответствующий cooldown overlay
+                        var cooldownEntry = skillCooldownEntries.Find(e => e.skillName == btn.item.itemName);
+                        if (cooldownEntry != null && cooldownEntry.cooldownImage != null)
                         {
-                            skillIcon.color = progress > 0 ? Color.gray : Color.white;
+                            float progress = Mathf.Clamp01(remainingCooldown / itemCooldown);
+                            cooldownEntry.cooldownImage.fillAmount = progress;
+                            
+                            // Затемняем иконку
+                            Image skillIcon = cooldownEntry.cooldownImage.GetComponentInParent<Image>();
+                            if (skillIcon != null)
+                            {
+                                skillIcon.color = progress > 0 ? Color.gray : Color.white;
+                            }
                         }
                     }
                 }
@@ -488,6 +578,7 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             }
         }
     }
+    
     private void OnDestroy()
     {
         if (stats != null)
@@ -500,19 +591,19 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             stats.OnLevelChangedEvent -= UpdateLevelAndExperience;
             stats.OnCharacteristicPointsChangedEvent -= UpdateCharacteristicPoints;
             // Обновленные события для правильного unsubscribe
-            stats.OnStrengthChangedEvent -= (oldValue, newValue) => UpdateAttributesPanel();
-            stats.OnAgilityChangedEvent -= (oldValue, newValue) => UpdateAttributesPanel();
-            stats.OnSpiritChangedEvent -= (oldValue, newValue) => UpdateAttributesPanel();
-            stats.OnConstitutionChangedEvent -= (oldValue, newValue) => UpdateAttributesPanel();
-            stats.OnAccuracyChangedEvent -= (oldValue, newValue) => UpdateAttributesPanel();
-            stats.OnMinAttackChangedEvent -= (oldValue, newValue) => UpdateAttributesPanel();
-            stats.OnMaxAttackChangedEvent -= (oldValue, newValue) => UpdateAttributesPanel();
-            stats.OnMovementSpeedChangedEvent -= (oldValue, newValue) => UpdateAttributesPanel();
-            stats.OnCriticalHitChanceChangedEvent -= (oldValue, newValue) => UpdateAttributesPanel();
-            stats.OnPhysicalResistanceChangedEvent -= (oldValue, newValue) => UpdateAttributesPanel();
-            stats.OnArmorChangedEvent -= (oldValue, newValue) => UpdateAttributesPanel();
-            stats.OnMaxHealthChangedEvent -= (oldValue, newValue) => UpdateAttributesPanel();
-            stats.OnMaxManaChangedEvent -= (oldValue, newValue) => UpdateAttributesPanel();
+            if (strengthChangedHandler != null) stats.OnStrengthChangedEvent -= strengthChangedHandler;
+            if (agilityChangedHandler != null) stats.OnAgilityChangedEvent -= agilityChangedHandler;
+            if (spiritChangedHandler != null) stats.OnSpiritChangedEvent -= spiritChangedHandler;
+            if (constitutionChangedHandler != null) stats.OnConstitutionChangedEvent -= constitutionChangedHandler;
+            if (accuracyChangedHandler != null) stats.OnAccuracyChangedEvent -= accuracyChangedHandler;
+            if (minAttackChangedHandler != null) stats.OnMinAttackChangedEvent -= minAttackChangedHandler;
+            if (maxAttackChangedHandler != null) stats.OnMaxAttackChangedEvent -= maxAttackChangedHandler;
+            if (movementSpeedChangedHandler != null) stats.OnMovementSpeedChangedEvent -= movementSpeedChangedHandler;
+            if (criticalHitChanceChangedHandler != null) stats.OnCriticalHitChanceChangedEvent -= criticalHitChanceChangedHandler;
+            if (physicalResistanceChangedHandler != null) stats.OnPhysicalResistanceChangedEvent -= physicalResistanceChangedHandler;
+            if (armorChangedHandler != null) stats.OnArmorChangedEvent -= armorChangedHandler;
+            if (maxHealthChangedHandler != null) stats.OnMaxHealthChangedEvent -= maxHealthChangedHandler;
+            if (maxManaChangedHandler != null) stats.OnMaxManaChangedEvent -= maxManaChangedHandler;
         }
         // PlayerUI больше не слушает события инвентаря - это делает InventoryUI
     }
@@ -631,7 +722,7 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
                 if (constitutionText != null) constitutionText.text = $"{value}";
                 break;
             case "accuracy":
-                if (accuracyText != null) strengthText.text = $"{value}";
+                if (accuracyText != null) accuracyText.text = $"{value}";
                 break;
             case "minattack":
                 if (minAttackText != null) minAttackText.text = $"{value}";

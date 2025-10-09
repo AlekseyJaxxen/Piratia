@@ -1,7 +1,7 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "NewBootsItem", menuName = "Inventory/BootsItem")]
-public class BootsItem : Item
+[CreateAssetMenu(fileName = "NewLegsItem", menuName = "Inventory/LegsItem")]
+public class LegsItem : Item
 {
     private void OnEnable()
     {
@@ -11,10 +11,10 @@ public class BootsItem : Item
             itemType = ItemType.Armor;
         
         if (equipmentSlot == EquipmentSlot.None)
-            equipmentSlot = EquipmentSlot.Boots;
+            equipmentSlot = EquipmentSlot.Legs;
             
         if (primaryDisplaySlot == EquipmentSlot.None)
-            primaryDisplaySlot = EquipmentSlot.Boots;
+            primaryDisplaySlot = EquipmentSlot.Legs;
     }
 
     public override bool Use(PlayerCore player)
@@ -30,18 +30,18 @@ public class BootsItem : Item
                     if (slotIndex >= 0)
                     {
                         player.CmdEquipItem(player.Inventory.items[slotIndex], slotIndex, slotUI.slotType);
-                        Debug.Log($"[BootsItem] Equipping {itemName} to {slotUI.slotType} from slot {slotIndex}");
+                        Debug.Log($"[LegsItem] Equipping {itemName} to {slotUI.slotType} from slot {slotIndex}");
                         return true;
                     }
                 }
                 else
                 {
-                    Debug.LogWarning($"[BootsItem] No matching equipment slot for {itemName}");
+                    Debug.LogWarning($"[LegsItem] No matching equipment slot for {itemName}");
                 }
             }
             else
             {
-                Debug.LogWarning($"[BootsItem] Cannot equip {itemName}: level {player.Stats.level} or class {player.Stats.characterClass} does not match required level {requiredLevel} or class {characterClass}");
+                Debug.LogWarning($"[LegsItem] Cannot equip {itemName}: level {player.Stats.level} or class {player.Stats.characterClass} does not match required level {requiredLevel} or class {characterClass}");
             }
         }
         else

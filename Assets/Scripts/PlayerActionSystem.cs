@@ -981,11 +981,10 @@ public class PlayerActionSystem : NetworkBehaviour
         
         float currentAttackSpeed = _core.Stats.attackSpeed;
         float baseCooldown = 1f / currentAttackSpeed;
-        float clampedCooldown = Mathf.Clamp(baseCooldown, 0.3f, 2.0f);
         
-        Debug.Log($"[PlayerActionSystem] CalculateBasicAttackCooldown: currentAttackSpeed={currentAttackSpeed:F2}, baseCooldown={baseCooldown:F3}s, clamped={clampedCooldown:F3}s");
+        Debug.Log($"[PlayerActionSystem] CalculateBasicAttackCooldown: currentAttackSpeed={currentAttackSpeed:F2}, baseCooldown={baseCooldown:F3}s");
         
-        return clampedCooldown;
+        return baseCooldown;
     }
     [Client]
     private void UpdateTargetIndicator()

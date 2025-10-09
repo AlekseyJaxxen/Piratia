@@ -1328,9 +1328,17 @@ public class PlayerCore : NetworkBehaviour
                 // Selected skill from item
                 return;
             }
-            item.Use(this);
-            ConsumeItem(slotIndex, itemID);
-            // Item used
+            bool success = item.Use(this);
+            if (success)
+            {
+                ConsumeItem(slotIndex, itemID);
+                Debug.Log($"[PlayerCore] Successfully used item {item.itemName}");
+            }
+            else
+            {
+                Debug.LogWarning($"[PlayerCore] Failed to use item {item.itemName}");
+            }
+            // Item use attempted
         }
     }
 

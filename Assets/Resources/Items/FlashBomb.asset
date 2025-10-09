@@ -30,6 +30,12 @@ MonoBehaviour:
   canHotbar: 1
   isTwoHanded: 0
   preferRightHand: 1
+  consumableType: 0
+  cooldown: 1
+  instantUse: 1
+  healAmount: 0
+  manaAmount: 0
+  temporaryBuffs: []
   chestRewards: []
   useClassBasedRewards: 0
   classRewards: []
@@ -129,7 +135,7 @@ MonoBehaviour:
   rarity: 0
   requiredLevel: 1
   characterClass: 0
-  skillEffect: {fileID: 11400000, guid: 701db164e762e8d4eb55ee37444ee209, type: 2}
+  skillEffect: {fileID: 11400000, guid: 0d4143ed66086584f8e1ef1265b4225e, type: 2}
   castRange: 8
   model1: 
   boneName: 

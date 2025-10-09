@@ -30,6 +30,12 @@ MonoBehaviour:
   canHotbar: 0
   isTwoHanded: 0
   preferRightHand: 1
+  consumableType: 0
+  cooldown: 1
+  instantUse: 1
+  healAmount: 0
+  manaAmount: 0
+  temporaryBuffs: []
   chestRewards: []
   useClassBasedRewards: 0
   classRewards: []
@@ -86,7 +92,7 @@ MonoBehaviour:
     minValue: 10
     maxValue: 100
     chance: 1
-  armorRange:
+  constantDefenceRange:
     minValue: 0
     maxValue: 0
     chance: 1
@@ -171,7 +177,7 @@ MonoBehaviour:
   crtConstantBonus: 0
   mspdConstantBonus: 0
   physicalResist: 0
-  armorBonus: 0
+  constantDefence: 20
   physicalResistBonus: 0
   itemLeftHandExertIdentifier: 
   itemEnergy: 0

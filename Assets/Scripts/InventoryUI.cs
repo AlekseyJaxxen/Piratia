@@ -133,23 +133,37 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
     public void UpdateEquipmentUI()
     {
         if (core == null || core.Inventory == null) return;
+        
+        // Используем автоматически найденные слоты из equipmentSlots
+        EquipmentSlotUI[] slots = GetEquipmentSlots();
+        if (slots != null && slots.Length > 0)
+        {
+            foreach (EquipmentSlotUI slot in slots)
+            {
+                if (slot != null)
+                {
+                    slot.SetItem(core.Inventory.GetEquipped(slot.slotType));
+                }
+            }
+        }
+        else
+        {
+            Debug.LogWarning("[InventoryUI] No equipment slots found!");
+        }
+        
+        // Также обновляем отдельные слоты, если они назначены (для обратной совместимости)
         if (headSlotUI != null) headSlotUI.SetItem(core.Inventory.GetEquipped(EquipmentSlot.Head));
         if (bodySlotUI != null) bodySlotUI.SetItem(core.Inventory.GetEquipped(EquipmentSlot.Body));
         if (legsSlotUI != null) legsSlotUI.SetItem(core.Inventory.GetEquipped(EquipmentSlot.Legs));
         if (rightHandSlotUI != null) rightHandSlotUI.SetItem(core.Inventory.GetEquipped(EquipmentSlot.RightHand));
         if (leftHandSlotUI != null) leftHandSlotUI.SetItem(core.Inventory.GetEquipped(EquipmentSlot.LeftHand));
         if (ringSlotUI != null) ringSlotUI.SetItem(core.Inventory.GetEquipped(EquipmentSlot.Ring));
-        else Debug.LogWarning("[InventoryUI] ringSlotUI is not assigned!");
         if (necklaceSlotUI != null) necklaceSlotUI.SetItem(core.Inventory.GetEquipped(EquipmentSlot.Necklace));
-        else Debug.LogWarning("[InventoryUI] necklaceSlotUI is not assigned!");
         if (bootsSlotUI != null) bootsSlotUI.SetItem(core.Inventory.GetEquipped(EquipmentSlot.Boots));
-        else Debug.LogWarning("[InventoryUI] bootsSlotUI is not assigned!");
         if (glovesSlotUI != null) glovesSlotUI.SetItem(core.Inventory.GetEquipped(EquipmentSlot.Gloves));
-        else Debug.LogWarning("[InventoryUI] glovesSlotUI is not assigned!");
         if (weaponSlotUI != null) weaponSlotUI.SetItem(core.Inventory.GetEquipped(EquipmentSlot.Weapon));
-        else Debug.LogWarning("[InventoryUI] weaponSlotUI is not assigned!");
         if (offHandSlotUI != null) offHandSlotUI.SetItem(core.Inventory.GetEquipped(EquipmentSlot.OffHand));
-        else Debug.LogWarning("[InventoryUI] offHandSlotUI is not assigned!");
+        
         // Equipment UI updated
     }
 
@@ -167,17 +181,22 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         sb.AppendLine($"<size=16><b><color={rarityColor}>{item.itemName}</color></b></size>");
         
         // Защита / урон
-        if (item.physicalResist != 0 || item.minAttackConstantBonus != 0 || item.maxAttackConstantBonus != 0)
+        if (item.constantDefence != 0 || item.physicalResistBonus != 0 || item.minAttackConstantBonus != 0 || item.maxAttackConstantBonus != 0)
         {
             string defenseDamage = "";
-            if (item.physicalResist != 0)
+            if (item.constantDefence != 0)
             {
-                defenseDamage += $"Defense (+{item.physicalResist})";
+                defenseDamage += $"Защита (+{item.constantDefence})";
+            }
+            if (item.physicalResistBonus != 0)
+            {
+                if (defenseDamage != "") defenseDamage += " / ";
+                defenseDamage += $"Физическая защита (+{item.physicalResistBonus}%)";
             }
             if (item.minAttackConstantBonus != 0 || item.maxAttackConstantBonus != 0)
             {
                 if (defenseDamage != "") defenseDamage += " / ";
-                defenseDamage += $"Damage ({item.minAttackConstantBonus}-{item.maxAttackConstantBonus})";
+                defenseDamage += $"Урон ({item.minAttackConstantBonus}-{item.maxAttackConstantBonus})";
             }
             sb.AppendLine($"<size=11>{defenseDamage}</size>");
         }
@@ -231,7 +250,7 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         if (item.attackSpeedBonus != 0)
             sb.AppendLine($"<size=10>Attack Speed: +{item.attackSpeedBonus:F2}</size>");
         if (item.attackSpeedPercentBonus != 0)
-            sb.AppendLine($"<size=10>Attack Speed: +{item.attackSpeedPercentBonus * 100:F1}%</size>");
+            sb.AppendLine($"<size=10>Attack Speed: +{item.attackSpeedPercentBonus:F1}%</size>");
         
         // Пустая строка
         sb.AppendLine("");
@@ -309,21 +328,27 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         sb.AppendLine($"<size=16><b><color={rarityColor}>{itemInfo.GetItemName()}</color></b></size>");
         
         // Защита / урон (с динамическими статами)
-        int totalPhysicalResist = Mathf.RoundToInt(itemInfo.GetTotalStatBonus(ItemInfo.StatType.PhysicalResist));
+        int totalConstantDefence = Mathf.RoundToInt(itemInfo.GetTotalStatBonus(ItemInfo.StatType.ConstantDefence));
+        int totalPhysicalResistance = Mathf.RoundToInt(itemInfo.GetTotalStatBonus(ItemInfo.StatType.PhysicalResistance));
         int totalMinAttack = Mathf.RoundToInt(itemInfo.GetTotalStatBonus(ItemInfo.StatType.MinAttack));
         int totalMaxAttack = Mathf.RoundToInt(itemInfo.GetTotalStatBonus(ItemInfo.StatType.MaxAttack));
         
-        if (totalPhysicalResist != 0 || totalMinAttack != 0 || totalMaxAttack != 0)
+        if (totalConstantDefence != 0 || totalPhysicalResistance != 0 || totalMinAttack != 0 || totalMaxAttack != 0)
         {
             string defenseDamage = "";
-            if (totalPhysicalResist != 0)
+            if (totalConstantDefence != 0)
             {
-                defenseDamage += $"Defense (+{totalPhysicalResist})";
+                defenseDamage += $"Защита (+{totalConstantDefence})";
+            }
+            if (totalPhysicalResistance != 0)
+            {
+                if (defenseDamage != "") defenseDamage += " / ";
+                defenseDamage += $"Физическая защита (+{totalPhysicalResistance}%)";
             }
             if (totalMinAttack != 0 || totalMaxAttack != 0)
             {
                 if (defenseDamage != "") defenseDamage += " / ";
-                defenseDamage += $"Damage ({totalMinAttack}-{totalMaxAttack})";
+                defenseDamage += $"Урон ({totalMinAttack}-{totalMaxAttack})";
             }
             sb.AppendLine($"<size=11>{defenseDamage}</size>");
         }
@@ -385,7 +410,7 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
             if (totalMaxMP != 0) sb.AppendLine($"<size=11>Mana: +{totalMaxMP}</size>");
             if (totalMovementSpeed != 0) sb.AppendLine($"<size=11>Movement Speed: +{totalMovementSpeed}</size>");
             if (totalAttackSpeed != 0) sb.AppendLine($"<size=11>Attack Speed: +{totalAttackSpeed:F2}</size>");
-            if (totalAttackSpeedPercent != 0) sb.AppendLine($"<size=11>Attack Speed: +{totalAttackSpeedPercent * 100:F1}%</size>");
+            if (totalAttackSpeedPercent != 0) sb.AppendLine($"<size=11>Attack Speed: +{totalAttackSpeedPercent:F1}%</size>");
             sb.AppendLine("");
         }
         

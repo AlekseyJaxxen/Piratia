@@ -14,7 +14,7 @@ public class BowItem : Item
         attackRangeBonus = 6f;
     }
 
-    public override void Use(PlayerCore player)
+    public override bool Use(PlayerCore player)
     {
         if (!canUse)
         {
@@ -28,6 +28,7 @@ public class BowItem : Item
                     {
                         player.CmdEquipItem(player.Inventory.items[slotIndex], slotIndex, slotUI.slotType);
                         Debug.Log($"[BowItem] Equipping {itemName} to {slotUI.slotType} from slot {slotIndex}");
+                        return true;
                     }
                 }
                 else
@@ -42,8 +43,9 @@ public class BowItem : Item
         }
         else
         {
-            base.Use(player);
+            return base.Use(player);
         }
+        return false;
     }
 
 }

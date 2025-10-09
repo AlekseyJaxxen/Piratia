@@ -219,6 +219,14 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
                         return;
                     }
                     
+                    // Обработка consumable предметов
+                    if (item.itemType == ItemType.Consumable && item.canUse)
+                    {
+                        Debug.Log($"[InventorySlot] Double-click using consumable: {itemInfo.GetItemName()} (ID: {itemInfo.id}) from slot {slotIndex}");
+                        core.CmdSelectItem(itemInfo.id, slotIndex);
+                        return;
+                    }
+                    
                     // Обработка экипируемых предметов
                     if (item.IsEquipable(core.Stats.level, core.Stats.characterClass))
                     {

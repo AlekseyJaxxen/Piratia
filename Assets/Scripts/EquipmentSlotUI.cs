@@ -24,6 +24,13 @@ public class EquipmentSlotUI : MonoBehaviour, IPointerEnterHandler, IPointerExit
     }
     public void SetItem(ItemInfo info)
     {
+        // Проверяем, что UI объекты не уничтожены
+        if (itemIcon == null)
+        {
+            Debug.LogWarning($"[EquipmentSlotUI] itemIcon is null for slot {slotType}, skipping SetItem");
+            return;
+        }
+        
         itemInfo = info;
         Item item = info.GetItem();
         Debug.Log($"[EquipmentSlotUI] SetItem for {slotType}: ID={info.id}, quantity={info.quantity}, item={item?.itemName ?? "null"}");

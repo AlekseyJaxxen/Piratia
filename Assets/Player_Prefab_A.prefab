@@ -1087,6 +1087,37 @@ Transform:
   - {fileID: 2937845215519842338}
   m_Father: {fileID: 8988732741915685909}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1096032947981514637
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4688138763003029852}
+  m_Layer: 0
+  m_Name: ChestArmorSlot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4688138763003029852
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1096032947981514637}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4992496547594787257}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1221346824116810880
 GameObject:
   m_ObjectHideFlags: 0
@@ -1396,11 +1427,13 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
-    armorBonus: 0
+    constantDefence: 0
     physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
+    attackSpeedBonus: 0
+    attackSpeedPercentBonus: 0
     dynamicRarity: 0
 --- !u!222 &7335171296822333363
 CanvasRenderer:
@@ -1986,11 +2019,13 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
-    armorBonus: 0
+    constantDefence: 0
     physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
+    attackSpeedBonus: 0
+    attackSpeedPercentBonus: 0
     dynamicRarity: 0
 --- !u!222 &4633181283015068175
 CanvasRenderer:
@@ -2862,11 +2897,13 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
-    armorBonus: 0
+    constantDefence: 0
     physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
+    attackSpeedBonus: 0
+    attackSpeedPercentBonus: 0
     dynamicRarity: 0
 --- !u!222 &8186416093877021938
 CanvasRenderer:
@@ -2976,11 +3013,13 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
-    armorBonus: 0
+    constantDefence: 0
     physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
+    attackSpeedBonus: 0
+    attackSpeedPercentBonus: 0
     dynamicRarity: 0
 --- !u!222 &1586389107340814051
 CanvasRenderer:
@@ -4326,11 +4365,13 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
-    armorBonus: 0
+    constantDefence: 0
     physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
+    attackSpeedBonus: 0
+    attackSpeedPercentBonus: 0
     dynamicRarity: 0
 --- !u!222 &8845869027424396253
 CanvasRenderer:
@@ -5731,6 +5772,7 @@ MonoBehaviour:
   syncInterval: 0
   classData: {fileID: 0}
   characterClass: 3
+  playerClasses: 
   level: 1
   currentExperience: 0
   totalExperience: 0
@@ -5921,7 +5963,6 @@ MonoBehaviour:
   castCursor: {fileID: 2800000, guid: d59f158d902389043a1236e952906a5e, type: 3}
   attackCursor: {fileID: 2800000, guid: 8f25a92609cc5a748a87869de53d5614, type: 3}
   cursorUpdateInterval: 0.05
-  globalCooldown: 0.05
   _isInvisible: 0
   OnToggleBuffChanged:
     m_PersistentCalls:
@@ -6069,11 +6110,13 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
-    armorBonus: 0
+    constantDefence: 0
     physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
+    attackSpeedBonus: 0
+    attackSpeedPercentBonus: 0
     dynamicRarity: 0
   bodySlot:
     id: 0
@@ -6092,11 +6135,13 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
-    armorBonus: 0
+    constantDefence: 0
     physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
+    attackSpeedBonus: 0
+    attackSpeedPercentBonus: 0
     dynamicRarity: 0
   legsSlot:
     id: 0
@@ -6115,11 +6160,13 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
-    armorBonus: 0
+    constantDefence: 0
     physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
+    attackSpeedBonus: 0
+    attackSpeedPercentBonus: 0
     dynamicRarity: 0
   rightHandSlot:
     id: 0
@@ -6138,11 +6185,13 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
-    armorBonus: 0
+    constantDefence: 0
     physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
+    attackSpeedBonus: 0
+    attackSpeedPercentBonus: 0
     dynamicRarity: 0
   leftHandSlot:
     id: 0
@@ -6161,11 +6210,13 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
-    armorBonus: 0
+    constantDefence: 0
     physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
+    attackSpeedBonus: 0
+    attackSpeedPercentBonus: 0
     dynamicRarity: 0
   ringSlot:
     id: 0
@@ -6184,11 +6235,13 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
-    armorBonus: 0
+    constantDefence: 0
     physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
+    attackSpeedBonus: 0
+    attackSpeedPercentBonus: 0
     dynamicRarity: 0
   necklaceSlot:
     id: 0
@@ -6207,11 +6260,13 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
-    armorBonus: 0
+    constantDefence: 0
     physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
+    attackSpeedBonus: 0
+    attackSpeedPercentBonus: 0
     dynamicRarity: 0
   bootsSlot:
     id: 0
@@ -6230,11 +6285,13 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
-    armorBonus: 0
+    constantDefence: 0
     physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
+    attackSpeedBonus: 0
+    attackSpeedPercentBonus: 0
     dynamicRarity: 0
   glovesSlot:
     id: 0
@@ -6253,11 +6310,13 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
-    armorBonus: 0
+    constantDefence: 0
     physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
+    attackSpeedBonus: 0
+    attackSpeedPercentBonus: 0
     dynamicRarity: 0
   weaponSlot:
     id: 0
@@ -6276,11 +6335,13 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
-    armorBonus: 0
+    constantDefence: 0
     physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
+    attackSpeedBonus: 0
+    attackSpeedPercentBonus: 0
     dynamicRarity: 0
   offHandSlot:
     id: 0
@@ -6299,11 +6360,13 @@ MonoBehaviour:
     crtConstantBonus: 0
     mspdConstantBonus: 0
     physicalResist: 0
-    armorBonus: 0
+    constantDefence: 0
     physicalResistBonus: 0
     hpRecoveryBonus: 0
     spRecoveryBonus: 0
     dodgeBonus: 0
+    attackSpeedBonus: 0
+    attackSpeedPercentBonus: 0
     dynamicRarity: 0
   gold: 0
   OnInventoryChanged:
@@ -17709,6 +17772,10 @@ PrefabInstance:
     - {fileID: 5866666021909216657, guid: 6bcc309d9b24e4641b012cc7c579dacb, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: -5224769410015034004, guid: 6bcc309d9b24e4641b012cc7c579dacb,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4688138763003029852}
     - targetCorrespondingSourceObject: {fileID: 8226918166604940995, guid: 6bcc309d9b24e4641b012cc7c579dacb,
         type: 3}
       insertIndex: -1
@@ -17722,6 +17789,12 @@ PrefabInstance:
 --- !u!4 &8700108217014806 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8226918166604940995, guid: 6bcc309d9b24e4641b012cc7c579dacb,
+    type: 3}
+  m_PrefabInstance: {fileID: 8229495781744860373}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &4992496547594787257 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -5224769410015034004, guid: 6bcc309d9b24e4641b012cc7c579dacb,
     type: 3}
   m_PrefabInstance: {fileID: 8229495781744860373}
   m_PrefabAsset: {fileID: 0}
