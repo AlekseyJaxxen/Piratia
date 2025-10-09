@@ -216,35 +216,52 @@ public class MassPvPOptimizer : NetworkBehaviour
     
     private void ApplyLODToPlayer(PlayerCore player, PlayerLOD lod)
     {
+        // Получаем компоненты с проверкой на существование
+        Renderer[] renderers = player.GetComponentsInChildren<Renderer>();
+        Animator animator = player.GetComponent<Animator>();
+        Collider collider = player.GetComponent<Collider>();
+        
         switch (lod.CurrentLevel)
         {
             case LODLevel.High:
                 // Полная детализация
-                player.GetComponent<Renderer>().enabled = true;
-                player.GetComponent<Animator>().enabled = true;
-                player.GetComponent<Collider>().enabled = true;
+                foreach (var renderer in renderers)
+                {
+                    renderer.enabled = true;
+                }
+                if (animator != null) animator.enabled = true;
+                if (collider != null) collider.enabled = true;
                 break;
                 
             case LODLevel.Medium:
                 // Средняя детализация
-                player.GetComponent<Renderer>().enabled = true;
-                player.GetComponent<Animator>().enabled = true;
-                player.GetComponent<Collider>().enabled = true;
+                foreach (var renderer in renderers)
+                {
+                    renderer.enabled = true;
+                }
+                if (animator != null) animator.enabled = true;
+                if (collider != null) collider.enabled = true;
                 // Уменьшаем частоту обновления анимаций
                 break;
                 
             case LODLevel.Low:
                 // Низкая детализация
-                player.GetComponent<Renderer>().enabled = true;
-                player.GetComponent<Animator>().enabled = false;
-                player.GetComponent<Collider>().enabled = true;
+                foreach (var renderer in renderers)
+                {
+                    renderer.enabled = true;
+                }
+                if (animator != null) animator.enabled = false;
+                if (collider != null) collider.enabled = true;
                 break;
                 
             case LODLevel.Culled:
                 // Скрываем игрока
-                player.GetComponent<Renderer>().enabled = false;
-                player.GetComponent<Animator>().enabled = false;
-                player.GetComponent<Collider>().enabled = false;
+                foreach (var renderer in renderers)
+                {
+                    renderer.enabled = false;
+                }
+                if (animator != null) animator.enabled = false;
+                if (collider != null) collider.enabled = false;
                 break;
         }
     }

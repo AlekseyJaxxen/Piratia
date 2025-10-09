@@ -228,6 +228,10 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
             sb.AppendLine($"<size=10>Mana: +{item.maxSpConstantBonus}</size>");
         if (item.mspdConstantBonus != 0)
             sb.AppendLine($"<size=10>Movement Speed: +{Mathf.RoundToInt(item.mspdConstantBonus * 100)}</size>");
+        if (item.attackSpeedBonus != 0)
+            sb.AppendLine($"<size=10>Attack Speed: +{item.attackSpeedBonus:F2}</size>");
+        if (item.attackSpeedPercentBonus != 0)
+            sb.AppendLine($"<size=10>Attack Speed: +{item.attackSpeedPercentBonus * 100:F1}%</size>");
         
         // Пустая строка
         sb.AppendLine("");
@@ -371,13 +375,17 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         int totalMaxHP = Mathf.RoundToInt(itemInfo.GetTotalStatBonus(ItemInfo.StatType.MaxHP));
         int totalMaxMP = Mathf.RoundToInt(itemInfo.GetTotalStatBonus(ItemInfo.StatType.MaxMP));
         int totalMovementSpeed = itemInfo.GetDisplayValue(ItemInfo.StatType.MovementSpeed);
+        float totalAttackSpeed = itemInfo.GetTotalStatBonus(ItemInfo.StatType.AttackSpeed);
+        float totalAttackSpeedPercent = itemInfo.GetTotalStatBonus(ItemInfo.StatType.AttackSpeedPercent);
         
-        if (totalMaxHP != 0 || totalMaxMP != 0 || totalMovementSpeed != 0)
+        if (totalMaxHP != 0 || totalMaxMP != 0 || totalMovementSpeed != 0 || totalAttackSpeed != 0 || totalAttackSpeedPercent != 0)
         {
             sb.AppendLine("<size=11><b>Other Stats:</b></size>");
             if (totalMaxHP != 0) sb.AppendLine($"<size=11>Health: +{totalMaxHP}</size>");
             if (totalMaxMP != 0) sb.AppendLine($"<size=11>Mana: +{totalMaxMP}</size>");
             if (totalMovementSpeed != 0) sb.AppendLine($"<size=11>Movement Speed: +{totalMovementSpeed}</size>");
+            if (totalAttackSpeed != 0) sb.AppendLine($"<size=11>Attack Speed: +{totalAttackSpeed:F2}</size>");
+            if (totalAttackSpeedPercent != 0) sb.AppendLine($"<size=11>Attack Speed: +{totalAttackSpeedPercent * 100:F1}%</size>");
             sb.AppendLine("");
         }
         

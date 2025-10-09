@@ -21,6 +21,7 @@ public class Item : ScriptableObject
     public EquipmentSlot alternativeSlot = EquipmentSlot.None;
     public EquipmentSlot primaryDisplaySlot = EquipmentSlot.None;
     [Header("Flags")]
+    public bool stackable = true; // Может ли предмет стакаться
     public int maxStack = 1;
     public bool canDrop = true;
     public bool canSell = true;
@@ -30,7 +31,25 @@ public class Item : ScriptableObject
     public bool preferRightHand = true; // true = предпочитает правую руку, false = только левую
     
     [Header("Chest Settings")]
-    public ChestItemData chestData; // Данные сундука (используется только для itemType.Chest)
+    [SerializeField] private ChestReward[] chestRewards; // Награды сундука
+    [SerializeField] private bool useClassBasedRewards = false; // Использовать награды по классу
+    [SerializeField] private ClassRewards[] classRewards; // Награды для разных классов
+    
+    [System.Serializable]
+    public class ChestReward
+    {
+        public Item item; // Предмет для выдачи
+        public int quantity = 1; // Количество
+        public float chance = 1.0f; // Шанс выпадения (0.0 - 1.0)
+        public bool isGuaranteed = true; // Гарантированная награда
+    }
+    
+    [System.Serializable]
+    public class ClassRewards
+    {
+        public CharacterClass characterClass; // Класс персонажа
+        public ChestReward[] rewards; // Награды для этого класса
+    }
     [Header("Character Stat Bonuses")]
     public int strengthBonus;
     public int agilityBonus;
@@ -38,6 +57,8 @@ public class Item : ScriptableObject
     public int constitutionBonus;
     public int accuracyBonus;
     public float attackRangeBonus = 0f; // Бонус к дальности атаки
+    public float attackSpeedBonus = 0f; // Плоский бонус к скорости атаки
+    public float attackSpeedPercentBonus = 0f; // Процентный бонус к скорости атаки (0.1 = +10%)
     
     [Header("Recovery & Special Stats")]
     public int hpRecoveryBonus;
@@ -69,6 +90,8 @@ public class Item : ScriptableObject
     public StatRange spRecoveryRange = new StatRange { minValue = 0, maxValue = 0 };
     public StatRange dodgeRange = new StatRange { minValue = 0, maxValue = 0 };
     public StatRange damageChanceRange = new StatRange { minValue = 0, maxValue = 0 }; // Шанс урона
+    public FloatStatRange attackSpeedRange = new FloatStatRange { minValue = 0, maxValue = 0 }; // Плоский бонус к скорости атаки
+    public FloatStatRange attackSpeedPercentRange = new FloatStatRange { minValue = 0, maxValue = 0 }; // Процентный бонус к скорости атаки
     
     [System.Serializable]
     public class StatRange
@@ -117,7 +140,7 @@ public class Item : ScriptableObject
     public bool picked;
     public bool discard;
     public bool confirmToDelete;
-    public bool stackable;
+    // public bool stackable; // Перенесено выше в секцию Flags
     public bool isInstantiation;
     public int price;
     public int size;
@@ -241,6 +264,8 @@ public class Item : ScriptableObject
         target.spRecoveryRange = new StatRange { minValue = source.spRecoveryRange.minValue, maxValue = source.spRecoveryRange.maxValue, chance = source.spRecoveryRange.chance };
         target.dodgeRange = new StatRange { minValue = source.dodgeRange.minValue, maxValue = source.dodgeRange.maxValue, chance = source.dodgeRange.chance };
         target.damageChanceRange = new StatRange { minValue = source.damageChanceRange.minValue, maxValue = source.damageChanceRange.maxValue, chance = source.damageChanceRange.chance };
+        target.attackSpeedRange = new FloatStatRange { minValue = source.attackSpeedRange.minValue, maxValue = source.attackSpeedRange.maxValue, chance = source.attackSpeedRange.chance };
+        target.attackSpeedPercentRange = new FloatStatRange { minValue = source.attackSpeedPercentRange.minValue, maxValue = source.attackSpeedPercentRange.maxValue, chance = source.attackSpeedPercentRange.chance };
         
         // Сбрасываем бонусные статы (они будут сгенерированы)
         target.strengthBonus = 0;
@@ -252,6 +277,8 @@ public class Item : ScriptableObject
         target.spRecoveryBonus = 0;
         target.dodgeBonus = 0;
         target.damageChanceBonus = 0;
+        target.attackSpeedBonus = 0;
+        target.attackSpeedPercentBonus = 0;
         
         // Сбрасываем бонусы урона и других статов (они будут сгенерированы)
         target.minAttackConstantBonus = 0;
@@ -263,6 +290,8 @@ public class Item : ScriptableObject
         target.physicalResist = 0;
         target.armorBonus = 0;
         target.physicalResistBonus = 0;
+        target.attackSpeedBonus = source.attackSpeedBonus;
+        target.attackSpeedPercentBonus = source.attackSpeedPercentBonus;
     }
     
     private void GenerateRandomStats(Item item)
@@ -346,6 +375,16 @@ public class Item : ScriptableObject
         if (item.damageChanceRange.maxValue > 0 && Random.Range(0f, 1f) <= item.damageChanceRange.chance)
         {
             item.damageChanceBonus = Random.Range(item.damageChanceRange.minValue, item.damageChanceRange.maxValue + 1);
+        }
+        
+        if (item.attackSpeedRange.maxValue > 0 && Random.Range(0f, 1f) <= item.attackSpeedRange.chance)
+        {
+            item.attackSpeedBonus = Random.Range(item.attackSpeedRange.minValue, item.attackSpeedRange.maxValue);
+        }
+        
+        if (item.attackSpeedPercentRange.maxValue > 0 && Random.Range(0f, 1f) <= item.attackSpeedPercentRange.chance)
+        {
+            item.attackSpeedPercentBonus = Random.Range(item.attackSpeedPercentRange.minValue, item.attackSpeedPercentRange.maxValue);
         }
     }
     
@@ -615,7 +654,7 @@ public class Item : ScriptableObject
             Debug.Log($"Used {itemName}");
             
             // Обработка сундуков
-            if (itemType == ItemType.Chest && chestData != null)
+            if (itemType == ItemType.Chest)
             {
                 OpenChest(player);
                 return;
@@ -648,7 +687,7 @@ public class Item : ScriptableObject
                         {
                             targetPos = player.transform.position + player.transform.forward * castRange;
                         }
-                        skills.CmdExecuteSkill(player, targetPos, 0, skillEffect.SkillName, 0);
+                        skills.ExecuteItemSkill(player, targetPos, 0, skillEffect, 0);
                     }
                 }
             }
@@ -660,59 +699,79 @@ public class Item : ScriptableObject
     /// </summary>
     private void OpenChest(PlayerCore player)
     {
-        if (chestData == null)
+        Debug.Log($"[Item] Opening chest {itemName} for player {player.playerName} (class: {player.Stats.characterClass})");
+        Debug.Log($"[Item] Chest rewards count: {chestRewards?.Length ?? 0}");
+        Debug.Log($"[Item] Use class based rewards: {useClassBasedRewards}");
+        Debug.Log($"[Item] Class rewards count: {classRewards?.Length ?? 0}");
+        
+        if (chestRewards == null || chestRewards.Length == 0)
         {
-            Debug.LogError($"[Item] ChestData is null for chest item {itemName}!");
+            Debug.LogWarning($"[Item] No rewards configured for chest {itemName}!");
             return;
         }
         
-        // Генерируем награды
-        List<ItemInfo> rewards = chestData.GenerateRewards();
-        int goldReward = chestData.GetGoldReward();
+        List<ChestReward> rewardsToGive = new List<ChestReward>();
+        
+        // Выбираем награды в зависимости от настроек
+        if (useClassBasedRewards && classRewards != null)
+        {
+            Debug.Log($"[Item] Using both default and class rewards for: {player.Stats.characterClass}");
+            
+            // Сначала добавляем обычные награды
+            rewardsToGive.AddRange(chestRewards);
+            Debug.Log($"[Item] Added default rewards: {chestRewards.Length} items");
+            
+            // Потом ищем и добавляем класс-специфичные награды
+            var classReward = System.Array.Find(classRewards, cr => cr.characterClass == player.Stats.characterClass);
+            if (classReward != null && classReward.rewards != null)
+            {
+                rewardsToGive.AddRange(classReward.rewards);
+                Debug.Log($"[Item] Added class rewards: {classReward.rewards.Length} items");
+            }
+            else
+            {
+                Debug.LogWarning($"[Item] No class rewards found for {player.Stats.characterClass}, only default rewards will be given");
+            }
+        }
+        else
+        {
+            Debug.Log($"[Item] Using only default rewards: {chestRewards.Length} items");
+            // Используем только обычные награды
+            rewardsToGive.AddRange(chestRewards);
+        }
         
         // Выдаем предметы игроку
         bool allItemsAdded = true;
-        foreach (var reward in rewards)
-        {
-            if (!player.Inventory.AddItemInfo(reward))
-            {
-                allItemsAdded = false;
-                Debug.LogWarning($"[Item] Failed to add item {reward.id} to player {player.playerName}'s inventory");
-            }
-        }
-        
-        // Выдаем золото
-        if (goldReward > 0)
-        {
-            player.Inventory.AddGold(goldReward);
-        }
-        
-        // Показываем уведомление игроку
-        ShowChestRewardNotification(player, rewards, goldReward, allItemsAdded);
-        
-        Debug.Log($"[Item] Player {player.playerName} opened chest {itemName}, received {rewards.Count} items and {goldReward} gold");
-    }
-    
-    /// <summary>
-    /// Показывает уведомление о наградах из сундука
-    /// </summary>
-    private void ShowChestRewardNotification(PlayerCore player, List<ItemInfo> rewards, int goldReward, bool allItemsAdded)
-    {
         string message = $"Получены награды из {itemName}:\n";
         
-        foreach (var reward in rewards)
+        foreach (var reward in rewardsToGive)
         {
-            Item item = reward.GetItem();
-            if (item != null)
+            if (reward.item == null) continue;
+            
+            // Проверяем шанс выпадения
+            if (!reward.isGuaranteed && UnityEngine.Random.Range(0f, 1f) > reward.chance)
             {
-                string itemName = reward.hasDynamicStats ? reward.dynamicItemName : item.itemName;
-                message += $"• {itemName} x{reward.quantity}\n";
+                continue;
             }
-        }
-        
-        if (goldReward > 0)
-        {
-            message += $"• Золото: {goldReward}\n";
+            
+            // Создаем ItemInfo для предмета
+            ItemInfo itemInfo = new ItemInfo
+            {
+                id = reward.item.id,
+                quantity = reward.quantity,
+                hasDynamicStats = false
+            };
+            
+            // Пытаемся добавить в инвентарь
+            if (player.Inventory.AddItemInfo(itemInfo))
+            {
+                message += $"• {reward.item.itemName} x{reward.quantity}\n";
+            }
+            else
+            {
+                allItemsAdded = false;
+                Debug.LogWarning($"[Item] Failed to add item {reward.item.itemName} to player {player.playerName}'s inventory");
+            }
         }
         
         if (!allItemsAdded)
@@ -720,15 +779,58 @@ public class Item : ScriptableObject
             message += "\n⚠️ Инвентарь полон! Некоторые предметы не были получены.";
         }
         
-        // Показываем уведомление (можно интегрировать с системой уведомлений)
+        // Показываем уведомление
         Debug.Log($"[Item] {message}");
         
-        // Здесь можно добавить UI уведомление
-        // NotificationSystem.ShowNotification(message);
+        // Удаляем сундук из инвентаря после открытия
+        RemoveItemFromInventory(player.Inventory, id, 1);
+        
+        Debug.Log($"[Item] Player {player.playerName} opened chest {itemName}");
     }
+    
+    /// <summary>
+    /// Удаляет предмет из инвентаря по ID
+    /// </summary>
+    private void RemoveItemFromInventory(Inventory inventory, int itemId, int quantity)
+    {
+        for (int i = 0; i < inventory.items.Count; i++)
+        {
+            if (inventory.items[i].id == itemId)
+            {
+                ItemInfo itemInfo = inventory.items[i];
+                itemInfo.quantity -= quantity;
+                
+                if (itemInfo.quantity <= 0)
+                {
+                    inventory.items[i] = new ItemInfo { id = 0, quantity = 0 };
+                }
+                else
+                {
+                    inventory.items[i] = itemInfo;
+                }
+                
+                Debug.Log($"[Item] Removed {quantity} of item {itemId} from inventory");
+                return;
+            }
+        }
+        
+        Debug.LogWarning($"[Item] Could not find item {itemId} in inventory to remove");
+    }
+    
     public bool IsEquipable(int playerLevel, CharacterClass playerClass)
     {
+        // Проверяем соответствие класса
         bool classMatch = characterClass == playerClass;
+        return (equipmentSlot != EquipmentSlot.None || alternativeSlot != EquipmentSlot.None) && playerLevel >= requiredLevel && itemCanEquip && classMatch;
+    }
+
+    /// <summary>
+    /// Проверяет, может ли игрок экипировать предмет, учитывая все его классы
+    /// </summary>
+    public bool IsEquipable(int playerLevel, List<CharacterClass> playerClasses)
+    {
+        // Проверяем соответствие класса
+        bool classMatch = playerClasses.Contains(characterClass);
         return (equipmentSlot != EquipmentSlot.None || alternativeSlot != EquipmentSlot.None) && playerLevel >= requiredLevel && itemCanEquip && classMatch;
     }
     public bool CanEquipToSlot(EquipmentSlot slot)

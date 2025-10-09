@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using Mirror;
 using System.Collections;
+using System.Linq;
 using UnityEngine.AI;
 public class PlayerActionSystem : NetworkBehaviour
 {
@@ -86,8 +87,16 @@ public class PlayerActionSystem : NetworkBehaviour
                 
                 if (isSelf)
                 {
-                    // SelfBuff скиллы: всегда валидны (цель = кастер)
-                    canInterruptAndStart = true;
+                    // SelfBuff скиллы: проверяем кулдаун перед началом действия
+                    if (skillBase.IsOnCooldown())
+                    {
+                        Debug.LogWarning($"[PlayerActionSystem] Cannot start SelfBuff {skillBase.SkillName}: on cooldown ({skillBase.RemainingCooldown:F2}s remaining)");
+                        canInterruptAndStart = false;
+                    }
+                    else
+                    {
+                        canInterruptAndStart = true;
+                    }
                 }
                 else if (!isTargeted && targetPosition.HasValue)
                 {
@@ -523,7 +532,14 @@ public class PlayerActionSystem : NetworkBehaviour
                 
                 // Кулдаун уже проверен выше
                 
-                _core.Skills.CmdExecuteSkill(_core, null, target.GetComponent<NetworkIdentity>().netId, skill.SkillName, ((SkillBase)skill).Weight);
+                if (IsItemSkill(skill))
+                {
+                    _core.Skills.ExecuteItemSkill(_core, null, target.GetComponent<NetworkIdentity>().netId, (SkillBase)skill, ((SkillBase)skill).Weight);
+                }
+                else
+                {
+                    _core.Skills.CmdExecuteSkill(_core, null, target.GetComponent<NetworkIdentity>().netId, ((SkillBase)skill).SkillName, ((SkillBase)skill).Weight);
+                }
                 _core.Combat._lastAttackTime = Time.time;
                 
                 // Логируем завершение следующей атаки в цикле
@@ -599,7 +615,18 @@ public class PlayerActionSystem : NetworkBehaviour
         
         if (isSelfBuff)
         {
-            // SelfBuff: цель всегда в радиусе (сам кастер), просто ждем каст время
+            // SelfBuff: цель всегда в радиусе (сам кастер), но нужно проверить кулдаун ПЕРЕД анимацией
+            Debug.Log($"[PlayerActionSystem] SelfBuff {skillBase.SkillName} - checking cooldown before cast");
+            
+            // КРИТИЧНО: Проверяем кулдаун ПЕРЕД запуском анимации
+            if (skillBase.IsOnCooldown())
+            {
+                Debug.LogWarning($"[PlayerActionSystem] Cannot cast SelfBuff {skillBase.SkillName}: on cooldown ({skillBase.RemainingCooldown:F2}s remaining)");
+                _core.Skills.CancelSkillSelection();
+                CompleteAction();
+                yield break;
+            }
+            
             Debug.Log($"[PlayerActionSystem] SelfBuff {skillBase.SkillName} - waiting for cast time: {skillBase.CastTime}s");
             
             if (skillBase.CastTime > 0)
@@ -609,8 +636,15 @@ public class PlayerActionSystem : NetworkBehaviour
                 _isCasting = false;
             }
             
-            // Выполняем скилл
-            _core.Skills.CmdExecuteSkill(_core, null, targetObject.GetComponent<NetworkIdentity>().netId, skillToCast.SkillName, ((SkillBase)skillToCast).Weight);
+            // Выполняем скилл (проверяем, является ли он скиллом предмета)
+            if (IsItemSkill(skillToCast))
+            {
+                _core.Skills.ExecuteItemSkill(_core, null, targetObject.GetComponent<NetworkIdentity>().netId, (SkillBase)skillToCast, ((SkillBase)skillToCast).Weight);
+            }
+            else
+            {
+                _core.Skills.CmdExecuteSkill(_core, null, targetObject.GetComponent<NetworkIdentity>().netId, ((SkillBase)skillToCast).SkillName, ((SkillBase)skillToCast).Weight);
+            }
             _core.Skills.CancelSkillSelection();
             CompleteAction();
             yield break;
@@ -704,7 +738,14 @@ public class PlayerActionSystem : NetworkBehaviour
                 }
                 if (targetNetId != null)
                 {
-                    _core.Skills.CmdExecuteSkill(_core, targetObject.transform.position, targetNetId.netId, skillToCast.SkillName, ((SkillBase)skillToCast).Weight);
+                    if (IsItemSkill(skillToCast))
+                    {
+                        _core.Skills.ExecuteItemSkill(_core, targetObject.transform.position, targetNetId.netId, (SkillBase)skillToCast, ((SkillBase)skillToCast).Weight);
+                    }
+                    else
+                    {
+                        _core.Skills.CmdExecuteSkill(_core, targetObject.transform.position, targetNetId.netId, ((SkillBase)skillToCast).SkillName, ((SkillBase)skillToCast).Weight);
+                    }
                 }
                 else
                 {
@@ -848,7 +889,14 @@ public class PlayerActionSystem : NetworkBehaviour
                 }
                 
                 // Execute the skill AFTER cast time is complete
-                _core.Skills.CmdExecuteSkill(_core, targetPosition, 0, skillToCast.SkillName, ((SkillBase)skillToCast).Weight);
+                if (IsItemSkill(skillToCast))
+                {
+                    _core.Skills.ExecuteItemSkill(_core, targetPosition, 0, (SkillBase)skillToCast, ((SkillBase)skillToCast).Weight);
+                }
+                else
+                {
+                    _core.Skills.CmdExecuteSkill(_core, targetPosition, 0, ((SkillBase)skillToCast).SkillName, ((SkillBase)skillToCast).Weight);
+                }
                 _core.Skills.CancelSkillSelection();
                 _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
                 CompleteAction();
@@ -908,6 +956,20 @@ public class PlayerActionSystem : NetworkBehaviour
         }
         GetComponent<PlayerAnimationSystem>()?.ResetAnimations();
         ClearTargetIndicator();
+    }
+    
+    /// <summary>
+    /// Проверяет, является ли скилл скиллом предмета
+    /// </summary>
+    private bool IsItemSkill(ISkill skill)
+    {
+        if (skill == null) return false;
+        
+        // Проверяем, есть ли этот скилл в списке скиллов игрока
+        bool isPlayerSkill = _core.Skills.skills.Any(s => s.SkillName == skill.SkillName);
+        
+        // Если скилла нет в списке игрока, значит это скилл предмета
+        return !isPlayerSkill;
     }
     
     /// <summary>

@@ -53,7 +53,7 @@ public class SkillManager : MonoBehaviour
         // Если список пустой, попробуем загрузить BasicAttackSkill из ресурсов
         if (selectedSkills.Count == 0 && characterClass == CharacterClass.Warrior)
         {
-            Debug.LogWarning($"[SkillManager] No warrior skills configured, attempting to load BasicAttackSkill from resources");
+            Debug.LogWarning($"[SkillManager] No {characterClass} skills configured, attempting to load BasicAttackSkill from resources");
             BasicAttackSkill basicAttack = Resources.Load<BasicAttackSkill>("SO-Skills/NewBasicAttackSkill");
             if (basicAttack != null)
             {
@@ -68,5 +68,32 @@ public class SkillManager : MonoBehaviour
         
         // Returning skills for class
         return selectedSkills;
+    }
+    
+    /// <summary>
+    /// Получает все скиллы для игрока с множественными классами
+    /// </summary>
+    public List<SkillBase> GetSkillsForPlayer(CharacterStats playerStats)
+    {
+        List<SkillBase> allSkills = new List<SkillBase>();
+        HashSet<string> addedSkillNames = new HashSet<string>(); // Для избежания дубликатов
+        
+        // Получаем скиллы для всех классов игрока
+        foreach (var playerClass in playerStats.playerClasses)
+        {
+            List<SkillBase> classSkills = GetSkillsForClass(playerClass);
+            foreach (var skill in classSkills)
+            {
+                // Добавляем скилл только если его еще нет
+                if (!addedSkillNames.Contains(skill.SkillName))
+                {
+                    allSkills.Add(skill);
+                    addedSkillNames.Add(skill.SkillName);
+                }
+            }
+        }
+        
+        Debug.Log($"[SkillManager] Getting skills for player with classes [{string.Join(", ", playerStats.playerClasses)}]: {allSkills.Count} unique skills found");
+        return allSkills;
     }
 }

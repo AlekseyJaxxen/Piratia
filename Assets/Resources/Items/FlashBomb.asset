@@ -13,22 +13,187 @@ MonoBehaviour:
   m_Name: FlashBomb
   m_EditorClassIdentifier: Assembly-CSharp::Item
   itemName: FlashBomb
+  originalName: 
   id: 3
   icon: {fileID: 21300000, guid: 9e368a4a52e3b3e41bf2c3bd7ed697b5, type: 3}
   dropModelPrefab: {fileID: 919132149155446097, guid: 8e71ada036ebdbe4fb10b443d2935af1,
     type: 3}
   itemType: 1
   equipmentSlot: 0
+  alternativeSlot: 0
+  primaryDisplaySlot: 0
+  stackable: 1
   maxStack: 99
   canDrop: 1
   canSell: 1
   canUse: 1
   canHotbar: 1
-  strengthMod: 0
-  agilityMod: 0
-  spiritMod: 0
-  constitutionMod: 0
-  accuracyMod: 0
-  intelligenceMod: 0
+  isTwoHanded: 0
+  preferRightHand: 1
+  chestRewards: []
+  useClassBasedRewards: 0
+  classRewards: []
+  strengthBonus: 0
+  agilityBonus: 0
+  spiritBonus: 0
+  constitutionBonus: 0
+  accuracyBonus: 0
+  attackRangeBonus: 0
+  attackSpeedBonus: 0
+  attackSpeedPercentBonus: 0
+  hpRecoveryBonus: 0
+  spRecoveryBonus: 0
+  dodgeBonus: 0
+  damageChanceBonus: 0
+  useDynamicStats: 0
+  minDamageRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  maxDamageRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  strengthRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  agilityRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  spiritRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  constitutionRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  accuracyRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  healthRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  manaRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  defenseRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  armorRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  physicalResistRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  criticalRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  movementSpeedRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  hpRecoveryRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  spRecoveryRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  dodgeRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  damageChanceRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  attackSpeedRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  attackSpeedPercentRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  rarity: 0
+  requiredLevel: 1
+  characterClass: 0
   skillEffect: {fileID: 11400000, guid: 701db164e762e8d4eb55ee37444ee209, type: 2}
-  castRange: 5
+  castRange: 8
+  model1: 
+  boneName: 
+  alternativeBoneName: 
+  modelRotation: {x: 0, y: 0, z: 0, w: 1}
+  modelScale: {x: 1, y: 1, z: 1}
+  model2: 
+  model3: 
+  model4: 
+  model5: 
+  shipSymbol: 
+  shipSize: 0
+  number: 0
+  obtain: 
+  prefix: 
+  rate: 0
+  setId: 0
+  forgingLevel: 0
+  stableValue: 0
+  onlyId: 0
+  trade: 0
+  picked: 0
+  discard: 0
+  confirmToDelete: 0
+  isInstantiation: 0
+  price: 0
+  size: 0
+  characterLevel: 0
+  characterNick: 
+  characterReputation: 0
+  itemCanEquip: 1
+  location: 
+  itemSwitchLocation: 
+  itemObtainIntoLocation: 
+  minAttackConstantBonus: 0
+  maxAttackConstantBonus: 0
+  maxHpConstantBonus: 0
+  maxSpConstantBonus: 0
+  crtConstantBonus: 0
+  mspdConstantBonus: 0
+  physicalResist: 0
+  armorBonus: 0
+  physicalResistBonus: 0
+  itemLeftHandExertIdentifier: 
+  itemEnergy: 0
+  durability: 0
+  maxInstantiation: 0
+  holeValue: 0
+  shipDurabilityRecovered: 0
+  canContainCannonQuantity: 0
+  shipMemberCount: 0
+  memberLabel: 
+  cargoCapacity: 0
+  fuelConsumption: 0
+  cannonballPathOfFlightSpeed: 0
+  shipMovementSpeed: 0
+  usageEffect: 
+  displayEffect: 
+  itemBindEffect: 
+  itemBindEffectDummy: 
+  displayItemEffect: 
+  itemDropModelEffect: 
+  itemUsageEffect: 
+  description: 
+  itemLevel: 0
+  remark: 
+  weaponType: 0

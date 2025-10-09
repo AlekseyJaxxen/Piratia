@@ -43,13 +43,30 @@ MonoBehaviour:
   basicAttackSkill: {fileID: 11400000, guid: a229fccd33ff10744a8a3c45ed1c4195, type: 2}
   hitRate: 10
   dodge: 50
+  minAttack: 10
+  maxAttack: 15
+  defense: 5
+  physicalResistance: 3
+  attackRange: 4
+  projectilePrefab: {fileID: 0}
+  projectileSpeed: 10
+  useProjectile: 0
   physicsModel: {fileID: 0}
   minForce: {x: -5, y: 2, z: -5}
   maxForce: {x: 5, y: 5, z: 0}
+  scaleBoxCollider: 0
+  boxColliderScale: {x: 1, y: 1, z: 1}
+  isElite: 0
+  eliteStatMultiplier: 1.5
+  eliteModelScale: 1.5
   monsterId: 1
   aiType: AI2
   modelPrefab: {fileID: 6341273223897909833, guid: 0775bd3be157abd45bd6e2c194560be4,
     type: 3}
+  useTemporaryBox: 0
+  boxType: 0
+  boxColor: {r: 1, g: 1, b: 1, a: 1}
+  boxSize: {x: 1, y: 1, z: 1}
   isCombined: 0
   legsInfo: {fileID: 0}
   headAttackRange: 3

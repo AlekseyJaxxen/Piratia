@@ -243,7 +243,8 @@ public class MyNetworkManager : NetworkManager
         if (characterStats != null)
         {
             // ������������� �����, ������� ����� ��������������� � ���������
-            characterStats.characterClass = info.characterClass;
+            // Устанавливаем класс игрока
+            characterStats.SetPlayerClass(info.characterClass);
 
             // ������������� �������� ������ ��� ����������� ������ �� �������.
             // ��� �����������, ��� ���� ������� ���������� ��������, ��� ���
@@ -251,7 +252,7 @@ public class MyNetworkManager : NetworkManager
             characterStats.LoadClassData();
             characterStats.CalculateDerivedStats();
 
-            Debug.Log($"[MyNetworkManager] Server set and calculated player stats for class: {info.characterClass}");
+            Debug.Log($"[MyNetworkManager] Server initialized player with class: {info.characterClass}");
         }
         else
         {
@@ -274,6 +275,9 @@ public class MyNetworkManager : NetworkManager
         }
 
         Debug.Log($"[MyNetworkManager] Player {info.playerName} successfully spawned with prefab {playerInstance.name}. isOwned={identity.isOwned}");
+        
+        // Выдаем стартовые предметы игроку с задержкой для полной инициализации класса
+        StartCoroutine(GiveStarterItemsWithDelay(playerCore));
     }
 
     // ���� ����� ������ �� ������������, ��� ��� OnReceivePlayerInfo ������ ������������ ���������� ������
@@ -325,6 +329,49 @@ public class MyNetworkManager : NetworkManager
         
         Debug.LogError("[MyNetworkManager] No spawn points available at all!");
         return transform;
+    }
+    
+    /// <summary>
+    /// Выдает стартовые предметы игроку с задержкой для полной инициализации класса
+    /// </summary>
+    private IEnumerator GiveStarterItemsWithDelay(PlayerCore player)
+    {
+        if (player == null) yield break;
+        
+        // Ждем немного для полной инициализации класса
+        yield return new WaitForSeconds(0.5f);
+        
+        // Проверяем, что класс установлен
+        if (player.Stats != null)
+        {
+            Debug.Log($"[MyNetworkManager] Player {player.playerName} class after delay: {player.Stats.characterClass}");
+        }
+        else
+        {
+            Debug.LogWarning($"[MyNetworkManager] Player {player.playerName} Stats is null after delay!");
+        }
+        
+        // Выдаем стартовые предметы
+        GiveStarterItemsToPlayer(player);
+    }
+    
+    /// <summary>
+    /// Выдает стартовые предметы игроку
+    /// </summary>
+    private void GiveStarterItemsToPlayer(PlayerCore player)
+    {
+        if (player == null) return;
+        
+        // Ищем систему стартовых предметов в сцене
+        StarterItemsSystem starterItemsSystem = FindObjectOfType<StarterItemsSystem>();
+        if (starterItemsSystem != null)
+        {
+            starterItemsSystem.GiveStarterItemsToPlayer(player);
+        }
+        else
+        {
+            Debug.LogWarning("[MyNetworkManager] StarterItemsSystem not found in scene - no starter items will be given");
+        }
     }
 }
 

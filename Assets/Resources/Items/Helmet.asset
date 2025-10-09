@@ -13,31 +13,129 @@ MonoBehaviour:
   m_Name: Helmet
   m_EditorClassIdentifier: Assembly-CSharp::Item
   itemName: Helmet
+  originalName: 
   id: 1
   icon: {fileID: 21300000, guid: ba38f88fc0d64734382abdc691e9658a, type: 3}
   dropModelPrefab: {fileID: 1416556264988855144, guid: 274b635ff68d8d146b63d3fac539c60a,
     type: 3}
-  itemType: 0
+  itemType: 3
   equipmentSlot: 1
   alternativeSlot: 1
+  primaryDisplaySlot: 0
+  stackable: 0
   maxStack: 1
   canDrop: 1
   canSell: 1
   canUse: 0
   canHotbar: 0
-  strengthMod: 100
-  agilityMod: 0
-  spiritMod: 0
-  constitutionMod: 0
-  accuracyMod: 0
-  intelligenceMod: 0
+  isTwoHanded: 0
+  preferRightHand: 1
+  chestRewards: []
+  useClassBasedRewards: 0
+  classRewards: []
+  strengthBonus: 0
+  agilityBonus: 0
+  spiritBonus: 0
+  constitutionBonus: 50
+  accuracyBonus: 0
+  attackRangeBonus: 0
+  attackSpeedBonus: 0
+  attackSpeedPercentBonus: 0
+  hpRecoveryBonus: 0
+  spRecoveryBonus: 0
+  dodgeBonus: 0
+  damageChanceBonus: 0
+  useDynamicStats: 0
+  minDamageRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  maxDamageRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  strengthRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  agilityRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  spiritRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  constitutionRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  accuracyRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  healthRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  manaRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  defenseRange:
+    minValue: 10
+    maxValue: 100
+    chance: 1
+  armorRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  physicalResistRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  criticalRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  movementSpeedRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  hpRecoveryRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  spRecoveryRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  dodgeRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  damageChanceRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  attackSpeedRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  attackSpeedPercentRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
   rarity: 0
   requiredLevel: 1
+  characterClass: 1
   skillEffect: {fileID: 0}
   castRange: 5
   model1: 
   boneName: 
   alternativeBoneName: 
+  modelRotation: {x: 0, y: 0, z: 0, w: 1}
+  modelScale: {x: 1, y: 1, z: 1}
   model2: 
   model3: 
   model4: 
@@ -56,58 +154,25 @@ MonoBehaviour:
   picked: 0
   discard: 0
   confirmToDelete: 0
-  stackable: 0
   isInstantiation: 0
   price: 0
   size: 0
   characterLevel: 0
-  characterClass: 
   characterNick: 
   characterReputation: 0
   itemCanEquip: 1
   location: 
   itemSwitchLocation: 
   itemObtainIntoLocation: 
-  strModulusBonus: 0
-  agiModulusBonus: 0
-  dexModulusBonus: 0
-  conModulusBonus: 0
-  sprModulusBonus: 0
-  lukModulusBonus: 0
-  hitRateModulusBonus: 0
-  minAttackModulusBonus: 0
-  maxAttackModulusBonus: 0
-  defenseModulusBonus: 0
-  maxHpModulusBonus: 0
-  maxSpModulusBonus: 0
-  fleeModulusBonus: 0
-  hitModulusBonus: 0
-  crtModulusBonus: 0
-  mfModulusBonus: 0
-  hrecModulusBonus: 0
-  srecModulusBonus: 0
-  mspdModulusBonus: 0
-  colModulusBonus: 0
-  strConstantBonus: 0
-  agiConstantBonus: 0
-  dexConstantBonus: 0
-  conConstantBonus: 0
-  staConstantBonus: 0
-  lukConstantBonus: 0
-  attackRangeConstantBonus: 0
   minAttackConstantBonus: 0
   maxAttackConstantBonus: 0
   maxHpConstantBonus: 0
   maxSpConstantBonus: 0
-  fleeConstantBonus: 0
-  hitConstantBonus: 0
   crtConstantBonus: 0
-  mfConstantBonus: 0
-  hrecConstantBonus: 0
-  srecConstantBonus: 0
   mspdConstantBonus: 0
-  colConstantBonus: 0
   physicalResist: 0
+  armorBonus: 0
+  physicalResistBonus: 0
   itemLeftHandExertIdentifier: 
   itemEnergy: 0
   durability: 0
@@ -131,3 +196,4 @@ MonoBehaviour:
   description: 
   itemLevel: 0
   remark: 
+  weaponType: 0

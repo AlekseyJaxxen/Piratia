@@ -135,14 +135,22 @@ public class Inventory : NetworkBehaviour
         int remaining = itemInfo.quantity;
         bool added = false;
         
+        Debug.Log($"[Inventory] Adding item: {item.itemName} (ID: {itemInfo.id}, Quantity: {itemInfo.quantity}, Stackable: {isStackable}, MaxStack: {item.maxStack}, HasDynamicStats: {itemInfo.hasDynamicStats})");
+        
         // Если предмет имеет динамические статы, он НЕ стакается
         if (itemInfo.hasDynamicStats)
         {
             isStackable = false;
+            Debug.Log($"[Inventory] Item {item.itemName} has dynamic stats, cannot stack");
+        }
+        else
+        {
+            Debug.Log($"[Inventory] Item {item.itemName} can stack: stackable={item.stackable}, maxStack={item.maxStack}");
         }
         
         if (isStackable)
         {
+            Debug.Log($"[Inventory] Attempting to stack item {item.itemName} with existing items");
             for (int i = 0; i < items.Count; i++)
             {
                 if (items[i].id == item.id && items[i].quantity < item.maxStack && !items[i].hasDynamicStats)
@@ -154,6 +162,7 @@ public class Inventory : NetworkBehaviour
                     items[i] = updatedItemInfo;
                     remaining -= addAmount;
                     added = true;
+                    Debug.Log($"[Inventory] Stacked {addAmount} items to slot {i}, new quantity: {items[i].quantity}, remaining: {remaining}");
                     if (remaining <= 0) break;
                 }
             }
@@ -172,12 +181,14 @@ public class Inventory : NetworkBehaviour
             }
             if (emptyIndex >= 0)
             {
+                // Для стакающихся предметов добавляем до maxStack, для нестакающихся - только 1
                 int addAmount = isStackable ? Mathf.Min(remaining, item.maxStack) : 1;
                 ItemInfo newInfo = itemInfo;
                 newInfo.quantity = addAmount;
                 items[emptyIndex] = newInfo;
                 remaining -= addAmount;
                 added = true;
+                Debug.Log($"[Inventory] Added {addAmount} items to new slot {emptyIndex}, remaining: {remaining}");
             }
             else
             {

@@ -1379,6 +1379,15 @@ public class PlayerCore : NetworkBehaviour
             Debug.LogError("[PlayerCore] CmdSwapInventoryItems failed: Inventory is null!");
             return;
         }
+        
+        // Проверяем валидность индексов
+        if (slotIndex1 < 0 || slotIndex2 < 0)
+        {
+            Debug.LogError($"[PlayerCore] Invalid slot indices: {slotIndex1}/{slotIndex2} (negative)");
+            return;
+        }
+        
+        // Расширяем список если нужно
         while (Inventory.items.Count < Mathf.Max(slotIndex1, slotIndex2) + 1)
         {
             if (Inventory.items.Count < Inventory.inventorySize)
@@ -1391,16 +1400,20 @@ public class PlayerCore : NetworkBehaviour
                 return;
             }
         }
+        
+        // Финальная проверка границ
         if (slotIndex1 >= Inventory.items.Count || slotIndex2 >= Inventory.items.Count)
         {
             Debug.LogError($"[PlayerCore] Invalid slot indices: {slotIndex1}/{slotIndex2}, count={Inventory.items.Count}");
             return;
         }
+        
+        // Выполняем обмен
         var temp = Inventory.items[slotIndex1];
         Inventory.items[slotIndex1] = Inventory.items[slotIndex2];
         Inventory.items[slotIndex2] = temp;
         RpcUpdateInventoryUI();
-        // Slots swapped
+        Debug.Log($"[PlayerCore] Swapped inventory slots: {slotIndex1} <-> {slotIndex2}");
     }
 
     [Command]
@@ -1523,7 +1536,7 @@ public class PlayerCore : NetworkBehaviour
                     {
                         targetPos = transform.position + transform.forward * item.castRange;
                     }
-                    Skills.CmdExecuteSkill(this, targetPos, 0, item.skillEffect.SkillName, 0);
+                    Skills.ExecuteItemSkill(this, targetPos, 0, item.skillEffect, 0);
                     if (slotIndex >= 0)
                     {
                         CmdConsumeItem(itemID, slotIndex);

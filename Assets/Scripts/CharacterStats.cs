@@ -10,6 +10,10 @@ public class CharacterStats : NetworkBehaviour
     [SerializeField] public ClassData classData;
     [SyncVar(hook = nameof(OnCharacterClassChanged))]
     public CharacterClass characterClass = CharacterClass.Warrior;
+    
+    [Header("Multiple Classes Support")]
+    [SyncVar(hook = nameof(OnPlayerClassesChanged))]
+    public List<CharacterClass> playerClasses = new List<CharacterClass>();
     [Header("Level and Experience")]
     [SyncVar(hook = nameof(OnLevelChanged))]
     public int level = 1;
@@ -309,6 +313,69 @@ public class CharacterStats : NetworkBehaviour
         StartCoroutine(InitializeSkills());
     }
 
+    /// <summary>
+    /// Устанавливает класс игрока
+    /// </summary>
+    [Server]
+    public void SetPlayerClass(CharacterClass newClass)
+    {
+        characterClass = newClass;
+        playerClasses.Clear();
+        playerClasses.Add(newClass);
+        
+        Debug.Log($"[CharacterStats] Player class set to: {characterClass}");
+    }
+
+    /// <summary>
+    /// Проверяет, имеет ли игрок определенный класс
+    /// </summary>
+    public bool HasClass(CharacterClass classToCheck)
+    {
+        return playerClasses.Contains(classToCheck);
+    }
+
+    /// <summary>
+    /// Добавляет новый класс игроку
+    /// </summary>
+    [Command]
+    public void CmdAddClass(CharacterClass newClass)
+    {
+        if (!playerClasses.Contains(newClass))
+        {
+            playerClasses.Add(newClass);
+            Debug.Log($"[CharacterStats] Added class {newClass} to player. Current classes: {string.Join(", ", playerClasses)}");
+        }
+    }
+
+    /// <summary>
+    /// Переключает активный класс игрока
+    /// </summary>
+    [Command]
+    public void CmdSwitchClass(CharacterClass newActiveClass)
+    {
+        if (playerClasses.Contains(newActiveClass))
+        {
+            characterClass = newActiveClass;
+            LoadClassData();
+            CalculateDerivedStats();
+            StartCoroutine(InitializeSkills());
+            Debug.Log($"[CharacterStats] Switched to class {newActiveClass}");
+        }
+        else
+        {
+            Debug.LogWarning($"[CharacterStats] Cannot switch to class {newActiveClass} - player doesn't have this class");
+        }
+    }
+
+    /// <summary>
+    /// Обработчик изменения списка классов игрока
+    /// </summary>
+    private void OnPlayerClassesChanged(List<CharacterClass> oldClasses, List<CharacterClass> newClasses)
+    {
+        playerClasses = newClasses ?? new List<CharacterClass>();
+        Debug.Log($"[CharacterStats] Player classes updated: {string.Join(", ", playerClasses)}");
+    }
+
     private void InitializeExperienceTable()
     {
         for (int i = 0; i < 100; i++)
@@ -526,9 +593,11 @@ public class CharacterStats : NetworkBehaviour
         minAttack = Mathf.RoundToInt(classData.baseMinAttack + attackValue * 1.0f * attackMultiplier);
         maxAttack = Mathf.RoundToInt(classData.baseMaxAttack + attackValue * 1.0f * attackMultiplier);
         
-        // Armor остается линейным от Strength
-        armor = Mathf.RoundToInt(classData.baseDef + calculatedTotalStrength * 1 * classData.strengthMultiplier);
-        float baseMovementSpeed = classData.baseMovementSpeed * classData.agilityMultiplier;
+        // Armor рассчитывается от Constitution
+        armor = Mathf.RoundToInt(classData.baseDef + calculatedTotalConstitution * 1 * classData.constitutionMultiplier);
+        Debug.Log($"[CharacterStats] Armor calculated: {armor} (base: {classData.baseDef}, constitution: {calculatedTotalConstitution}, multiplier: {classData.constitutionMultiplier})");
+        // Скорость движения не зависит от ловкости, только от базового значения класса
+        float baseMovementSpeed = classData.baseMovementSpeed;
         float slowMultiplier = CalculateSlowMultiplier();
         movementSpeed = baseMovementSpeed * slowMultiplier;
         // Calculate base attack speed only if no buffs are active
@@ -569,12 +638,21 @@ public class CharacterStats : NetworkBehaviour
             movementSpeed += equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.MovementSpeed));
             attackRange += equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.AttackRange));
             float attackSpeedBonus = equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.AttackSpeed));
+            float attackSpeedPercentBonus = equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.AttackSpeedPercent));
+            
             // Only apply equipment bonus if no skill buffs are active
             if (!activeStatEffects.Any(e => e.Stat.ToLower() == "attackspeed" && e.IsActive))
             {
+                // Применяем плоский бонус
                 attackSpeed += attackSpeedBonus;
+                
+                // Применяем процентный бонус
+                if (attackSpeedPercentBonus > 0)
+                {
+                    attackSpeed *= (1.0f + attackSpeedPercentBonus);
+                }
             }
-            Debug.Log($"[CharacterStats] AttackSpeed after equipment bonuses: {attackSpeed:F3} (+{attackSpeedBonus:F3} from {equippedItemInfos.Length} items)");
+            Debug.Log($"[CharacterStats] AttackSpeed after equipment bonuses: {attackSpeed:F3} (+{attackSpeedBonus:F3} flat, +{attackSpeedPercentBonus * 100:F1}% from {equippedItemInfos.Length} items)");
             
             Debug.Log($"[CharacterStats] Equipment stats calculated: {equippedItemInfos.Length} items, Str+{equipmentStrengthBonus}, Agi+{equipmentAgilityBonus}, maxHealth bonus: {Mathf.RoundToInt(equippedItemInfos.Sum(itemInfo => itemInfo.GetTotalStatBonus(ItemInfo.StatType.MaxHP)))}");
         }
@@ -604,7 +682,7 @@ public class CharacterStats : NetworkBehaviour
         {
             movementComponent.SetMovementSpeed(movementSpeed);
         }
-        Debug.Log($"[Server] CalculateDerivedStats: class={characterClass}, strength={strength}, minAttack={minAttack}, maxAttack={maxAttack}, maxHealth={maxHealth}, maxMana={maxMana}, armor={armor}, movementSpeed={movementSpeed}, attackSpeed={attackSpeed}, criticalHitChance={criticalHitChance}, physicalResistance={physicalResistance}");
+        Debug.Log($"[Server] CalculateDerivedStats: class={characterClass}, strength={strength}, constitution={constitution}, minAttack={minAttack}, maxAttack={maxAttack}, maxHealth={maxHealth}, maxMana={maxMana}, armor={armor}, movementSpeed={movementSpeed}, attackSpeed={attackSpeed}, criticalHitChance={criticalHitChance}, physicalResistance={physicalResistance}");
     }
 
     [Server]
@@ -1182,7 +1260,7 @@ public class CharacterStats : NetworkBehaviour
         };
         activeSlowEffects.Add(effect);
         float slowMultiplier = CalculateSlowMultiplier();
-        float baseMovementSpeed = classData.baseMovementSpeed * classData.agilityMultiplier;
+        float baseMovementSpeed = classData.baseMovementSpeed;
         movementSpeed = baseMovementSpeed * slowMultiplier;
         PlayerMovement movement = GetComponent<PlayerMovement>();
         if (movement != null)
@@ -1209,7 +1287,7 @@ public class CharacterStats : NetworkBehaviour
         yield return new WaitForSeconds(effect.Duration);
         activeSlowEffects.Remove(effect);
         float slowMultiplier = CalculateSlowMultiplier();
-        float baseMovementSpeed = classData.baseMovementSpeed * classData.agilityMultiplier;
+        float baseMovementSpeed = classData.baseMovementSpeed;
         movementSpeed = baseMovementSpeed * slowMultiplier;
         PlayerMovement movement = GetComponent<PlayerMovement>();
         if (movement != null)
@@ -1232,7 +1310,7 @@ public class CharacterStats : NetworkBehaviour
     public void ClearSlowEffects()
     {
         activeSlowEffects.Clear();
-        float baseMovementSpeed = classData.baseMovementSpeed * classData.agilityMultiplier;
+        float baseMovementSpeed = classData.baseMovementSpeed;
         movementSpeed = baseMovementSpeed;
         PlayerMovement movement = GetComponent<PlayerMovement>();
         if (movement != null)

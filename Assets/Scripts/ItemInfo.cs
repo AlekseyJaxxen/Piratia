@@ -26,6 +26,8 @@ public struct ItemInfo
     public int hpRecoveryBonus;
     public int spRecoveryBonus;
     public int dodgeBonus;
+    public float attackSpeedBonus; // Плоский бонус к скорости атаки
+    public float attackSpeedPercentBonus; // Процентный бонус к скорости атаки
     public Rarity dynamicRarity;
     
     private static Item cachedItem = null;
@@ -109,6 +111,14 @@ public struct ItemInfo
             case StatType.Agility:
                 baseStat = item.agilityBonus;
                 dynamicStat = hasDynamicStats ? agilityBonus : 0;
+                break;
+            case StatType.AttackSpeed:
+                baseStat = item.attackSpeedBonus;
+                dynamicStat = hasDynamicStats ? attackSpeedBonus : 0;
+                break;
+            case StatType.AttackSpeedPercent:
+                baseStat = item.attackSpeedPercentBonus;
+                dynamicStat = hasDynamicStats ? attackSpeedPercentBonus : 0;
                 break;
             case StatType.Spirit:
                 baseStat = item.spiritBonus;
@@ -203,6 +213,7 @@ public struct ItemInfo
         Strength,
         Agility,
         AttackSpeed,
+        AttackSpeedPercent,
         Spirit,
         Constitution,
         Accuracy,

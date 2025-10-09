@@ -442,7 +442,7 @@ public class DroppedItem : NetworkBehaviour, IPointerEnterHandler, IPointerExitH
         {
             id = itemID,
             quantity = quantity,
-            hasDynamicStats = !string.IsNullOrEmpty(dynamicItemName),
+            hasDynamicStats = HasActualDynamicStats(),
             dynamicItemName = dynamicItemName,
             strengthBonus = strengthBonus,
             agilityBonus = agilityBonus,
@@ -494,5 +494,17 @@ public class DroppedItem : NetworkBehaviour, IPointerEnterHandler, IPointerExitH
     {
         NetworkServer.Destroy(gameObject);
         Debug.Log($"[DroppedItem] Despawned item: {item?.itemName} (ID: {itemID}) after {despawnTime} seconds");
+    }
+    
+    /// <summary>
+    /// Проверяет, есть ли у предмета реальные динамические статы
+    /// </summary>
+    private bool HasActualDynamicStats()
+    {
+        // Проверяем, есть ли хотя бы один ненулевой динамический стат
+        return strengthBonus != 0 || agilityBonus != 0 || spiritBonus != 0 || 
+               constitutionBonus != 0 || accuracyBonus != 0 || minAttackConstantBonus != 0 ||
+               maxAttackConstantBonus != 0 || maxHpConstantBonus != 0 || maxSpConstantBonus != 0 ||
+               crtConstantBonus != 0 || mspdConstantBonus != 0 || physicalResist != 0;
     }
 }

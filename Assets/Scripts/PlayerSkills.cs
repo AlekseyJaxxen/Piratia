@@ -119,7 +119,8 @@ public partial class PlayerSkills : NetworkBehaviour
         {
             yield break;
         }
-        skills = SkillManager.Instance.GetSkillsForClass(stats.characterClass).Select(s => Instantiate(s)).ToList();
+        // Используем новый метод для получения скиллов всех классов игрока
+        skills = SkillManager.Instance.GetSkillsForPlayer(stats).Select(s => Instantiate(s)).ToList();
         foreach (var skill in skills)
         {
             if (skill == null)
@@ -228,21 +229,32 @@ public partial class PlayerSkills : NetworkBehaviour
             ((SkillBase)_activeSkill).SetEffectRadiusPosition(hit.point + Vector3.up * 0.01f);
         }
     }
+    
     [Command]
     public void CmdExecuteSkill(PlayerCore caster, Vector3? targetPosition, uint targetNetId, string skillName, int weight)
     {
-        if (!caster.CanCastSkill(caster.Skills.skills.Find(s => s.SkillName == skillName)))
+        if (string.IsNullOrEmpty(skillName))
+        {
+            Debug.LogError($"[PlayerSkills] Cannot execute skill with empty name");
+            return;
+        }
+        
+        // Ищем скилл в списке игрока
+        SkillBase skill = skills.Find(s => s.SkillName == skillName);
+        if (skill == null)
+        {
+            // Если скилл не найден у игрока, возможно это скилл предмета
+            // В этом случае мы не можем его выполнить, так как предметы должны использовать свои собственные скиллы
+            Debug.LogWarning($"[PlayerSkills] Skill {skillName} not found on {gameObject.name}. Items should use their own skill execution.");
+            return;
+        }
+        
+        if (!caster.CanCastSkill(skill))
         {
             // Cannot cast skill - invalid conditions
             return;
         }
-        SkillBase skill = skills.Find(s => s.SkillName == skillName);
-        if (skill == null)
-        {
-            Debug.LogWarning($"[PlayerSkills] Skill {skillName} not found on {gameObject.name}");
-            return;
-        }
-        if (GetRemainingCooldown(skillName) > 0)
+        if (GetRemainingCooldown(skill.SkillName) > 0)
         {
             // Skill on cooldown
             return;
@@ -256,7 +268,7 @@ public partial class PlayerSkills : NetworkBehaviour
         }
         if (toggleBuffStates.ContainsKey("Invisibility") && toggleBuffStates["Invisibility"])
         {
-            Debug.Log($"[PlayerSkills] Interrupting invisibility due to skill cast: {skillName} on {gameObject.name}");
+            Debug.Log($"[PlayerSkills] Interrupting invisibility due to skill cast: {skill.SkillName} on {gameObject.name}");
             SetToggleBuff("Invisibility", false);
             RpcSetInvisibilityVisibility(false, _core.team, _originalLayer); // Добавлено: явный вызов для модели
         }
@@ -280,16 +292,16 @@ public partial class PlayerSkills : NetworkBehaviour
             }
             if (distance > skill.Range + tolerance)
             {
-                Debug.LogWarning($"[PlayerSkills] Skill {skillName} out of range: distance={distance}, range={skill.Range} on {gameObject.name}");
+                Debug.LogWarning($"[PlayerSkills] Skill {skill.SkillName} out of range: distance={distance}, range={skill.Range} on {gameObject.name}");
                 return;
             }
             if (distance > skill.Range + warningThreshold)
             {
-                Debug.LogWarning($"Skill {skillName} used with high tolerance: Distance = {distance}, Range = {skill.Range}, Tolerance = {tolerance} on {gameObject.name}");
+                Debug.LogWarning($"Skill {skill.SkillName} used with high tolerance: Distance = {distance}, Range = {skill.Range}, Tolerance = {tolerance} on {gameObject.name}");
             }
         }
         if (stats != null) stats.SpendMana(skill.ManaCost);
-        StartSkillCooldown(skillName);
+        StartSkillCooldown(skill.SkillName);
         // Global cooldown removed
         if (skill.CastTime > 0)
         {
@@ -302,18 +314,109 @@ public partial class PlayerSkills : NetworkBehaviour
             skill.ExecuteOnServer(caster, targetPosition, targetObject, weight);
             
             // Устанавливаем кулдаун для мгновенных скиллов (SelfBuff, ToggleBuff и т.д.)
-            StartSkillCooldown(skillName);
+            StartSkillCooldown(skill.SkillName);
             // Global cooldown removed
             
             if (!(skill is BasicAttackSkill))
             {
                 RpcCancelSkillSelection();
-                RpcConsumeItemFromSkill(skillName);
+                RpcConsumeItemFromSkill(skill.SkillName);
             }
         }
     }
-
-
+    
+    /// <summary>
+    /// Выполняет скилл предмета напрямую без поиска в списке игрока (только на сервере)
+    /// </summary>
+    [Server]
+    public void ExecuteItemSkill(PlayerCore caster, Vector3? targetPosition, uint targetNetId, SkillBase itemSkill, int weight)
+    {
+        if (itemSkill == null)
+        {
+            Debug.LogError($"[PlayerSkills] Cannot execute null item skill");
+            return;
+        }
+        
+        if (!caster.CanCastSkill(itemSkill))
+        {
+            // Cannot cast skill - invalid conditions
+            return;
+        }
+        if (GetRemainingCooldown(itemSkill.SkillName) > 0)
+        {
+            // Skill on cooldown
+            return;
+        }
+        // Global cooldown check removed - players can cast spells quickly
+        CharacterStats stats = caster.GetComponent<CharacterStats>();
+        if (stats != null && !stats.HasEnoughMana(itemSkill.ManaCost))
+        {
+            // Not enough mana
+            return;
+        }
+        if (toggleBuffStates.ContainsKey("Invisibility") && toggleBuffStates["Invisibility"])
+        {
+            Debug.Log($"[PlayerSkills] Interrupting invisibility due to item skill cast: {itemSkill.SkillName} on {gameObject.name}");
+            SetToggleBuff("Invisibility", false);
+            RpcSetInvisibilityVisibility(false, _core.team, _originalLayer); // Добавлено: явный вызов для модели
+        }
+        GameObject targetObject = null;
+        if (targetNetId != 0 && NetworkServer.spawned.ContainsKey(targetNetId))
+        {
+            targetObject = NetworkServer.spawned[targetNetId].gameObject;
+        }
+        
+        // Проверка дистанции для скиллов с целью
+        if (targetObject != null || targetPosition.HasValue)
+        {
+            float tolerance = 0.5f; // Допустимая погрешность в метрах
+            float warningThreshold = 2.0f; // Порог для предупреждения
+            float distance = 0f;
+            
+            if (targetObject != null)
+            {
+                distance = Vector3.Distance(transform.position, targetObject.transform.position); // Full distance with Y
+            }
+            else if (targetPosition.HasValue)
+            {
+                distance = Vector3.Distance(transform.position, targetPosition.Value); // Full distance with Y
+            }
+            if (distance > itemSkill.Range + tolerance)
+            {
+                Debug.LogWarning($"[PlayerSkills] Item skill {itemSkill.SkillName} out of range: distance={distance}, range={itemSkill.Range} on {gameObject.name}");
+                return;
+            }
+            if (distance > itemSkill.Range + warningThreshold)
+            {
+                Debug.LogWarning($"Item skill {itemSkill.SkillName} used with high tolerance: Distance = {distance}, Range = {itemSkill.Range}, Tolerance = {tolerance} on {gameObject.name}");
+            }
+        }
+        if (stats != null) stats.SpendMana(itemSkill.ManaCost);
+        StartSkillCooldown(itemSkill.SkillName);
+        StartLocalCooldown(itemSkill.SkillName, itemSkill.Cooldown, false);
+        // Global cooldown removed
+        if (itemSkill.CastTime > 0)
+        {
+            StartCoroutine(CastSkillCoroutine(itemSkill, targetPosition, targetObject, weight));
+        }
+        else
+        {
+            // Устанавливаем ссылку на игрока для динамического расчета кулдауна
+            itemSkill.SetPlayer(caster);
+            itemSkill.ExecuteOnServer(caster, targetPosition, targetObject, weight);
+            
+            // Устанавливаем кулдаун для мгновенных скиллов (SelfBuff, ToggleBuff и т.д.)
+            StartSkillCooldown(itemSkill.SkillName);
+            StartLocalCooldown(itemSkill.SkillName, itemSkill.Cooldown, false);
+            // Global cooldown removed
+            
+            if (!(itemSkill is BasicAttackSkill))
+            {
+                RpcCancelSkillSelection();
+                RpcConsumeItemFromSkill(itemSkill.SkillName);
+            }
+        }
+    }
 
 
     private IEnumerator CastSkillCoroutine(SkillBase skill, Vector3? targetPosition, GameObject targetObject, int weight)
@@ -376,7 +479,30 @@ public partial class PlayerSkills : NetworkBehaviour
     {
         if (_skillLastUseTimes.ContainsKey(skillName))
         {
-            return Mathf.Max(0, skills.Find(s => s.SkillName == skillName).Cooldown - ((float)NetworkTime.time - _skillLastUseTimes[skillName]));
+            SkillBase skill = skills.Find(s => s.SkillName == skillName);
+            if (skill != null)
+            {
+                return Mathf.Max(0, skill.Cooldown - ((float)NetworkTime.time - _skillLastUseTimes[skillName]));
+            }
+            else
+            {
+                // Для скиллов предметов ищем в инвентаре
+                var ui = GetComponentInChildren<PlayerUI>();
+                if (ui != null)
+                {
+                    var hotbarButtons = ui.GetSkillButtons2().Concat(ui.GetSkillButtons3());
+                    foreach (var btn in hotbarButtons)
+                    {
+                        if (btn.item != null && btn.item.skillEffect != null && btn.item.skillEffect.SkillName == skillName)
+                        {
+                            float itemSkillCooldown = btn.item.skillEffect.Cooldown;
+                            return Mathf.Max(0, itemSkillCooldown - ((float)NetworkTime.time - _skillLastUseTimes[skillName]));
+                        }
+                    }
+                }
+                // Fallback к базовому кулдауну если предмет не найден
+                return Mathf.Max(0, 5f - ((float)NetworkTime.time - _skillLastUseTimes[skillName]));
+            }
         }
         return 0f;
     }
@@ -438,6 +564,28 @@ public partial class PlayerSkills : NetworkBehaviour
         {
             basicAttackSkill.PlayVFX(startPos, startRot, targetPos, isCritical, this);
         }
+        else
+        {
+            // Для скиллов предметов ищем в инвентаре
+            var ui = GetComponentInChildren<PlayerUI>();
+            if (ui != null)
+            {
+                var hotbarButtons = ui.GetSkillButtons2().Concat(ui.GetSkillButtons3());
+                foreach (var btn in hotbarButtons)
+                {
+                    if (btn.item != null && btn.item.skillEffect != null && btn.item.skillEffect.SkillName == skillName)
+                    {
+                        if (btn.item.skillEffect is BasicAttackSkill itemBasicAttackSkill)
+                        {
+                            itemBasicAttackSkill.PlayVFX(startPos, startRot, targetPos, isCritical, this);
+                            Debug.Log($"[PlayerSkills] Played VFX for item skill {skillName} at position {targetPos}");
+                            return;
+                        }
+                    }
+                }
+            }
+            Debug.LogWarning($"[PlayerSkills] Could not find skill {skillName} for VFX playback");
+        }
     }
     [ClientRpc]
     public void RpcSpawnProjectile(Vector3 startPos, Vector3 targetPos, string skillName)
@@ -451,6 +599,34 @@ public partial class PlayerSkills : NetworkBehaviour
         {
             slowSkill.SpawnProjectile(startPos, targetPos, this);
         }
+        else
+        {
+            // Для скиллов предметов ищем в инвентаре
+            var ui = GetComponentInChildren<PlayerUI>();
+            if (ui != null)
+            {
+                var hotbarButtons = ui.GetSkillButtons2().Concat(ui.GetSkillButtons3());
+                foreach (var btn in hotbarButtons)
+                {
+                    if (btn.item != null && btn.item.skillEffect != null && btn.item.skillEffect.SkillName == skillName)
+                    {
+                        if (btn.item.skillEffect is ProjectileDamageSkill itemProjectileSkill)
+                        {
+                            itemProjectileSkill.SpawnProjectile(startPos, targetPos, this);
+                            Debug.Log($"[PlayerSkills] Spawned projectile for item skill {skillName}");
+                            return;
+                        }
+                        else if (btn.item.skillEffect is SlowSkill itemSlowSkill)
+                        {
+                            itemSlowSkill.SpawnProjectile(startPos, targetPos, this);
+                            Debug.Log($"[PlayerSkills] Spawned projectile for item skill {skillName}");
+                            return;
+                        }
+                    }
+                }
+            }
+            Debug.LogWarning($"[PlayerSkills] Could not find skill {skillName} for projectile spawn");
+        }
     }
     [ClientRpc]
     public void RpcApplySlowEffect(uint targetNetId, float duration, string skillName)
@@ -462,6 +638,28 @@ public partial class PlayerSkills : NetworkBehaviour
             if (skill is SlowSkill slowSkill)
             {
                 slowSkill.ApplySlowEffect(targetIdentity.gameObject, duration, this);
+            }
+            else
+            {
+                // Для скиллов предметов ищем в инвентаре
+                var ui = GetComponentInChildren<PlayerUI>();
+                if (ui != null)
+                {
+                    var hotbarButtons = ui.GetSkillButtons2().Concat(ui.GetSkillButtons3());
+                    foreach (var btn in hotbarButtons)
+                    {
+                        if (btn.item != null && btn.item.skillEffect != null && btn.item.skillEffect.SkillName == skillName)
+                        {
+                            if (btn.item.skillEffect is SlowSkill itemSlowSkill)
+                            {
+                                itemSlowSkill.ApplySlowEffect(targetIdentity.gameObject, duration, this);
+                                Debug.Log($"[PlayerSkills] Applied slow effect for item skill {skillName}");
+                                return;
+                            }
+                        }
+                    }
+                }
+                Debug.LogWarning($"[PlayerSkills] Could not find skill {skillName} for slow effect");
             }
         }
     }
@@ -475,6 +673,28 @@ public partial class PlayerSkills : NetworkBehaviour
             if (skill is TargetedStunSkill targetedStunSkill)
             {
                 targetedStunSkill.PlayEffect(targetIdentity.gameObject, this);
+            }
+            else
+            {
+                // Для скиллов предметов ищем в инвентаре
+                var ui = GetComponentInChildren<PlayerUI>();
+                if (ui != null)
+                {
+                    var hotbarButtons = ui.GetSkillButtons2().Concat(ui.GetSkillButtons3());
+                    foreach (var btn in hotbarButtons)
+                    {
+                        if (btn.item != null && btn.item.skillEffect != null && btn.item.skillEffect.SkillName == skillName)
+                        {
+                            if (btn.item.skillEffect is TargetedStunSkill itemTargetedStunSkill)
+                            {
+                                itemTargetedStunSkill.PlayEffect(targetIdentity.gameObject, this);
+                                Debug.Log($"[PlayerSkills] Played targeted stun VFX for item skill {skillName}");
+                                return;
+                            }
+                        }
+                    }
+                }
+                Debug.LogWarning($"[PlayerSkills] Could not find skill {skillName} for targeted stun VFX");
             }
         }
     }
@@ -525,6 +745,28 @@ public partial class PlayerSkills : NetworkBehaviour
         {
             aoeStunSkill.PlayEffect(position);
         }
+        else
+        {
+            // Для скиллов предметов ищем в инвентаре
+            var ui = GetComponentInChildren<PlayerUI>();
+            if (ui != null)
+            {
+                var hotbarButtons = ui.GetSkillButtons2().Concat(ui.GetSkillButtons3());
+                foreach (var btn in hotbarButtons)
+                {
+                    if (btn.item != null && btn.item.skillEffect != null && btn.item.skillEffect.SkillName == skillName)
+                    {
+                        if (btn.item.skillEffect is AreaOfEffectStunSkill itemAoeStunSkill)
+                        {
+                            itemAoeStunSkill.PlayEffect(position);
+                            Debug.Log($"[PlayerSkills] Played VFX for item skill {skillName} at position {position}");
+                            return;
+                        }
+                    }
+                }
+            }
+            Debug.LogWarning($"[PlayerSkills] Could not find skill {skillName} for VFX playback");
+        }
     }
     [ClientRpc]
     public void RpcPlayAoeHeal(Vector3 position, string skillName)
@@ -534,6 +776,28 @@ public partial class PlayerSkills : NetworkBehaviour
         {
             aoeHealSkill.PlayEffect(position);
         }
+        else
+        {
+            // Для скиллов предметов ищем в инвентаре
+            var ui = GetComponentInChildren<PlayerUI>();
+            if (ui != null)
+            {
+                var hotbarButtons = ui.GetSkillButtons2().Concat(ui.GetSkillButtons3());
+                foreach (var btn in hotbarButtons)
+                {
+                    if (btn.item != null && btn.item.skillEffect != null && btn.item.skillEffect.SkillName == skillName)
+                    {
+                        if (btn.item.skillEffect is AreaOfEffectHealSkill itemAoeHealSkill)
+                        {
+                            itemAoeHealSkill.PlayEffect(position);
+                            Debug.Log($"[PlayerSkills] Played VFX for item skill {skillName} at position {position}");
+                            return;
+                        }
+                    }
+                }
+            }
+            Debug.LogWarning($"[PlayerSkills] Could not find skill {skillName} for VFX playback");
+        }
     }
     [ClientRpc]
     public void RpcPlayAoeDamage(Vector3 position, string skillName)
@@ -542,6 +806,28 @@ public partial class PlayerSkills : NetworkBehaviour
         if (skill is AoeDamageSkill aoeDamageSkill)
         {
             aoeDamageSkill.PlayEffect(position, GetComponent<PlayerCore>());
+        }
+        else
+        {
+            // Для скиллов предметов ищем в инвентаре
+            var ui = GetComponentInChildren<PlayerUI>();
+            if (ui != null)
+            {
+                var hotbarButtons = ui.GetSkillButtons2().Concat(ui.GetSkillButtons3());
+                foreach (var btn in hotbarButtons)
+                {
+                    if (btn.item != null && btn.item.skillEffect != null && btn.item.skillEffect.SkillName == skillName)
+                    {
+                        if (btn.item.skillEffect is AoeDamageSkill itemAoeDamageSkill)
+                        {
+                            itemAoeDamageSkill.PlayEffect(position, GetComponent<PlayerCore>());
+                            Debug.Log($"[PlayerSkills] Played VFX for item skill {skillName} at position {position}");
+                            return;
+                        }
+                    }
+                }
+            }
+            Debug.LogWarning($"[PlayerSkills] Could not find skill {skillName} for VFX playback");
         }
     }
     private void Update()
@@ -649,12 +935,14 @@ public partial class PlayerSkills : NetworkBehaviour
     // OnGlobalCooldownChanged method removed - global cooldown disabled
     private void UpdateSkillUI(string key)
     {
-        if (skills == null || PlayerUI.Instance == null) return;
+        if (PlayerUI.Instance == null) return;
         
-        SkillBase skill = skills.Find(s => s != null && s.SkillName == key);
+        SkillBase skill = skills?.Find(s => s != null && s.SkillName == key);
+        float progress;
+        
         if (skill != null)
         {
-            float progress;
+            // Скилл игрока
             if (localCooldowns.ContainsKey(key))
             {
                 float remainingCooldown = localCooldowns[key] - (float)NetworkTime.time;
@@ -664,8 +952,32 @@ public partial class PlayerSkills : NetworkBehaviour
             {
                 progress = 1f - skill.CooldownProgressNormalized;
             }
-            PlayerUI.Instance.UpdateSkillCooldown(key, progress);
         }
+        else
+        {
+            // Скилл предмета - используем кулдаун самого скилла
+            float remainingCooldown = GetRemainingCooldown(key);
+            
+            // Ищем предмет в инвентаре для получения кулдауна скилла
+            float itemSkillCooldown = 5f; // Fallback
+            var ui = GetComponentInChildren<PlayerUI>();
+            if (ui != null)
+            {
+                var hotbarButtons = ui.GetSkillButtons2().Concat(ui.GetSkillButtons3());
+                foreach (var btn in hotbarButtons)
+                {
+                    if (btn.item != null && btn.item.skillEffect != null && btn.item.skillEffect.SkillName == key)
+                    {
+                        itemSkillCooldown = btn.item.skillEffect.Cooldown;
+                        break;
+                    }
+                }
+            }
+            
+            progress = Mathf.Clamp01(remainingCooldown / itemSkillCooldown);
+        }
+        
+        PlayerUI.Instance.UpdateSkillCooldown(key, progress);
     }
     // UpdateGlobalCooldownUI method removed - global cooldown disabled
     [ClientRpc]

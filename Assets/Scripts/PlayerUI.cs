@@ -389,6 +389,104 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
                 btn.OnButtonClicked();
             }
         }
+        
+        // Обновляем кулдауны предметов
+        UpdateItemCooldowns();
+    }
+    
+    /// <summary>
+    /// Обновляет кулдауны предметов в хотбаре
+    /// </summary>
+    private void UpdateItemCooldowns()
+    {
+        PlayerSkills skillsComponent = core.GetComponent<PlayerSkills>();
+        if (skillsComponent == null) return;
+        
+        // Обновляем кулдауны для предметов в skillButtons2 (хотбар)
+        foreach (var btn in skillButtons2)
+        {
+            if (btn.item != null && btn.item.skillEffect != null)
+            {
+                string skillName = btn.item.skillEffect.SkillName;
+                float remainingCooldown = skillsComponent.GetRemainingCooldown(skillName);
+                
+                if (remainingCooldown > 0)
+                {
+                    // Находим соответствующий cooldown overlay
+                    var cooldownEntry = skillCooldownEntries.Find(e => e.skillName == btn.item.itemName);
+                    if (cooldownEntry != null && cooldownEntry.cooldownImage != null)
+                    {
+                        float itemSkillCooldown = btn.item.skillEffect.Cooldown; // Используем кулдаун скилла предмета
+                        float progress = Mathf.Clamp01(remainingCooldown / itemSkillCooldown);
+                        cooldownEntry.cooldownImage.fillAmount = progress;
+                        
+                        // Затемняем иконку
+                        Image skillIcon = cooldownEntry.cooldownImage.GetComponentInParent<Image>();
+                        if (skillIcon != null)
+                        {
+                            skillIcon.color = progress > 0 ? Color.gray : Color.white;
+                        }
+                    }
+                }
+                else
+                {
+                    // Сбрасываем кулдаун
+                    var cooldownEntry = skillCooldownEntries.Find(e => e.skillName == btn.item.itemName);
+                    if (cooldownEntry != null && cooldownEntry.cooldownImage != null)
+                    {
+                        cooldownEntry.cooldownImage.fillAmount = 0;
+                        Image skillIcon = cooldownEntry.cooldownImage.GetComponentInParent<Image>();
+                        if (skillIcon != null)
+                        {
+                            skillIcon.color = Color.white;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Обновляем кулдауны для предметов в skillButtons3 (дополнительный хотбар)
+        foreach (var btn in skillButtons3)
+        {
+            if (btn.item != null && btn.item.skillEffect != null)
+            {
+                string skillName = btn.item.skillEffect.SkillName;
+                float remainingCooldown = skillsComponent.GetRemainingCooldown(skillName);
+                
+                if (remainingCooldown > 0)
+                {
+                    // Находим соответствующий cooldown overlay
+                    var cooldownEntry = skillCooldownEntries.Find(e => e.skillName == btn.item.itemName);
+                    if (cooldownEntry != null && cooldownEntry.cooldownImage != null)
+                    {
+                        float itemSkillCooldown = btn.item.skillEffect.Cooldown; // Используем кулдаун скилла предмета
+                        float progress = Mathf.Clamp01(remainingCooldown / itemSkillCooldown);
+                        cooldownEntry.cooldownImage.fillAmount = progress;
+                        
+                        // Затемняем иконку
+                        Image skillIcon = cooldownEntry.cooldownImage.GetComponentInParent<Image>();
+                        if (skillIcon != null)
+                        {
+                            skillIcon.color = progress > 0 ? Color.gray : Color.white;
+                        }
+                    }
+                }
+                else
+                {
+                    // Сбрасываем кулдаун
+                    var cooldownEntry = skillCooldownEntries.Find(e => e.skillName == btn.item.itemName);
+                    if (cooldownEntry != null && cooldownEntry.cooldownImage != null)
+                    {
+                        cooldownEntry.cooldownImage.fillAmount = 0;
+                        Image skillIcon = cooldownEntry.cooldownImage.GetComponentInParent<Image>();
+                        if (skillIcon != null)
+                        {
+                            skillIcon.color = Color.white;
+                        }
+                    }
+                }
+            }
+        }
     }
     private void OnDestroy()
     {
@@ -765,10 +863,9 @@ public class PlayerUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             var secondEntry = skillCooldownEntries.Find(e => e.cooldownImage == secondButton.transform.Find("CooldownOverlay")?.GetComponent<Image>());
             if (firstEntry != null) firstEntry.skillName = firstButton.skill != null ? firstButton.skill.SkillName : (firstButton.item != null ? firstButton.item.itemName : "");
             if (secondEntry != null) secondEntry.skillName = secondButton.skill != null ? secondButton.skill.SkillName : (secondButton.item != null ? secondButton.item.itemName : "");
-            if (firstButton.item != null || secondButton.item != null)
-            {
-                core.CmdSwapInventoryItems(firstButton.itemSlotIndex, secondButton.itemSlotIndex);
-            }
+            // Для предметов в хотбаре не нужно вызывать CmdSwapInventoryItems
+            // так как мы уже поменяли местами UI элементы локально
+            // CmdSwapInventoryItems используется только для перетаскивания между инвентарем и хотбаром
             Debug.Log($"[PlayerUI] Swapped: {(firstButton.skill != null ? firstButton.skill.SkillName : (firstButton.item != null ? firstButton.item.itemName : "empty"))} (hotkey {firstHotkey}) <-> {(secondButton.skill != null ? secondButton.skill.SkillName : (secondButton.item != null ? secondButton.item.itemName : "empty"))} (hotkey {secondHotkey})");
         }
     }

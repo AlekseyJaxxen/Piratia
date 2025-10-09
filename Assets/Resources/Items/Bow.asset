@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f5084ebae5884ea4b93470ef99cc0926, type: 3}
   m_Name: Bow
   m_EditorClassIdentifier: Assembly-CSharp::BowItem
-  itemName: New Item
+  itemName: Newbie bow
   originalName: 
   id: 11
   icon: {fileID: 21300000, guid: a79370808d6b84245a97a739958f5fa1, type: 3}
@@ -29,12 +29,17 @@ MonoBehaviour:
   canHotbar: 0
   isTwoHanded: 1
   preferRightHand: 0
-  chestData: {fileID: 0}
+  chestRewards: []
+  useClassBasedRewards: 0
+  classRewards: []
   strengthBonus: 0
   agilityBonus: 0
   spiritBonus: 0
   constitutionBonus: 0
   accuracyBonus: 0
+  attackRangeBonus: 6
+  attackSpeedBonus: 1
+  attackSpeedPercentBonus: 0
   hpRecoveryBonus: 0
   spRecoveryBonus: 0
   dodgeBonus: 0
@@ -112,6 +117,14 @@ MonoBehaviour:
     minValue: 0
     maxValue: 0
     chance: 1
+  attackSpeedRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  attackSpeedPercentRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
   rarity: 0
   requiredLevel: 1
   characterClass: 2
@@ -151,8 +164,8 @@ MonoBehaviour:
   location: 
   itemSwitchLocation: 
   itemObtainIntoLocation: 
-  minAttackConstantBonus: 0
-  maxAttackConstantBonus: 0
+  minAttackConstantBonus: 100
+  maxAttackConstantBonus: 200
   maxHpConstantBonus: 0
   maxSpConstantBonus: 0
   crtConstantBonus: 0

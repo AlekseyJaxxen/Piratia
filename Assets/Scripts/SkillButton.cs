@@ -114,6 +114,13 @@ public class SkillButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
                         Debug.Log($"[SkillButton] ToggleBuff {skill.SkillName} already in state {isActive}, skipping CmdToggleBuff, index: {buttonIndex}");
                         return;
                     }
+                    // Проверяем кулдаун для активации ToggleBuff скиллов
+                    if (targetState && skillsComponent.GetRemainingCooldown(skill.SkillName) > 0)
+                    {
+                        Debug.LogWarning($"[SkillButton] Cannot activate ToggleBuff {skill.SkillName}: on cooldown ({skillsComponent.GetRemainingCooldown(skill.SkillName):F2}s remaining), index: {buttonIndex}");
+                        return;
+                    }
+                    
                     if (!targetState && skillsComponent.GetRemainingCooldown(skill.SkillName) > 0)
                     {
                         Debug.Log($"[SkillButton] Deactivating {skill.SkillName} during cooldown, index: {buttonIndex}");
