@@ -11,6 +11,7 @@ TagManager:
   - CharacterModel
   - DroppedItem
   - MonsterModel
+  - NPC
   layers:
   - Default
   - TransparentFX

@@ -198,8 +198,89 @@ public class PlayerMovement : NetworkBehaviour
             {
                 if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
                 {
-                    // Игнорируем хиты на самого игрока (и детей)
-                    if (hit.collider.transform == transform || hit.collider.transform.IsChildOf(transform)) return;
+                    Debug.Log($"[PlayerMovement] Initial raycast hit: {hit.collider.name} at {hit.point}");
+                    // Если попали в игрока, проверяем нужно ли игнорировать
+                    bool shouldIgnorePlayer = false;
+                    bool isPlayerHit = false;
+                    
+                    if (hit.collider.transform == transform || hit.collider.transform.IsChildOf(transform))
+                    {
+                        // Всегда игнорируем клики по самому себе
+                        shouldIgnorePlayer = true;
+                        isPlayerHit = true;
+                    }
+                    else if (hit.collider.CompareTag("Player") || hit.collider.gameObject.layer == LayerMask.NameToLayer("ReviveLayer"))
+                    {
+                        isPlayerHit = true;
+                        // Проверяем, является ли это союзником
+                        PlayerCore targetCore = hit.collider.GetComponentInParent<PlayerCore>();
+                        if (targetCore != null && IsAlly(targetCore))
+                        {
+                            // Если есть выбранный скилл, не игнорируем (для heal и т.д.)
+                            if (!_core.Skills.IsSkillSelected)
+                            {
+                                shouldIgnorePlayer = true;
+                            }
+                        }
+                        else
+                        {
+                            // Враг - не игнорируем (для атаки)
+                            shouldIgnorePlayer = false;
+                        }
+                    }
+                    
+                    if (shouldIgnorePlayer)
+                    {
+                        Debug.Log($"[PlayerMovement] Ignoring player hit, continuing raycast from {hit.point}");
+                        
+                        // Продолжаем raycast до тех пор, пока не найдем что-то, что не является игроком
+                        bool foundNonPlayer = false;
+                        Vector3 currentOrigin = hit.point + ray.direction * 0.1f;
+                        int maxAttempts = 10; // Ограничиваем количество попыток
+                        int attempts = 0;
+                        
+                        while (!foundNonPlayer && attempts < maxAttempts)
+                        {
+                            attempts++;
+                            Ray newRay = new Ray(currentOrigin, ray.direction);
+                            
+                            if (Physics.Raycast(newRay, out RaycastHit newHit, Mathf.Infinity, _core.interactableLayers))
+                            {
+                                Debug.Log($"[PlayerMovement] Attempt {attempts}: hit {newHit.collider.name} at {newHit.point}");
+                                
+                                // Проверяем, является ли это игроком
+                                bool isPlayer = (newHit.collider.transform == transform || 
+                                               newHit.collider.transform.IsChildOf(transform) || 
+                                               newHit.collider.CompareTag("Player") || 
+                                               newHit.collider.gameObject.layer == LayerMask.NameToLayer("ReviveLayer"));
+                                
+                                if (!isPlayer)
+                                {
+                                    // Нашли что-то, что не является игроком
+                                    hit = newHit;
+                                    isPlayerHit = false;
+                                    foundNonPlayer = true;
+                                    Debug.Log($"[PlayerMovement] Found non-player object: {newHit.collider.name}");
+                                }
+                                else
+                                {
+                                    // Это все еще игрок, продолжаем
+                                    currentOrigin = newHit.point + ray.direction * 0.1f;
+                                }
+                            }
+                            else
+                            {
+                                Debug.Log($"[PlayerMovement] Attempt {attempts}: found nothing");
+                                break;
+                            }
+                        }
+                        
+                        if (!foundNonPlayer)
+                        {
+                            Debug.Log("[PlayerMovement] Could not find non-player object, returning");
+                            return;
+                        }
+                    }
                     // Raycast hit
                     if (hit.collider.gameObject.layer == LayerMask.NameToLayer("Ignore Raycast"))
                     {
@@ -223,7 +304,8 @@ public class PlayerMovement : NetworkBehaviour
                         }
                         return;
                     }
-                    if (hit.collider.CompareTag("Player") || hit.collider.gameObject.layer == LayerMask.NameToLayer("ReviveLayer"))
+                    // Обрабатываем клик по игроку только если это не было проигнорировано
+                    if (isPlayerHit && (hit.collider.CompareTag("Player") || hit.collider.gameObject.layer == LayerMask.NameToLayer("ReviveLayer")))
                     {
                         PlayerCore targetCore = hit.collider.GetComponentInParent<PlayerCore>();
                         Debug.Log($"[PlayerMovement] Hit object: {hit.collider.name}, layer: {hit.collider.gameObject.layer}, ReviveLayer: {LayerMask.NameToLayer("ReviveLayer")}");
@@ -248,7 +330,15 @@ public class PlayerMovement : NetworkBehaviour
                                     _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, null, hit.collider.gameObject, selectedSkill);
                                 }
                             }
+                            else if (IsAlly(targetCore) && _core.Skills.IsSkillSelected)
+                            {
+                                // Use skill on ally (heal, etc.)
+                                ISkill selectedSkill = _core.Skills.ActiveSkill;
+                                Debug.Log($"[PlayerMovement] Using skill {selectedSkill?.SkillName} on ally {targetCore.name}");
+                                _core.ActionSystem.TryStartAction(PlayerAction.SkillCast, null, hit.collider.gameObject, selectedSkill);
+                            }
                         }
+                        return; // Выходим, так как обработали клик по игроку
                     }
                     else if (hit.collider.CompareTag("Enemy"))
                     {
@@ -256,9 +346,15 @@ public class PlayerMovement : NetworkBehaviour
                         // Global cooldown check removed
                         _core.ActionSystem.TryStartAction(PlayerAction.Attack, null, hit.collider.gameObject);
                     }
+                    else if (hit.collider.CompareTag("NPC"))
+                    {
+                        // Handle NPC interaction
+                        HandleNpcInteraction(hit.collider.gameObject);
+                    }
                     else if (hit.collider.CompareTag("Ground"))
                     {
                         // Starting Move to position
+                        Debug.Log($"[PlayerMovement] Moving to ground position: {hit.point}");
                         _core.Combat.ClearTarget();
                         _core.ActionSystem.TryStartAction(PlayerAction.Move, hit.point);
                     }
@@ -620,5 +716,36 @@ public class PlayerMovement : NetworkBehaviour
         }
         
         return false;
+    }
+    
+    private void HandleNpcInteraction(GameObject npcObject)
+    {
+        NpcBehaviour npc = npcObject.GetComponent<NpcBehaviour>();
+        if (npc == null)
+        {
+            Debug.LogWarning("[PlayerMovement] NPC object doesn't have NpcBehaviour component");
+            return;
+        }
+        
+        float distance = Vector3.Distance(transform.position, npcObject.transform.position);
+        
+        if (distance <= npc.InteractionRadius)
+        {
+            // Игрок близко к NPC - показываем контекстное меню
+            npc.ShowContextMenu(_core);
+            Debug.Log($"[PlayerMovement] Showing context menu for {npc.NpcName}");
+        }
+        else
+        {
+            // Игрок далеко - подходим ближе
+            Vector3 targetPosition = npcObject.transform.position;
+            // Останавливаемся на расстоянии чуть меньше радиуса взаимодействия
+            Vector3 direction = (transform.position - targetPosition).normalized;
+            Vector3 stopPosition = targetPosition + direction * (npc.InteractionRadius - 0.5f);
+            
+            _core.Combat.ClearTarget();
+            _core.ActionSystem.TryStartAction(PlayerAction.Move, stopPosition);
+            Debug.Log($"[PlayerMovement] Moving closer to {npc.NpcName}");
+        }
     }
 }
