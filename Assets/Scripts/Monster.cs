@@ -104,23 +104,26 @@ public class Monster : NetworkBehaviour
     /// </summary>
     private void PlayAnimationLocal(string animationName)
     {
+        Debug.Log($"[Monster] PlayAnimationLocal({animationName}) called for {monsterName}");
+        
         // ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА: Если анимационные компоненты не инициализированы, пытаемся их инициализировать
         if (_animator == null && _animation == null)
         {
+            Debug.Log($"[Monster] Animation components not initialized for {monsterName}, initializing...");
             EnsureAnimationComponentsInitialized();
         }
         
         // Проверяем, есть ли анимационная система
         if (!IsHumanoidMonster() && !IsNonHumanoidMonster())
         {
-            // У монстра нет анимационной системы - это нормально для некоторых монстров
+            Debug.LogWarning($"[Monster] No animation system found for {monsterName} (IsHumanoid: {IsHumanoidMonster()}, IsNonHumanoid: {IsNonHumanoidMonster()})");
             return;
         }
         
         // Проверяем, есть ли анимация с таким именем
         if (!HasAnimation(animationName))
         {
-            // Анимация не найдена - это нормально, не все монстры имеют все анимации
+            Debug.LogWarning($"[Monster] Animation '{animationName}' not found for {monsterName}");
             return;
         }
         
@@ -129,7 +132,12 @@ public class Monster : NetworkBehaviour
             // Гуманоидный монстр: используем Animator
             if (_animator != null)
             {
+                Debug.Log($"[Monster] Playing animation '{animationName}' on Animator for {monsterName}");
                 _animator.Play(animationName);
+            }
+            else
+            {
+                Debug.LogError($"[Monster] Animator is null for humanoid {monsterName}");
             }
         }
         else if (IsNonHumanoidMonster())
@@ -137,7 +145,12 @@ public class Monster : NetworkBehaviour
             // Не-гуманоидный монстр: используем Animation
             if (_animation != null)
             {
+                Debug.Log($"[Monster] Playing animation '{animationName}' on Animation component for {monsterName}");
                 _animation.Play(animationName);
+            }
+            else
+            {
+                Debug.LogError($"[Monster] Animation component is null for non-humanoid {monsterName}");
             }
         }
     }
@@ -384,14 +397,41 @@ public class Monster : NetworkBehaviour
         if (IsHumanoidMonster() && _animator != null)
         {
             // Для Animator проверяем через HasState (требует hash)
-            return _animator.HasState(0, Animator.StringToHash(animationName));
+            bool hasState = _animator.HasState(0, Animator.StringToHash(animationName));
+            Debug.Log($"[Monster] HasAnimation({animationName}) for humanoid {monsterName}: {hasState}");
+            return hasState;
         }
         else if (IsNonHumanoidMonster() && _animation != null)
         {
-            // Для Animation проверяем наличие клипа
-            return _animation[animationName] != null;
+            // Для Animation проверяем наличие клипа более надежным способом
+            bool hasClip = false;
+            try
+            {
+                // Проверяем через GetClipCount и перебор клипов
+                int clipCount = _animation.GetClipCount();
+                Debug.Log($"[Monster] Animation component has {clipCount} clips for {monsterName}");
+                
+                foreach (AnimationState state in _animation)
+                {
+                    if (state.name == animationName)
+                    {
+                        hasClip = true;
+                        break;
+                    }
+                }
+                
+                Debug.Log($"[Monster] HasAnimation({animationName}) for non-humanoid {monsterName}: {hasClip}");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[Monster] Error checking animation {animationName} for {monsterName}: {e.Message}");
+                hasClip = false;
+            }
+            
+            return hasClip;
         }
         
+        Debug.LogWarning($"[Monster] HasAnimation({animationName}) for {monsterName}: No animation system found (IsHumanoid: {IsHumanoidMonster()}, IsNonHumanoid: {IsNonHumanoidMonster()})");
         return false;
     }
     

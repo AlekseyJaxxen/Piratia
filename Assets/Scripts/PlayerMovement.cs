@@ -130,6 +130,89 @@ public class PlayerMovement : NetworkBehaviour
                     Debug.Log($"[PlayerMovement] Targeted skill selected: {skill.SkillName}, isTargeted: {isTargeted}");
                     if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _core.interactableLayers))
                     {
+                        Debug.Log($"[PlayerMovement] Initial skill raycast hit: {hit.collider.name} at {hit.point}");
+                        
+                        // Если попали в игрока, проверяем нужно ли игнорировать
+                        bool shouldIgnorePlayer = false;
+                        bool isPlayerHit = false;
+                        
+                        if (hit.collider.transform == transform || hit.collider.transform.IsChildOf(transform))
+                        {
+                            // Всегда игнорируем клики по самому себе для targeted скиллов
+                            shouldIgnorePlayer = true;
+                            isPlayerHit = true;
+                        }
+                        else if (hit.collider.CompareTag("Player") || hit.collider.gameObject.layer == LayerMask.NameToLayer("ReviveLayer"))
+                        {
+                            isPlayerHit = true;
+                            // Для targeted скиллов игнорируем союзников (кроме TargetedAlly)
+                            PlayerCore hitPlayerCore = hit.collider.GetComponentInParent<PlayerCore>();
+                            if (hitPlayerCore != null && IsAlly(hitPlayerCore) && skill.SkillCastType != SkillBase.CastType.TargetedAlly)
+                            {
+                                shouldIgnorePlayer = true;
+                            }
+                        }
+                        
+                        if (shouldIgnorePlayer)
+                        {
+                            Debug.Log($"[PlayerMovement] Ignoring player hit for skill, continuing raycast from {hit.point}");
+                            
+                            // Продолжаем raycast до тех пор, пока не найдем что-то, что не является игроком
+                            bool foundNonPlayer = false;
+                            Vector3 currentOrigin = hit.point + ray.direction * 0.1f;
+                            int maxAttempts = 10; // Ограничиваем количество попыток
+                            int attempts = 0;
+                            
+                            while (!foundNonPlayer && attempts < maxAttempts)
+                            {
+                                attempts++;
+                                Ray newRay = new Ray(currentOrigin, ray.direction);
+                                
+                                // Используем объединение слоев для поиска всех объектов (включая Terrain)
+                                LayerMask combinedLayers = _core.interactableLayers | _core.groundLayer;
+                                if (Physics.Raycast(newRay, out RaycastHit newHit, Mathf.Infinity, combinedLayers))
+                                {
+                                    Debug.Log($"[PlayerMovement] Skill raycast attempt {attempts}: hit {newHit.collider.name} at {newHit.point}");
+                                    
+                                    // Проверяем, является ли это игроком (исключаем Terrain и других противников)
+                                    bool isPlayer = (newHit.collider.transform == transform || 
+                                                   newHit.collider.transform.IsChildOf(transform) || 
+                                                   newHit.collider.CompareTag("Player") || 
+                                                   newHit.collider.gameObject.layer == LayerMask.NameToLayer("ReviveLayer"));
+                                    
+                                    // Если это Terrain или противник, считаем что нашли не-игрока
+                                    bool isTerrain = newHit.collider.CompareTag("Ground");
+                                    bool isEnemy = newHit.collider.CompareTag("Enemy");
+                                    bool isMonster = newHit.collider.GetComponent<Monster>() != null;
+                                    
+                                    if (!isPlayer || isTerrain || isEnemy || isMonster)
+                                    {
+                                        // Нашли что-то, что не является игроком (или Terrain/противник)
+                                        hit = newHit;
+                                        isPlayerHit = false;
+                                        foundNonPlayer = true;
+                                        Debug.Log($"[PlayerMovement] Found non-player object for skill: {newHit.collider.name} (isTerrain: {isTerrain}, isEnemy: {isEnemy}, isMonster: {isMonster})");
+                                    }
+                                    else
+                                    {
+                                        // Это все еще игрок, продолжаем
+                                        currentOrigin = newHit.point + ray.direction * 0.1f;
+                                    }
+                                }
+                                else
+                                {
+                                    Debug.Log($"[PlayerMovement] Skill raycast attempt {attempts}: found nothing");
+                                    break;
+                                }
+                            }
+                            
+                            if (!foundNonPlayer)
+                            {
+                                Debug.Log("[PlayerMovement] Could not find non-player object for skill, returning");
+                                return;
+                            }
+                        }
+                        
                         // Raycast hit
                         GameObject target = hit.collider.gameObject;
                         bool validTarget = false;
@@ -258,23 +341,30 @@ public class PlayerMovement : NetworkBehaviour
                             attempts++;
                             Ray newRay = new Ray(currentOrigin, ray.direction);
                             
-                            if (Physics.Raycast(newRay, out RaycastHit newHit, Mathf.Infinity, _core.interactableLayers))
+                            // Используем объединение слоев для поиска всех объектов (включая Terrain)
+                            LayerMask combinedLayers = _core.interactableLayers | _core.groundLayer;
+                            if (Physics.Raycast(newRay, out RaycastHit newHit, Mathf.Infinity, combinedLayers))
                             {
                                 Debug.Log($"[PlayerMovement] Attempt {attempts}: hit {newHit.collider.name} at {newHit.point}");
                                 
-                                // Проверяем, является ли это игроком
+                                // Проверяем, является ли это игроком (исключаем Terrain и других противников)
                                 bool isPlayer = (newHit.collider.transform == transform || 
                                                newHit.collider.transform.IsChildOf(transform) || 
                                                newHit.collider.CompareTag("Player") || 
                                                newHit.collider.gameObject.layer == LayerMask.NameToLayer("ReviveLayer"));
                                 
-                                if (!isPlayer)
+                                // Если это Terrain или противник, считаем что нашли не-игрока
+                                bool isTerrain = newHit.collider.CompareTag("Ground");
+                                bool isEnemy = newHit.collider.CompareTag("Enemy");
+                                bool isMonster = newHit.collider.GetComponent<Monster>() != null;
+                                
+                                if (!isPlayer || isTerrain || isEnemy || isMonster)
                                 {
-                                    // Нашли что-то, что не является игроком
+                                    // Нашли что-то, что не является игроком (или Terrain/противник)
                                     hit = newHit;
                                     isPlayerHit = false;
                                     foundNonPlayer = true;
-                                    Debug.Log($"[PlayerMovement] Found non-player object: {newHit.collider.name}");
+                                    Debug.Log($"[PlayerMovement] Found non-player object: {newHit.collider.name} (isTerrain: {isTerrain}, isEnemy: {isEnemy}, isMonster: {isMonster})");
                                 }
                                 else
                                 {

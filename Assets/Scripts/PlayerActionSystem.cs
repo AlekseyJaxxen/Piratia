@@ -329,7 +329,7 @@ public class PlayerActionSystem : NetworkBehaviour
         float effectiveAttackRange = attackRange;
         
         bool isMovingToTarget = false;
-        Vector3 actualDestination = Vector3.zero;
+        Vector3 actualDestination = target.transform.position; // Инициализируем текущей позицией цели
         int frameCounter = 0; // Счетчик кадров для оптимизации обновления пути
         
         while (target != null && targetHealth.CurrentHealth > 0)
@@ -357,11 +357,15 @@ public class PlayerActionSystem : NetworkBehaviour
             bool needsPursuit = distanceToActualTarget > effectiveAttackRange;
             
             // Дополнительная проверка: если цель убежала от нашей точки назначения, продолжаем преследование
-            float distanceToCurrentDestination = Vector3.Distance(actualDestination, target.transform.position);
-            if (distanceToCurrentDestination > 3.0f) // Если цель отклонилась больше чем на 3 метра от нашего пути
+            // НО только если мы уже не в радиусе атаки
+            if (distanceToActualTarget > effectiveAttackRange)
             {
-                needsPursuit = true;
-                Debug.Log($"[PlayerActionSystem] Target drifted from destination path by {distanceToCurrentDestination:F1}m, continuing pursuit");
+                float distanceToCurrentDestination = Vector3.Distance(actualDestination, target.transform.position);
+                if (distanceToCurrentDestination > 3.0f) // Если цель отклонилась больше чем на 3 метра от нашего пути
+                {
+                    needsPursuit = true;
+                    Debug.Log($"[PlayerActionSystem] Target drifted from destination path by {distanceToCurrentDestination:F1}m, continuing pursuit");
+                }
             }
             
             if (needsPursuit)
@@ -651,8 +655,9 @@ public class PlayerActionSystem : NetworkBehaviour
         }
         
         float originalStoppingDistance = _core.Movement.Agent.stoppingDistance;
-        _core.Movement.Agent.stoppingDistance = 0f;
-        const float castRangeOffset = 0.2f;
+  // НЕ изменяем stoppingDistance - используем оригинальное значение
+        // _core.Movement.Agent.stoppingDistance = 0f;
+        const float castRangeOffset = 0.0f; // Убираем offset - используем точную дальность скилла
         _core.Skills.CancelSkillSelection(); // Закрываем режим сразу после начала
         
         // Проверяем, можем ли мы достичь цель для каста
@@ -663,7 +668,8 @@ public class PlayerActionSystem : NetworkBehaviour
         if (!canReach)
         {
             Debug.LogWarning($"[PlayerActionSystem] Cast target {targetObject.name} is not reachable (closest distance: {distanceToTarget:F1}m)");
-            _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
+            // stoppingDistance не изменялся, поэтому не нужно восстанавливать
+            // _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
             CompleteAction();
             yield break;
         }
@@ -672,7 +678,7 @@ public class PlayerActionSystem : NetworkBehaviour
         float effectiveRange = skillToCast.Range - castRangeOffset;
         
         bool isMovingToTarget = false;
-        Vector3 actualDestination = Vector3.zero;
+        Vector3 actualDestination = targetObject.transform.position; // Инициализируем текущей позицией цели
         int frameCounter = 0; // Счетчик кадров для оптимизации обновления пути
         
         while (true)
@@ -680,7 +686,8 @@ public class PlayerActionSystem : NetworkBehaviour
             if (_core.isDead || _core.isStunned || (_core.isSilenced && !(skillToCast is BasicAttackSkill)))
             {
                 Debug.Log("[PlayerActionSystem] Skill cast stopped: player is dead, stunned, or silenced (and not using BasicAttackSkill)");
-                _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
+                // stoppingDistance не изменялся, поэтому не нужно восстанавливать
+            // _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
                 CompleteAction();
                 yield break;
             }
@@ -688,7 +695,8 @@ public class PlayerActionSystem : NetworkBehaviour
             if (targetPlayerCore != null && targetPlayerCore.Skills._isInvisible)
             {
                 Debug.Log($"[PlayerActionSystem] Skill cast stopped: target {targetObject.name} is invisible");
-                _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
+                // stoppingDistance не изменялся, поэтому не нужно восстанавливать
+            // _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
                 CompleteAction();
                 yield break;
             }
@@ -699,11 +707,15 @@ public class PlayerActionSystem : NetworkBehaviour
             bool needsPursuit = distanceToActualTarget > effectiveRange;
             
             // Дополнительная проверка: если цель убежала от нашей точки назначения, продолжаем преследование
-            float distanceToCurrentDestination = Vector3.Distance(actualDestination, targetObject.transform.position);
-            if (distanceToCurrentDestination > 3.0f) // Если цель отклонилась больше чем на 3 метра от нашего пути
+            // НО только если мы уже не в радиусе каста
+            if (distanceToActualTarget > effectiveRange)
             {
-                needsPursuit = true;
-                Debug.Log($"[PlayerActionSystem] Cast target drifted from destination path by {distanceToCurrentDestination:F1}m, continuing pursuit");
+                float distanceToCurrentDestination = Vector3.Distance(actualDestination, targetObject.transform.position);
+                if (distanceToCurrentDestination > 3.0f) // Если цель отклонилась больше чем на 3 метра от нашего пути
+                {
+                    needsPursuit = true;
+                    Debug.Log($"[PlayerActionSystem] Cast target drifted from destination path by {distanceToCurrentDestination:F1}m, continuing pursuit");
+                }
             }
             
             if (!needsPursuit)
@@ -716,7 +728,8 @@ public class PlayerActionSystem : NetworkBehaviour
                 if (finalDistance > skillToCast.Range)
                 {
                     Debug.LogWarning($"[PlayerActionSystem] Final distance check failed: {finalDistance:F2} > {skillToCast.Range} for skill {skillToCast.SkillName}");
-                    _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
+                    // stoppingDistance не изменялся, поэтому не нужно восстанавливать
+            // _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
                     CompleteAction();
                     yield break;
                 }
@@ -752,7 +765,8 @@ public class PlayerActionSystem : NetworkBehaviour
                     Debug.LogError($"[PlayerActionSystem] No NetworkIdentity found on target: {targetObject.name}");
                 }
                 
-                _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
+                // stoppingDistance не изменялся, поэтому не нужно восстанавливать
+            // _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
                 CompleteAction();
                 yield break;
             }
@@ -774,7 +788,8 @@ public class PlayerActionSystem : NetworkBehaviour
                     else
                     {
                         Debug.LogWarning($"[PlayerActionSystem] Failed to start pursuit of cast target {targetObject.name}");
-                        _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
+                        // stoppingDistance не изменялся, поэтому не нужно восстанавливать
+            // _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
                         CompleteAction();
                         yield break;
                     }
@@ -823,7 +838,8 @@ public class PlayerActionSystem : NetworkBehaviour
                             Debug.Log($"[PlayerActionSystem] Cast target {targetObject.name} too far ({distanceToActualTarget:F1}m > 150m), stopping pursuit");
                             _core.Movement.StopMovement();
                             isMovingToTarget = false;
-                            _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
+                            // stoppingDistance не изменялся, поэтому не нужно восстанавливать
+            // _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
                             CompleteAction();
                             yield break;
                         }
@@ -835,7 +851,8 @@ public class PlayerActionSystem : NetworkBehaviour
             if (_core.Movement.Agent.hasPath && _core.Movement.Agent.remainingDistance <= _core.Movement.Agent.stoppingDistance && distanceToActualTarget > effectiveRange)
             {
                 Debug.Log($"[PlayerActionSystem] Cannot get closer to target {targetObject.name}. Stopping cast.");
-                _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
+                // stoppingDistance не изменялся, поэтому не нужно восстанавливать
+            // _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
                 CompleteAction();
                 yield break;
             }
@@ -851,14 +868,16 @@ public class PlayerActionSystem : NetworkBehaviour
             yield break;
         }
         float originalStoppingDistance = _core.Movement.Agent.stoppingDistance;
-        _core.Movement.Agent.stoppingDistance = 0f;
-        const float castRangeOffset = 0.2f;
+        // НЕ изменяем stoppingDistance - используем оригинальное значение
+        // _core.Movement.Agent.stoppingDistance = 0f;
+        const float castRangeOffset = 0.0f; // Убираем offset - используем точную дальность скилла
         while (true)
         {
             if (_core.isDead || _core.isStunned || (_core.isSilenced && !(skillToCast is BasicAttackSkill)))
             {
                 Debug.Log("[PlayerActionSystem] Skill cast stopped: player is dead, stunned, or silenced (and not using BasicAttackSkill)");
-                _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
+                // stoppingDistance не изменялся, поэтому не нужно восстанавливать
+            // _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
                 CompleteAction();
                 yield break;
             }
@@ -875,7 +894,8 @@ public class PlayerActionSystem : NetworkBehaviour
                 {
                     Debug.LogWarning($"[PlayerActionSystem] Final distance check failed: {finalDistance:F2} > {skillToCast.Range} for skill {skillToCast.SkillName}");
                     _core.Skills.CancelSkillSelection();
-                    _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
+                    // stoppingDistance не изменялся, поэтому не нужно восстанавливать
+            // _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
                     CompleteAction();
                     yield break;
                 }
@@ -898,7 +918,8 @@ public class PlayerActionSystem : NetworkBehaviour
                     _core.Skills.CmdExecuteSkill(_core, targetPosition, 0, ((SkillBase)skillToCast).SkillName, ((SkillBase)skillToCast).Weight);
                 }
                 _core.Skills.CancelSkillSelection();
-                _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
+                // stoppingDistance не изменялся, поэтому не нужно восстанавливать
+            // _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
                 CompleteAction();
                 yield break;
             }
@@ -917,7 +938,8 @@ public class PlayerActionSystem : NetworkBehaviour
                 else
                 {
                     Debug.Log($"[PlayerActionSystem] No NavMesh for manual step to target position {targetPosition}. Stopping cast.");
-                    _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
+                    // stoppingDistance не изменялся, поэтому не нужно восстанавливать
+            // _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
                     CompleteAction();
                     yield break;
                 }
@@ -925,7 +947,8 @@ public class PlayerActionSystem : NetworkBehaviour
             if (_core.Movement.Agent.hasPath && _core.Movement.Agent.remainingDistance <= _core.Movement.Agent.stoppingDistance && distance > effectiveRange)
             {
                 Debug.Log($"[PlayerActionSystem] Cannot get closer to target position {targetPosition}. Stopping cast.");
-                _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
+                // stoppingDistance не изменялся, поэтому не нужно восстанавливать
+            // _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
                 CompleteAction();
                 yield break;
             }

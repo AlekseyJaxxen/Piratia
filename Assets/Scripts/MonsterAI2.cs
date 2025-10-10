@@ -536,7 +536,7 @@ public class MonsterAI2 : MonoBehaviour
                 monster.PlayAnimation("LyingIdle");
             }
         }
-        else if (!monster.IsStunned && agent != null && agent.isActiveAndEnabled && agent.isOnNavMesh)
+        else if (!monster.IsStunned && !monster.IsCooldown && agent != null && agent.isActiveAndEnabled && agent.isOnNavMesh)
         {
             // Проверяем, не находимся ли мы уже слишком близко к цели
             if (distance > currentStoppingDistance)
@@ -650,7 +650,8 @@ public class MonsterAI2 : MonoBehaviour
     {
         yield return new WaitForSeconds(attackCooldown);
         monster.IsCooldown = false;
-        if (!monster.IsStunned && agent != null && agent.isActiveAndEnabled && agent.isOnNavMesh) agent.isStopped = false;
+        // НЕ включаем движение автоматически - пусть AI сам решает, нужно ли двигаться
+        // if (!monster.IsStunned && agent != null && agent.isActiveAndEnabled && agent.isOnNavMesh) agent.isStopped = false;
     }
     
     private void ReturnToSpawn()

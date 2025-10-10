@@ -189,8 +189,10 @@ public class MonsterBasicAttackSkill : SkillBase
             return;
         }
         
-        // Простое логирование - анимации будут обрабатываться в Monster.cs
-        Debug.Log($"[MonsterBasicAttackSkill] Would play universal animation {animationId} for {caster.name}");
+        // Воспроизводим анимацию по универсальному ID
+        int animationIdInt = (int)animationId;
+        Debug.Log($"[MonsterBasicAttackSkill] Playing universal animation {animationId} (ID: {animationIdInt}) for {caster.name}");
+        caster.PlayAnimationById(animationIdInt);
     }
     
     /// <summary>
@@ -204,8 +206,9 @@ public class MonsterBasicAttackSkill : SkillBase
             return;
         }
         
-        // Простое логирование - анимации будут обрабатываться в Monster.cs
-        Debug.Log($"[MonsterBasicAttackSkill] Would play custom animation '{animationName}' for {caster.name}");
+        // Воспроизводим анимацию по имени
+        Debug.Log($"[MonsterBasicAttackSkill] Playing custom animation '{animationName}' for {caster.name}");
+        caster.PlayAnimation(animationName);
     }
     
     /// <summary>
@@ -219,8 +222,9 @@ public class MonsterBasicAttackSkill : SkillBase
             return;
         }
         
-        // Простое логирование - анимации будут обрабатываться в Monster.cs
-        Debug.Log($"[MonsterBasicAttackSkill] Would play custom animation ID {animationId} for {caster.name}");
+        // Воспроизводим анимацию по ID
+        Debug.Log($"[MonsterBasicAttackSkill] Playing custom animation ID {animationId} for {caster.name}");
+        caster.PlayAnimationById(animationId);
     }
     
     /// <summary>
