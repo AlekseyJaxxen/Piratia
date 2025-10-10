@@ -7,10 +7,28 @@ public class MyNetworkManager : NetworkManager
     [Header("Player Settings")]
     public GameObject[] playerPrefabs;
 
+    public override void OnStartServer()
+    {
+        base.OnStartServer();
+        Debug.Log("[MyNetworkManager] Server started");
+        
+        // Регистрируем обработчик сообщения NetworkPlayerInfo
+        NetworkServer.RegisterHandler<NetworkPlayerInfo>(OnReceivePlayerInfo);
+        Debug.Log("[MyNetworkManager] Registered NetworkPlayerInfo message handler");
+        
+        // Очищаем список игроков, получивших стартовые предметы при старте сервера
+        StarterItemsSystem.ClearAllReceivedItems();
+    }
+    
     public override void OnStartHost()
     {
         base.OnStartHost();
         Debug.Log("[MyNetworkManager] Host started");
+        
+        // Регистрируем обработчик сообщения NetworkPlayerInfo для клиента
+        NetworkClient.RegisterHandler<NetworkPlayerInfo>(OnReceivePlayerInfo);
+        Debug.Log("[MyNetworkManager] Registered NetworkPlayerInfo message handler for client");
+        
         // Для хоста нужно обработать спавн игрока отдельно
         StartCoroutine(HandleHostPlayerSpawn());
     }
@@ -148,13 +166,6 @@ public class MyNetworkManager : NetworkManager
         return null;
     }
 
-    public override void OnStartServer()
-    {
-        base.OnStartServer();
-        // ������������ ���������� ��� ��������� �� �������
-        NetworkServer.RegisterHandler<NetworkPlayerInfo>(OnReceivePlayerInfo);
-        Debug.Log("[MyNetworkManager] Server started, handler registered for NetworkPlayerInfo");
-    }
 
     public override void OnClientConnect()
     {
@@ -278,6 +289,13 @@ public class MyNetworkManager : NetworkManager
         
         // Выдаем стартовые предметы игроку с задержкой для полной инициализации класса
         StartCoroutine(GiveStarterItemsWithDelay(playerCore));
+    }
+
+    // Обработчик сообщения NetworkPlayerInfo на клиенте (для подтверждения получения)
+    [Client]
+    private void OnReceivePlayerInfo(NetworkPlayerInfo info)
+    {
+        Debug.Log($"[MyNetworkManager] Client received player info confirmation: Name: {info.playerName}, Team: {info.playerTeam}");
     }
 
     // ���� ����� ������ �� ������������, ��� ��� OnReceivePlayerInfo ������ ������������ ���������� ������

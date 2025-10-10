@@ -3,6 +3,7 @@ using Mirror;
 using System.Collections.Generic;
 using System.Linq;
 using System.Collections;
+using UnityEngine.Events;
 
 public class CharacterStats : NetworkBehaviour
 {
@@ -110,6 +111,10 @@ public class CharacterStats : NetworkBehaviour
     [SyncVar(hook = nameof(OnActiveStatEffectsChanged))]
     public string activeStatEffectsData = "";
     public readonly List<StatEffect> activeStatEffects = new List<StatEffect>();
+    
+    // События для VFX контроллера
+    [HideInInspector] public UnityEvent<CharacterStats.StatEffect> OnStatEffectAdded = new UnityEvent<CharacterStats.StatEffect>();
+    [HideInInspector] public UnityEvent<CharacterStats.StatEffect> OnStatEffectRemoved = new UnityEvent<CharacterStats.StatEffect>();
     public struct SlowEffect
     {
         public float Percentage;
@@ -976,7 +981,7 @@ public class CharacterStats : NetworkBehaviour
         // Buffs должны быть добавлены к базовым значениям, а не заменять их
         
         // Добавляем эффект в список
-        activeStatEffects.Add(new StatEffect
+        StatEffect newEffect = new StatEffect
         {
             Stat = statName,
             Value = newValue,
@@ -987,7 +992,12 @@ public class CharacterStats : NetworkBehaviour
             VFXPrefabName = "",
             VFXOffset = Vector3.zero,
             SkillWeight = weight
-        });
+        };
+        
+        activeStatEffects.Add(newEffect);
+        
+        // Вызываем событие добавления эффекта
+        OnStatEffectAdded.Invoke(newEffect);
         
         SyncStatEffects(); // Синхронизируем с клиентами
         
@@ -1009,6 +1019,9 @@ public class CharacterStats : NetworkBehaviour
         if (effectToRemove.IsActive)
         {
             // НЕ восстанавливаем оригинальное значение напрямую - это будет сделано в CalculateDerivedStats()
+            
+            // Вызываем событие удаления эффекта
+            OnStatEffectRemoved.Invoke(effectToRemove);
             
             // Удаляем эффект из списка
             activeStatEffects.Remove(effectToRemove);
@@ -1286,7 +1299,7 @@ public class CharacterStats : NetworkBehaviour
         {
             SetStat(stat, Mathf.RoundToInt(newValue));
         }
-        activeStatEffects.Add(new StatEffect
+        StatEffect newEffect = new StatEffect
         {
             Stat = stat,
             Value = newValue,
@@ -1297,7 +1310,13 @@ public class CharacterStats : NetworkBehaviour
             VFXPrefabName = vfxPrefab != null ? vfxPrefab.name : "",
             VFXOffset = vfxOffset,
             SkillWeight = skillWeight
-        });
+        };
+        
+        activeStatEffects.Add(newEffect);
+        
+        // Вызываем событие добавления эффекта
+        OnStatEffectAdded.Invoke(newEffect);
+        
         SyncStatEffects(); // Синхронизируем с клиентами
         StartCoroutine(RemoveBuff(stat, original, dur));
         Debug.Log($"[CharacterStats] Applied buff for {stat}, value={newValue}, duration={dur}, weight={skillWeight}");
@@ -1316,7 +1335,7 @@ public class CharacterStats : NetworkBehaviour
         {
             SetStat(stat, Mathf.RoundToInt(newValue));
         }
-        activeStatEffects.Add(new StatEffect { 
+        StatEffect newEffect = new StatEffect { 
             Stat = stat, 
             Value = newValue, 
             OriginalValue = original, 
@@ -1325,7 +1344,13 @@ public class CharacterStats : NetworkBehaviour
             VFXPrefab = vfxPrefab, 
             VFXPrefabName = vfxPrefab != null ? vfxPrefab.name : "",
             VFXOffset = vfxOffset 
-        });
+        };
+        
+        activeStatEffects.Add(newEffect);
+        
+        // Вызываем событие добавления эффекта
+        OnStatEffectAdded.Invoke(newEffect);
+        
         SyncStatEffects(); // Синхронизируем с клиентами
         StartCoroutine(RemoveBuff(stat, original, dur));
     }
@@ -1368,7 +1393,14 @@ public class CharacterStats : NetworkBehaviour
         }
         if (Mathf.Approximately(current, value))
         {
+            // Удаляем toggle эффект
+            var effectsToRemove = activeStatEffects.Where(e => e.Stat == stat && e.IsToggle).ToList();
+            foreach (var effect in effectsToRemove)
+            {
+                OnStatEffectRemoved.Invoke(effect);
+            }
             activeStatEffects.RemoveAll(e => e.Stat == stat && e.IsToggle);
+            
             if (IsFloatStat(stat))
             {
                 SetStat(stat, baseValue);
@@ -1381,14 +1413,19 @@ public class CharacterStats : NetworkBehaviour
         }
         else
         {
-            activeStatEffects.Add(new StatEffect { 
+            // Добавляем toggle эффект
+            StatEffect newEffect = new StatEffect { 
                 Stat = stat, 
                 Value = value, 
                 OriginalValue = baseValue, 
                 EndTime = -1f, 
                 IsToggle = true,
                 VFXPrefabName = ""
-            });
+            };
+            
+            activeStatEffects.Add(newEffect);
+            OnStatEffectAdded.Invoke(newEffect);
+            
             if (IsFloatStat(stat))
             {
                 SetStat(stat, value);
@@ -1406,7 +1443,16 @@ public class CharacterStats : NetworkBehaviour
     private IEnumerator RemoveBuff(string stat, float original, float dur)
     {
         yield return new WaitForSeconds(dur);
+        
+        // Находим эффекты для удаления и вызываем события
+        var effectsToRemove = activeStatEffects.Where(e => e.Stat == stat && !e.IsToggle && e.EndTime <= (float)NetworkTime.time).ToList();
+        foreach (var effect in effectsToRemove)
+        {
+            OnStatEffectRemoved.Invoke(effect);
+        }
+        
         activeStatEffects.RemoveAll(e => e.Stat == stat && !e.IsToggle && e.EndTime <= (float)NetworkTime.time);
+        
         if (IsFloatStat(stat))
         {
             SetStat(stat, original);

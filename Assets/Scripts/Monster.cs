@@ -104,12 +104,20 @@ public class Monster : NetworkBehaviour
     /// </summary>
     private void PlayAnimationLocal(string animationName)
     {
-        Debug.Log($"[Monster] PlayAnimationLocal({animationName}) called for {monsterName}");
+        // Debug.Log($"[Monster] PlayAnimationLocal({animationName}) called for {monsterName}");
+        
+        // ИСПРАВЛЕНИЕ: Для combined legs не проверяем анимационную систему, так как они управляют аниматором head
+        if (isCombinedLegs)
+        {
+            // Combined legs не имеют собственной анимационной системы - они управляют head аниматором
+            // Эта проверка не нужна для legs, так как анимации будут воспроизводиться на head
+            return;
+        }
         
         // ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА: Если анимационные компоненты не инициализированы, пытаемся их инициализировать
         if (_animator == null && _animation == null)
         {
-            Debug.Log($"[Monster] Animation components not initialized for {monsterName}, initializing...");
+            // Debug.Log($"[Monster] Animation components not initialized for {monsterName}, initializing...");
             EnsureAnimationComponentsInitialized();
         }
         
@@ -132,7 +140,7 @@ public class Monster : NetworkBehaviour
             // Гуманоидный монстр: используем Animator
             if (_animator != null)
             {
-                Debug.Log($"[Monster] Playing animation '{animationName}' on Animator for {monsterName}");
+                // Debug.Log($"[Monster] Playing animation '{animationName}' on Animator for {monsterName}");
                 _animator.Play(animationName);
             }
             else
@@ -398,7 +406,7 @@ public class Monster : NetworkBehaviour
         {
             // Для Animator проверяем через HasState (требует hash)
             bool hasState = _animator.HasState(0, Animator.StringToHash(animationName));
-            Debug.Log($"[Monster] HasAnimation({animationName}) for humanoid {monsterName}: {hasState}");
+            // Debug.Log($"[Monster] HasAnimation({animationName}) for humanoid {monsterName}: {hasState}");
             return hasState;
         }
         else if (IsNonHumanoidMonster() && _animation != null)
@@ -409,7 +417,7 @@ public class Monster : NetworkBehaviour
             {
                 // Проверяем через GetClipCount и перебор клипов
                 int clipCount = _animation.GetClipCount();
-                Debug.Log($"[Monster] Animation component has {clipCount} clips for {monsterName}");
+                // Debug.Log($"[Monster] Animation component has {clipCount} clips for {monsterName}");
                 
                 foreach (AnimationState state in _animation)
                 {

@@ -85,7 +85,7 @@ public class Inventory : NetworkBehaviour
                 }
             }
         }
-        while (remaining > 0 && !added)
+        while (remaining > 0)
         {
             int emptyIndex = -1;
             for (int i = 0; i < items.Count; i++)
@@ -334,10 +334,26 @@ public class Inventory : NetworkBehaviour
             ApplyItemInfoStats(oldItem, false);
             if (!AddItemInfo(oldItem))
             {
-                Debug.LogWarning($"[Inventory] Failed to add unequipped item {oldItem.GetItemName()} back to inventory");
+                Debug.LogError($"[Inventory] Failed to add unequipped item {oldItem.GetItemName()} back to inventory - equipping aborted");
+                // Восстанавливаем статы старого предмета
+                ApplyItemInfoStats(oldItem, true);
                 return;
             }
         }
+        
+        // БЕЗОПАСНОСТЬ: Проверяем, что предмет все еще есть в инвентаре перед экипировкой
+        if (!HasItem(itemInfo.id, itemInfo.quantity))
+        {
+            Debug.LogError($"[Inventory] Item {item.itemName} (ID: {itemInfo.id}) not found in inventory - equipping aborted");
+            // Возвращаем старый предмет в слот экипировки если он был
+            if (oldItem.id > 0)
+            {
+                SetEquipped(slot, oldItem);
+                ApplyItemInfoStats(oldItem, true);
+            }
+            return;
+        }
+        
         Debug.Log($"[Inventory] Equipping item: {item.itemName} (ID: {itemInfo.id}) to {slot} from slot {slotIndex}");
         SetEquipped(slot, itemInfo);
         ApplyItemInfoStats(itemInfo, true);
@@ -447,6 +463,74 @@ public class Inventory : NetworkBehaviour
         items[index] = new ItemInfo { id = 0, quantity = 0 };
         Debug.Log($"[Inventory] Cleared item slot at index: {index}");
         OnInventoryChanged.Invoke();
+    }
+    
+    /// <summary>
+    /// Проверяет, есть ли предмет с указанным ID и количеством в инвентаре
+    /// </summary>
+    [Server]
+    public bool HasItem(int itemId, int quantity)
+    {
+        if (itemId <= 0 || quantity <= 0) return false;
+        
+        int totalQuantity = 0;
+        for (int i = 0; i < items.Count; i++)
+        {
+            if (items[i].id == itemId)
+            {
+                totalQuantity += items[i].quantity;
+                Debug.Log($"[Inventory] Found item {itemId} in slot {i}, quantity: {items[i].quantity}, total: {totalQuantity}");
+                if (totalQuantity >= quantity)
+                {
+                    Debug.Log($"[Inventory] Has enough of item {itemId}: {totalQuantity} >= {quantity}");
+                    return true;
+                }
+            }
+        }
+        Debug.Log($"[Inventory] Not enough of item {itemId}: found {totalQuantity}, needed {quantity}");
+        return false;
+    }
+    
+    /// <summary>
+    /// Удаляет предмет с указанным ID и количеством из инвентаря
+    /// </summary>
+    [Server]
+    public bool RemoveItem(int itemId, int quantity)
+    {
+        if (itemId <= 0 || quantity <= 0) return false;
+        
+        int remainingToRemove = quantity;
+        for (int i = 0; i < items.Count && remainingToRemove > 0; i++)
+        {
+            if (items[i].id == itemId)
+            {
+                ItemInfo currentItem = items[i];
+                int removeFromThisSlot = Mathf.Min(remainingToRemove, currentItem.quantity);
+                
+                currentItem.quantity -= removeFromThisSlot;
+                if (currentItem.quantity <= 0)
+                {
+                    currentItem = new ItemInfo { id = 0, quantity = 0 };
+                }
+                
+                items[i] = currentItem;
+                remainingToRemove -= removeFromThisSlot;
+                
+                Debug.Log($"[Inventory] Removed {removeFromThisSlot} of item {itemId} from slot {i}, remaining to remove: {remainingToRemove}");
+            }
+        }
+        
+        if (remainingToRemove == 0)
+        {
+            OnInventoryChanged.Invoke();
+            Debug.Log($"[Inventory] Successfully removed {quantity} of item {itemId}");
+            return true;
+        }
+        else
+        {
+            Debug.LogWarning($"[Inventory] Could not remove {quantity} of item {itemId}, only removed {quantity - remainingToRemove}");
+            return false;
+        }
     }
 
     public void OnItemsListChanged(SyncList<ItemInfo>.Operation op, int index, ItemInfo oldItem, ItemInfo newItem)

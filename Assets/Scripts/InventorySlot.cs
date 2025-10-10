@@ -8,6 +8,7 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
 {
     [SerializeField] private Image itemIcon;
     [SerializeField] private TextMeshProUGUI quantityText;
+    [SerializeField] private Image tradeLockOverlay;
     public ItemInfo itemInfo;
     public int slotIndex;
     private PlayerCore core;
@@ -23,6 +24,32 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         inventoryUI = GetComponentInParent<InventoryUI>();
         core = GetComponentInParent<PlayerCore>();
         canvas = GetComponentInParent<Canvas>();
+        
+        // Находим компонент tradeLockOverlay если он не назначен
+        if (tradeLockOverlay == null)
+        {
+            tradeLockOverlay = transform.Find("TradeLockOverlay")?.GetComponent<Image>();
+        }
+        
+        // Создаем overlay если его нет
+        if (tradeLockOverlay == null)
+        {
+            GameObject overlayObj = new GameObject("TradeLockOverlay");
+            overlayObj.transform.SetParent(transform, false);
+            tradeLockOverlay = overlayObj.AddComponent<Image>();
+            tradeLockOverlay.color = new Color(1f, 0f, 0f, 0.5f); // Красный полупрозрачный
+            tradeLockOverlay.raycastTarget = false;
+            
+            // Устанавливаем размер и позицию
+            RectTransform overlayRect = tradeLockOverlay.rectTransform;
+            overlayRect.anchorMin = Vector2.zero;
+            overlayRect.anchorMax = Vector2.one;
+            overlayRect.offsetMin = Vector2.zero;
+            overlayRect.offsetMax = Vector2.zero;
+            
+            // Делаем overlay неактивным по умолчанию
+            overlayObj.SetActive(false);
+        }
     }
 
     private void Start()
@@ -107,6 +134,24 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
     public void OnDrop(PointerEventData eventData)
     {
         if (inventoryUI.draggedSlot == null || inventoryUI.draggedSlot == this) return;
+        
+            // БЕЗОПАСНОСТЬ: Проверяем, не заблокирован ли перетаскиваемый предмет в торговле
+            TradeSystem tradeSystem = core.GetComponent<TradeSystem>();
+            if (tradeSystem != null && tradeSystem.IsTradeActive())
+            {
+                // Проверяем, находится ли перетаскиваемый предмет в торговых слотах
+                for (int i = 0; i < tradeSystem.tradeItems.Count; i++)
+                {
+                    ItemInfo tradeItem = tradeSystem.tradeItems[i];
+                    if (tradeItem.id == inventoryUI.draggedSlot.itemInfo.id && tradeItem.quantity == inventoryUI.draggedSlot.itemInfo.quantity)
+                    {
+                        Debug.LogWarning($"[InventorySlot] Item {inventoryUI.draggedSlot.itemInfo.id} is locked in trade - cannot move");
+                        inventoryUI.draggedSlot = null;
+                        return;
+                    }
+                }
+            }
+        
         Item draggedItem = inventoryUI.draggedSlot.itemInfo.GetItem();
         Item thisItem = itemInfo.GetItem();
         if (draggedItem != null && thisItem != null && draggedItem.id == thisItem.id && itemInfo.quantity < thisItem.maxStack)
@@ -159,8 +204,27 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
             inventoryUI.draggedSlot = null;
             return;
         }
+        
+            // БЕЗОПАСНОСТЬ: Проверяем, не заблокирован ли предмет в торговле
+            TradeSystem tradeSystem = core.GetComponent<TradeSystem>();
+            if (tradeSystem != null && tradeSystem.IsTradeActive())
+            {
+                // Проверяем, находится ли предмет в торговых слотах
+                for (int i = 0; i < tradeSystem.tradeItems.Count; i++)
+                {
+                    ItemInfo tradeItem = tradeSystem.tradeItems[i];
+                    if (tradeItem.id == itemInfo.id && tradeItem.quantity == itemInfo.quantity)
+                    {
+                        Debug.LogWarning($"[InventorySlot] Item {itemInfo.id} is locked in trade - cannot drag");
+                        if (dragIcon != null) Destroy(dragIcon);
+                        inventoryUI.draggedSlot = null;
+                        return;
+                    }
+                }
+            }
         EquipmentSlotUI targetEquipSlot = eventData.pointerEnter?.GetComponent<EquipmentSlotUI>() ?? eventData.pointerEnter?.GetComponentInParent<EquipmentSlotUI>();
         SkillButton targetButton = eventData.pointerEnter?.GetComponent<SkillButton>() ?? eventData.pointerEnter?.GetComponentInParent<SkillButton>();
+        TradeSlot targetTradeSlot = eventData.pointerEnter?.GetComponent<TradeSlot>() ?? eventData.pointerEnter?.GetComponentInParent<TradeSlot>();
         if (targetEquipSlot != null)
         {
             if (item.CanEquipToSlot(targetEquipSlot.slotType) && item.IsEquipable(core.Stats.level, core.Stats.characterClass))
@@ -188,6 +252,11 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
             Debug.Log($"[InventorySlot] Assigning item: {item.itemName} (ID: {itemInfo.id}) to hotbar slot {targetButton.buttonIndex}");
             PlayerUI.Instance.AssignItemToHotbar(item, targetButton, slotIndex);
         }
+        else if (targetTradeSlot != null)
+        {
+            Debug.Log($"[InventorySlot] Drag ended over TradeSlot - handled by TradeSlot.OnDrop()");
+            // TradeSlot.OnDrop() обработает добавление предмета в торговый слот
+        }
         else if (item.canDrop)
         {
             Debug.Log($"[InventorySlot] Dropping item: {item.itemName} (ID: {itemInfo.id}) from slot {slotIndex}");
@@ -205,6 +274,22 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
     {
         if (itemInfo.id > 0)
         {
+            // БЕЗОПАСНОСТЬ: Проверяем, не заблокирован ли предмет в торговле
+            TradeSystem tradeSystem = core.GetComponent<TradeSystem>();
+            if (tradeSystem != null && tradeSystem.IsTradeActive())
+            {
+                // Проверяем, находится ли предмет в торговых слотах
+                for (int i = 0; i < tradeSystem.tradeItems.Count; i++)
+                {
+                    ItemInfo tradeItem = tradeSystem.tradeItems[i];
+                    if (tradeItem.id == itemInfo.id && tradeItem.quantity == itemInfo.quantity)
+                    {
+                        Debug.LogWarning($"[InventorySlot] Item {itemInfo.id} is locked in trade - cannot use");
+                        return;
+                    }
+                }
+            }
+            
             float timeSinceLastClick = Time.time - lastClickTime;
             if (timeSinceLastClick < DOUBLE_CLICK_TIME)
             {
@@ -264,6 +349,14 @@ public class InventorySlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         if (go == null) return "null";
         var components = go.GetComponents<Component>();
         return string.Join(", ", System.Linq.Enumerable.Select(components, c => c.GetType().Name));
+    }
+    
+    public void SetTradeLocked(bool locked)
+    {
+        if (tradeLockOverlay != null)
+        {
+            tradeLockOverlay.gameObject.SetActive(locked);
+        }
     }
 
 }

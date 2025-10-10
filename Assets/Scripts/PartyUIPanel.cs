@@ -89,7 +89,7 @@ public class PartyUIPanel : MonoBehaviour
     /// </summary>
     public void UpdatePartyUI()
     {
-        Debug.Log("[PartyUIPanel] UpdatePartyUI() called");
+        // Debug.Log("[PartyUIPanel] UpdatePartyUI() called");
         
         if (localPlayer == null)
         {
@@ -101,23 +101,23 @@ public class PartyUIPanel : MonoBehaviour
             }
         }
         
-        Debug.Log($"[PartyUIPanel] Local player: {localPlayer.playerName}, partyId: '{localPlayer.partyId}'");
+        // Debug.Log($"[PartyUIPanel] Local player: {localPlayer.playerName}, partyId: '{localPlayer.partyId}'");
         
         // Если игрок не в группе, скрываем панель
         if (string.IsNullOrEmpty(localPlayer.partyId))
         {
-            Debug.Log("[PartyUIPanel] Player not in party, hiding panel");
+            // Debug.Log("[PartyUIPanel] Player not in party, hiding panel");
             HidePartyPanel();
             return;
         }
         
         // Показываем панель
-        Debug.Log("[PartyUIPanel] Player in party, showing panel");
+        // Debug.Log("[PartyUIPanel] Player in party, showing panel");
         ShowPartyPanel();
         
         // Находим всех участников группы
         List<PlayerCore> partyMembers = GetPartyMembers();
-        Debug.Log($"[PartyUIPanel] Found {partyMembers.Count} party members");
+        // Debug.Log($"[PartyUIPanel] Found {partyMembers.Count} party members");
         
         // Обновляем слоты участников
         UpdatePartyMemberSlots(partyMembers);
@@ -136,21 +136,28 @@ public class PartyUIPanel : MonoBehaviour
             return members;
         }
         
-        // Находим всех игроков в той же группе
-        PlayerCore[] allPlayers = FindObjectsOfType<PlayerCore>();
-        Debug.Log($"[PartyUIPanel] Found {allPlayers.Length} total players");
-        
-        foreach (PlayerCore player in allPlayers)
+        // Используем PlayerManager вместо FindObjectsOfType
+        if (GameManager.Instance != null)
         {
-            Debug.Log($"[PartyUIPanel] Checking player: {player.playerName}, partyId: '{player.partyId}'");
-            if (!string.IsNullOrEmpty(player.partyId) && player.partyId == localPlayer.partyId)
+            List<PlayerCore> partyMembers = GameManager.Instance.GetPlayersInParty(localPlayer.partyId);
+            members.AddRange(partyMembers);
+            // Debug.Log($"[PartyUIPanel] Found {partyMembers.Count} party members via PlayerManager");
+        }
+        else
+        {
+            // Fallback к старому методу если GameManager не инициализирован
+            PlayerCore[] allPlayers = FindObjectsOfType<PlayerCore>();
+            foreach (PlayerCore player in allPlayers)
             {
-                members.Add(player);
-                Debug.Log($"[PartyUIPanel] Added to party members: {player.playerName}");
+                if (!string.IsNullOrEmpty(player.partyId) && player.partyId == localPlayer.partyId)
+                {
+                    members.Add(player);
+                }
             }
+            Debug.LogWarning("[PartyUIPanel] GameManager not found, using fallback FindObjectsOfType");
         }
         
-        Debug.Log($"[PartyUIPanel] Total party members found: {members.Count}");
+        // Debug.Log($"[PartyUIPanel] Total party members found: {members.Count}");
         return members;
     }
     
@@ -461,11 +468,11 @@ public class PartyUIPanel : MonoBehaviour
         if (partyPanel != null)
         {
             partyPanel.SetActive(false);
-            Debug.Log("[PartyUIPanel] Party panel hidden");
+            // Debug.Log("[PartyUIPanel] Party panel hidden");
         }
         
         // Очищаем все слоты
-        Debug.Log($"[PartyUIPanel] Clearing {partyMemberSlots.Count} party member slots");
+        // Debug.Log($"[PartyUIPanel] Clearing {partyMemberSlots.Count} party member slots");
         foreach (var kvp in partyMemberSlots)
         {
             if (kvp.Value != null)

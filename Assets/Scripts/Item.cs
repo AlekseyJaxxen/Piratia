@@ -670,7 +670,7 @@ public class Item : ScriptableObject
             Debug.Log($"[Item] Set primaryDisplaySlot to LeftHand for two-handed item {itemName}");
         }
     }
-    public virtual bool Use(PlayerCore player)
+    public virtual bool Use(PlayerCore player, int slotIndex = -1)
     {
         if (canUse)
         {
@@ -679,14 +679,14 @@ public class Item : ScriptableObject
             // Обработка сундуков
             if (itemType == ItemType.Chest)
             {
-                OpenChest(player);
+                OpenChest(player, slotIndex);
                 return true;
             }
             
             // Обработка consumable предметов
             if (itemType == ItemType.Consumable && consumableType != ConsumableType.None)
             {
-                bool success = UseConsumable(player);
+                bool success = UseConsumable(player, slotIndex);
                 if (!success)
                 {
                     Debug.LogWarning($"[Item] Failed to use consumable {itemName}");
@@ -737,7 +737,7 @@ public class Item : ScriptableObject
     /// Использует consumable предмет
     /// </summary>
     /// <returns>true если предмет успешно использован, false если использование отклонено</returns>
-    private bool UseConsumable(PlayerCore player)
+    private bool UseConsumable(PlayerCore player, int slotIndex = -1)
     {
         if (player == null) return false;
         
@@ -857,7 +857,7 @@ public class Item : ScriptableObject
     /// <summary>
     /// Открывает сундук и выдает награды игроку
     /// </summary>
-    private void OpenChest(PlayerCore player)
+    private void OpenChest(PlayerCore player, int slotIndex = -1)
     {
         Debug.Log($"[Item] Opening chest {itemName} for player {player.playerName} (class: {player.Stats.characterClass})");
         Debug.Log($"[Item] Chest rewards count: {chestRewards?.Length ?? 0}");
@@ -898,6 +898,13 @@ public class Item : ScriptableObject
             Debug.Log($"[Item] Using only default rewards: {chestRewards.Length} items");
             // Используем только обычные награды
             rewardsToGive.AddRange(chestRewards);
+        }
+        
+        // БЕЗОПАСНОСТЬ: Сначала удаляем сундук из инвентаря, потом выдаем предметы
+        if (!RemoveItemFromInventory(player.Inventory, id, 1, slotIndex))
+        {
+            Debug.LogError($"[Item] Failed to remove chest {itemName} from inventory slot {slotIndex} - opening aborted");
+            return;
         }
         
         // Выдаем предметы игроку
@@ -942,17 +949,42 @@ public class Item : ScriptableObject
         // Показываем уведомление
         Debug.Log($"[Item] {message}");
         
-        // Удаляем сундук из инвентаря после открытия
-        RemoveItemFromInventory(player.Inventory, id, 1);
-        
         Debug.Log($"[Item] Player {player.playerName} opened chest {itemName}");
     }
     
     /// <summary>
-    /// Удаляет предмет из инвентаря по ID
+    /// Удаляет предмет из инвентаря по ID и слоту
     /// </summary>
-    private void RemoveItemFromInventory(Inventory inventory, int itemId, int quantity)
+    private bool RemoveItemFromInventory(Inventory inventory, int itemId, int quantity, int slotIndex = -1)
     {
+        // Если указан конкретный слот, удаляем из него
+        if (slotIndex >= 0 && slotIndex < inventory.items.Count)
+        {
+            if (inventory.items[slotIndex].id == itemId)
+            {
+                ItemInfo itemInfo = inventory.items[slotIndex];
+                itemInfo.quantity -= quantity;
+                
+                if (itemInfo.quantity <= 0)
+                {
+                    inventory.items[slotIndex] = new ItemInfo { id = 0, quantity = 0 };
+                }
+                else
+                {
+                    inventory.items[slotIndex] = itemInfo;
+                }
+                
+                Debug.Log($"[Item] Removed {quantity} of item {itemId} from inventory slot {slotIndex}");
+                return true;
+            }
+            else
+            {
+                Debug.LogWarning($"[Item] Item {itemId} not found in slot {slotIndex} (found ID: {inventory.items[slotIndex].id})");
+                return false;
+            }
+        }
+        
+        // Если слот не указан или неверный, ищем первый предмет с нужным ID (старое поведение)
         for (int i = 0; i < inventory.items.Count; i++)
         {
             if (inventory.items[i].id == itemId)
@@ -969,12 +1001,12 @@ public class Item : ScriptableObject
                     inventory.items[i] = itemInfo;
                 }
                 
-                Debug.Log($"[Item] Removed {quantity} of item {itemId} from inventory");
-                return;
+                Debug.Log($"[Item] Removed {quantity} of item {itemId} from inventory slot {i} (fallback search)");
+                return true;
             }
         }
-        
-        Debug.LogWarning($"[Item] Could not find item {itemId} in inventory to remove");
+        Debug.LogWarning($"[Item] Item {itemId} not found in inventory");
+        return false;
     }
     
     public bool IsEquipable(int playerLevel, CharacterClass playerClass)

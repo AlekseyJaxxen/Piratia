@@ -2,6 +2,7 @@ using UnityEngine;
 using Mirror;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine.Events;
 
 public class BuffVFXController : NetworkBehaviour
 {
@@ -31,9 +32,13 @@ public class BuffVFXController : NetworkBehaviour
 
     private Dictionary<string, GameObject> _activeVFX = new Dictionary<string, GameObject>();
     
-    // Оптимизация: обновление VFX с интервалом вместо каждого кадра
+    // Событийная модель вместо периодических проверок
+    private bool _useEventBasedUpdates = true;
+    private bool _isInitialized = false;
+    
+    // Для совместимости со старым методом
     private float _lastVFXUpdate = 0f;
-    private const float VFX_UPDATE_INTERVAL = 0.5f; // 2 раза в секунду - экономично для VFX буффов
+    private const float VFX_UPDATE_INTERVAL = 0.5f;
 
     private void Awake()
     {
@@ -42,16 +47,64 @@ public class BuffVFXController : NetworkBehaviour
         _stats = GetComponent<CharacterStats>();
     }
 
+    private void Start()
+    {
+        if (_useEventBasedUpdates)
+        {
+            InitializeEventBasedUpdates();
+        }
+    }
+
+    private void InitializeEventBasedUpdates()
+    {
+        if (_isInitialized) return;
+        
+        // Подписываемся на события изменения эффектов
+        if (_stats != null)
+        {
+            // Подписываемся на события добавления/удаления эффектов
+            _stats.OnStatEffectAdded.AddListener(OnStatEffectAdded);
+            _stats.OnStatEffectRemoved.AddListener(OnStatEffectRemoved);
+        }
+        
+        if (_playerCore != null)
+        {
+            // Подписываемся на события изменения контроля
+            _playerCore.OnStunChanged.AddListener(OnStunChanged);
+            _playerCore.OnSilenceChanged.AddListener(OnSilenceChanged);
+        }
+        
+        if (_playerSkills != null)
+        {
+            // Подписываемся на события изменения невидимости
+            _playerSkills.OnInvisibilityStateChanged.AddListener(OnInvisibilityChanged);
+        }
+        
+        _isInitialized = true;
+        
+        // Первоначальное обновление
+        ForceUpdateVFX();
+    }
+
     private void Update()
     {
         if (!isClient) return;
         
-        // VFX обновление с интервалом
-        if (Time.time - _lastVFXUpdate >= VFX_UPDATE_INTERVAL)
+        // Если не используем событийную модель, обновляем с интервалом
+        if (!_useEventBasedUpdates)
         {
-            UpdateBuffVFX();
+            // VFX обновление с интервалом (старый метод)
+            if (Time.time - _lastVFXUpdate >= VFX_UPDATE_INTERVAL)
+            {
+                UpdateBuffVFX();
+                CleanupExpiredVFX();
+                _lastVFXUpdate = Time.time;
+            }
+        }
+        else
+        {
+            // При событийной модели только очищаем истекшие эффекты
             CleanupExpiredVFX();
-            _lastVFXUpdate = Time.time;
         }
     }
     
@@ -101,7 +154,7 @@ public class BuffVFXController : NetworkBehaviour
                 Destroy(_activeVFX[key]);
             }
             _activeVFX.Remove(key);
-            Debug.Log($"[BuffVFXController] Cleaned up expired VFX {key} on {gameObject.name} at NetworkTime={(float)NetworkTime.time}");
+            // Debug.Log($"[BuffVFXController] Cleaned up expired VFX {key} on {gameObject.name} at NetworkTime={(float)NetworkTime.time}");
         }
     }
 
@@ -141,11 +194,11 @@ public class BuffVFXController : NetworkBehaviour
             
             Vector3 offset = effect.VFXOffset != Vector3.zero ? effect.VFXOffset : (effect.IsToggle ? toggleBuffVFXOffset : (effect.Value >= effect.OriginalValue ? statBuffVFXOffset : statDebuffVFXOffset));
             
-            // Логирование для диагностики
-            if (effect.IsActive)
-            {
-                Debug.Log($"[BuffVFXController] {gameObject.name}: {key} is active, EndTime={effect.EndTime}, NetworkTime={(float)NetworkTime.time}");
-            }
+            // Логирование для диагностики (отключено для production)
+            // if (effect.IsActive)
+            // {
+            //     Debug.Log($"[BuffVFXController] {gameObject.name}: {key} is active, EndTime={effect.EndTime}, NetworkTime={(float)NetworkTime.time}");
+            // }
             
             UpdateVFX(key, effect.IsActive, vfxPrefab, effect.EndTime, offset);
         }
@@ -164,7 +217,7 @@ public class BuffVFXController : NetworkBehaviour
             // Обновляем позиции всех баффов
             UpdateBuffPositions();
             
-            Debug.Log($"[BuffVFXController] Activated VFX for {key} on {gameObject.name} in {(buffContainer != null ? "container" : "character")}");
+            // Debug.Log($"[BuffVFXController] Activated VFX for {key} on {gameObject.name} in {(buffContainer != null ? "container" : "character")}");
         }
         else if (!isActive && _activeVFX.ContainsKey(key))
         {
@@ -177,7 +230,7 @@ public class BuffVFXController : NetworkBehaviour
             // Обновляем позиции оставшихся баффов
             UpdateBuffPositions();
             
-            Debug.Log($"[BuffVFXController] Deactivated VFX for {key} on {gameObject.name}");
+            // Debug.Log($"[BuffVFXController] Deactivated VFX for {key} on {gameObject.name}");
         }
         else if (isActive && endTime > (float)NetworkTime.time && _activeVFX.ContainsKey(key) && _activeVFX[key] == null)
         {
@@ -190,7 +243,7 @@ public class BuffVFXController : NetworkBehaviour
             // Обновляем позиции всех баффов
             UpdateBuffPositions();
             
-            Debug.Log($"[BuffVFXController] Restored VFX for {key} on {gameObject.name} in {(buffContainer != null ? "container" : "character")}");
+            // Debug.Log($"[BuffVFXController] Restored VFX for {key} on {gameObject.name} in {(buffContainer != null ? "container" : "character")}");
         }
         
         // ИСПРАВЛЕНИЕ ПРОБЛЕМЫ: Дополнительная проверка для объектов которые стали null
@@ -206,7 +259,7 @@ public class BuffVFXController : NetworkBehaviour
             // Обновляем позиции всех баффов
             UpdateBuffPositions();
             
-            Debug.Log($"[BuffVFXController] Fixed missing VFX for {key} on {gameObject.name}");
+            // Debug.Log($"[BuffVFXController] Fixed missing VFX for {key} on {gameObject.name}");
         }
     }
     
@@ -233,8 +286,111 @@ public class BuffVFXController : NetworkBehaviour
         }
     }
 
+    // Обработчики событий для событийной модели
+    private void OnStatEffectAdded(CharacterStats.StatEffect effect)
+    {
+        if (!_useEventBasedUpdates) return;
+        
+        string key = effect.IsToggle ? $"ToggleBuff_{effect.Stat}" : $"Stat{(effect.Value >= effect.OriginalValue ? "Buff" : "Debuff")}_{effect.Stat}";
+        GameObject vfxPrefab = GetVFXPrefabForEffect(effect);
+        Vector3 offset = GetVFXOffsetForEffect(effect);
+        
+        UpdateVFX(key, true, vfxPrefab, effect.EndTime, offset);
+    }
+    
+    private void OnStatEffectRemoved(CharacterStats.StatEffect effect)
+    {
+        if (!_useEventBasedUpdates) return;
+        
+        string key = effect.IsToggle ? $"ToggleBuff_{effect.Stat}" : $"Stat{(effect.Value >= effect.OriginalValue ? "Buff" : "Debuff")}_{effect.Stat}";
+        
+        if (_activeVFX.ContainsKey(key))
+        {
+            if (_activeVFX[key] != null)
+            {
+                Destroy(_activeVFX[key]);
+            }
+            _activeVFX.Remove(key);
+            UpdateBuffPositions();
+        }
+    }
+    
+    private void OnStunChanged(bool isStunned)
+    {
+        if (!_useEventBasedUpdates) return;
+        
+        UpdateVFX("Stun", isStunned, stunVFXPrefab, _playerCore.stunEffectEndTime, stunVFXOffset);
+    }
+    
+    private void OnSilenceChanged(bool isSilenced)
+    {
+        if (!_useEventBasedUpdates) return;
+        
+        UpdateVFX("Silence", isSilenced, silenceVFXPrefab, _playerCore.silenceEffectEndTime, silenceVFXOffset);
+    }
+    
+    private void OnInvisibilityChanged(bool isInvisible)
+    {
+        if (!_useEventBasedUpdates) return;
+        
+        UpdateVFX("Invisibility", isInvisible, invisibilityVFXPrefab, -1f, invisibilityVFXOffset);
+    }
+    
+    // Вспомогательные методы для получения VFX префабов и смещений
+    private GameObject GetVFXPrefabForEffect(CharacterStats.StatEffect effect)
+    {
+        if (effect.VFXPrefab != null)
+        {
+            return effect.VFXPrefab;
+        }
+        else if (!string.IsNullOrEmpty(effect.VFXPrefabName))
+        {
+            GameObject vfxPrefab = Resources.Load<GameObject>($"VFX/{effect.VFXPrefabName}");
+            if (vfxPrefab == null)
+            {
+                Debug.LogWarning($"[BuffVFXController] Failed to load VFX prefab: VFX/{effect.VFXPrefabName}");
+            }
+            return vfxPrefab;
+        }
+        else
+        {
+            return effect.IsToggle ? toggleBuffVFXPrefab : (effect.Value >= effect.OriginalValue ? statBuffVFXPrefab : statDebuffVFXPrefab);
+        }
+    }
+    
+    private Vector3 GetVFXOffsetForEffect(CharacterStats.StatEffect effect)
+    {
+        if (effect.VFXOffset != Vector3.zero)
+        {
+            return effect.VFXOffset;
+        }
+        else
+        {
+            return effect.IsToggle ? toggleBuffVFXOffset : (effect.Value >= effect.OriginalValue ? statBuffVFXOffset : statDebuffVFXOffset);
+        }
+    }
+
     private void OnDestroy()
     {
+        // Отписываемся от событий
+        if (_stats != null)
+        {
+            _stats.OnStatEffectAdded.RemoveListener(OnStatEffectAdded);
+            _stats.OnStatEffectRemoved.RemoveListener(OnStatEffectRemoved);
+        }
+        
+        if (_playerCore != null)
+        {
+            _playerCore.OnStunChanged.RemoveListener(OnStunChanged);
+            _playerCore.OnSilenceChanged.RemoveListener(OnSilenceChanged);
+        }
+        
+        if (_playerSkills != null)
+        {
+            _playerSkills.OnInvisibilityStateChanged.RemoveListener(OnInvisibilityChanged);
+        }
+        
+        // Очищаем VFX
         foreach (var vfx in _activeVFX.Values)
         {
             if (vfx != null) Destroy(vfx);

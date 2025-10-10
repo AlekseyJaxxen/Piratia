@@ -100,7 +100,15 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
 
     private void Update()
     {
-        if (!core.isLocalPlayer || core.isDead || core.isStunned) return;
+        // Обрабатываем ввод только для локального игрока
+        if (!core.isLocalPlayer || core.isDead) return;
+        
+        // Проверяем stun, но разрешаем открытие инвентаря во время торговли
+        TradeSystem tradeSystem = core.GetComponent<TradeSystem>();
+        bool canOpenInventory = !core.isStunned || (tradeSystem != null && tradeSystem.IsTradeActive());
+        
+        if (!canOpenInventory) return;
+        
         if (Input.GetKeyDown(KeyCode.I))
         {
             bool newState = !inventoryPanel.activeSelf;
@@ -127,6 +135,53 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
             {
                 inventorySlots[i].Clear();
             }
+        }
+        
+        // Обновляем визуальное состояние предметов в торговле
+        UpdateTradeItemVisuals();
+    }
+    
+    private void UpdateTradeItemVisuals()
+    {
+        if (core == null) return;
+        
+        TradeSystem tradeSystem = core.GetComponent<TradeSystem>();
+        
+        // Проверяем каждый слот инвентаря на предметы в торговле
+        for (int i = 0; i < inventorySlots.Length && i < inventory.items.Count; i++)
+        {
+            if (inventorySlots[i] == null) continue;
+            
+            ItemInfo inventoryItem = inventory.items[i];
+            if (inventoryItem.id == 0) 
+            {
+                // Очищаем состояние для пустых слотов
+                inventorySlots[i].SetTradeLocked(false);
+                continue;
+            }
+            
+            // Если торговля не активна, убираем все блокировки
+            if (tradeSystem == null || !tradeSystem.IsTradeActive())
+            {
+                inventorySlots[i].SetTradeLocked(false);
+                continue;
+            }
+            
+            // Проверяем, находится ли этот предмет в торговых слотах
+            // Исправленная логика: проверяем точное совпадение ID и количества
+            bool isInTrade = false;
+            for (int j = 0; j < tradeSystem.tradeItems.Count; j++)
+            {
+                ItemInfo tradeItem = tradeSystem.tradeItems[j];
+                if (tradeItem.id == inventoryItem.id && tradeItem.quantity == inventoryItem.quantity)
+                {
+                    isInTrade = true;
+                    break;
+                }
+            }
+            
+            // Устанавливаем визуальное состояние
+            inventorySlots[i].SetTradeLocked(isInTrade);
         }
     }
 
@@ -811,6 +866,33 @@ public class InventoryUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         if (Instance != null && Instance.inventory != null)
         {
             Instance.UpdateInventoryUI();
+        }
+    }
+
+    public void ShowInventory()
+    {
+        if (inventoryPanel != null)
+        {
+            inventoryPanel.SetActive(true);
+        }
+        if (characterPanel != null)
+        {
+            characterPanel.SetActive(true);
+        }
+        
+        UpdateInventoryUI();
+        UpdateEquipmentUI();
+    }
+    
+    public void HideInventory()
+    {
+        if (inventoryPanel != null)
+        {
+            inventoryPanel.SetActive(false);
+        }
+        if (characterPanel != null)
+        {
+            characterPanel.SetActive(false);
         }
     }
 

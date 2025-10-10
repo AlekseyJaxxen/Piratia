@@ -74,12 +74,31 @@ public class StarterItemsSystem : NetworkBehaviour
         }
     }
     
+    public override void OnStartServer()
+    {
+        base.OnStartServer();
+        Debug.Log("[StarterItemsSystem] OnStartServer() called");
+        
+        // Очищаем список игроков при старте сервера для корректной работы при перезапуске
+        if (playersWhoReceivedItems != null)
+        {
+            ClearReceivedItemsList();
+            Debug.Log("[StarterItemsSystem] Cleared received items list on server start");
+        }
+        else
+        {
+            Debug.LogError("[StarterItemsSystem] playersWhoReceivedItems is null in OnStartServer!");
+        }
+    }
+
     void Start()
     {
         if (showDebugInfo)
         {
             Debug.Log($"[StarterItemsSystem] System initialized with {starterItems.Count} starter items");
         }
+        
+        Debug.Log($"[StarterItemsSystem] Start() called - isServer: {isServer}, isClient: {isClient}, isLocalPlayer: {isLocalPlayer}");
     }
     
     /// <summary>
@@ -398,13 +417,22 @@ public class StarterItemsSystem : NetworkBehaviour
     }
     
     /// <summary>
-    /// Очищает список игроков, получивших предметы (для тестирования)
+    /// Очищает список игроков, получивших предметы (для тестирования и перезапуска сервера)
     /// </summary>
     [ContextMenu("Clear Received Items List")]
     public void ClearReceivedItemsList()
     {
         playersWhoReceivedItems.Clear();
         Debug.Log("[StarterItemsSystem] Cleared received items list");
+    }
+    
+    /// <summary>
+    /// Статический метод для очистки списка игроков (можно вызывать из других скриптов)
+    /// </summary>
+    public static void ClearAllReceivedItems()
+    {
+        playersWhoReceivedItems.Clear();
+        Debug.Log("[StarterItemsSystem] Cleared all received items list (static method)");
     }
     
     /// <summary>
@@ -442,6 +470,16 @@ public class StarterItemsSystem : NetworkBehaviour
     public List<StarterItemData> GetStarterItems()
     {
         return new List<StarterItemData>(starterItems);
+    }
+    
+    void OnDestroy()
+    {
+        // Очищаем список при уничтожении объекта (например, при остановке сервера)
+        if (isServer)
+        {
+            ClearReceivedItemsList();
+            Debug.Log("[StarterItemsSystem] Cleared received items list on server stop");
+        }
     }
     
     void OnValidate()

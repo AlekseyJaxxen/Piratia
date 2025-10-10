@@ -35,6 +35,7 @@ public partial class PlayerSkills : NetworkBehaviour
     private Coroutine _invisibilityCoroutine;
     public readonly SyncDictionary<string, bool> toggleBuffStates = new SyncDictionary<string, bool>();
     [HideInInspector] public UnityEvent<string, bool> OnToggleBuffChanged = new UnityEvent<string, bool>();
+    [HideInInspector] public UnityEvent<bool> OnInvisibilityStateChanged = new UnityEvent<bool>();
     [SyncVar(hook = nameof(OnPlayerLayerChanged))] private int _playerLayer;
     [SyncVar] public int _originalLayer;
     private void Awake()
@@ -68,6 +69,9 @@ public partial class PlayerSkills : NetworkBehaviour
         {
             skill.ApplyInvisibilityEffect(newValue);
         }
+        
+        // Вызываем событие для VFX контроллера
+        OnInvisibilityStateChanged.Invoke(newValue);
     }
     private void OnToggleBuffStateChanged(SyncDictionary<string, bool>.Operation op, string skillName, bool isActive)
     {

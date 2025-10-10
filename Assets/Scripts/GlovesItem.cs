@@ -17,7 +17,7 @@ public class GlovesItem : Item
             primaryDisplaySlot = EquipmentSlot.Gloves;
     }
 
-    public override bool Use(PlayerCore player)
+    public override bool Use(PlayerCore player, int slotIndex = -1)
     {
         if (!canUse)
         {
@@ -26,11 +26,11 @@ public class GlovesItem : Item
                 EquipmentSlotUI slotUI = InventoryUI.Instance.FindMatchingEquipmentSlot(this);
                 if (slotUI != null)
                 {
-                    int slotIndex = player.Inventory.items.FindIndex(item => item.id == id);
-                    if (slotIndex >= 0)
+                    int foundSlotIndex = player.Inventory.items.FindIndex(item => item.id == id);
+                    if (foundSlotIndex >= 0)
                     {
-                        player.CmdEquipItem(player.Inventory.items[slotIndex], slotIndex, slotUI.slotType);
-                        Debug.Log($"[GlovesItem] Equipping {itemName} to {slotUI.slotType} from slot {slotIndex}");
+                        player.CmdEquipItem(player.Inventory.items[foundSlotIndex], foundSlotIndex, slotUI.slotType);
+                        Debug.Log($"[GlovesItem] Equipping {itemName} to {slotUI.slotType} from slot {foundSlotIndex}");
                         return true;
                     }
                 }
@@ -47,7 +47,7 @@ public class GlovesItem : Item
         }
         else
         {
-            return base.Use(player);
+            return base.Use(player, slotIndex);
         }
         return false;
     }

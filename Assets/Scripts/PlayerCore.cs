@@ -4,6 +4,7 @@ using Mirror;
 using TMPro;
 using System.Collections;
 using System.Linq;
+using UnityEngine.Events;
 
 public class PlayerCore : NetworkBehaviour
 {
@@ -66,6 +67,10 @@ public class PlayerCore : NetworkBehaviour
     public float silenceEffectEndTime = 0f;
     [SyncVar]
     private int silenceEffectWeight = 0;
+    
+    // События для VFX контроллера
+    [HideInInspector] public UnityEvent<bool> OnStunChanged = new UnityEvent<bool>();
+    [HideInInspector] public UnityEvent<bool> OnSilenceChanged = new UnityEvent<bool>();
     [Header("Mana Regeneration")]
     public float manaRegenInterval = 1f;
     public int manaRegenAmount = 5;
@@ -164,6 +169,9 @@ public class PlayerCore : NetworkBehaviour
         
         // Создаем PartyUIPanel для локального игрока
         CreatePartyUIPanel();
+        
+        // Создаем TradeRequestUI для локального игрока
+        CreateTradeRequestUI();
         
         if (Camera != null)
         {
@@ -985,11 +993,17 @@ public class PlayerCore : NetworkBehaviour
     {
         if (Skills != null) Skills.HandleStunEffect(newValue);
         if (newValue && ActionSystem != null) ActionSystem.CompleteAction();
+        
+        // Вызываем событие для VFX контроллера
+        OnStunChanged.Invoke(newValue);
     }
 
     private void OnSilenceStateChanged(bool oldValue, bool newValue)
     {
         if (Skills != null) Skills.HandleSilenceEffect(newValue);
+        
+        // Вызываем событие для VFX контроллера
+        OnSilenceChanged.Invoke(newValue);
     }
 
     [Server]
@@ -1223,11 +1237,14 @@ public class PlayerCore : NetworkBehaviour
             var instance = this.Inventory.items[slotIndex];
             int dropQuantity = instance.quantity;
             if (dropQuantity <= 0) return;
+            
+            // БЕЗОПАСНОСТЬ: Сначала создаем дропнутый предмет, потом удаляем из инвентаря
+            SpawnDroppedItemWithItemInfo(instance, dropQuantity);
+            
+            // Удаляем предмет из инвентаря только после успешного создания дропнутого предмета
             this.Inventory.ClearItemSlot(slotIndex);
             RpcUpdateInventoryUI();
             RpcClearHotbarItem(itemID);
-            // Item dropped - передаем ItemInfo с динамическими статами
-            SpawnDroppedItemWithItemInfo(instance, dropQuantity);
         }
     }
 
@@ -1292,12 +1309,29 @@ public class PlayerCore : NetworkBehaviour
         if (slotIndex >= 0 && slotIndex < this.Inventory.items.Count && this.Inventory.items[slotIndex].id == itemID && item.canSell)
         {
             var instance = this.Inventory.items[slotIndex];
-            instance.quantity--;
-            this.Inventory.items[slotIndex] = instance;
-            if (this.Inventory.items[slotIndex].quantity <= 0)
-                this.Inventory.ClearItemSlot(slotIndex);
-            RpcUpdateInventoryUI();
-            // Item sold
+            if (instance.quantity <= 0) return;
+            
+            // БЕЗОПАСНОСТЬ: Проверяем, что предмет все еще есть в инвентаре
+            if (!this.Inventory.HasItem(itemID, 1))
+            {
+                Debug.LogError($"[PlayerCore] Item {item.itemName} (ID: {itemID}) not found in inventory - selling aborted");
+                return;
+            }
+            
+            // Удаляем предмет из инвентаря
+            bool removed = this.Inventory.RemoveItem(itemID, 1);
+            if (removed)
+            {
+                // Добавляем золото только после успешного удаления предмета
+                int sellPrice = item.price / 2;
+                this.Inventory.AddGold(sellPrice);
+                RpcUpdateInventoryUI();
+                Debug.Log($"[PlayerCore] Sold item {item.itemName} for {sellPrice} gold");
+            }
+            else
+            {
+                Debug.LogError($"[PlayerCore] Failed to remove item {item.itemName} from inventory - selling aborted");
+            }
         }
     }
 
@@ -1328,7 +1362,7 @@ public class PlayerCore : NetworkBehaviour
                 // Selected skill from item
                 return;
             }
-            bool success = item.Use(this);
+            bool success = item.Use(this, slotIndex);
             if (success)
             {
                 ConsumeItem(slotIndex, itemID);
@@ -1377,6 +1411,35 @@ public class PlayerCore : NetworkBehaviour
             }
             RpcUpdateInventoryUI();
         }
+    }
+
+    [Command]
+    public void CmdRemoveItemFromInventory(int slotIndex)
+    {
+        if (Inventory == null)
+        {
+            Debug.LogError("[PlayerCore] CmdRemoveItemFromInventory failed: Inventory is null!");
+            return;
+        }
+        
+        if (slotIndex < 0 || slotIndex >= Inventory.items.Count)
+        {
+            Debug.LogError($"[PlayerCore] CmdRemoveItemFromInventory failed: Invalid slot index {slotIndex}");
+            return;
+        }
+        
+        var itemToRemove = Inventory.items[slotIndex];
+        if (itemToRemove.id == 0)
+        {
+            Debug.LogWarning($"[PlayerCore] CmdRemoveItemFromInventory: Slot {slotIndex} is already empty");
+            return;
+        }
+        
+        // Очищаем слот инвентаря
+        Inventory.ClearItemSlot(slotIndex);
+        RpcUpdateInventoryUI();
+        
+        Debug.Log($"[PlayerCore] Removed item {itemToRemove.id} from inventory slot {slotIndex}");
     }
 
     [Command]
@@ -2007,6 +2070,55 @@ public class PlayerCore : NetworkBehaviour
         
         Debug.Log("[PlayerCore] Party member slot prefab created successfully");
         return slotPrefab;
+    }
+    
+    private void CreateTradeRequestUI()
+    {
+        // Проверяем, не создан ли уже TradeRequestUI
+        if (TradeRequestUI.Instance != null)
+        {
+            Debug.LogWarning("[PlayerCore] TradeRequestUI already exists, skipping creation");
+            return;
+        }
+        
+        // Находим Canvas в PlayerUI
+        PlayerUI playerUI = GetComponentInChildren<PlayerUI>();
+        if (playerUI == null)
+        {
+            Debug.LogError("[PlayerCore] PlayerUI not found for TradeRequestUI creation!");
+            return;
+        }
+        
+        Canvas playerCanvas = playerUI.GetComponentInParent<Canvas>();
+        if (playerCanvas == null)
+        {
+            Debug.LogError("[PlayerCore] Canvas not found in PlayerUI for TradeRequestUI creation!");
+            return;
+        }
+        
+        Debug.Log($"[PlayerCore] Found Canvas for TradeRequestUI: {playerCanvas.name}, Render Mode: {playerCanvas.renderMode}");
+        
+        // Создаем GameObject для TradeRequestUI
+        GameObject tradeRequestObject = new GameObject("TradeRequestUI");
+        tradeRequestObject.transform.SetParent(playerCanvas.transform, false);
+        
+        // Добавляем RectTransform если его нет
+        RectTransform rectTransform = tradeRequestObject.GetComponent<RectTransform>();
+        if (rectTransform == null)
+        {
+            rectTransform = tradeRequestObject.AddComponent<RectTransform>();
+        }
+        
+        // Настраиваем RectTransform
+        rectTransform.anchorMin = Vector2.zero;
+        rectTransform.anchorMax = Vector2.one;
+        rectTransform.offsetMin = Vector2.zero;
+        rectTransform.offsetMax = Vector2.zero;
+        
+        // Добавляем TradeRequestUI компонент
+        TradeRequestUI tradeRequestComponent = tradeRequestObject.AddComponent<TradeRequestUI>();
+        
+        Debug.Log("[PlayerCore] TradeRequestUI created successfully for local player");
     }
 
 }

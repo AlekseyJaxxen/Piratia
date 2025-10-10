@@ -2,6 +2,8 @@
 using UnityEngine.AI;
 using Mirror;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
+using TMPro;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -493,19 +495,13 @@ public class PlayerMovement : NetworkBehaviour
         {
             Debug.Log($"[PlayerMovement] Raycast result: {result.gameObject.name}, layer: {result.gameObject.layer}");
             
-            // Проверяем, попал ли клик по контекстному меню
-            if (IsContextMenuUI(result.gameObject))
+            // Проверяем, попал ли клик по любому UI элементу
+            if (IsAnyUIElement(result.gameObject))
             {
-                Debug.Log("[PlayerMovement] Pointer over context menu");
+                Debug.Log($"[PlayerMovement] Pointer over UI element: {result.gameObject.name}");
                 return true;
             }
             
-            // Проверяем, попал ли клик по панели группы
-            if (IsPartyPanelUI(result.gameObject))
-            {
-                Debug.Log("[PlayerMovement] Pointer over party panel");
-                return true;
-            }
             
             // Минимальное изменение: игнорируем UI, если это canvas DroppedItem
             if (result.gameObject.layer == LayerMask.NameToLayer("LocalPlayerUI") ||
@@ -528,19 +524,46 @@ public class PlayerMovement : NetworkBehaviour
         return false;
     }
     
-    private bool IsContextMenuUI(GameObject uiObj)
+    
+    private bool IsAnyUIElement(GameObject uiObj)
     {
         Transform current = uiObj.transform;
         while (current != null)
         {
-            // Проверяем, является ли это контекстным меню или его частью
-            if (current.name == "ContextMenuUI" || 
-                current.name == "ContextMenuPanel" || 
-                current.name == "ButtonContainer" ||
-                current.name.Contains("ContextButton"))
+            // Проверяем компоненты UI
+            if (current.GetComponent<Button>() != null ||
+                current.GetComponent<Image>() != null ||
+                current.GetComponent<Text>() != null ||
+                current.GetComponent<TMPro.TextMeshProUGUI>() != null ||
+                current.GetComponent<Slider>() != null ||
+                current.GetComponent<Toggle>() != null ||
+                current.GetComponent<InputField>() != null ||
+                current.GetComponent<TMPro.TMP_InputField>() != null ||
+                current.GetComponent<ScrollRect>() != null ||
+                current.GetComponent<Dropdown>() != null ||
+                current.GetComponent<TMPro.TMP_Dropdown>() != null ||
+                current.GetComponent<Canvas>() != null ||
+                current.GetComponent<CanvasGroup>() != null)
             {
+                Debug.Log($"[PlayerMovement] UI element detected: {current.name}");
                 return true;
             }
+            
+            // Проверяем специальные UI компоненты
+            if (current.GetComponent<ContextMenuUI>() != null ||
+                current.GetComponent<PartyUIPanel>() != null ||
+                current.GetComponent<PartyMemberSlot>() != null ||
+                current.GetComponent<TradeRequestUI>() != null ||
+                current.GetComponent<TradeUI>() != null ||
+                current.GetComponent<TradeSlot>() != null ||
+                current.GetComponent<PartyInviteUI>() != null ||
+                current.GetComponent<InventoryUI>() != null ||
+                current.GetComponent<InventorySlot>() != null)
+            {
+                Debug.Log($"[PlayerMovement] Special UI component detected: {current.name}");
+                return true;
+            }
+            
             current = current.parent;
         }
         return false;
@@ -558,32 +581,11 @@ public class PlayerMovement : NetworkBehaviour
         
         foreach (var result in results)
         {
-            if (IsPartyPanelUI(result.gameObject))
+            if (IsAnyUIElement(result.gameObject))
             {
                 Debug.Log($"[PlayerMovement] IsPointerOverPartyUI detected: {result.gameObject.name}");
                 return true;
             }
-        }
-        return false;
-    }
-    
-    private bool IsPartyPanelUI(GameObject uiObj)
-    {
-        Transform current = uiObj.transform;
-        while (current != null)
-        {
-            // Проверяем, является ли это панелью группы или её частью
-            if (current.name == "PartyUIPanel" || 
-                current.name == "PartyPanel" || 
-                current.name == "PartyMembersContainer" ||
-                current.name.Contains("PartyMember") ||
-                current.GetComponent<PartyUIPanel>() != null ||
-                current.GetComponent<PartyMemberSlot>() != null)
-            {
-                Debug.Log($"[PlayerMovement] IsPartyPanelUI detected: {current.name}");
-                return true;
-            }
-            current = current.parent;
         }
         return false;
     }

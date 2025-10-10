@@ -461,7 +461,35 @@ public class ContextMenuUI : MonoBehaviour
     private void OnTrade()
     {
         Debug.Log($"[ContextMenuUI] Trade clicked for player: {targetPlayer?.playerName ?? "Unknown"}");
-        // TODO: Реализовать систему торговли
+        
+        if (targetPlayer == null)
+        {
+            Debug.LogWarning("[ContextMenuUI] Cannot start trade: target player is null");
+            HideContextMenu();
+            return;
+        }
+        
+        // Проверяем, что мы не торгуем с самим собой
+        PlayerCore localPlayer = PlayerCore.localPlayerCoreInstance;
+        if (localPlayer != null && targetPlayer.netId == localPlayer.netId)
+        {
+            Debug.Log("[ContextMenuUI] Cannot trade with yourself");
+            HideContextMenu();
+            return;
+        }
+        
+        // Отправляем запрос на торговлю
+        TradeSystem tradeSystem = localPlayer?.GetComponent<TradeSystem>();
+        if (tradeSystem != null)
+        {
+            tradeSystem.CmdRequestTrade(targetPlayer.netId);
+            Debug.Log($"[ContextMenuUI] Trade request sent to {targetPlayer.playerName}");
+        }
+        else
+        {
+            Debug.LogError("[ContextMenuUI] TradeSystem component not found on local player");
+        }
+        
         HideContextMenu();
     }
     
