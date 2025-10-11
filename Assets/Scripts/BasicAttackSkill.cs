@@ -3,6 +3,18 @@ using Mirror;
 using System.Collections;
 using System.Linq;
 
+/// <summary>
+/// Структура для хранения параметров атаки
+/// </summary>
+[System.Serializable]
+public struct AttackParams
+{
+    public float firstAttackTime;
+    public float baseAttackTime;
+    public float antiOrbWalkingCooldown;
+    public float fastAttackResetTime;
+}
+
 [CreateAssetMenu(fileName = "NewBasicAttackSkill", menuName = "Skills/BasicAttackSkill")]
 public class BasicAttackSkill : SkillBase
 {
@@ -17,6 +29,76 @@ public class BasicAttackSkill : SkillBase
     public GameObject criticalHitVfxPrefab;
     public GameObject impactEffectPrefab;
     public Color criticalHitColor = Color.yellow;
+    
+    [Header("First Attack Speed Settings")]
+    [Tooltip("Множитель времени первой атаки (0.1 = очень быстро, 1.0 = как обычная атака)")]
+    public float firstAttackTime = 0.1f; // Множитель времени первой атаки
+    [Tooltip("Множитель базового времени атаки (1.0 = стандартное время, 0.5 = в 2 раза быстрее)")]
+    public float baseAttackTime = 1.0f; // Множитель базового времени атаки
+    [Tooltip("Множитель для anti-orb walking cooldown (1.0 = равен реальному времени атаки, 0.8 = на 20% меньше)")]
+    public float antiOrbWalkingCooldownMultiplier = 1.0f; // Множитель для защиты от orb walking
+    [Tooltip("Время бездействия для ресета быстрой атаки (секунды)")]
+    public float fastAttackResetTime = 1.0f; // Время для ресета возможности быстрой атаки
+    
+    /// <summary>
+    /// Структура для хранения параметров атаки (для совместимости с AntiOrbWalkingSystem)
+    /// </summary>
+    public AttackParams GetAttackParams(PlayerCore caster)
+    {
+        float realAttackTime = GetBaseAttackTime(caster);
+        return new AttackParams
+        {
+            firstAttackTime = this.firstAttackTime,
+            baseAttackTime = this.baseAttackTime,
+            antiOrbWalkingCooldown = realAttackTime * this.antiOrbWalkingCooldownMultiplier,
+            fastAttackResetTime = this.fastAttackResetTime
+        };
+    }
+    
+    /// <summary>
+    /// Получить время первой атаки с учетом скорости атаки персонажа
+    /// </summary>
+    public float GetFirstAttackTime(PlayerCore caster)
+    {
+        if (caster?.Stats == null) return firstAttackTime;
+        
+        float attackSpeed = caster.Stats.attackSpeed;
+        // Используем стандартную формулу: время между атаками = 1.0 / скорость атаки
+        // firstAttackTime теперь служит как множитель для настройки баланса
+        return (1.0f / attackSpeed) * firstAttackTime;
+    }
+    
+    /// <summary>
+    /// Получить базовое время атаки с учетом скорости атаки персонажа
+    /// </summary>
+    public float GetBaseAttackTime(PlayerCore caster)
+    {
+        if (caster?.Stats == null) return baseAttackTime;
+        
+        float attackSpeed = caster.Stats.attackSpeed;
+        // Используем стандартную формулу: время между атаками = 1.0 / скорость атаки
+        // baseAttackTime теперь служит как множитель для настройки баланса
+        return (1.0f / attackSpeed) * baseAttackTime;
+    }
+    
+    /// <summary>
+    /// Получить время атаки с учетом того, является ли это первой атакой
+    /// </summary>
+    public float GetAttackTime(PlayerCore caster, bool isFirstAttack)
+    {
+        return isFirstAttack ? GetFirstAttackTime(caster) : GetBaseAttackTime(caster);
+    }
+    
+    /// <summary>
+    /// Проверить, является ли атака быстрой (первой после периода бездействия)
+    /// </summary>
+    public bool IsFastAttack(PlayerCore caster)
+    {
+        if (caster?.Combat == null) return false;
+        
+        float timeSinceLastAttack = Time.time - caster.Combat._lastAttackTime;
+        return timeSinceLastAttack >= fastAttackResetTime;
+    }
 
     /// <summary>
     /// Переопределяем Range чтобы использовать attackRange из CharacterStats
@@ -43,6 +125,14 @@ public class BasicAttackSkill : SkillBase
         if (targetObject == null)
         {
             Debug.LogWarning($"[BasicAttackSkill] Target object is null for skill {_skillName}");
+            return;
+        }
+        
+        // Проверяем AntiOrbWalkingSystem для защиты от abuse
+        AntiOrbWalkingSystem antiOrbSystem = caster.GetComponent<AntiOrbWalkingSystem>();
+        if (antiOrbSystem != null && !antiOrbSystem.CanStartFastFirstAttack())
+        {
+            Debug.LogWarning($"[BasicAttackSkill] Fast first attack blocked by AntiOrbWalkingSystem for {caster.name}");
             return;
         }
         PlayerCore targetCore = targetObject.GetComponent<PlayerCore>();
@@ -92,6 +182,13 @@ public class BasicAttackSkill : SkillBase
 
     public override void ExecuteOnServer(PlayerCore caster, Vector3? targetPosition, GameObject targetObject, int weight)
     {
+        // Управление циклом атаки через AntiOrbWalkingSystem
+        AntiOrbWalkingSystem antiOrbSystem = caster.GetComponent<AntiOrbWalkingSystem>();
+        if (antiOrbSystem != null)
+        {
+            antiOrbSystem.StartAttackCycle();
+        }
+        
         CharacterStats stats = caster.GetComponent<CharacterStats>();
         int damage = Random.Range(stats.minAttack, stats.maxAttack + 1);
         bool isCritical = stats.TryCriticalHit();

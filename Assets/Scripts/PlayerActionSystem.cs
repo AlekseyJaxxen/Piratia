@@ -651,6 +651,14 @@ public class PlayerActionSystem : NetworkBehaviour
             {
                 _core.Skills.CmdExecuteSkill(_core, null, targetObject.GetComponent<NetworkIdentity>().netId, ((SkillBase)skillToCast).SkillName, ((SkillBase)skillToCast).Weight);
             }
+            
+            // Сбрасываем систему anti-orb walking после каста скилла
+            AntiOrbWalkingSystem antiOrbSystem = _core.GetComponent<AntiOrbWalkingSystem>();
+            if (antiOrbSystem != null)
+            {
+                antiOrbSystem.ResetAfterSkillCast();
+            }
+            
             _core.Skills.CancelSkillSelection();
             CompleteAction();
             yield break;
@@ -765,6 +773,13 @@ public class PlayerActionSystem : NetworkBehaviour
                 else
                 {
                     Debug.LogError($"[PlayerActionSystem] No NetworkIdentity found on target: {targetObject.name}");
+                }
+                
+                // Сбрасываем систему anti-orb walking после каста скилла
+                AntiOrbWalkingSystem antiOrbSystem = _core.GetComponent<AntiOrbWalkingSystem>();
+                if (antiOrbSystem != null)
+                {
+                    antiOrbSystem.ResetAfterSkillCast();
                 }
                 
                 // stoppingDistance не изменялся, поэтому не нужно восстанавливать
@@ -919,6 +934,14 @@ public class PlayerActionSystem : NetworkBehaviour
                 {
                     _core.Skills.CmdExecuteSkill(_core, targetPosition, 0, ((SkillBase)skillToCast).SkillName, ((SkillBase)skillToCast).Weight);
                 }
+                
+                // Сбрасываем систему anti-orb walking после каста скилла
+                AntiOrbWalkingSystem antiOrbSystem = _core.GetComponent<AntiOrbWalkingSystem>();
+                if (antiOrbSystem != null)
+                {
+                    antiOrbSystem.ResetAfterSkillCast();
+                }
+                
                 _core.Skills.CancelSkillSelection();
                 // stoppingDistance не изменялся, поэтому не нужно восстанавливать
             // _core.Movement.Agent.stoppingDistance = originalStoppingDistance;
@@ -960,6 +983,17 @@ public class PlayerActionSystem : NetworkBehaviour
     public void CompleteAction()
     {
         Debug.Log($"[PlayerActionSystem] Completing action {_currentActionType}");
+        
+        // Завершаем цикл атаки через AntiOrbWalkingSystem
+        if (_currentSkill is BasicAttackSkill && _core != null)
+        {
+            AntiOrbWalkingSystem antiOrbSystem = _core.GetComponent<AntiOrbWalkingSystem>();
+            if (antiOrbSystem != null)
+            {
+                antiOrbSystem.EndAttackCycle();
+            }
+        }
+        
         _isPerformingAction = false;
         _currentActionType = PlayerAction.None;
         _currentSkill = null;
@@ -998,18 +1032,30 @@ public class PlayerActionSystem : NetworkBehaviour
     }
     
     /// <summary>
-    /// Рассчитать кулдаун для базовой атаки с учетом баланса
+    /// Рассчитать кулдаун для базовой атаки с учетом ускорения первого удара
     /// </summary>
     private float CalculateBasicAttackCooldown()
     {
         if (_core?.Stats == null) return 1.0f;
         
-        float currentAttackSpeed = _core.Stats.attackSpeed;
-        float baseCooldown = 1f / currentAttackSpeed;
+        // Получаем BasicAttackSkill для доступа к параметрам
+        BasicAttackSkill basicAttackSkill = null;
+        if (_core.Skills?.skills != null && _core.Skills.skills.Count > 0)
+        {
+            basicAttackSkill = _core.Skills.skills.Find(s => s is BasicAttackSkill) as BasicAttackSkill;
+        }
         
-        Debug.Log($"[PlayerActionSystem] CalculateBasicAttackCooldown: currentAttackSpeed={currentAttackSpeed:F2}, baseCooldown={baseCooldown:F3}s");
+        if (basicAttackSkill == null) return 1.0f;
         
-        return baseCooldown;
+        // Проверяем, является ли это быстрой атакой (первой после периода бездействия)
+        bool isFastAttack = basicAttackSkill.IsFastAttack(_core);
+        
+        // Получаем время атаки с учетом ускорения первого удара
+        float attackTime = basicAttackSkill.GetAttackTime(_core, isFastAttack);
+        
+        Debug.Log($"[PlayerActionSystem] CalculateBasicAttackCooldown: isFastAttack={isFastAttack}, attackTime={attackTime:F3}s, attackSpeed={_core.Stats.attackSpeed:F2}, timeSinceLastAttack={Time.time - _core.Combat._lastAttackTime:F2}s");
+        
+        return attackTime;
     }
     [Client]
     private void UpdateTargetIndicator()
