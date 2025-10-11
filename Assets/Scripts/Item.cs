@@ -134,7 +134,7 @@ public class Item : ScriptableObject
     [Header("MMO Properties")]
     public Rarity rarity = Rarity.Common;
     public int requiredLevel = 1;
-    public CharacterClass characterClass = CharacterClass.Warrior;
+    public CharacterClass characterClass = CharacterClass.Any;
     [Header("Skill Effect (Optional)")]
     public SkillBase skillEffect;
     public float castRange = 5f;
@@ -1011,8 +1011,8 @@ public class Item : ScriptableObject
     
     public bool IsEquipable(int playerLevel, CharacterClass playerClass)
     {
-        // Проверяем соответствие класса
-        bool classMatch = characterClass == playerClass;
+        // Проверяем соответствие класса - Any доступен всем классам
+        bool classMatch = characterClass == CharacterClass.Any || characterClass == playerClass;
         return (equipmentSlot != EquipmentSlot.None || alternativeSlot != EquipmentSlot.None) && playerLevel >= requiredLevel && itemCanEquip && classMatch;
     }
 
@@ -1021,8 +1021,8 @@ public class Item : ScriptableObject
     /// </summary>
     public bool IsEquipable(int playerLevel, List<CharacterClass> playerClasses)
     {
-        // Проверяем соответствие класса
-        bool classMatch = playerClasses.Contains(characterClass);
+        // Проверяем соответствие класса - Any доступен всем классам
+        bool classMatch = characterClass == CharacterClass.Any || playerClasses.Contains(characterClass);
         return (equipmentSlot != EquipmentSlot.None || alternativeSlot != EquipmentSlot.None) && playerLevel >= requiredLevel && itemCanEquip && classMatch;
     }
     public bool CanEquipToSlot(EquipmentSlot slot)

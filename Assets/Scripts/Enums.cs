@@ -2,6 +2,7 @@ using UnityEngine;
 
 public enum CharacterClass
 {
+    Any,        // Доступно всем классам
     Warrior,
     Mage,
     Archer,

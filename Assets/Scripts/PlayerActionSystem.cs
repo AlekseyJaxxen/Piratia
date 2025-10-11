@@ -238,6 +238,8 @@ public class PlayerActionSystem : NetworkBehaviour
             yield return null;
         }
         // Movement action completed
+        // Проверяем предметы рядом для автоподбора
+        CheckForNearbyItems();
         CompleteAction();
     }
 
@@ -1082,5 +1084,26 @@ public class PlayerActionSystem : NetworkBehaviour
         }
         
         return false;
+    }
+    
+    private void CheckForNearbyItems()
+    {
+        if (_core == null) return;
+        
+        // Ищем все DroppedItem в радиусе подбора
+        Collider[] nearbyItems = Physics.OverlapSphere(_core.transform.position, 2f);
+        foreach (Collider itemCollider in nearbyItems)
+        {
+            DroppedItem droppedItem = itemCollider.GetComponent<DroppedItem>() ?? itemCollider.GetComponentInParent<DroppedItem>();
+            if (droppedItem != null)
+            {
+                float distance = Vector3.Distance(_core.transform.position, droppedItem.transform.position);
+                if (distance <= droppedItem.pickupDistance)
+                {
+                    Debug.Log($"[PlayerActionSystem] Auto-picking up nearby item: {droppedItem.name}");
+                    _core.CmdPickupDroppedItem(droppedItem.netId);
+                }
+            }
+        }
     }
 }

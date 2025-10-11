@@ -134,7 +134,7 @@ MonoBehaviour:
     chance: 1
   rarity: 0
   requiredLevel: 1
-  characterClass: 4
+  characterClass: 5
   skillEffect: {fileID: 0}
   castRange: 5
   model1: ItemModels/ArmorTemp

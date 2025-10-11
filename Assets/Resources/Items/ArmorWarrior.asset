@@ -134,7 +134,7 @@ MonoBehaviour:
     chance: 1
   rarity: 0
   requiredLevel: 1
-  characterClass: 0
+  characterClass: 1
   skillEffect: {fileID: 0}
   castRange: 5
   model1: ItemModels/ArmorTemp
@@ -156,7 +156,7 @@ MonoBehaviour:
   forgingLevel: 0
   stableValue: 0
   onlyId: 0
-  trade: 0
+  trade: 1
   picked: 0
   discard: 0
   confirmToDelete: 0

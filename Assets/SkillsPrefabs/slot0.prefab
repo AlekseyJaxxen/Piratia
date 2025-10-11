@@ -34,7 +34,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 108.95, y: -35.3}
+  m_AnchoredPosition: {x: 101.2, y: -35.3}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2319609390491800613
@@ -59,13 +59,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 99
+  m_text: 999
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -130,7 +130,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 184.57716, w: 35.50638}
+  m_margin: {x: 0, y: 0, z: 177.34027, w: 35.50638}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -275,9 +275,32 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::InventorySlot
   itemIcon: {fileID: 4816034163519742293}
   quantityText: {fileID: 4013756018798462113}
+  tradeLockOverlay: {fileID: 0}
   itemInfo:
     id: 0
     quantity: 0
+    hasDynamicStats: 0
+    dynamicItemName: 
+    strengthBonus: 0
+    agilityBonus: 0
+    spiritBonus: 0
+    constitutionBonus: 0
+    accuracyBonus: 0
+    minAttackConstantBonus: 0
+    maxAttackConstantBonus: 0
+    maxHpConstantBonus: 0
+    maxSpConstantBonus: 0
+    crtConstantBonus: 0
+    mspdConstantBonus: 0
+    physicalResist: 0
+    constantDefence: 0
+    physicalResistBonus: 0
+    hpRecoveryBonus: 0
+    spRecoveryBonus: 0
+    dodgeBonus: 0
+    attackSpeedBonus: 0
+    attackSpeedPercentBonus: 0
+    dynamicRarity: 0
   slotIndex: 0
 --- !u!1 &4628544824510134331
 GameObject:

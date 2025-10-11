@@ -400,7 +400,9 @@ public class DroppedItem : NetworkBehaviour, IPointerEnterHandler, IPointerExitH
         }
         else
         {
-            Debug.LogWarning($"[DroppedItem] Player too far to pickup item: {item.itemName} (ID: {itemID}, distance: {distance:F2}, required: {pickupDistance})");
+            Debug.Log($"[DroppedItem] Player too far to pickup item: {item.itemName} (ID: {itemID}, distance: {distance:F2}, required: {pickupDistance}). Moving to item.");
+            // Двигаемся к предмету
+            localPlayer.ActionSystem.TryStartAction(PlayerAction.Move, transform.position);
         }
     }
     [Client] // ����: UI ����

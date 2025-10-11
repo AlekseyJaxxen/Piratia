@@ -53,4 +53,12 @@ public class ItemDatabase : ScriptableObject
     {
         return items;
     }
+
+    public Item GetItemByName(string itemName)
+    {
+        if (string.IsNullOrEmpty(itemName)) return null;
+        if (items == null) return null;
+        
+        return items.FirstOrDefault(item => item != null && item.itemName == itemName);
+    }
 }

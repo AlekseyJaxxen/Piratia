@@ -435,16 +435,15 @@ public class TradeUI : MonoBehaviour
         
         StringBuilder sb = new StringBuilder();
         
-        // Имя предмета с динамическими статами
-        sb.AppendLine($"<size=16><b><color={rarityColor}>{itemInfo.GetItemName()}</color></b></size>");
+        // Имя предмета с усилением (если есть)
+        string itemName = itemInfo.GetItemName();
+        // if (itemInfo.enhancementLevel > 0)
+        // {
+        //     itemName += $" +{itemInfo.enhancementLevel}";
+        // }
+        sb.AppendLine($"<size=16><b><color={rarityColor}>{itemName}</color></b></size>");
         
-        // Количество
-        if (itemInfo.quantity > 1)
-        {
-            sb.AppendLine($"<size=12>Quantity: {itemInfo.quantity}</size>");
-        }
-        
-        // Защита / урон (с динамическими статами)
+        // Основные характеристики предмета (с динамическими статами)
         int totalConstantDefence = Mathf.RoundToInt(itemInfo.GetTotalStatBonus(ItemInfo.StatType.ConstantDefence));
         int totalPhysicalResistance = Mathf.RoundToInt(itemInfo.GetTotalStatBonus(ItemInfo.StatType.PhysicalResistance));
         int totalMinAttack = Mathf.RoundToInt(itemInfo.GetTotalStatBonus(ItemInfo.StatType.MinAttack));
@@ -452,48 +451,49 @@ public class TradeUI : MonoBehaviour
         
         if (totalConstantDefence != 0 || totalPhysicalResistance != 0 || totalMinAttack != 0 || totalMaxAttack != 0)
         {
-            string defenseDamage = "";
+            string stats = "";
+            if (totalMinAttack != 0 || totalMaxAttack != 0)
+            {
+                stats += $"Attack [{totalMinAttack}/{totalMaxAttack}]";
+            }
             if (totalConstantDefence != 0)
             {
-                defenseDamage += $"Защита (+{totalConstantDefence})";
+                if (stats != "") stats += "\n";
+                stats += $"Defense [{totalConstantDefence}]";
             }
             if (totalPhysicalResistance != 0)
             {
-                if (defenseDamage != "") defenseDamage += " / ";
-                defenseDamage += $"Физическая защита (+{totalPhysicalResistance}%)";
+                if (stats != "") stats += "\n";
+                stats += $"Physical Resistance [{totalPhysicalResistance}%]";
             }
-            if (totalMinAttack != 0 || totalMaxAttack != 0)
-            {
-                if (defenseDamage != "") defenseDamage += " / ";
-                defenseDamage += $"Урон ({totalMinAttack}-{totalMaxAttack})";
-            }
-            sb.AppendLine($"<size=11>{defenseDamage}</size>");
+            sb.AppendLine($"<size=11><color=#FFFFFF>{stats}</color></size>");
         }
         
         // Прочность
         if (item.durability > 0)
         {
-            sb.AppendLine($"<size=11>Durability ({item.durability}/{item.durability})</size>");
+            sb.AppendLine($"<size=11><color=#FFFFFF>Durability [{item.durability}/{item.durability}]</color></size>");
         }
         
-        // Шанс урона / уворот
-        int totalCriticalChance = Mathf.RoundToInt(itemInfo.GetTotalStatBonus(ItemInfo.StatType.Critical));
-        if (totalCriticalChance != 0)
+        // Пустая строка
+        sb.AppendLine("");
+        
+        // Требования к предмету
+        if (item.requiredLevel > 0)
         {
-            sb.AppendLine($"<size=11>Critical Chance (+{totalCriticalChance}%)</size>");
+            sb.AppendLine($"<size=10><color=#FFFFFF>Level Requirement: {item.requiredLevel}</color></size>");
+        }
+        
+        if (item.characterClass != CharacterClass.None)
+        {
+            sb.AppendLine($"<size=10><color=#FFFFFF>Class Requirement: {item.characterClass}</color></size>");
         }
         
         // Пустая строка
         sb.AppendLine("");
         
-        // Уровень
-        sb.AppendLine($"<size=11>Level: {item.requiredLevel}</size>");
-        
-        // Класс
-        sb.AppendLine($"<size=11>Class: {item.characterClass}</size>");
-        
-        // Пустая строка
-        sb.AppendLine("");
+        // Бонусы к характеристикам (синим цветом)
+        bool hasBonuses = false;
         
         // Основные статы (с динамическими статами)
         int totalStrength = Mathf.RoundToInt(itemInfo.GetTotalStatBonus(ItemInfo.StatType.Strength));
@@ -502,15 +502,30 @@ public class TradeUI : MonoBehaviour
         int totalConstitution = Mathf.RoundToInt(itemInfo.GetTotalStatBonus(ItemInfo.StatType.Constitution));
         int totalAccuracy = Mathf.RoundToInt(itemInfo.GetTotalStatBonus(ItemInfo.StatType.Accuracy));
         
-        if (totalStrength != 0 || totalAgility != 0 || totalSpirit != 0 || totalConstitution != 0 || totalAccuracy != 0)
+        if (totalStrength != 0)
         {
-            sb.AppendLine("<size=11><b>Primary Stats:</b></size>");
-            if (totalStrength != 0) sb.AppendLine($"<size=11>Strength: +{totalStrength}</size>");
-            if (totalAgility != 0) sb.AppendLine($"<size=11>Agility: +{totalAgility}</size>");
-            if (totalSpirit != 0) sb.AppendLine($"<size=11>Spirit: +{totalSpirit}</size>");
-            if (totalConstitution != 0) sb.AppendLine($"<size=11>Constitution: +{totalConstitution}</size>");
-            if (totalAccuracy != 0) sb.AppendLine($"<size=11>Accuracy: +{totalAccuracy}</size>");
-            sb.AppendLine("");
+            sb.AppendLine($"<size=10><color=#4A9EFF>Strength Bonus: +{totalStrength}</color></size>");
+            hasBonuses = true;
+        }
+        if (totalAgility != 0)
+        {
+            sb.AppendLine($"<size=10><color=#4A9EFF>Agility Bonus: +{totalAgility}</color></size>");
+            hasBonuses = true;
+        }
+        if (totalSpirit != 0)
+        {
+            sb.AppendLine($"<size=10><color=#4A9EFF>Spirit Bonus: +{totalSpirit}</color></size>");
+            hasBonuses = true;
+        }
+        if (totalConstitution != 0)
+        {
+            sb.AppendLine($"<size=10><color=#4A9EFF>Constitution Bonus: +{totalConstitution}</color></size>");
+            hasBonuses = true;
+        }
+        if (totalAccuracy != 0)
+        {
+            sb.AppendLine($"<size=10><color=#4A9EFF>Accuracy Bonus: +{totalAccuracy}</color></size>");
+            hasBonuses = true;
         }
         
         // Другие статы (с динамическими статами)
@@ -519,30 +534,78 @@ public class TradeUI : MonoBehaviour
         int totalMovementSpeed = itemInfo.GetDisplayValue(ItemInfo.StatType.MovementSpeed);
         float totalAttackSpeed = itemInfo.GetTotalStatBonus(ItemInfo.StatType.AttackSpeed);
         float totalAttackSpeedPercent = itemInfo.GetTotalStatBonus(ItemInfo.StatType.AttackSpeedPercent);
+        int totalCriticalChance = Mathf.RoundToInt(itemInfo.GetTotalStatBonus(ItemInfo.StatType.Critical));
         
-        if (totalMaxHP != 0 || totalMaxMP != 0 || totalMovementSpeed != 0 || totalAttackSpeed != 0 || totalAttackSpeedPercent != 0)
+        if (totalMaxHP != 0)
         {
-            sb.AppendLine("<size=11><b>Other Stats:</b></size>");
-            if (totalMaxHP != 0) sb.AppendLine($"<size=11>Health: +{totalMaxHP}</size>");
-            if (totalMaxMP != 0) sb.AppendLine($"<size=11>Mana: +{totalMaxMP}</size>");
-            if (totalMovementSpeed != 0) sb.AppendLine($"<size=11>Movement Speed: +{totalMovementSpeed}</size>");
-            if (totalAttackSpeed != 0) sb.AppendLine($"<size=11>Attack Speed: +{totalAttackSpeed:F2}</size>");
-            if (totalAttackSpeedPercent != 0) sb.AppendLine($"<size=11>Attack Speed: +{totalAttackSpeedPercent:F1}%</size>");
+            sb.AppendLine($"<size=10><color=#4A9EFF>Maximum HP Bonus: +{totalMaxHP}</color></size>");
+            hasBonuses = true;
+        }
+        if (totalMaxMP != 0)
+        {
+            sb.AppendLine($"<size=10><color=#4A9EFF>Maximum SP Bonus: +{totalMaxMP}</color></size>");
+            hasBonuses = true;
+        }
+        if (totalMovementSpeed != 0)
+        {
+            sb.AppendLine($"<size=10><color=#4A9EFF>Movement Speed Bonus: +{totalMovementSpeed}</color></size>");
+            hasBonuses = true;
+        }
+        if (totalAttackSpeed != 0)
+        {
+            sb.AppendLine($"<size=10><color=#4A9EFF>Attack Speed Bonus: +{totalAttackSpeed:F2}</color></size>");
+            hasBonuses = true;
+        }
+        if (totalAttackSpeedPercent != 0)
+        {
+            sb.AppendLine($"<size=10><color=#4A9EFF>Attack Speed Bonus: +{totalAttackSpeedPercent:F1}%</color></size>");
+            hasBonuses = true;
+        }
+        if (totalCriticalChance != 0)
+        {
+            sb.AppendLine($"<size=10><color=#4A9EFF>Critical Chance Bonus: +{totalCriticalChance}%</color></size>");
+            hasBonuses = true;
+        }
+        
+        // Пустая строка после бонусов
+        if (hasBonuses)
+        {
             sb.AppendLine("");
+        }
+        
+        // Сокеты (если есть)
+        // if (item.socketCount > 0)
+        // {
+        //     sb.AppendLine($"<size=10><color=#FFFFFF>Socket(s): {item.socketCount}</color></size>");
+        //     // Здесь можно добавить отображение вставленных камней
+        //     sb.AppendLine("");
+        // }
+        
+        // Торговая ценность
+        if (item.price > 0)
+        {
+            sb.AppendLine($"<size=10><color=#FFFFFF>Trade Value: {item.price:N0}</color></size>");
         }
         
         // Пустая строка
         sb.AppendLine("");
         
-        // Цена продажи
-        if (item.price > 0)
-        {
-            sb.AppendLine($"<size=11>Sell Price: {item.price}</size>");
-        }
+        // Интерактивные элементы для торговли
+        sb.AppendLine($"<size=10><color=#00FF00>Buy</color></size>");
+        sb.AppendLine($"<size=10><color=#00FF00>Sell</color></size>");
+        sb.AppendLine($"<size=10><color=#00FF00>Trade</color></size>");
+        
+        // Пустая строка
+        sb.AppendLine("");
+        
+        // Количество в стопке
+        sb.AppendLine($"<size=10><color=#FFFFFF>Stack: {itemInfo.quantity}</color></size>");
         
         // Ошибки экипировки
         if (!canEquip)
-            sb.AppendLine($"<size=11>Cannot equip: level or class mismatch</size>");
+        {
+            sb.AppendLine($"<size=10><color=#FF0000>Cannot equip: level or class mismatch</color></size>");
+        }
         
         // Показываем tooltip
         itemTooltip.SetActive(true);
@@ -559,11 +622,11 @@ public class TradeUI : MonoBehaviour
                 tooltipRect.anchorMax = new Vector2(0, 1);
             }
             
-            // Настройка фона
+            // Настройка фона - более темный полупрозрачный фон
             Image backgroundImage = itemTooltip.GetComponent<Image>();
             if (backgroundImage != null)
             {
-                backgroundImage.color = new Color(0, 0, 0, 0.8f);
+                backgroundImage.color = new Color(0.1f, 0.1f, 0.1f, 0.9f);
                 backgroundImage.raycastTarget = false;
             }
         }

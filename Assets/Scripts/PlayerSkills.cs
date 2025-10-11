@@ -18,7 +18,7 @@ public partial class PlayerSkills : NetworkBehaviour
     public Texture2D defaultCursor;
     public Texture2D castCursor;
     public Texture2D attackCursor;
-    public float cursorUpdateInterval = 0.1f;
+    public float cursorUpdateInterval = 0.016f; // Обновление каждые ~16ms (60 FPS)
     private float _lastCursorUpdate = 0f;
     private PlayerCore _core;
     private bool _isCasting;
@@ -558,8 +558,15 @@ public partial class PlayerSkills : NetworkBehaviour
                         }
                     }
                 }
-                // Fallback к базовому кулдауну если предмет не найден
-                return Mathf.Max(0, 5f - ((float)NetworkTime.time - _skillLastUseTimes[skillName]));
+                // Fallback: ищем предмет в базе данных для получения реального кулдауна
+                Item item = ItemDatabase.Instance?.GetItemByName(skillName);
+                if (item != null && item.itemType == ItemType.Consumable)
+                {
+                    float itemCooldown = item.cooldown;
+                    return Mathf.Max(0, itemCooldown - ((float)NetworkTime.time - _skillLastUseTimes[skillName]));
+                }
+                // Если предмет не найден в базе данных, используем базовый кулдаун
+                return Mathf.Max(0, 1f - ((float)NetworkTime.time - _skillLastUseTimes[skillName]));
             }
         }
         return 0f;
@@ -924,11 +931,11 @@ public partial class PlayerSkills : NetworkBehaviour
     // Оптимизация: кэширование для курсора
     private Texture2D _lastCursor = null;
     private Vector3 _lastMousePosition = Vector3.zero;
-    private const float MOUSE_MOVEMENT_THRESHOLD = 5f; // Минимальное движение мыши для обновления
+    private const float MOUSE_MOVEMENT_THRESHOLD = 1f; // Минимальное движение мыши для обновления
     
     private void UpdateCursor()
     {
-        // Оптимизация: обновляем курсор только при движении мыши или с интервалом
+        // Обновляем курсор при движении мыши или с интервалом (теперь чаще для лучшей отзывчивости)
         Vector3 currentMousePos = Input.mousePosition;
         bool mouseMoved = Vector3.Distance(currentMousePos, _lastMousePosition) > MOUSE_MOVEMENT_THRESHOLD;
         
@@ -1017,7 +1024,7 @@ public partial class PlayerSkills : NetworkBehaviour
             float remainingCooldown = GetRemainingCooldown(key);
             
             // Ищем предмет в инвентаре для получения кулдауна скилла или consumable предмета
-            float itemSkillCooldown = 5f; // Fallback
+            float itemSkillCooldown = 1f; // Fallback
             var ui = GetComponentInChildren<PlayerUI>();
             if (ui != null)
             {
@@ -1039,6 +1046,23 @@ public partial class PlayerSkills : NetworkBehaviour
                             itemSkillCooldown = btn.item.cooldown;
                             break;
                         }
+                    }
+                }
+            }
+            
+            // Fallback: ищем предмет в базе данных для получения реального кулдауна
+            if (itemSkillCooldown == 1f) // Если не найден в хотбаре
+            {
+                Item item = ItemDatabase.Instance?.GetItemByName(key);
+                if (item != null)
+                {
+                    if (item.skillEffect != null && item.skillEffect.SkillName == key)
+                    {
+                        itemSkillCooldown = item.skillEffect.Cooldown;
+                    }
+                    else if (item.itemType == ItemType.Consumable)
+                    {
+                        itemSkillCooldown = item.cooldown;
                     }
                 }
             }

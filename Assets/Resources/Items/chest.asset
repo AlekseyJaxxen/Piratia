@@ -49,9 +49,13 @@ MonoBehaviour:
     quantity: 22
     chance: 1
     isGuaranteed: 1
+  - item: {fileID: 11400000, guid: 4db53995533bc944ba8bc28ed07f6b16, type: 2}
+    quantity: 800
+    chance: 1
+    isGuaranteed: 1
   useClassBasedRewards: 1
   classRewards:
-  - characterClass: 0
+  - characterClass: 1
     rewards:
     - item: {fileID: 11400000, guid: 67af998acb8eaf047b50af2369bbf0ba, type: 2}
       quantity: 1
@@ -61,7 +65,7 @@ MonoBehaviour:
       quantity: 1
       chance: 1
       isGuaranteed: 1
-  - characterClass: 2
+  - characterClass: 3
     rewards:
     - item: {fileID: 11400000, guid: fb3c88c3bc369df4bb837226a01864b2, type: 2}
       quantity: 1
@@ -71,7 +75,7 @@ MonoBehaviour:
       quantity: 1
       chance: 1
       isGuaranteed: 1
-  - characterClass: 4
+  - characterClass: 5
     rewards:
     - item: {fileID: 11400000, guid: 8b28c694ce609d74b867c2004951b85b, type: 2}
       quantity: 1
@@ -81,7 +85,7 @@ MonoBehaviour:
       quantity: 1
       chance: 1
       isGuaranteed: 1
-  - characterClass: 1
+  - characterClass: 2
     rewards:
     - item: {fileID: 11400000, guid: e619915cd8351e14a83c0b088390741a, type: 2}
       quantity: 1

@@ -22,6 +22,7 @@ MonoBehaviour:
   equipmentSlot: 4
   alternativeSlot: 5
   primaryDisplaySlot: 0
+  stackable: 0
   maxStack: 1
   canDrop: 1
   canSell: 1
@@ -29,12 +30,23 @@ MonoBehaviour:
   canHotbar: 0
   isTwoHanded: 0
   preferRightHand: 1
-  chestData: {fileID: 0}
+  consumableType: 0
+  cooldown: 1
+  instantUse: 1
+  healAmount: 0
+  manaAmount: 0
+  temporaryBuffs: []
+  chestRewards: []
+  useClassBasedRewards: 0
+  classRewards: []
   strengthBonus: 0
   agilityBonus: 0
   spiritBonus: 0
   constitutionBonus: 0
   accuracyBonus: 0
+  attackRangeBonus: 0
+  attackSpeedBonus: 0
+  attackSpeedPercentBonus: 0
   hpRecoveryBonus: 0
   spRecoveryBonus: 0
   dodgeBonus: 0
@@ -80,7 +92,7 @@ MonoBehaviour:
     minValue: 0
     maxValue: 0
     chance: 1
-  armorRange:
+  constantDefenceRange:
     minValue: 0
     maxValue: 0
     chance: 1
@@ -112,9 +124,17 @@ MonoBehaviour:
     minValue: 0
     maxValue: 0
     chance: 1
+  attackSpeedRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
+  attackSpeedPercentRange:
+    minValue: 0
+    maxValue: 0
+    chance: 1
   rarity: 2
   requiredLevel: 1
-  characterClass: 4
+  characterClass: 5
   skillEffect: {fileID: 0}
   castRange: 5
   model1: ItemModels/Saw
@@ -140,7 +160,6 @@ MonoBehaviour:
   picked: 0
   discard: 0
   confirmToDelete: 0
-  stackable: 0
   isInstantiation: 0
   price: 0
   size: 0
@@ -158,7 +177,7 @@ MonoBehaviour:
   crtConstantBonus: 0
   mspdConstantBonus: 0
   physicalResist: 0
-  armorBonus: 0
+  constantDefence: 0
   physicalResistBonus: 0
   itemLeftHandExertIdentifier: 
   itemEnergy: 0

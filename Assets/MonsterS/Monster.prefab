@@ -57,11 +57,20 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   monsterId: 0
+  isElite: 0
   info: {fileID: 0}
   monsterName: DemonicWorld Wandering
   canMove: 1
   hitRate: 10
   dodge: 10
+  minAttack: 10
+  maxAttack: 15
+  defense: 5
+  physicalResistance: 3
+  originalSpawnPosition: {x: 0, y: 0, z: 0}
+  hasSpawnMemory: 0
+  useProjectile: 0
+  projectileSpeed: 10
   aggroTargetNetId: 0
   corpseVisibilityTime: 10
   corpseFadeStartTime: 8
@@ -207,6 +216,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9116a9e2dee98b6468cd0ce00ffe2b3f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
+  attackRange: 2
+  currentAttackRange: 2
+  currentStoppingDistance: 1
 --- !u!114 &347775164245287434
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -411,8 +423,18 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 525983451303065500, guid: c53b323b75c29944eb8357f087f2fe32,
         type: 3}
+      propertyPath: m_xAdvance
+      value: 135.19424
+      objectReference: {fileID: 0}
+    - target: {fileID: 525983451303065500, guid: c53b323b75c29944eb8357f087f2fe32,
+        type: 3}
       propertyPath: m_fontSizeBase
       value: 17
+      objectReference: {fileID: 0}
+    - target: {fileID: 525983451303065500, guid: c53b323b75c29944eb8357f087f2fe32,
+        type: 3}
+      propertyPath: m_RaycastTarget
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 525983451303065500, guid: c53b323b75c29944eb8357f087f2fe32,
         type: 3}
@@ -423,6 +445,21 @@ PrefabInstance:
         type: 3}
       propertyPath: m_HorizontalAlignment
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 525983451303065500, guid: c53b323b75c29944eb8357f087f2fe32,
+        type: 3}
+      propertyPath: m_isPreferredWidthDirty
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 525983451303065500, guid: c53b323b75c29944eb8357f087f2fe32,
+        type: 3}
+      propertyPath: m_AutoSizeIterationCount
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 525983451303065500, guid: c53b323b75c29944eb8357f087f2fe32,
+        type: 3}
+      propertyPath: m_isPreferredHeightDirty
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 565980736579346709, guid: c53b323b75c29944eb8357f087f2fe32,
         type: 3}
@@ -484,6 +521,16 @@ PrefabInstance:
       propertyPath: m_FillAmount
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 3583198830501283684, guid: c53b323b75c29944eb8357f087f2fe32,
+        type: 3}
+      propertyPath: m_RaycastTarget
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3583198830501283684, guid: c53b323b75c29944eb8357f087f2fe32,
+        type: 3}
+      propertyPath: m_RaycastTargetCache
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3905550010483345487, guid: c53b323b75c29944eb8357f087f2fe32,
         type: 3}
       propertyPath: m_AnchoredPosition.y
@@ -539,6 +586,16 @@ PrefabInstance:
       propertyPath: m_Color.r
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6181835451720295230, guid: c53b323b75c29944eb8357f087f2fe32,
+        type: 3}
+      propertyPath: m_RaycastTarget
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6181835451720295230, guid: c53b323b75c29944eb8357f087f2fe32,
+        type: 3}
+      propertyPath: m_RaycastTargetCache
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6710613012279121345, guid: c53b323b75c29944eb8357f087f2fe32,
         type: 3}
       propertyPath: m_AnchoredPosition.y
@@ -553,6 +610,26 @@ PrefabInstance:
         type: 3}
       propertyPath: m_fontSizeBase
       value: 15
+      objectReference: {fileID: 0}
+    - target: {fileID: 7258813978234527858, guid: c53b323b75c29944eb8357f087f2fe32,
+        type: 3}
+      propertyPath: m_RaycastTarget
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7258813978234527858, guid: c53b323b75c29944eb8357f087f2fe32,
+        type: 3}
+      propertyPath: m_isPreferredWidthDirty
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7258813978234527858, guid: c53b323b75c29944eb8357f087f2fe32,
+        type: 3}
+      propertyPath: m_AutoSizeIterationCount
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7258813978234527858, guid: c53b323b75c29944eb8357f087f2fe32,
+        type: 3}
+      propertyPath: m_isPreferredHeightDirty
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7578489421117950829, guid: c53b323b75c29944eb8357f087f2fe32,
         type: 3}

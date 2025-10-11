@@ -12,6 +12,8 @@ public class MinimapGenerator : NetworkBehaviour
     [SerializeField] private int minimapSize = 256;
     [SerializeField] private float minimapRange = 50f;
     [SerializeField] private float updateInterval = 0.5f; // Оптимизация: увеличили интервал с 0.1 до 0.5 секунды
+    [SerializeField] private bool showOnlyMarkers = false; // Показывать только маркеры без рендера сцены
+    [SerializeField] private float orthographicSize = 25f; // Размер ортографической камеры мини-карты
     
     [Header("Player Reference")]
     [SerializeField] private Transform playerToFollow;
@@ -78,7 +80,7 @@ public class MinimapGenerator : NetworkBehaviour
         CreateMinimap();
         
         // Находим камеру игрока
-        playerCamera = FindObjectOfType<Camera>();
+        FindPlayerCamera();
     }
     
     void FindPlayerToFollow()
@@ -130,6 +132,57 @@ public class MinimapGenerator : NetworkBehaviour
         return null;
     }
     
+    void FindPlayerCamera()
+    {
+        // Ищем камеру игрока несколькими способами
+        if (playerTransform != null)
+        {
+            // Способ 1: Ищем камеру в дочерних объектах игрока
+            Camera camera = playerTransform.GetComponentInChildren<Camera>();
+            if (camera != null)
+            {
+                playerCamera = camera;
+                Debug.Log($"Found player camera in children: {camera.name}");
+                return;
+            }
+            
+            // Способ 2: Ищем камеру по тегу "MainCamera"
+            GameObject mainCamera = GameObject.FindGameObjectWithTag("MainCamera");
+            if (mainCamera != null)
+            {
+                playerCamera = mainCamera.GetComponent<Camera>();
+                Debug.Log($"Found player camera by MainCamera tag: {mainCamera.name}");
+                return;
+            }
+            
+            // Способ 3: Ищем камеру с компонентом PlayerCameraController
+            PlayerCameraController cameraController = FindObjectOfType<PlayerCameraController>();
+            if (cameraController != null)
+            {
+                playerCamera = cameraController.GetComponent<Camera>();
+                Debug.Log($"Found player camera by PlayerCameraController: {cameraController.name}");
+                return;
+            }
+        }
+        
+        // Способ 4: Fallback - первая найденная камера
+        Camera[] allCameras = FindObjectsOfType<Camera>();
+        foreach (Camera cam in allCameras)
+        {
+            if (cam.enabled && cam.gameObject.activeInHierarchy)
+            {
+                playerCamera = cam;
+                Debug.Log($"Using fallback camera: {cam.name}");
+                break;
+            }
+        }
+        
+        if (playerCamera == null)
+        {
+            Debug.LogError("Player camera not found!");
+        }
+    }
+    
     void CreateMinimap()
     {
         // Создаем Canvas для мини-карты
@@ -174,18 +227,75 @@ public class MinimapGenerator : NetworkBehaviour
         cameraGO.transform.SetParent(null);
         
         minimapCamera = cameraGO.AddComponent<Camera>();
-        minimapCamera.orthographic = false; // Perspective камера
-        minimapCamera.fieldOfView = 60f; // Угол обзора
-        // Видим только статичные объекты (ground, строения), но не игровые объекты
-        // Исключаем слои с игроками и монстрами
-        minimapCamera.cullingMask = LayerMask.GetMask("Default", "Ground", "Buildings", "Environment") & ~LayerMask.GetMask("Player", "Monster", "Enemy");
-        minimapCamera.clearFlags = CameraClearFlags.SolidColor;
-        minimapCamera.backgroundColor = new Color(0, 0, 0, 0.0f); // Прозрачный фон
+        minimapCamera.orthographic = true; // Orthographic камера для мини-карты
+        minimapCamera.orthographicSize = orthographicSize; // Размер ортографической камеры
+        
+        // Настраиваем cullingMask для мини-карты - видим только статичные объекты
+        // Исключаем все игровые объекты, VFX, UI и эффекты
+        LayerMask visibleLayers = LayerMask.GetMask("Default", "Ground", "Buildings", "Environment");
+        LayerMask excludedLayers = LayerMask.GetMask(
+            "Player", "Monster", "Enemy", "UI", "Ignore Raycast", 
+            "VFX", "Effects", "Particles", "Projectiles", "Skills",
+            "Buffs", "Debuffs", "Minimap", "Water", "TransparentFX",
+            "PostProcessing", "Lighting", "Audio", "Terrain", "Vegetation"
+        );
+        
+        // Используем только видимые слои, исключая все остальные
+        minimapCamera.cullingMask = visibleLayers & ~excludedLayers;
+        
+        // Дополнительная проверка - если маска пустая, используем только Default слой
+        if (minimapCamera.cullingMask == 0)
+        {
+            minimapCamera.cullingMask = LayerMask.GetMask("Default");
+            Debug.LogWarning("[MinimapGenerator] CullingMask was empty, using Default layer only");
+        }
+        
+        // Настраиваем режим отображения мини-карты
+        if (showOnlyMarkers)
+        {
+            // Режим только маркеров - полностью прозрачный фон
+            minimapCamera.clearFlags = CameraClearFlags.Nothing;
+            minimapCamera.cullingMask = 0; // Не рендерим ничего из сцены
+        }
+        else
+        {
+            // Обычный режим - рендерим сцену с фильтрацией
+            minimapCamera.clearFlags = CameraClearFlags.SolidColor;
+            minimapCamera.backgroundColor = new Color(0, 0, 0, 0.0f); // Прозрачный фон
+        }
         minimapCamera.depth = 10; // Выше основной камеры
         
-        // Настраиваем камеру для вида сверху (Perspective)
+        // Настраиваем ортографическую камеру для вида сверху
         minimapCamera.transform.position = new Vector3(0, 50, 0);
         minimapCamera.transform.rotation = Quaternion.Euler(90, 0, 0);
+        
+        Debug.Log($"[MinimapGenerator] Minimap camera cullingMask: {minimapCamera.cullingMask}");
+    }
+    
+    void UpdateMinimapCullingMask()
+    {
+        if (minimapCamera == null) return;
+        
+        // Обновляем cullingMask для мини-карты
+        LayerMask visibleLayers = LayerMask.GetMask("Default", "Ground", "Buildings", "Environment");
+        LayerMask excludedLayers = LayerMask.GetMask(
+            "Player", "Monster", "Enemy", "UI", "Ignore Raycast", 
+            "VFX", "Effects", "Particles", "Projectiles", "Skills",
+            "Buffs", "Debuffs", "Minimap", "Water", "TransparentFX",
+            "PostProcessing", "Lighting", "Audio", "Terrain", "Vegetation"
+        );
+        
+        // Используем только видимые слои, исключая все остальные
+        minimapCamera.cullingMask = visibleLayers & ~excludedLayers;
+        
+        // Дополнительная проверка - если маска пустая, используем только Default слой
+        if (minimapCamera.cullingMask == 0)
+        {
+            minimapCamera.cullingMask = LayerMask.GetMask("Default");
+            Debug.LogWarning("[MinimapGenerator] CullingMask was empty, using Default layer only");
+        }
+        
+        Debug.Log($"[MinimapGenerator] Updated minimap camera cullingMask: {minimapCamera.cullingMask}");
     }
     
     void CreateMinimapTexture()
@@ -233,6 +343,9 @@ public class MinimapGenerator : NetworkBehaviour
         // Создаем символ N (North)
         CreateNorthSymbol();
         
+        // Настраиваем слои для мини-карты
+        CreateMinimapLayer();
+        
         // Создаем рамку (убрано)
         // CreateMinimapBorder();
     }
@@ -277,12 +390,13 @@ public class MinimapGenerator : NetworkBehaviour
     
     void SetupMinimapCamera()
     {
-        // Настраиваем камеру для вида сверху
-        minimapCamera.transform.position = new Vector3(0, 100, 0);
+        // Настраиваем ортографическую камеру для вида сверху
+        minimapCamera.transform.position = new Vector3(0, 50, 0);
         minimapCamera.transform.rotation = Quaternion.Euler(90, 0, 0);
+        minimapCamera.orthographicSize = orthographicSize; // Размер ортографической камеры
         
         // Добавляем отладочную информацию
-        Debug.Log($"Minimap camera setup: pos={minimapCamera.transform.position}, rot={minimapCamera.transform.rotation}, size={minimapCamera.orthographicSize}");
+        Debug.Log($"Minimap camera setup: pos={minimapCamera.transform.position}, rot={minimapCamera.transform.rotation}, orthographicSize={minimapCamera.orthographicSize}");
     }
     
     void CreateMinimapLayer()
@@ -292,6 +406,23 @@ public class MinimapGenerator : NetworkBehaviour
         if (minimapLayer == -1)
         {
             Debug.LogWarning("Minimap layer not found. Please create 'Minimap' layer in project settings.");
+        }
+        
+        // Настраиваем слой для мини-карты
+        if (minimapPanel != null)
+        {
+            minimapPanel.layer = minimapLayer;
+            // Рекурсивно устанавливаем слой для всех дочерних объектов
+            SetLayerRecursively(minimapPanel.transform, minimapLayer);
+        }
+    }
+    
+    void SetLayerRecursively(Transform parent, int layer)
+    {
+        parent.gameObject.layer = layer;
+        foreach (Transform child in parent)
+        {
+            SetLayerRecursively(child, layer);
         }
     }
     
@@ -318,6 +449,12 @@ public class MinimapGenerator : NetworkBehaviour
             ToggleMinimap();
         }
         
+        // Переключение режима мини-карты (только маркеры / полный рендер)
+        if (Input.GetKeyDown(KeyCode.M))
+        {
+            ToggleMinimapMode();
+        }
+        
         // Обновляем мини-карту с интервалом, когда панель активна
         if (minimapPanel != null && minimapPanel.activeSelf && Time.time - lastUpdateTime >= updateInterval)
         {
@@ -329,6 +466,30 @@ public class MinimapGenerator : NetworkBehaviour
     void ToggleMinimap()
     {
         minimapPanel.SetActive(!minimapPanel.activeSelf);
+    }
+    
+    void ToggleMinimapMode()
+    {
+        showOnlyMarkers = !showOnlyMarkers;
+        
+        if (minimapCamera != null)
+        {
+            if (showOnlyMarkers)
+            {
+                // Режим только маркеров
+                minimapCamera.clearFlags = CameraClearFlags.Nothing;
+                minimapCamera.cullingMask = 0;
+                Debug.Log("[MinimapGenerator] Switched to markers-only mode");
+            }
+            else
+            {
+                // Обычный режим
+                minimapCamera.clearFlags = CameraClearFlags.SolidColor;
+                minimapCamera.backgroundColor = new Color(0, 0, 0, 0.0f);
+                UpdateMinimapCullingMask();
+                Debug.Log("[MinimapGenerator] Switched to full render mode");
+            }
+        }
     }
     
     void UpdateMinimap()
@@ -345,23 +506,37 @@ public class MinimapGenerator : NetworkBehaviour
             return;
         }
         
-        // Обновляем позицию камеры мини-карты (следует за игроком, но не крутится)
+        // Обновляем позицию камеры мини-карты (следует за игроком)
         Vector3 playerPos = playerTransform.position;
         minimapCamera.transform.position = new Vector3(playerPos.x, 50, playerPos.z);
-        // Камера всегда смотрит вниз (не крутится) - фиксированная ориентация
-        minimapCamera.transform.rotation = Quaternion.Euler(90, 0, 0);
+        
+        // Синхронизируем поворот камеры мини-карты с основной камерой игрока
+        if (playerCamera != null)
+        {
+            // Получаем Y-поворот основной камеры
+            float yRotation = playerCamera.transform.eulerAngles.y;
+            // Применяем поворот к камере мини-карты (вид сверху с поворотом)
+            minimapCamera.transform.rotation = Quaternion.Euler(90, yRotation, 0);
+            
+            // Обновляем направление стрелки (показывает направление камеры)
+            if (playerArrow != null)
+            {
+                playerArrow.transform.rotation = Quaternion.Euler(0, 0, -yRotation);
+            }
+            
+            Debug.Log($"[MinimapGenerator] Camera rotation synced: playerCamera={yRotation:F1}°, minimapCamera={minimapCamera.transform.eulerAngles.y:F1}°");
+        }
+        else
+        {
+            // Fallback: если основная камера не найдена, используем фиксированную ориентацию
+            minimapCamera.transform.rotation = Quaternion.Euler(90, 0, 0);
+            Debug.LogWarning("[MinimapGenerator] Player camera not found, using fixed rotation");
+        }
         
         // Отладочная информация
         if (Time.frameCount % 60 == 0) // Каждую секунду
         {
             Debug.Log($"Minimap update: playerPos={playerPos}, cameraPos={minimapCamera.transform.position}, cameraRot={minimapCamera.transform.rotation}");
-        }
-        
-        // Обновляем направление стрелки (показывает направление камеры)
-        if (playerCamera != null)
-        {
-            float yRotation = playerCamera.transform.eulerAngles.y;
-            playerArrow.transform.rotation = Quaternion.Euler(0, 0, -yRotation);
         }
         
         // Обновляем маркеры объектов
@@ -388,6 +563,22 @@ public class MinimapGenerator : NetworkBehaviour
         foreach (PlayerCore player in _cachedPlayers)
         {
             if (player == null || player == playerTransform.GetComponent<PlayerCore>()) continue;
+            
+            // Проверяем состояние невидимости игрока
+            PlayerSkills playerSkills = player.GetComponent<PlayerSkills>();
+            bool isInvisible = playerSkills != null && playerSkills._isInvisible;
+            
+            // Если игрок невидим, не показываем его маркер на мини-карте
+            if (isInvisible)
+            {
+                // Удаляем маркер невидимого игрока
+                if (markerCache.ContainsKey(player.transform))
+                {
+                    Destroy(markerCache[player.transform]);
+                    markerCache.Remove(player.transform);
+                }
+                continue;
+            }
             
             CreateOrUpdateMarker(player.transform, GetPlayerColor(player));
         }

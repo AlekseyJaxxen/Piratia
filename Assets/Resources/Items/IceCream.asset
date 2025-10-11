@@ -9,31 +9,31 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f5084ebae5884ea4b93470ef99cc0926, type: 3}
-  m_Name: Bow
-  m_EditorClassIdentifier: Assembly-CSharp::BowItem
-  itemName: Newbie bow
+  m_Script: {fileID: 11500000, guid: 5a07848d90a5bbe418f9e9f0099977db, type: 3}
+  m_Name: IceCream
+  m_EditorClassIdentifier: Assembly-CSharp::UniversalConsumableItem
+  itemName: Ice Cream
   originalName: 
-  id: 11
-  icon: {fileID: 21300000, guid: a79370808d6b84245a97a739958f5fa1, type: 3}
-  dropModelPrefab: {fileID: 919132149155446097, guid: 35c941705e1b5694d9c8577756ef5560,
+  id: 50
+  icon: {fileID: 21300000, guid: aa7f21730abf356478c77211c85e8200, type: 3}
+  dropModelPrefab: {fileID: 919132149155446097, guid: 75487edfdbbc9c44c9c366075f54de9a,
     type: 3}
-  itemType: 2
-  equipmentSlot: 5
-  alternativeSlot: 5
-  primaryDisplaySlot: 5
-  stackable: 0
-  maxStack: 1
+  itemType: 1
+  equipmentSlot: 0
+  alternativeSlot: 0
+  primaryDisplaySlot: 0
+  stackable: 1
+  maxStack: 999
   canDrop: 1
   canSell: 1
-  canUse: 0
-  canHotbar: 0
-  isTwoHanded: 1
-  preferRightHand: 0
-  consumableType: 0
+  canUse: 1
+  canHotbar: 1
+  isTwoHanded: 0
+  preferRightHand: 1
+  consumableType: 1
   cooldown: 1
   instantUse: 1
-  healAmount: 0
+  healAmount: 350
   manaAmount: 0
   temporaryBuffs: []
   chestRewards: []
@@ -44,21 +44,21 @@ MonoBehaviour:
   spiritBonus: 0
   constitutionBonus: 0
   accuracyBonus: 0
-  attackRangeBonus: 6
-  attackSpeedBonus: 1
+  attackRangeBonus: 0
+  attackSpeedBonus: 0
   attackSpeedPercentBonus: 0
   hpRecoveryBonus: 0
   spRecoveryBonus: 0
   dodgeBonus: 0
   damageChanceBonus: 0
-  useDynamicStats: 1
+  useDynamicStats: 0
   minDamageRange:
-    minValue: 200
-    maxValue: 210
+    minValue: 0
+    maxValue: 0
     chance: 1
   maxDamageRange:
-    minValue: 220
-    maxValue: 230
+    minValue: 0
+    maxValue: 0
     chance: 1
   strengthRange:
     minValue: 0
@@ -66,7 +66,7 @@ MonoBehaviour:
     chance: 1
   agilityRange:
     minValue: 0
-    maxValue: 6
+    maxValue: 0
     chance: 1
   spiritRange:
     minValue: 0
@@ -74,11 +74,11 @@ MonoBehaviour:
     chance: 1
   constitutionRange:
     minValue: 0
-    maxValue: 6
+    maxValue: 0
     chance: 1
   accuracyRange:
     minValue: 0
-    maxValue: 10
+    maxValue: 0
     chance: 1
   healthRange:
     minValue: 0
@@ -105,8 +105,8 @@ MonoBehaviour:
     maxValue: 0
     chance: 1
   movementSpeedRange:
-    minValue: 1
-    maxValue: 2
+    minValue: 0
+    maxValue: 0
     chance: 1
   hpRecoveryRange:
     minValue: 0
@@ -134,12 +134,12 @@ MonoBehaviour:
     chance: 1
   rarity: 0
   requiredLevel: 1
-  characterClass: 3
+  characterClass: 0
   skillEffect: {fileID: 0}
   castRange: 5
-  model1: ItemModels/Bow
-  boneName: LeftHandWeapon
-  alternativeBoneName: LeftHandWeapon
+  model1: 
+  boneName: 
+  alternativeBoneName: 
   modelRotation: {x: 0, y: 0, z: 0, w: 1}
   modelScale: {x: 1, y: 1, z: 1}
   model2: 
@@ -170,8 +170,8 @@ MonoBehaviour:
   location: 
   itemSwitchLocation: 
   itemObtainIntoLocation: 
-  minAttackConstantBonus: 100
-  maxAttackConstantBonus: 200
+  minAttackConstantBonus: 0
+  maxAttackConstantBonus: 0
   maxHpConstantBonus: 0
   maxSpConstantBonus: 0
   crtConstantBonus: 0
@@ -199,7 +199,17 @@ MonoBehaviour:
   displayItemEffect: 
   itemDropModelEffect: 
   itemUsageEffect: 
-  description: 
+  description: 'A consumable that restores 350 HP instantly. Cooldown: 1s.'
   itemLevel: 0
   remark: 
-  weaponType: 3
+  weaponType: 0
+  consumableTypeSetting: 1
+  healAmountSetting: 350
+  manaAmountSetting: 0
+  buffStatType: 0
+  buffValue: 1
+  buffDuration: 60
+  isPercentageBuff: 0
+  buffWeight: 1
+  maxStackSize: 999
+  itemCooldown: 1
