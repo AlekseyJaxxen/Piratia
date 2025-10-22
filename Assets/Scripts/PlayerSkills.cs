@@ -321,6 +321,13 @@ public partial class PlayerSkills : NetworkBehaviour
             StartSkillCooldown(skill.SkillName);
             // Global cooldown removed
             
+            // Сбрасываем систему anti-orb walking после выполнения скилла
+            AntiOrbWalkingSystem antiOrbSystem = caster.GetComponent<AntiOrbWalkingSystem>();
+            if (antiOrbSystem != null)
+            {
+                antiOrbSystem.ResetAfterSkillCast();
+            }
+            
             if (!(skill is BasicAttackSkill))
             {
                 RpcCancelSkillSelection();
@@ -457,6 +464,13 @@ public partial class PlayerSkills : NetworkBehaviour
             StartLocalCooldown(itemSkill.SkillName, itemSkill.Cooldown, false);
             // Global cooldown removed
             
+            // Сбрасываем систему anti-orb walking после выполнения скилла предмета
+            AntiOrbWalkingSystem antiOrbSystem = caster.GetComponent<AntiOrbWalkingSystem>();
+            if (antiOrbSystem != null)
+            {
+                antiOrbSystem.ResetAfterSkillCast();
+            }
+            
             if (!(itemSkill is BasicAttackSkill))
             {
                 RpcCancelSkillSelection();
@@ -498,6 +512,13 @@ public partial class PlayerSkills : NetworkBehaviour
         // Устанавливаем ссылку на игрока для динамического расчета кулдауна
         skill.SetPlayer(_core);
         skill.ExecuteOnServer(_core, targetPosition, targetObject, weight);
+        
+        // Сбрасываем систему anti-orb walking после выполнения скилла
+        AntiOrbWalkingSystem antiOrbSystem = _core.GetComponent<AntiOrbWalkingSystem>();
+        if (antiOrbSystem != null)
+        {
+            antiOrbSystem.ResetAfterSkillCast();
+        }
         
         // Кулдаун уже установлен в CmdExecuteSkill, дублировать не нужно
         RpcCancelSkillSelection();

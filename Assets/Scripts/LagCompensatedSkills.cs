@@ -97,6 +97,13 @@ public partial class PlayerSkills : NetworkBehaviour
         StartSkillCooldown(skillName);
         // Global cooldown removed
         
+        // Сбрасываем систему anti-orb walking после выполнения скилла
+        AntiOrbWalkingSystem antiOrbSystem = caster.GetComponent<AntiOrbWalkingSystem>();
+        if (antiOrbSystem != null)
+        {
+            antiOrbSystem.ResetAfterSkillCast();
+        }
+        
         // ПОДТВЕРЖДАЕМ КЛИЕНТАМ:
         ConfirmCommand(targetNetId, skillName, clientTimestamp);
         
