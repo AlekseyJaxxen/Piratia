@@ -210,6 +210,12 @@ public class BasicAttackSkill : SkillBase
         Quaternion startRot = caster.transform.rotation;
         Vector3 targetPos = targetObject.transform.position + vfxTargetOffset;
         caster.GetComponent<PlayerSkills>().RpcPlayBasicAttackVFX(startPos, startRot, targetPos, isCritical, _skillName);
+        
+        // Завершаем цикл атаки через AntiOrbWalkingSystem
+        if (antiOrbSystem != null)
+        {
+            antiOrbSystem.EndAttackCycle();
+        }
     }
 
     public void PlayVFX(Vector3 startPosition, Quaternion startRotation, Vector3 endPosition, bool isCritical, PlayerSkills playerSkills)
